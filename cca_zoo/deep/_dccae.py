@@ -1,4 +1,4 @@
-"""DCCAE — Deep CCA with Autoencoders (Wang 2015)."""
+"""Deep canonically correlated autoencoders."""
 
 from __future__ import annotations
 
@@ -13,53 +13,40 @@ from cca_zoo.deep.objectives import CCALoss
 
 
 class DCCAE(BaseDeep):
-    r"""Deep CCA with Autoencoders.
-
-    Extends DCCA by adding per-view reconstruction losses.  The total
-    objective is a convex combination of the CCA loss and the summed
-    MSE reconstruction losses:
+    r"""Deep CCA with per-view autoencoder reconstruction.
 
     $$
-    \mathcal{L} = (1 - \lambda) \, \mathcal{L}_{\text{CCA}}(z_1, \dots, z_V)
-        + \lambda \sum_i \operatorname{MSE}\!\bigl(x_i,\ \text{decoder}_i(z_i)\bigr)
+    \mathcal{L} = (1 - \lambda) \mathcal{L}_{\text{CCA}}(z_1, \dots, z_M)
+        + \lambda \sum_i \operatorname{MSE}(x_i, \text{decoder}_i(z_i)).
     $$
 
-    where $\mathcal{L}_{\text{CCA}}$ defaults to
-    :class:`~cca_zoo.deep.objectives.CCALoss`. When $\lambda = 0$ the
-    model reduces to :class:`~cca_zoo.deep.DCCA`; when $\lambda = 1$
-    it is a pure autoencoder.
-
-    References:
-        Wang, W., et al. "On deep multi-view representation learning."
-        ICML 2015.
+    ``lam=0`` is :class:`DCCA` and ``lam=1`` independent autoencoders.
 
     Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects mapping each
-            view to the latent space.
-        decoders: List of :class:`torch.nn.Module` objects mapping the
-            latent space back to each view's input space.
-        lam: Weight for the reconstruction term.  Must be in [0, 1].
-            When 0 the model reduces to DCCA; when 1 it is a pure
-            autoencoder. Default is 0.5.
-        objective: Differentiable CCA loss operating on a list of latent
-            tensors.  Defaults to :class:`~cca_zoo.deep.objectives.CCALoss`.
-        learning_rate: Learning rate. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        decoders: One module per view mapping its encoding back.
+        lam: Reconstruction weight in ``[0, 1]``. Default is 0.5.
+        objective: Correlation loss; None uses ``CCALoss(eps)``. Default is
+            None.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation for the CCA loss. Default is 1e-6.
+        eps: Ridge of the default loss. Default is 1e-6.
 
     Raises:
-        ValueError: If ``lam`` is not in [0, 1].
+        ValueError: If ``lam`` is outside ``[0, 1]``.
+
+    References:
+        Wang, W., Arora, R., Livescu, K., & Bilmes, J. (2015). On deep
+        multi-view representation learning. ICML.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1, enc2 = nn.Linear(10, 4), nn.Linear(8, 4)
-        >>> dec1, dec2 = nn.Linear(4, 10), nn.Linear(4, 8)
+        >>> from cca_zoo.deep import DCCAE
         >>> model = DCCAE(
         ...     n_components=4,
-        ...     encoders=[enc1, enc2],
-        ...     decoders=[dec1, dec2],
+        ...     encoders=[nn.Linear(10, 4), nn.Linear(8, 4)],
+        ...     decoders=[nn.Linear(4, 10), nn.Linear(4, 8)],
         ... )
     """
 
@@ -88,16 +75,7 @@ class DCCAE(BaseDeep):
         self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective
 
     def _decode(self, representations: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Decode latent representations back to input space.
-
-        Args:
-            representations: List of latent tensors, each of shape
-                (batch_size, n_components).
-
-        Returns:
-            List of reconstructed tensors, each matching the
-            corresponding view's input shape.
-        """
+        """Reconstruct each view from its own encoding."""
         return [dec(z) for dec, z in zip(self.decoders, representations)]
 
     def loss(
@@ -105,31 +83,26 @@ class DCCAE(BaseDeep):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the DCCAE objective (CCA + reconstruction).
-
-        This method does not have access to the original views for
-        reconstruction.  Override ``training_step`` or call
-        :meth:`_full_loss` if reconstruction targets are needed.
+        """The correlation term alone, since reconstruction needs the inputs.
 
         Args:
-            representations: Encoded views from the current batch.
+            representations: One encoded tensor per view.
             independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"`` containing the CCA loss
-            (reconstruction is not computed here without raw views).
+            ``{"objective": correlation loss}``.
         """
         return {"objective": self.objective(representations)}
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Training step that includes reconstruction loss.
+        """Full loss of a batch, reconstruction included.
 
         Args:
-            batch: Dictionary with key ``"views"`` (list of tensors).
-            batch_idx: Batch index (unused).
+            batch: Dictionary with a ``"views"`` list of tensors.
+            batch_idx: Unused.
 
         Returns:
-            Scalar loss tensor.
+            The loss.
         """
         views = batch["views"]
         representations = self(views)

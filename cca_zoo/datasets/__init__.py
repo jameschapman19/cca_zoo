@@ -1,4 +1,4 @@
-"""Multiview dataset utilities: a simulated generator and toy real-world loaders."""
+"""Simulated and toy multiview datasets."""
 
 from __future__ import annotations
 

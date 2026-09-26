@@ -67,7 +67,7 @@ class RANSACCCA(BaseModel):
         inlier_mask_: Boolean mask of the consensus set.
         n_trials_: Number of subsets tried.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import RANSACCCA
         >>> rng = np.random.default_rng(0)

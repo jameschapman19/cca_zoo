@@ -23,7 +23,7 @@ class PerViewTransformer(BaseEstimator):
     Attributes:
         transformers_: The fitted transformer of each view.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from sklearn.decomposition import PCA
         >>> from sklearn.pipeline import Pipeline

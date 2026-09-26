@@ -636,7 +636,7 @@ class MARSCCA(BaseModel):
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
         The Annals of Statistics, 19(1), 1-67.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.gam import MARSCCA
         >>> rng = np.random.default_rng(0)

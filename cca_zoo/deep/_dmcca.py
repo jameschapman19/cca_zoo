@@ -1,4 +1,4 @@
-"""DMCCA — Deep Multiset CCA."""
+"""Deep multiset CCA."""
 
 from __future__ import annotations
 
@@ -10,41 +10,30 @@ from cca_zoo.deep.objectives import MCCALoss
 
 
 class DMCCA(DCCA):
-    r"""Deep Multiset CCA.
-
-    Applies the multiview pairwise-sum CCA loss
-    (:class:`~cca_zoo.deep.objectives.MCCALoss`) to neural representations,
-    encouraging every pair of views to be mutually correlated in the shared
-    latent space:
+    r"""Deep multiset CCA: the sum of pairwise deep CCA losses.
 
     $$
     \mathcal{L} = \sum_{i < j} \mathcal{L}_{\text{CCA}}(z_i, z_j)
     $$
 
-    Unlike the base :class:`DCCA`, this supports more than two
-    encoders/views out of the box. This is the same SUMCOR multiset
-    objective used by the linear :class:`~cca_zoo.linear.MCCA`, here
-    optimised over neural encoder outputs by gradient descent rather than
-    via eigendecomposition.
+    (:class:`~cca_zoo.deep.objectives.MCCALoss`), for any number of views.
+
+    Args:
+        n_components: Latent dimension.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
+        max_epochs: Maximum training epochs. Default is 100.
+        eps: Ridge of each pairwise loss. Default is 1e-6.
 
     References:
         Kettenring, J. R. (1971). Canonical analysis of several sets of
-        variables. *Biometrika*, 58(3), 433-451.
-
-    Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        learning_rate: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation passed to each pairwise CCA loss.
-            Default is 1e-6.
+        variables. Biometrika, 58(3), 433-451.
 
     Examples:
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> enc3 = nn.Linear(6, 4)
-        >>> model = DMCCA(n_components=4, encoders=[enc1, enc2, enc3])
+        >>> from cca_zoo.deep import DMCCA
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4), nn.Linear(6, 4)]
+        >>> model = DMCCA(n_components=4, encoders=encoders)
     """
 
     def __init__(
@@ -69,14 +58,13 @@ class DMCCA(DCCA):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the DMCCA loss via the summed pairwise CCA objective.
+        """The summed pairwise CCA loss of a batch.
 
         Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, n_components).
+            representations: One encoded tensor per view.
             independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"``.
+            ``{"objective": loss}``.
         """
         return {"objective": self.objective(representations)}

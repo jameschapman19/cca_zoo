@@ -12,27 +12,18 @@ def svd_whiten(
     X: np.ndarray,
     regularization: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Whiten X using a regularised decomposition.
+    """Whiten ``X`` with a ridge-regularised covariance.
 
-    Computes W such that ``X @ W`` has covariance approximately equal to the
-    identity matrix (or a regularised version thereof).
-
-    When ``n_samples >= n_features`` the sample covariance matrix (p x p) is
-    formed explicitly and diagonalised with ``eigh``. This is O(n p^2) in
-    FLOPs and O(p^2) in peak memory -- much cheaper than computing the full
-    thin SVD of X (which allocates an n x p matrix U).
-
-    When ``n_samples < n_features`` the original SVD path is used, which
-    avoids forming the n x n Gram matrix.
+    Uses an eigendecomposition of the covariance when ``n >= p`` and an SVD
+    of ``X`` otherwise.
 
     Args:
-        X: Array of shape (n_samples, n_features), assumed mean-centred.
-        regularization: Ridge parameter in [0, 1].  0 gives full PCA whitening;
-            1 gives identity (no whitening).
+        X: Centred array of shape (n_samples, n_features).
+        regularization: Ridge blend in ``[0, 1]``; 0 is PCA whitening and 1
+            no whitening.
 
     Returns:
-        Tuple ``(X_white, W)`` where ``X_white = X @ W`` and ``W`` is the
-        (n_features, rank) whitening matrix.
+        ``(X @ W, W)``, with ``W`` of shape (n_features, rank).
     """
     n, p = X.shape
     if n >= p:
@@ -69,17 +60,13 @@ def svd_whiten(
 
 
 def psd_inverse_sqrt(matrix: np.ndarray, floor: float) -> np.ndarray:
-    """Inverse square root of a symmetric matrix, lifted to be positive definite.
+    """Inverse square root of a symmetric matrix, shifted to be positive definite.
 
-    If the smallest eigenvalue is below ``floor`` the whole spectrum is
-    shifted up by the difference (``matrix + shift * I``), so the result
-    stays finite for singular or indefinite input. One ``eigh``; a general
-    ``inv(sqrtm(matrix))`` costs several times more and returns a complex
-    result for a symmetric input.
+    The spectrum is raised so its smallest eigenvalue is at least ``floor``.
 
     Args:
         matrix: Symmetric matrix of shape (p, p).
-        floor: Smallest eigenvalue allowed before the shift.
+        floor: Smallest eigenvalue allowed.
 
     Returns:
         Symmetric matrix of shape (p, p).
@@ -91,18 +78,15 @@ def psd_inverse_sqrt(matrix: np.ndarray, floor: float) -> np.ndarray:
 
 
 def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:
-    """Sample mean of the outer products of each sample's rows across views.
+    """Mean over samples of the outer product of each view's row.
 
-    ``M[a, b, ...] = mean_s views[0][s, a] * views[1][s, b] * ...``, shape
-    ``(p_0, p_1, ...)``: for two views, ``views[0].T @ views[1] / n``. The
-    contraction runs pairwise through BLAS, so the sample axis is never
-    materialised alongside the full tensor.
+    For two views, ``views[0].T @ views[1] / n``.
 
     Args:
         views: Arrays of shape (n_samples, p_i).
 
     Returns:
-        Array of shape ``(p_0, ..., p_{m-1})``.
+        Array of shape (p_0, ..., p_{m-1}).
     """
     axes = string.ascii_letters[1 : len(views) + 1]
     subscripts = ",".join("a" + axis for axis in axes) + "->" + axes
@@ -115,20 +99,15 @@ def gevp(
     B: np.ndarray | None,
     k: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Solve a symmetric (generalised) eigenvalue problem and return the top-k pairs.
-
-    Solves ``A v = lambda B v`` (or the standard problem when B is None) and
-    returns the k eigenpairs with the largest eigenvalues.
+    """Top ``k`` eigenpairs of ``A v = lambda B v``, or of ``A`` when ``B`` is None.
 
     Args:
         A: Symmetric matrix of shape (p, p).
-        B: Symmetric positive-definite matrix of shape (p, p), or None for the
-            standard eigenvalue problem.
-        k: Number of eigenpairs to return.
+        B: Symmetric positive-definite matrix of shape (p, p), or None.
+        k: Number of eigenpairs.
 
     Returns:
-        Tuple ``(eigvals, eigvecs)`` where ``eigvals`` has shape ``(k,)`` and
-        ``eigvecs`` has shape ``(p, k)``, sorted in descending order.
+        ``(eigvals, eigvecs)`` of shapes (k,) and (p, k), in descending order.
     """
     p = A.shape[0]
     k_clamped = min(k, p)
@@ -138,17 +117,7 @@ def gevp(
 
 
 def soft_threshold(x: np.ndarray, threshold: float) -> np.ndarray:
-    """Apply element-wise soft (shrinkage) thresholding.
-
-    Computes ``sign(x) * max(|x| - threshold, 0)``.
-
-    Args:
-        x: Input array.
-        threshold: Non-negative threshold value.
-
-    Returns:
-        Thresholded array of the same shape as ``x``.
-    """
+    """Soft thresholding, ``sign(x) * max(|x| - threshold, 0)``."""
     return np.asarray(np.sign(x) * np.maximum(np.abs(x) - threshold, 0.0))
 
 
@@ -156,18 +125,16 @@ def deflate(
     views: list[np.ndarray],
     weights: list[np.ndarray],
 ) -> list[np.ndarray]:
-    """Deflate views by removing the variance explained by current weights.
+    """Remove from each view the variance along its current projection.
 
-    Uses the Gram-Schmidt / projection deflation approach:
-    ``X_deflated = X - (X @ w) (X @ w)^T X / ||(X @ w)||^2``
+    ``X - (X w)(X w)' X / ||X w||^2``.
 
     Args:
-        views: List of arrays each of shape (n_samples, n_features_i).
-        weights: List of weight vectors each of shape (n_features_i, 1) or
-            (n_features_i,).
+        views: Arrays of shape (n_samples, n_features_i).
+        weights: Weight vectors of shape (n_features_i,) or (n_features_i, 1).
 
     Returns:
-        List of deflated arrays with the same shapes as ``views``.
+        The deflated views.
     """
     deflated = []
     for view, w in zip(views, weights):

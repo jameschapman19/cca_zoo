@@ -1,9 +1,8 @@
-"""Linear CCA methods.
+"""Linear CCA.
 
-This module provides classical linear multiview CCA algorithms ranging from
-the standard two-view CCA and PLS to multiset and generalised variants, as
-well as EY-loss methods suited to high-dimensional data. Sparse/regularised
-iterative methods live in :mod:`cca_zoo.sparse`; mini-batch methods live in
+Closed-form two-view and multiview models, reduced-rank-regression and
+robust variants, and Eckart-Young models fitted by L-BFGS-B. Sparse
+models are in :mod:`cca_zoo.sparse`, mini-batch ones in
 :mod:`cca_zoo.stochastic`.
 """
 

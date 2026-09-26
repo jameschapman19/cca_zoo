@@ -1,4 +1,4 @@
-"""BaseDeep — LightningModule base for all deep CCA models."""
+"""Lightning base class for the deep models."""
 
 from __future__ import annotations
 
@@ -13,18 +13,15 @@ from cca_zoo.linear._mcca import MCCA
 
 
 class BaseDeep(pl.LightningModule):
-    """Base class for deep multiview CCA models using PyTorch Lightning.
+    """Base class for deep multiview models, as Lightning modules.
 
-    Subclasses override :meth:`loss` to implement the specific objective
-    function.  Training is handled by a :class:`lightning.Trainer`.
-
-    The sklearn-compatible interface (``fit``, ``transform``, ``score``) is
-    provided for convenience, wrapping the Lightning training loop.
+    Subclasses implement :meth:`loss`; train with a
+    :class:`lightning.pytorch.Trainer`.
 
     Args:
-        n_components: Dimensionality of the latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        learning_rate: Learning rate for the Adam optimiser. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
     """
 
@@ -42,14 +39,7 @@ class BaseDeep(pl.LightningModule):
         self.encoders = nn.ModuleList(encoders)
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Encode all views into latent representations.
-
-        Args:
-            views: List of tensors, each (batch_size, n_features_i).
-
-        Returns:
-            List of tensors, each (batch_size, n_components).
-        """
+        """Encode each view; one tensor of shape (batch_size, n_components) per view."""
         return [enc(v) for enc, v in zip(self.encoders, views)]
 
     def loss(
@@ -57,31 +47,28 @@ class BaseDeep(pl.LightningModule):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the training objective.
+        """The training loss of a batch.
 
         Args:
-            representations: Encoded views from the current batch.
-            independent_representations: Optional second set of encodings
-                (e.g., for gradient correction in NOI).
+            representations: One encoded tensor per view.
+            independent_representations: A second, independent batch's
+                encodings, for losses that need one. Default is None.
 
         Returns:
-            Dictionary with at least the key ``"objective"`` (to minimise).
-
-        Raises:
-            NotImplementedError: If not overridden by a subclass.
+            A dictionary whose ``"objective"`` entry is minimised.
         """
         raise NotImplementedError
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Compute the training loss for one mini-batch.
+        """Training loss of a batch.
 
         Args:
-            batch: Dictionary with key ``"views"`` (list of tensors) and
-                optionally ``"independent_views"``.
-            batch_idx: Batch index (unused).
+            batch: Dictionary with ``"views"`` and optionally
+                ``"independent_views"``.
+            batch_idx: Unused.
 
         Returns:
-            Scalar loss tensor.
+            The loss.
         """
         representations = self(batch["views"])
         ind_repr = (
@@ -101,14 +88,14 @@ class BaseDeep(pl.LightningModule):
         return loss_dict["objective"]
 
     def validation_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        """Compute the validation loss for one mini-batch.
+        """Validation loss of a batch.
 
         Args:
-            batch: Dictionary with ``"views"`` key.
-            batch_idx: Batch index (unused).
+            batch: Dictionary with ``"views"``.
+            batch_idx: Unused.
 
         Returns:
-            Scalar loss tensor.
+            The loss.
         """
         representations = self(batch["views"])
         loss_dict = self.loss(representations)
@@ -123,22 +110,18 @@ class BaseDeep(pl.LightningModule):
         return loss_dict["objective"]
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        """Create the Adam optimiser.
-
-        Returns:
-            Adam optimiser with the configured learning rate.
-        """
+        """Adam with ``learning_rate``."""
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     @torch.no_grad()
     def transform(self, loader: torch.utils.data.DataLoader) -> list[np.ndarray]:
-        """Project all samples in a DataLoader into the latent space.
+        """Encode every sample of a loader.
 
         Args:
             loader: DataLoader yielding batches with a ``"views"`` key.
 
         Returns:
-            List of numpy arrays, each (n_samples, n_components).
+            One array of shape (n_samples, n_components) per view.
         """
         self.eval()
         all_reprs: list[list[torch.Tensor]] = []
@@ -154,13 +137,13 @@ class BaseDeep(pl.LightningModule):
         return [t.numpy() for t in stacked]
 
     def score(self, loader: torch.utils.data.DataLoader) -> float:
-        """Mean canonical correlation of the representations after linear CCA.
+        """Mean canonical correlation of linear CCA on the encodings.
 
         Args:
-            loader: DataLoader with a ``"views"`` key.
+            loader: DataLoader yielding batches with a ``"views"`` key.
 
         Returns:
-            The mean canonical correlation, as for every model's ``score``.
+            The mean canonical correlation.
         """
         representations = self.transform(loader)
         return (

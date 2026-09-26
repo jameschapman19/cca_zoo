@@ -28,7 +28,7 @@ class CCA(RidgeCCA):
         Hotelling, H. (1936). Relations between two sets of variates.
         Biometrika, 28(3/4), 321-377.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> rng = np.random.default_rng(0)

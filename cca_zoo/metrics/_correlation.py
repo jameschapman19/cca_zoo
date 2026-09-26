@@ -1,16 +1,4 @@
-"""Canonical-correlation metrics shared by every fitted multiview model.
-
-Every function here operates on already-computed arrays (latent scores, a
-correlation matrix) rather than on a fitted model, mirroring
-``sklearn.metrics``'s own convention of taking computed values (e.g.
-``y_true``/``y_pred``) rather than an estimator. ``BaseModel``'s
-``pairwise_correlations``/``average_pairwise_correlations``/
-``get_factor_loadings`` (and the probabilistic module's
-``PosteriorMeanTransformMixin``, which needs a different per-view
-projection) are thin wrappers around these: they compute the per-view
-latent scores their own way and delegate the actual metric computation
-here, so the math is written -- and tested -- exactly once.
-"""
+"""Correlation metrics on latent scores, as returned by ``transform``."""
 
 from __future__ import annotations
 
@@ -21,27 +9,22 @@ from numpy.typing import ArrayLike
 
 
 def pairwise_correlations(transformed: Sequence[ArrayLike]) -> np.ndarray:
-    """Full pairwise Pearson correlation matrix between views' latent scores.
+    """Pearson correlation between every pair of views' latent scores.
 
     Args:
-        transformed: List of arrays, each of shape (n_samples,
-            n_components) -- one per view's own canonical variate
-            (e.g. the output of a fitted model's ``transform``).
+        transformed: Scores of shape (n_samples, n_components), one per view.
 
     Returns:
-        Array of shape (n_views, n_views, n_components) where entry
-        ``[i, j, d]`` is the Pearson correlation between view i's and view
-        j's d-th canonical variate.
+        Shape (n_views, n_views, n_components); entry ``[i, j, d]``
+        correlates the d-th scores of views i and j.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.metrics import pairwise_correlations
         >>> rng = np.random.default_rng(0)
         >>> t1 = rng.standard_normal((20, 1))
         >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
-        >>> corrs = pairwise_correlations([t1, t2])
-        >>> corrs.shape
-        (2, 2, 1)
-        >>> round(float(corrs[0, 1, 0]), 2)
+        >>> round(float(pairwise_correlations([t1, t2])[0, 1, 0]), 2)
         0.98
     """
     T = np.stack([np.asarray(t) for t in transformed], axis=0)
@@ -53,27 +36,13 @@ def pairwise_correlations(transformed: Sequence[ArrayLike]) -> np.ndarray:
 
 
 def average_pairwise_correlations(correlations: ArrayLike) -> np.ndarray:
-    """Mean off-diagonal pairwise correlation per canonical dimension.
+    """Mean correlation over pairs of distinct views, per dimension.
 
     Args:
-        correlations: Array of shape (n_views, n_views, n_components)
-            -- typically the output of :func:`pairwise_correlations`.
+        correlations: Output of :func:`pairwise_correlations`.
 
     Returns:
-        Array of shape (n_components,) with the average off-diagonal
-        pairwise correlation for each canonical dimension.
-
-    Examples:
-        >>> import numpy as np
-        >>> rng = np.random.default_rng(0)
-        >>> t1 = rng.standard_normal((20, 1))
-        >>> t2 = 0.8 * t1 + 0.2 * rng.standard_normal((20, 1))
-        >>> corrs = pairwise_correlations([t1, t2])
-        >>> avg = average_pairwise_correlations(corrs)
-        >>> avg.shape
-        (1,)
-        >>> round(float(avg[0]), 2)
-        0.98
+        Shape (n_components,).
     """
     corrs = np.asarray(correlations)
     n_views = corrs.shape[0]
@@ -88,30 +57,24 @@ def average_pairwise_correlations(correlations: ArrayLike) -> np.ndarray:
 def factor_loadings(
     views: Sequence[ArrayLike], transformed: Sequence[ArrayLike]
 ) -> list[np.ndarray]:
-    """Pearson correlation between each raw feature and its view's own variate.
+    """Correlation of each feature with its own view's latent scores.
 
     Args:
-        views: List of arrays, each of shape (n_samples, n_features_i).
-        transformed: List of arrays, each of shape (n_samples,
-            n_components), aligned with ``views`` -- view i's own
-            canonical variate.
+        views: Arrays of shape (n_samples, n_features_i), one per view.
+        transformed: Scores of shape (n_samples, n_components), one per view.
 
     Returns:
-        List of arrays, each of shape (n_features_i, n_components),
-        where entry ``[j, d]`` is the correlation between feature j of
-        view i and the d-th canonical variate of view i.
+        One array of shape (n_features_i, n_components) per view.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.metrics import factor_loadings
         >>> rng = np.random.default_rng(0)
         >>> t1 = rng.standard_normal((20, 1))
         >>> view1 = np.column_stack(
         ...     [t1[:, 0] + 0.3 * rng.standard_normal(20), rng.standard_normal(20)]
         ... )
-        >>> loadings = factor_loadings([view1], [t1])
-        >>> loadings[0].shape
-        (2, 1)
-        >>> round(float(loadings[0][0, 0]), 2)
+        >>> round(float(factor_loadings([view1], [t1])[0][0, 0]), 2)
         0.97
     """
     loadings = []

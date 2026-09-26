@@ -1,4 +1,4 @@
-"""DGCCA — Deep Generalised CCA."""
+"""Deep generalized CCA."""
 
 from __future__ import annotations
 
@@ -10,40 +10,32 @@ from cca_zoo.deep.objectives import GCCALoss
 
 
 class DGCCA(DCCA):
-    r"""Deep Generalised CCA.
-
-    Applies the generalised CCA (MAX-VAR) loss
-    (:class:`~cca_zoo.deep.objectives.GCCALoss`) to neural representations,
-    maximising correlation of each view with a shared latent target rather
-    than with every other view pairwise:
+    r"""Deep generalized CCA: correlate every view with a shared target.
 
     $$
-    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\!\left(\sum_i H_i H_i^\top\right)
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\Bigl(\sum_i H_i H_i^\top\Bigr)
     $$
 
-    where $H_i$ is the ridge-whitened representation of view
-    $i$ and $\lambda_d(\cdot)$ is the $d$-th largest
-    eigenvalue. Unlike the base :class:`DCCA`, this supports more than two
-    encoders/views out of the box, mirroring the linear
-    :class:`~cca_zoo.linear.GCCA`.
-
-    References:
-        Benton, A., et al. "Deep Generalized Canonical Correlation
-        Analysis." RepL4NLP 2019.
+    for ridge-whitened encodings $H_i$
+    (:class:`~cca_zoo.deep.objectives.GCCALoss`), for any number of views.
 
     Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        learning_rate: Learning rate. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation for within-view whitening. Default is 1e-6.
+        eps: Whitening ridge. Default is 1e-6.
+
+    References:
+        Benton, A., Khayrallah, H., Gujral, B., Reisinger, D. A., Zhang, S.,
+        & Arora, R. (2019). Deep generalized canonical correlation analysis.
+        RepL4NLP.
 
     Examples:
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> enc3 = nn.Linear(6, 4)
-        >>> model = DGCCA(n_components=4, encoders=[enc1, enc2, enc3])
+        >>> from cca_zoo.deep import DGCCA
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4), nn.Linear(6, 4)]
+        >>> model = DGCCA(n_components=4, encoders=encoders)
     """
 
     def __init__(
@@ -68,14 +60,13 @@ class DGCCA(DCCA):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the DGCCA loss via the generalised CCA objective.
+        """The generalized CCA loss of a batch.
 
         Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, n_components).
+            representations: One encoded tensor per view.
             independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"``.
+            ``{"objective": loss}``.
         """
         return {"objective": self.objective(representations)}

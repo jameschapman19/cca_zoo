@@ -30,7 +30,7 @@ class PLS(RidgeCCA):
         iterative partial least squares (NIPALS) approach. Perspectives in
         Probability and Statistics, 117-142.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import PLS
         >>> rng = np.random.default_rng(0)

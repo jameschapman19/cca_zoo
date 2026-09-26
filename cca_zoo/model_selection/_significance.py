@@ -78,7 +78,7 @@ def permutation_test_significance(
     Raises:
         ValueError: If ``n_permutations`` is not positive.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> from cca_zoo.model_selection import permutation_test_significance

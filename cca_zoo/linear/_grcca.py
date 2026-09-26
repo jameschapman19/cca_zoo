@@ -37,7 +37,7 @@ class GRCCA(MCCA):
         analysis in high dimensions with structured regularization.
         Statistical Modelling.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import GRCCA
         >>> rng = np.random.default_rng(0)

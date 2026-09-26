@@ -1,4 +1,4 @@
-"""Nonparametric (kernel- and graph-based) CCA methods."""
+"""Kernel and graph-based CCA."""
 
 from ._kcca import KCCA
 from ._kgcca import KGCCA

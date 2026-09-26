@@ -20,7 +20,7 @@ def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
     Returns:
         One array of shape (n_components,) per view.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.metrics import adequacy_coefficient, factor_loadings
         >>> rng = np.random.default_rng(0)
@@ -53,7 +53,7 @@ def redundancy_index(
         Shape (n_views, n_views, n_components); the diagonal is each view's
         adequacy.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.metrics import (
         ...     factor_loadings,

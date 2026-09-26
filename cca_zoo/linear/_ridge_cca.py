@@ -37,7 +37,7 @@ class RidgeCCA(BaseModel):
         Vinod, H. D. (1976). Canonical ridge and econometrics of joint
         production. Journal of Econometrics, 4(2), 147-166.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import RidgeCCA
         >>> rng = np.random.default_rng(0)

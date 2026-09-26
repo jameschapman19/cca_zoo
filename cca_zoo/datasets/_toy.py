@@ -1,4 +1,4 @@
-"""Toy real-world dataset loaders for multiview CCA experiments."""
+"""Toy real-world multiview datasets."""
 
 from __future__ import annotations
 
@@ -6,24 +6,16 @@ import numpy as np
 
 
 def load_linnerud() -> tuple[np.ndarray, np.ndarray]:
-    """Load the Linnerud dataset as two views.
-
-    The Linnerud dataset (from scikit-learn) contains two sets of
-    measurements on 20 middle-aged men: exercise performance and
-    physiological measurements.  This function returns them as a pair of
-    numpy arrays suitable for two-view CCA.
+    """The Linnerud data as exercise and physiological views.
 
     Returns:
-        Tuple ``(exercise, physiological)``. ``exercise`` is shape (20, 3)
-        with chin-up, sit-up, and jump counts. ``physiological`` is shape
-        (20, 3) with weight, waist, and pulse measurements.
+        ``(exercise, physiological)``, each of shape (20, 3).
 
     Examples:
+        >>> from cca_zoo.datasets import load_linnerud
         >>> X1, X2 = load_linnerud()
-        >>> X1.shape
-        (20, 3)
-        >>> X2.shape
-        (20, 3)
+        >>> X1.shape, X2.shape
+        ((20, 3), (20, 3))
     """
     from sklearn.datasets import load_linnerud as _load
 
@@ -33,21 +25,16 @@ def load_linnerud() -> tuple[np.ndarray, np.ndarray]:
 
 
 def load_breast_cancer() -> tuple[np.ndarray, np.ndarray]:
-    """Load the Wisconsin breast cancer dataset split into two feature views.
-
-    The 30 features of the Wisconsin Diagnostic Breast Cancer dataset are
-    split into two equal halves of 15 features each, providing a simple
-    two-view dataset for benchmarking multiview methods.
+    """The Wisconsin breast cancer features split into two 15-feature views.
 
     Returns:
-        Tuple ``(view1, view2)`` where each array has shape (569, 15).
+        ``(view1, view2)``, each of shape (569, 15).
 
     Examples:
+        >>> from cca_zoo.datasets import load_breast_cancer
         >>> X1, X2 = load_breast_cancer()
-        >>> X1.shape
-        (569, 15)
-        >>> X2.shape
-        (569, 15)
+        >>> X1.shape, X2.shape
+        ((569, 15), (569, 15))
     """
     from sklearn.datasets import load_breast_cancer as _load
 

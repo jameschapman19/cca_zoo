@@ -1,9 +1,4 @@
-"""Deep multiview CCA models powered by PyTorch Lightning.
-
-This module is only available when both ``torch`` and ``lightning``
-are installed.  Import errors are deferred to usage time rather than
-raised at import of ``cca_zoo``.
-"""
+"""Deep multiview models in PyTorch Lightning; requires the ``deep`` extra."""
 
 from __future__ import annotations
 

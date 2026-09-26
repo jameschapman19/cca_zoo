@@ -38,7 +38,7 @@ class StochasticCCAEY(CCAEY):
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.stochastic import StochasticCCAEY
         >>> rng = np.random.default_rng(0)

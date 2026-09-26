@@ -62,7 +62,7 @@ class VICReg(DCCA):
         Variance-Invariance-Covariance Regularization for Self-Supervised
         Learning. ICLR.
 
-    Example:
+    Examples:
         >>> import torch.nn as nn
         >>> from cca_zoo.deep import VICReg
         >>> model = VICReg(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])

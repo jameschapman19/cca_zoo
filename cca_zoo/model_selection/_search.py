@@ -41,7 +41,7 @@ class MultiviewWrapper(BaseEstimator):
     Attributes:
         estimator_: The fitted multiview estimator.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from sklearn.model_selection import cross_val_score
         >>> from cca_zoo.linear import CCA
@@ -272,7 +272,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         best_params_: Parameters of the best candidate.
         best_score_: Mean cross-validated score of the best candidate.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import GridSearchCV
@@ -374,7 +374,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         best_params_: Parameters of the best candidate.
         best_score_: Mean cross-validated score of the best candidate.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import RidgeCCA
@@ -493,7 +493,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         best_params_: Parameters of the best candidate.
         best_score_: Mean cross-validated score of the best candidate.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import HalvingGridSearchCV
@@ -619,7 +619,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         best_params_: Parameters of the best candidate.
         best_score_: Mean cross-validated score of the best candidate.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import RidgeCCA

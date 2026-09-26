@@ -1,4 +1,4 @@
-"""KTCCA — Kernel Tensor Canonical Correlation Analysis."""
+"""Kernel tensor CCA."""
 
 from __future__ import annotations
 
@@ -14,37 +14,43 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class KTCCA(BaseModel):
-    r"""Kernel Tensor Canonical Correlation Analysis.
+    """Kernel tensor CCA.
 
-    Extends TCCA to nonlinear relationships by computing the cross-moment
-    tensor from whitened kernel matrices rather than from the raw views.
-    Each kernel matrix $K_i$ is whitened using its regularised
-    self-product, then PARAFAC is applied to the resulting cross-moment
-    tensor.
-
-    References:
-        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
-        correlation analysis for action classification. *CVPR 2007*. IEEE.
+    :class:`~cca_zoo.linear.TCCA` on whitened kernel matrices: PARAFAC of
+    their cross-moment tensor gives the dual coefficients.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Regularisation parameter(s). Default is 0.1.
-        kernel: Kernel name(s). Default is ``"linear"``.
-        gamma: Gamma for RBF/polynomial kernel.
-        degree: Degree for polynomial kernel.
-        coef0: coef0 for polynomial/sigmoid kernel.
-        kernel_params: Extra per-view keyword arguments for the kernel.
-        eps: Regularisation floor. Default is 1e-3.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.1.
+        kernel: Kernel name or callable for
+            :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
+            ``"linear"``.
+        gamma: Kernel coefficient for RBF, polynomial and sigmoid kernels.
+            Per-view. Default is None.
+        degree: Polynomial kernel degree. Per-view. Default is 1.
+        coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
+        kernel_params: Extra kernel keyword arguments. Per-view. Default is
+            None.
+        eps: Floor added to the within-view matrices. Default is 1e-3.
         random_state: Seed for PARAFAC. Default is None.
+
+    Attributes:
+        weights_: Dual coefficients of each view, shape (n_samples,
+            n_components).
+
+    References:
+        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
+        correlation analysis for action classification. CVPR.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.nonparametric import KTCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((20, 5))
         >>> X2 = rng.standard_normal((20, 5))
         >>> X3 = rng.standard_normal((20, 5))
-        >>> model = KTCCA(n_components=1, random_state=0).fit([X1, X2, X3])
+        >>> model = KTCCA(random_state=0).fit([X1, X2, X3])
     """
 
     def __init__(
@@ -143,15 +149,7 @@ class KTCCA(BaseModel):
         kernels: list[np.ndarray],
         c: list[float],
     ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-        """Whiten kernel matrices using their regularised self-products.
-
-        Args:
-            kernels: List of kernel matrices.
-            c: Per-view regularisation parameters.
-
-        Returns:
-            Tuple of (whitened_kernels, inverse_sqrt_matrices).
-        """
+        """Whitened kernels and each view's inverse square-root matrix."""
         whitened = []
         cov_invsqrt = []
         for i, K in enumerate(kernels):

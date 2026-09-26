@@ -43,7 +43,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         Bach, F. R., & Jordan, M. I. (2005). A probabilistic interpretation
         of canonical correlation analysis. Technical Report 688, UC Berkeley.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.probabilistic import ProbabilisticCCA
         >>> rng = np.random.default_rng(0)

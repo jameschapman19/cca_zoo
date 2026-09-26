@@ -168,7 +168,7 @@ class GaussianProcessCCA(BaseModel):
         of Sparse Approximate Gaussian Process Regression. Journal of
         Machine Learning Research, 6, 1939-1959.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.gp import GaussianProcessCCA
         >>> rng = np.random.default_rng(0)

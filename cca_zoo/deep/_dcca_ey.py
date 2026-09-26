@@ -1,4 +1,4 @@
-"""DCCAEY — Deep CCA with EigenGame / Eckart-Young objective."""
+"""Deep CCA with the Eckart-Young loss."""
 
 from __future__ import annotations
 
@@ -11,17 +11,7 @@ from cca_zoo.deep._dcca import DCCA
 def _cca_cv(
     representations: list[torch.Tensor],
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Compute the averaged cross-covariance and auto-covariance matrices.
-
-    Args:
-        representations: List of tensors each of shape
-            (batch_size, n_components).
-
-    Returns:
-        Tuple ``(C, V)`` where C is the mean pairwise cross-covariance
-        and V is the mean auto-covariance, both of shape
-        (n_components, n_components).
-    """
+    """Mean pairwise cross-covariance and mean auto-covariance, each (k, k)."""
     k = representations[0].shape[1]
     device = representations[0].device
     c = torch.zeros(k, k, device=device)
@@ -40,42 +30,31 @@ def _cca_cv(
 
 
 class DCCAEY(DCCA):
-    r"""DCCA using the EigenGame / Eckart-Young (EY) objective.
-
-    For $M$ views with embeddings $Z_1, \dots, Z_M$, define the
-    mean pairwise cross-covariance $C$ and mean auto-covariance
-    $V$ (see :mod:`cca_zoo._utils._ey` for the full definitions).
-    The EY loss minimised is:
+    r"""Deep CCA by minimising the Eckart-Young loss.
 
     $$
-    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(VV)
+    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V),
     $$
 
-    This is an *unconstrained* stand-in for CCA — unlike the exact
-    eigendecomposition solution, it requires no manifold projection and is
-    a stationary point exactly at the canonical directions, making it
-    suitable for mini-batch gradient descent. When
-    ``independent_representations`` are provided, the $\operatorname{tr}(VV)$
-    penalty becomes $\operatorname{tr}(V V_{\text{ind}})$ to decouple
-    estimation of the two quantities (as in the EigenGame formulation).
+    (:mod:`cca_zoo._utils._ey`), which is unconstrained and so suits
+    mini-batches. With independent representations the penalty is
+    $\operatorname{tr}(V V_{\text{ind}})$, an unbiased estimate.
+
+    Args:
+        n_components: Latent dimension.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
+        max_epochs: Maximum training epochs. Default is 100.
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
         arXiv:2310.01012.
 
-    Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        learning_rate: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCAEY(n_components=4, encoders=[enc1, enc2])
+        >>> from cca_zoo.deep import DCCAEY
+        >>> model = DCCAEY(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])
     """
 
     def __init__(
@@ -97,17 +76,15 @@ class DCCAEY(DCCA):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the EigenGame / Eckart-Young CCA loss.
+        """The EY loss of a batch and its terms.
 
         Args:
-            representations: Encoded views from the current batch.
-            independent_representations: Optional second set of encodings
-                for the EigenGame penalty term.  When provided the penalty
-                is ``tr(V @ V_ind)`` instead of ``tr(V @ V)``.
+            representations: One encoded tensor per view.
+            independent_representations: Encodings of an independent batch for
+                the penalty. Default is None.
 
         Returns:
-            Dictionary with keys ``"objective"``, ``"rewards"``, and
-            ``"penalties"``.
+            ``{"objective", "rewards", "penalties"}``.
         """
         c, v = _cca_cv(representations)
         rewards = torch.trace(2.0 * c)

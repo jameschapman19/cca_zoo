@@ -134,7 +134,7 @@ class ProjectionPursuitCCA(BaseModel):
         association estimators. Journal of the American Statistical
         Association, 112(517), 436-445.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import ProjectionPursuitCCA
         >>> rng = np.random.default_rng(0)

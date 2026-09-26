@@ -68,7 +68,7 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         Correlation Analysis. Journal of Machine Learning Research, 14,
         965-1003.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.probabilistic import GFA
         >>> rng = np.random.default_rng(0)

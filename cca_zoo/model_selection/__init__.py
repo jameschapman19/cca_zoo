@@ -1,4 +1,4 @@
-"""Model selection utilities for multiview CCA models."""
+"""Hyperparameter search and permutation tests for multiview models."""
 
 from __future__ import annotations
 

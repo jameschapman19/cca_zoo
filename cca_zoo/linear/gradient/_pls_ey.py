@@ -32,7 +32,7 @@ class PLSEY(CCAEY):
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
         arXiv:2310.01012.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import PLSEY
         >>> rng = np.random.default_rng(0)

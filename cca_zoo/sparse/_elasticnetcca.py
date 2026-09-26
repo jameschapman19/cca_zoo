@@ -45,7 +45,7 @@ class ElasticNetCCA(BaseModel):
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.sparse import ElasticNetCCA
         >>> rng = np.random.default_rng(0)

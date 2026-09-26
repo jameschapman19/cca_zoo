@@ -1,4 +1,4 @@
-"""DTCCA — Deep Tensor CCA (Wong 2021)."""
+"""Deep tensor CCA."""
 
 from __future__ import annotations
 
@@ -10,42 +10,29 @@ from cca_zoo.deep.objectives import TCCALoss
 
 
 class DTCCA(DCCA):
-    r"""Deep Tensor CCA.
+    r"""Deep tensor CCA: maximise the cross-moment tensor of whitened encodings.
 
-    Applies the tensor CCA loss (:class:`~cca_zoo.deep.objectives.TCCALoss`)
-    to neural representations. The cross-moment tensor is formed from
-    whitened latent codes, and the objective is the negative Frobenius norm
-    of that tensor — a differentiable proxy for the tensor CCA criterion:
-
-    $$
-    M = \frac{1}{n} \sum_{s=1}^{n} H_1[s] \otimes H_2[s] \otimes
-        \cdots \otimes H_V[s], \qquad
-    \mathcal{L} = -\left\| M \right\|_F
-    $$
-
-    where $\otimes$ denotes the outer product and $H_i$ is the
-    ridge-whitened representation of view $i$. This is the deep
-    analogue of the higher-order cross-moment maximised in closed form by
-    the linear :class:`~cca_zoo.linear.TCCA`.
-
-    References:
-        Wong, H. S., et al. "Deep Tensor CCA for Multi-view Learning."
-        IEEE Transactions on Big Data (2021).
+    Minimises $-\|M\|_F$ with
+    $M = \frac{1}{n} \sum_s H_1[s] \otimes \cdots \otimes H_M[s]$ for
+    ridge-whitened encodings $H_i$
+    (:class:`~cca_zoo.deep.objectives.TCCALoss`).
 
     Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        learning_rate: Learning rate. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation for whitening. Default is 1e-6.
+        eps: Whitening ridge. Default is 1e-6.
+
+    References:
+        Wong, H. S., Wang, L., Chan, R., & Zeng, T. (2021). Deep tensor
+        CCA for multi-view learning. IEEE Transactions on Big Data.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> enc3 = nn.Linear(6, 4)
-        >>> model = DTCCA(n_components=4, encoders=[enc1, enc2, enc3])
+        >>> from cca_zoo.deep import DTCCA
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4), nn.Linear(6, 4)]
+        >>> model = DTCCA(n_components=4, encoders=encoders)
     """
 
     def __init__(
@@ -70,14 +57,13 @@ class DTCCA(DCCA):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the DTCCA loss via the tensor cross-moment.
+        """The tensor CCA loss of a batch.
 
         Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, n_components).
+            representations: One encoded tensor per view.
             independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"``.
+            ``{"objective": loss}``.
         """
         return {"objective": self.objective(representations)}

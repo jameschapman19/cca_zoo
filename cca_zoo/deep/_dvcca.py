@@ -36,7 +36,7 @@ class DVCCA(BaseDeep):
         Wang, W., Yan, X., Lee, H., & Livescu, K. (2016). Deep variational
         canonical correlation analysis. arXiv:1610.03454.
 
-    Example:
+    Examples:
         >>> import torch.nn as nn
         >>> from cca_zoo.deep import DVCCA
         >>> model = DVCCA(

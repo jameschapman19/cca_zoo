@@ -1,4 +1,4 @@
-"""KGCCA — Kernel Generalised Canonical Correlation Analysis."""
+"""Kernel generalized CCA."""
 
 from __future__ import annotations
 
@@ -12,45 +12,47 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class KGCCA(BaseModel):
-    r"""Kernel Generalised Canonical Correlation Analysis.
+    r"""Kernel generalized CCA.
 
-    Kernelised version of GCCA.  The shared latent vector is found by
-    solving the eigenvalue problem on the weighted sum of kernel projection
-    matrices:
-
-    $$
-    Q = \sum_{i=1}^M \mu_i K_i
-        \bigl(c_i K_i + (1 - c_i) K_i^2\bigr)^{-1} K_i
-    $$
-
-    and the dual variables (kernel coefficients) are recovered as
-    $\boldsymbol{\alpha}_i = K_i^+ T$ where $T$ is the matrix
-    of top-k eigenvectors of $Q$.
-
-    References:
-        Tenenhaus, A., Philippe, C., & Frouin, V. (2015). Kernel generalized
-        canonical correlation analysis. *Computational Statistics & Data
-        Analysis*, 90, 114–131.
+    :class:`~cca_zoo.linear.GCCA` in the dual: $T$ holds the top
+    eigenvectors of
+    $\sum_i \mu_i K_i (c_i K_i + (1 - c_i) K_i^2)^{-1} K_i$ and
+    $\alpha_i = K_i^+ T$.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Regularisation parameter(s). Default is 0.1.
-        kernel: Kernel name(s). Default is ``"linear"``.
-        gamma: Gamma for RBF/polynomial kernel.
-        degree: Degree for polynomial kernel.
-        coef0: coef0 for polynomial/sigmoid kernel.
-        kernel_params: Extra per-view kernel keyword arguments.
-        view_weights: Per-view weights. Default is equal weights.
-        eps: Regularisation floor. Default is 1e-6.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.1.
+        kernel: Kernel name or callable for
+            :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
+            ``"linear"``.
+        gamma: Kernel coefficient for RBF, polynomial and sigmoid kernels.
+            Per-view. Default is None.
+        degree: Polynomial kernel degree. Per-view. Default is 1.
+        coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
+        kernel_params: Extra kernel keyword arguments. Per-view. Default is
+            None.
+        view_weights: Weight of each view; None weights them equally.
+            Default is None.
+        eps: Floor added to the within-view matrices. Default is 1e-6.
+
+    Attributes:
+        weights_: Dual coefficients of each view, shape (n_samples,
+            n_components).
+
+    References:
+        Tenenhaus, A., Philippe, C., & Frouin, V. (2015). Kernel generalized
+        canonical correlation analysis. Computational Statistics & Data
+        Analysis, 90, 114-131.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.nonparametric import KGCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((30, 5))
         >>> X2 = rng.standard_normal((30, 5))
         >>> X3 = rng.standard_normal((30, 5))
-        >>> model = KGCCA(n_components=2).fit([X1, X2, X3])
+        >>> model = KGCCA(n_components=2, kernel="rbf").fit([X1, X2, X3])
     """
 
     def __init__(

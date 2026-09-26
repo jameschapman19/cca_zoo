@@ -77,8 +77,14 @@ uv run mkdocs build --strict      # build static site into site/
 All contributions must comply with the following:
 
 - **Python ≥ 3.10 only.** Use `X | Y` unions, `list[x]`/`dict[x]`/`tuple[x]` generics.
-- **Google-style docstrings** on all public classes and methods with Args, Returns, Raises,
-  and Example sections.
+- **Google-style docstrings**, short and factual. A public class docstring has a one-line
+  summary, the objective and method in a few sentences (maths where it defines the model),
+  then `Args` (each ending "Default is X."; "Per-view." for parameters that take a scalar or
+  one value per view), `Attributes` (the fitted attributes specific to the model; the common
+  ones are on `BaseModel`), `References` and a runnable `Examples` section. `fit` docstrings take
+  the form "Fit the model." with `Args`, `Returns: self.` and only model-specific `Raises`.
+  Private helpers get a line or two. Design rationale, history and comparisons belong in the
+  user guide, not the docstring.
 - **Full type annotations** — `mypy --strict` must pass cleanly.
 - **No `try/except`** — write code that does not need them.
 - **No `print`** — use `logging` if diagnostic output is needed.
@@ -95,8 +101,10 @@ All contributions must comply with the following:
    `transform`, `fit_transform`, `predict`, `inverse_transform`, `score`, and correct
    sklearn `get_params`/`set_params`/tags for free. Implement `fit`, setting `weights_`
    for a linear model; a nonlinear one overrides `_transform_view(view, centred)`, its
-   per-view encoder, which every other method goes through. Set `feature_importances_`
-   in `fit` (one non-negative array per view, each summing to 1).
+   per-view encoder, which every other method goes through. Override
+   `_feature_importances()` if the model has a native importance (one non-negative array
+   per view); the `feature_importances_` property normalises it, and falls back to
+   permutation importance otherwise.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
 4. If any constructor parameter has a documented range (e.g. a ridge parameter in
    `[0, 1]`), declare it in `_parameter_constraints` (merging in the parent class's, e.g.
@@ -110,8 +118,8 @@ All contributions must comply with the following:
    generic sklearn-estimator-contract checks (`get_params`/`set_params` round-tripping,
    `repr`, init purity) — no per-model test needed for that part.
 6. Write tests in `tests/<subpackage>/test_mymodel.py` covering, at minimum: `fit`
-   completing without error, `transform`/`fit_transform` output shapes, `score` shape and
-   value range, and — where a closed-form or known-correct reference solution exists — a
+   completing without error, `transform`/`fit_transform` output shapes, `score` returning a
+   float in range, and — where a closed-form or known-correct reference solution exists — a
    correctness check against it (see `tests/linear/test_eigendecomposition.py` for the
    established pattern). If you added `_parameter_constraints`, add a rejection test per
    constraint (see `tests/linear/test_parameter_constraints.py`).

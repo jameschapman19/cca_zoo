@@ -43,7 +43,7 @@ class TCCA(BaseModel):
         Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
         correlation analysis for action classification. CVPR.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import TCCA
         >>> rng = np.random.default_rng(0)

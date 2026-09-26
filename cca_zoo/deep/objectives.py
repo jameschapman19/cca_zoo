@@ -1,4 +1,4 @@
-"""Differentiable CCA loss functions for use with deep models."""
+"""Differentiable CCA losses for the deep models."""
 
 from __future__ import annotations
 
@@ -7,15 +7,7 @@ import torch.nn as nn
 
 
 def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
-    """Compute the inverse square root of a symmetric positive definite matrix.
-
-    Args:
-        A: Symmetric PD tensor of shape (n, n).
-        eps: Regularisation added to eigenvalues for numerical stability.
-
-    Returns:
-        Tensor of shape (n, n): A^{-1/2}.
-    """
+    """Inverse square root of a symmetric matrix, eigenvalues floored at ``eps``."""
     L, V = torch.linalg.eigh(A)
     L = torch.clamp(L, min=eps)
     return V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T
@@ -24,34 +16,24 @@ def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
 class CCALoss(nn.Module):
     r"""Two-view deep CCA loss (Andrew et al., 2013).
 
-    Computes the negative sum of squared singular values of the whitened
-    cross-covariance:
-
     $$
-    \mathcal{L} = -\left\|
-        \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}
-    \right\|_F^2
+    \mathcal{L} = -\| \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2} \|_F^2,
     $$
 
-    where $\Sigma_{11}, \Sigma_{22}$ are the (ridge-regularised)
-    empirical within-view covariances of the two encoder outputs over the
-    mini-batch and $\Sigma_{12}$ their cross-covariance. Minimising
-    this loss maximises the sum of squared canonical correlations.
-
-    References:
-        Andrew, G., et al. "Deep canonical correlation analysis."
-        ICML 2013.
+    minus the sum of squared canonical correlations of the batch, with
+    ridge-regularised within-view covariances.
 
     Args:
-        eps: Ridge regularisation added to within-view covariance
-            matrices for numerical stability. Default is 1e-5.
+        eps: Ridge added to the within-view covariances. Default is 1e-5.
+
+    References:
+        Andrew, G., Arora, R., Bilmes, J., & Livescu, K. (2013). Deep
+        canonical correlation analysis. ICML.
 
     Examples:
         >>> import torch
-        >>> loss_fn = CCALoss(eps=1e-4)
-        >>> z1 = torch.randn(32, 4)
-        >>> z2 = torch.randn(32, 4)
-        >>> loss = loss_fn([z1, z2])
+        >>> from cca_zoo.deep.objectives import CCALoss
+        >>> loss = CCALoss(eps=1e-4)([torch.randn(32, 4), torch.randn(32, 4)])
     """
 
     def __init__(self, eps: float = 1e-5) -> None:
@@ -59,17 +41,17 @@ class CCALoss(nn.Module):
         self.eps = eps
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
-        """Compute the CCA loss for a list containing exactly two views.
+        """The loss of two views.
 
         Args:
-            representations: List of two tensors, each of shape
-                (batch_size, n_components).
+            representations: One tensor of shape (batch_size, n_components) per
+                view.
 
         Returns:
-            Scalar tensor: negative sum of squared canonical correlations.
+            The loss.
 
         Raises:
-            ValueError: If the number of representations is not exactly 2.
+            ValueError: If there are not exactly two views.
         """
         if len(representations) != 2:
             raise ValueError(
@@ -103,31 +85,19 @@ class CCALoss(nn.Module):
 
 
 class MCCALoss(nn.Module):
-    r"""Multiview extension of CCALoss that sums pairwise CCA losses.
+    """Sum of :class:`CCALoss` over every pair of views.
 
-    $$
-    \mathcal{L} = \sum_{i < j} \mathcal{L}_{\text{CCA}}(z_i, z_j)
-    $$
-
-    where $\mathcal{L}_{\text{CCA}}$ is :class:`CCALoss` applied to
-    each pair of views. This is the deep, gradient-descent analogue of the
-    SUMCOR multiset objective (Kettenring 1971) also used by the linear
-    :class:`~cca_zoo.linear.MCCA`, and encourages every pair of views to be
-    mutually correlated in the shared latent space.
+    Args:
+        eps: Ridge of each pairwise loss. Default is 1e-5.
 
     References:
         Kettenring, J. R. (1971). Canonical analysis of several sets of
-        variables. *Biometrika*, 58(3), 433-451.
-
-    Args:
-        eps: Ridge regularisation passed to each pairwise CCALoss.
-            Default is 1e-5.
+        variables. Biometrika, 58(3), 433-451.
 
     Examples:
         >>> import torch
-        >>> loss_fn = MCCALoss(eps=1e-4)
-        >>> views = [torch.randn(32, 4) for _ in range(3)]
-        >>> loss = loss_fn(views)
+        >>> from cca_zoo.deep.objectives import MCCALoss
+        >>> loss = MCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
     def __init__(self, eps: float = 1e-5) -> None:
@@ -136,14 +106,14 @@ class MCCALoss(nn.Module):
         self._cca_loss = CCALoss(eps=eps)
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
-        """Compute the sum of pairwise CCA losses across all view pairs.
+        """The summed pairwise loss.
 
         Args:
-            representations: List of tensors, each of shape
-                (batch_size, n_components).
+            representations: One tensor of shape (batch_size, n_components) per
+                view.
 
         Returns:
-            Scalar tensor: sum of pairwise negative canonical correlations.
+            The loss.
         """
         n_views = len(representations)
         total = torch.tensor(0.0, device=representations[0].device)
@@ -154,35 +124,26 @@ class MCCALoss(nn.Module):
 
 
 class GCCALoss(nn.Module):
-    r"""Generalised CCA loss for multiple views (MAX-VAR GCCA objective).
-
-    Maximises the sum of squared correlations between each whitened view
-    and a shared latent target. Equivalently, minimises the negative sum
-    of the top $k$ eigenvalues of the summed whitened Gram matrix:
+    r"""Generalized CCA loss: minus the top eigenvalues of the summed projections.
 
     $$
-    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\!\left(\sum_i H_i H_i^\top\right)
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\Bigl(\sum_i H_i H_i^\top\Bigr),
     $$
 
-    where $H_i = \tilde{Z}_i (\tilde{Z}_i^\top \tilde{Z}_i +
-    \epsilon I)^{-1/2}$ is the (mean-centred, ridge-whitened) representation
-    of view $i$, and $\lambda_d(\cdot)$ denotes the $d$-th
-    largest eigenvalue. This mirrors the generalised eigenvalue problem
-    solved in closed form by the linear :class:`~cca_zoo.linear.GCCA`.
-
-    References:
-        Benton, A., et al. "Deep Generalized Canonical Correlation
-        Analysis." RepL4NLP 2019.
+    for ridge-whitened, centred encodings $H_i$.
 
     Args:
-        eps: Ridge regularisation for within-view covariance inversion.
-            Default is 1e-5.
+        eps: Whitening ridge. Default is 1e-5.
+
+    References:
+        Benton, A., Khayrallah, H., Gujral, B., Reisinger, D. A., Zhang, S.,
+        & Arora, R. (2019). Deep generalized canonical correlation analysis.
+        RepL4NLP.
 
     Examples:
         >>> import torch
-        >>> loss_fn = GCCALoss(eps=1e-4)
-        >>> views = [torch.randn(32, 4) for _ in range(3)]
-        >>> loss = loss_fn(views)
+        >>> from cca_zoo.deep.objectives import GCCALoss
+        >>> loss = GCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
     def __init__(self, eps: float = 1e-5) -> None:
@@ -190,14 +151,14 @@ class GCCALoss(nn.Module):
         self.eps = eps
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
-        """Compute the GCCA loss.
+        """The generalized CCA loss.
 
         Args:
-            representations: List of tensors, each of shape
-                (batch_size, n_components).
+            representations: One tensor of shape (batch_size, n_components) per
+                view.
 
         Returns:
-            Scalar tensor: negative total GCCA objective.
+            The loss.
         """
         n = representations[0].shape[0]
         whitened = []
@@ -221,36 +182,26 @@ class GCCALoss(nn.Module):
 
 
 class TCCALoss(nn.Module):
-    r"""Tensor CCA loss (proxy via Frobenius norm of cross-moment tensor).
-
-    Forms the higher-order cross-moment tensor of the whitened
-    representations and returns the negative Frobenius norm as a
-    differentiable proxy for the tensor CCA objective:
+    r"""Tensor CCA loss: minus the norm of the whitened cross-moment tensor.
 
     $$
-    M = \frac{1}{n} \sum_{s=1}^{n} H_1[s] \otimes H_2[s] \otimes
-        \cdots \otimes H_V[s], \qquad
-    \mathcal{L} = -\left\| M \right\|_F
+    \mathcal{L} = -\| M \|_F, \qquad
+    M = \tfrac{1}{n} \sum_s H_1[s] \otimes \cdots \otimes H_M[s],
     $$
 
-    where $\otimes$ denotes the outer product and $H_i =
-    \tilde{Z}_i (\tilde{Z}_i^\top \tilde{Z}_i + \epsilon I)^{-1/2}$ is the
-    whitened representation of view $i$. This is the deep,
-    gradient-descent analogue of the higher-order cross-moment maximised
-    in closed form by the linear :class:`~cca_zoo.linear.TCCA`.
+    for ridge-whitened, centred encodings $H_i$.
+
+    Args:
+        eps: Whitening ridge. Default is 1e-5.
 
     References:
         Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
-        correlation analysis for action classification. *CVPR 2007*. IEEE.
-
-    Args:
-        eps: Ridge regularisation for whitening. Default is 1e-5.
+        correlation analysis for action classification. CVPR.
 
     Examples:
         >>> import torch
-        >>> loss_fn = TCCALoss(eps=1e-4)
-        >>> views = [torch.randn(32, 4) for _ in range(3)]
-        >>> loss = loss_fn(views)
+        >>> from cca_zoo.deep.objectives import TCCALoss
+        >>> loss = TCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
     def __init__(self, eps: float = 1e-5) -> None:
@@ -258,14 +209,14 @@ class TCCALoss(nn.Module):
         self.eps = eps
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
-        """Compute the tensor CCA loss.
+        """The tensor CCA loss.
 
         Args:
-            representations: List of tensors, each of shape
-                (batch_size, n_components).
+            representations: One tensor of shape (batch_size, n_components) per
+                view.
 
         Returns:
-            Scalar tensor: negative Frobenius norm of the cross-moment tensor.
+            The loss.
         """
         n = representations[0].shape[0]
         whitened = []

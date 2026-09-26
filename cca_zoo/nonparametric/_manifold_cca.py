@@ -223,7 +223,7 @@ class ManifoldCCA(BaseModel):
         Belkin, M., & Niyogi, P. (2003). Laplacian eigenmaps for dimensionality
         reduction and data representation. Neural Computation, 15(6), 1373-1396.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.nonparametric import ManifoldCCA
         >>> rng = np.random.default_rng(0)

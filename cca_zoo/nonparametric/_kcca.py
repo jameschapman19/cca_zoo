@@ -43,7 +43,7 @@ class KCCA(BaseModel):
         correlation analysis: An overview with application to learning
         methods. Neural Computation, 16(12), 2639-2664.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.nonparametric import KCCA
         >>> rng = np.random.default_rng(0)

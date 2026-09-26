@@ -366,7 +366,7 @@ class XGBoostCCA(TreeCCA):
 
     Parameters and attributes are those of :class:`TreeCCA`.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.tree import XGBoostCCA
         >>> rng = np.random.default_rng(0)
@@ -421,7 +421,7 @@ class LightGBMCCA(TreeCCA):
     Parameters and attributes are those of :class:`TreeCCA`. Requires
     ``lightgbm``, in the ``tree`` extra.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.tree import LightGBMCCA
         >>> rng = np.random.default_rng(0)
@@ -496,7 +496,7 @@ class CatBoostCCA(TreeCCA):
     ``catboost``, in the ``tree`` extra. Slower per round than the other
     backends, since CatBoost rebuilds each booster to add a tree.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.tree import CatBoostCCA
         >>> rng = np.random.default_rng(0)

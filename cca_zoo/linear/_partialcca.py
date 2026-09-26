@@ -38,7 +38,7 @@ class PartialCCA(MCCA):
         Rao, B. R. (1969). Partial canonical correlations. Trabajos de
         Estadistica y de Investigacion Operativa, 20(2-3), 211-219.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import PartialCCA
         >>> rng = np.random.default_rng(0)

@@ -195,6 +195,7 @@ class PMDCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import PMDCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = PMDCCA(tau=0.5, random_state=0).fit([X1, X2])
@@ -301,6 +302,7 @@ class ADMMCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import ADMMCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ADMMCCA(tau=0.1, random_state=0).fit([X1, X2])
@@ -417,6 +419,7 @@ class IPLSCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import IPLSCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = IPLSCCA(alpha=0.1, random_state=0).fit([X1, X2])
@@ -502,6 +505,7 @@ class SpanCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import SpanCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = SpanCCA(span=5, random_state=0).fit([X1, X2])
@@ -598,6 +602,7 @@ class WaijenborgCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import WaijenborgCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = WaijenborgCCA(alpha=0.1, random_state=0).fit([X1, X2])
@@ -684,6 +689,7 @@ class ParkhomenkoCCA(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import ParkhomenkoCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ParkhomenkoCCA(tau=0.1, random_state=0).fit([X1, X2])
@@ -809,6 +815,7 @@ class SAR(_BaseIterative):
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.sparse import SAR
         >>> rng = np.random.default_rng(0)
         >>> latent = rng.standard_normal(50)
         >>> X1 = np.column_stack([latent, rng.standard_normal((50, 9))])

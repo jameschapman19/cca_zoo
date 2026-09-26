@@ -1,4 +1,4 @@
-"""DCCANOI — Deep CCA via Non-linear Orthogonal Iterations (Wang 2015)."""
+"""Deep CCA by nonlinear orthogonal iterations."""
 
 from __future__ import annotations
 
@@ -10,17 +10,12 @@ from cca_zoo.deep.objectives import _inv_sqrtm
 
 
 class _BatchWhiten(nn.Module):
-    """Batch whitening layer with exponential moving average covariance.
-
-    Tracks a running estimate of the feature covariance and whitens
-    the input using its inverse square root.  Only applied during
-    training; at eval time the input is returned unchanged.
+    """Whitening layer with a running covariance; the identity in eval mode.
 
     Args:
-        num_features: Dimensionality of the input features.
-        momentum: Exponential moving average factor for the running
-            covariance. Default is 0.1.
-        eps: Regularisation added to eigenvalues. Default is 1e-5.
+        num_features: Input dimension.
+        momentum: Running-covariance update rate. Default is 0.1.
+        eps: Floor on the covariance eigenvalues. Default is 1e-5.
     """
 
     def __init__(
@@ -45,14 +40,7 @@ class _BatchWhiten(nn.Module):
         self.num_batches_tracked: torch.Tensor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Whiten the input tensor.
-
-        Args:
-            x: Input tensor of shape (batch_size, num_features).
-
-        Returns:
-            Whitened tensor of the same shape.
-        """
+        """Whiten a batch of shape (batch_size, num_features)."""
         if not self.training:
             return x
 
@@ -68,43 +56,38 @@ class _BatchWhiten(nn.Module):
 
 
 class DCCANOI(DCCA):
-    r"""Deep CCA via Non-linear Orthogonal Iterations.
+    r"""Deep CCA by nonlinear orthogonal iterations.
 
-    Uses batch whitening to approximate the CCA whitening step
-    stochastically. The loss pushes each view's representations towards a
-    stop-gradient copy of the other views' whitened representations:
+    Regresses each view's encoding on the others' whitened encodings, held
+    fixed:
 
     $$
-    \mathcal{L} = \sum_{i \neq j}
-        \left\| z_i - \operatorname{sg}\!\bigl(W_j z_j\bigr) \right\|_2^2
+    \mathcal{L} = \sum_{i \neq j} \bigl\| z_i - \operatorname{sg}(W_j z_j) \bigr\|_2^2,
     $$
 
-    where $W_j$ is an exponential-moving-average batch-whitening
-    transform for view $j$ (see :class:`_BatchWhiten`) and
-    $\operatorname{sg}(\cdot)$ denotes stop-gradient.
-
-    References:
-        Wang, W., et al. "Stochastic optimization for deep CCA via
-        nonlinear orthogonal iterations." Allerton 2015. IEEE.
+    with $W_j$ a running batch-whitening transform and sg a stop-gradient.
 
     Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        rho: Exponential moving average momentum for the batch whitening
-            layers. Must be in [0, 1]. Default is 0.1.
-        learning_rate: Learning rate. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        rho: Running-covariance update rate in ``[0, 1]``. Default is 0.1.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation for the whitening layers. Default is 1e-6.
+        eps: Floor on the whitening eigenvalues. Default is 1e-6.
 
     Raises:
-        ValueError: If ``rho`` is not in [0, 1].
+        ValueError: If ``rho`` is outside ``[0, 1]``.
+
+    References:
+        Wang, W., Arora, R., Livescu, K., & Srebro, N. (2015). Stochastic
+        optimization for deep CCA via nonlinear orthogonal iterations.
+        Allerton.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCANOI(n_components=4, encoders=[enc1, enc2], rho=0.1)
+        >>> from cca_zoo.deep import DCCANOI
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4)]
+        >>> model = DCCANOI(n_components=4, encoders=encoders)
     """
 
     def __init__(
@@ -136,19 +119,14 @@ class DCCANOI(DCCA):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the NOI loss.
-
-        Each view's representations are pushed towards the whitened
-        representation of the other view (stop-gradient on the target).
+        """The NOI loss of a batch.
 
         Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, n_components).
-            independent_representations: Unused; present for API
-                compatibility.
+            representations: One encoded tensor per view.
+            independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"``.
+            ``{"objective": loss}``.
         """
         whitened = [bw(r) for r, bw in zip(representations, self.bws)]
         total = torch.tensor(0.0, device=representations[0].device)

@@ -1,12 +1,4 @@
-"""Metrics for evaluating fitted multiview CCA models.
-
-Functions take already-computed arrays (latent scores, loadings, a
-correlation matrix) rather than a fitted model or raw views, the same
-convention ``sklearn.metrics`` uses. ``BaseModel``'s own
-``pairwise_correlations``/``average_pairwise_correlations``/
-``get_factor_loadings`` methods are the usual way to get those inputs from
-a fitted model and a set of views.
-"""
+"""Metrics on latent scores and loadings, in the style of :mod:`sklearn.metrics`."""
 
 from __future__ import annotations
 

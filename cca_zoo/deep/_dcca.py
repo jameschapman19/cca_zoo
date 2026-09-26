@@ -1,4 +1,4 @@
-"""DCCA — Deep Canonical Correlation Analysis (Andrew 2013)."""
+"""Deep CCA."""
 
 from __future__ import annotations
 
@@ -10,48 +10,34 @@ from cca_zoo.deep.objectives import CCALoss
 
 
 class DCCA(BaseDeep):
-    r"""Deep Canonical Correlation Analysis with a pluggable objective.
+    r"""Deep CCA: neural encoders trained to maximise canonical correlation.
 
-    Trains two (or more) neural network encoders to maximise canonical
-    correlation between their outputs, by minimising, per mini-batch:
+    By default minimises, per mini-batch,
 
     $$
-    \mathcal{L} = -\left\|
-        \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}
-    \right\|_F^2
+    \mathcal{L} = -\bigl\| \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2} \bigr\|_F^2
     $$
 
-    where $\Sigma_{11}, \Sigma_{22}$ are the (ridge-regularised)
-    within-view covariances of the two encoder outputs and
-    $\Sigma_{12}$ their cross-covariance (see
-    :class:`~cca_zoo.deep.objectives.CCALoss`). The objective is pluggable
-    via the ``objective`` parameter, which defaults to the above.
-
-    The model is a :class:`lightning.pytorch.LightningModule` and is
-    trained via a :class:`lightning.Trainer`.
-
-    References:
-        Andrew, G., et al. "Deep canonical correlation analysis."
-        ICML 2013.
+    (:class:`~cca_zoo.deep.objectives.CCALoss`); pass ``objective`` to use
+    another loss.
 
     Args:
-        n_components: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects mapping each
-            view to the latent space.
-        objective: Differentiable loss module operating on a list of
-            latent tensors.  If ``None``, defaults to
-            :class:`~cca_zoo.deep.objectives.CCALoss`.
-        learning_rate: Learning rate for the Adam optimiser. Default is 1e-3.
+        n_components: Latent dimension.
+        encoders: One module per view.
+        objective: Loss on the list of encodings; None uses ``CCALoss(eps)``.
+            Default is None.
+        learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation parameter passed to the default CCALoss when
-            ``objective`` is ``None``. Default is 1e-6.
+        eps: Ridge of the default loss. Default is 1e-6.
+
+    References:
+        Andrew, G., Arora, R., Bilmes, J., & Livescu, K. (2013). Deep
+        canonical correlation analysis. ICML.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA(n_components=4, encoders=[enc1, enc2])
+        >>> from cca_zoo.deep import DCCA
+        >>> model = DCCA(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])
     """
 
     def __init__(
@@ -77,16 +63,13 @@ class DCCA(BaseDeep):
         representations: list[torch.Tensor],
         independent_representations: list[torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
-        """Compute the DCCA training objective.
+        """``{"objective": objective(representations)}``.
 
         Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, n_components).
-            independent_representations: Optional second set of encodings
-                (unused in the base DCCA formulation).
+            representations: One encoded tensor per view.
+            independent_representations: Unused.
 
         Returns:
-            Dictionary with key ``"objective"`` containing the scalar
-            loss tensor to minimise.
+            The loss dictionary.
         """
         return {"objective": self.objective(representations)}

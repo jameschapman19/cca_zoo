@@ -69,7 +69,7 @@ class CCAR3(BaseModel):
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
         as Reduced Rank Regression in High Dimensions. arXiv:2405.19539.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCAR3
         >>> rng = np.random.default_rng(0)

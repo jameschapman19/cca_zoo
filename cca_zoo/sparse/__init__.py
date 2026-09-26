@@ -1,17 +1,11 @@
-"""Sparse linear CCA methods.
+"""Sparse linear CCA.
 
-Two mechanism families live here:
-
-- EY-loss coordinate descent (:class:`ElasticNetCCA`,
-  :class:`MultiTaskElasticNetCCA`, :class:`OrthogonalMatchingPursuitCCA`) --
-  penalised extensions of the same unconstrained Eckart-Young objective
-  :class:`~cca_zoo.linear.gradient.CCAEY` uses.
-- Alternating Least Squares (:class:`PMDCCA`, :class:`ADMMCCA`,
-  :class:`IPLSCCA`, :class:`SpanCCA`, :class:`WaijenborgCCA`,
-  :class:`ParkhomenkoCCA`, :class:`SAR`) -- each a from-the-literature sparse
-  CCA algorithm with its own penalty and fitting loop; see
-  :mod:`cca_zoo.sparse._iterative`'s module docstring for the shared ALS
-  convention they follow.
+Penalised Eckart-Young models fitted by coordinate descent
+(:class:`ElasticNetCCA`, :class:`MultiTaskElasticNetCCA`,
+:class:`OrthogonalMatchingPursuitCCA`) and alternating penalised
+regressions from the literature (:class:`PMDCCA`, :class:`ADMMCCA`,
+:class:`IPLSCCA`, :class:`SpanCCA`, :class:`WaijenborgCCA`,
+:class:`ParkhomenkoCCA`, :class:`SAR`).
 """
 
 from __future__ import annotations

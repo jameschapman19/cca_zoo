@@ -160,7 +160,7 @@ class TrimmedCCA(BaseModel):
         the minimum covariance determinant estimator. Technometrics,
         41(3), 212-223.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import TrimmedCCA
         >>> rng = np.random.default_rng(0)

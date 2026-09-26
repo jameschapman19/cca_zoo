@@ -177,7 +177,7 @@ class GAMCCA(BaseModel):
         Eilers, P. H., & Marx, B. D. (1996). Flexible smoothing with
         B-splines and penalties. Statistical Science, 11(2), 89-121.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.gam import GAMCCA
         >>> rng = np.random.default_rng(0)

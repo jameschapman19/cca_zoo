@@ -41,7 +41,7 @@ class GCCA(BaseModel):
         Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
         canonical correlation analysis. Psychometrika, 76(2), 257-284.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import GCCA
         >>> rng = np.random.default_rng(0)

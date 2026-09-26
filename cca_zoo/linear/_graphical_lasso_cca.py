@@ -51,7 +51,7 @@ class GraphicalLassoCCA(MCCA):
         covariance estimation with the graphical lasso. Biostatistics,
         9(3), 432-441.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import GraphicalLassoCCA
         >>> rng = np.random.default_rng(0)

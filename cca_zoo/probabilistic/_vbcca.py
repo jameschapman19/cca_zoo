@@ -58,7 +58,7 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         correlation analysis. IEEE Transactions on Neural Networks, 18(3),
         905-910.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.probabilistic import VariationalBayesCCA
         >>> rng = np.random.default_rng(0)

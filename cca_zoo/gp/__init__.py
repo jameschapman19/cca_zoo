@@ -1,4 +1,4 @@
-"""Gaussian-process (GP) nonlinear CCA methods."""
+"""Gaussian-process CCA."""
 
 from __future__ import annotations
 

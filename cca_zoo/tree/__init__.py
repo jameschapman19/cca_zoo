@@ -1,8 +1,4 @@
-"""Tree-based nonlinear CCA methods.
-
-This module is only available when ``xgboost`` is installed. Import errors
-are deferred to usage time rather than raised at import of ``cca_zoo``.
-"""
+"""Gradient-boosted-tree CCA; requires the ``tree`` extra."""
 
 from __future__ import annotations
 

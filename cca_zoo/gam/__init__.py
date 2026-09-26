@@ -1,4 +1,4 @@
-"""Spline-based nonlinear CCA methods: generalized additive models (GAM) and MARS."""
+"""Spline CCA: generalized additive models and MARS."""
 
 from __future__ import annotations
 

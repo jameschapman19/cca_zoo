@@ -104,7 +104,7 @@ class HuberCCA(BaseFullBatchEYModel):
         Proceedings in Computational Statistics 2000 (pp. 301-306).
         Physica-Verlag.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import HuberCCA
         >>> rng = np.random.default_rng(0)
