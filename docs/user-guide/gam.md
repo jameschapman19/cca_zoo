@@ -137,15 +137,29 @@ coefs = model.encoders_[0].coef_  # (n_terms, latent_dimensions), row m ↔ term
 Products appear as e.g. `'h(x1 - 0.41) * h(x0 + 0.2)'`, with `h(u) = max(0, u)` and knots in the
 raw feature units.
 
-Classical MARS finishes with a backward pruning pass scored by generalised cross-validation.
-GCV is a squared-error criterion with no EY-loss counterpart, so `MARSCCA` has no pruning pass:
-`max_terms` caps model size directly and the ridge penalty `alpha` shrinks terms that turn out
-not to be needed. Tune both by cross-validation.
+### Pruning
+
+The forward pass deliberately overshoots, so the model is pruned back, as in R's `earth`. Its
+default pruning criterion, GCV, is a squared-error quantity with no EY-loss counterpart, so
+`MARSCCA` uses `earth`'s cross-validated pruning (`pmethod="cv"`) instead. Every forward-pass
+round ends in a joint refit, so each round is a complete candidate model: each of `cv` folds
+(default 5) runs its own forward pass and records its held-out canonical correlation after every
+round, and the fitted model is the full-data forward pass stopped at the chosen round. The
+pruned models are prefixes of the forward sequence, which is what makes every size free to
+score.
+
+The chosen round is the earliest one within one standard error of the best, the rule `rpart`
+and `glmnet` use, with the standard error taken over each fold's *paired* difference from its
+own best round. The bare maximum of a noisy curve lands late (on pure noise it keeps dozens of
+terms), and greedy forward passes on different folds can settle on better or worse paths, which
+would inflate an unpaired error enough to stop far too early. Per-fold scores are kept in
+`cv_scores_` and the kept size in `n_rounds_`; `cv=None` skips pruning.
 
 | Parameter | Description |
 |---|---|
-| `max_terms` | Maximum basis functions per view (each forward step adds at most two). Scalar or per-view list. |
+| `max_terms` | Maximum basis functions per view before pruning (each forward step adds at most two). Scalar or per-view list. |
 | `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
 | `n_candidate_knots` | Candidate knots per feature, at interior quantiles of the training values. |
 | `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |
 | `max_iter`, `tol` | Iteration cap and gradient-norm tolerance for each joint refit. |
+| `cv` | Folds for cross-validated pruning (default 5); `None` keeps the whole forward pass. Fit time is roughly `cv + 1` forward passes. |

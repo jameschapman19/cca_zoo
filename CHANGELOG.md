@@ -17,8 +17,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   quantile knot) that absorbs the most of the current EY gradient, then refits every
   view's coefficients jointly — so knots go only where cross-view signal needs them, and
   `max_degree >= 2` admits within-view interactions that an additive model cannot
-  represent. There is no GCV pruning pass (GCV has no EY-loss counterpart); model size is
-  set by `max_terms` and shrunk by the ridge penalty `alpha`. Selected terms are
+  represent. The forward pass is then pruned by cross-validation (`earth`'s
+  `pmethod="cv"`; GCV has no EY-loss counterpart): each fold scores held-out canonical
+  correlation after every round for free, and the fitted model is the earliest round
+  within one paired standard error of the best (`cv`, default 5). Selected terms are
   inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto

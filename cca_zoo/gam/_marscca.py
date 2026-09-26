@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from numbers import Integral, Real
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NamedTuple
 
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy import sparse
+from sklearn.model_selection import KFold
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -18,14 +19,16 @@ from cca_zoo._utils._ey import (
     ridge_basis_ey_trust_krylov,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
 
 # A hinge factor (feature, knot, sign) is max(0, sign * (x[feature] - knot)).
 _Factor = tuple[int, float, int]
 _Term = tuple[_Factor, ...]
 
 # Relative tolerance below which a candidate column counts as degenerate:
-# identically zero on the training data, or already in the span of the
-# current basis.
+# identically zero on the training data (relative to the scale of the terms
+# its norm is computed from), or already in the span of the current basis
+# (relative to its own norm).
 _DEGENERATE_TOL = 1e-8
 # Relative gap below which two single-hinge scores count as tied.
 _TIE_RTOL = 1e-9
@@ -111,8 +114,9 @@ class _HingeScorer:
         self._parents = np.zeros((n, 0))
         self._allowed = np.zeros((p, 0), dtype=bool)
         # Per (knot, feature, parent): ||h_a||^2, ||h_b||^2, sum h_a, sum h_b,
-        # ||q^T h_a||^2, ||q^T h_b||^2, (q^T h_a) . (q^T h_b).
-        self._stats = np.zeros((len(rows), p, 0, 7))
+        # the scale of the terms cancelling in those norms, ||q^T h_a||^2,
+        # ||q^T h_b||^2, (q^T h_a) . (q^T h_b).
+        self._stats = np.zeros((len(rows), p, 0, 8))
         self._add_parents(np.ones((n, 1)), np.ones((p, 1), dtype=bool))
 
     def _hinge_inner(
@@ -161,13 +165,17 @@ class _HingeScorer:
         t = self.knots[:, :, None]
         sq_a = suffix[2] - 2 * t * suffix[1] + t**2 * suffix[0]
         sq_all = (X**2).T @ u2 - 2 * t * (X.T @ u2) + t**2 * u2.sum(axis=0)
+        # Both norms come out of this expansion by cancellation, so rounding
+        # error scales with the magnitude of its terms, not with the result:
+        # a hinge that is identically zero leaves noise of order eps * scale.
+        scale = (X**2).T @ u2 + 2 * np.abs(t * (X.T @ u2)) + t**2 * u2.sum(axis=0)
         sum_a, sum_b = (
             inner[..., 0]
             for inner in self._hinge_inner(parents, np.ones((X.shape[0], 1)))
         )
         stats = np.concatenate(
             [
-                np.stack([sq_a, sq_all - sq_a, sum_a, sum_b], axis=-1),
+                np.stack([sq_a, sq_all - sq_a, sum_a, sum_b, scale], axis=-1),
                 self._projection_stats(parents, self.q),
             ],
             axis=-1,
@@ -194,7 +202,7 @@ class _HingeScorer:
                 col = col - basis @ (basis.T @ col)
             new_q.append(col / np.linalg.norm(col))
         new_q_arr = np.column_stack(new_q)
-        self._stats[..., 4:] += self._projection_stats(self._parents, new_q_arr)
+        self._stats[..., 5:] += self._projection_stats(self._parents, new_q_arr)
         self.q = np.column_stack([self.q, new_q_arr])
 
         parent_idx = [
@@ -205,6 +213,43 @@ class _HingeScorer:
                 columns[:, parent_idx],
                 np.column_stack([parent_allowed[c] for c in parent_idx]),
             )
+
+    def gram(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Every candidate's orthogonalised 2x2 Gram matrix, and which are usable.
+
+        Independent of the gradient: a function of the basis and parents
+        only.
+
+        Returns:
+            ``(ok_a, ok_b, ok_pair, aa, bb, ab)``, each of shape (n_knots,
+            n_features, n_parents): whether the positive hinge, the negative
+            hinge, and the pair are non-degenerate (and allowed), and the
+            entries of the Gram matrix of the two centred hinges after
+            projecting out the current basis.
+        """
+        n = self.X.shape[0]
+        sq_a, sq_b, sum_a, sum_b, scale, qq_a, qq_b, qq_ab = np.moveaxis(
+            self._stats, -1, 0
+        )
+        raw_aa = sq_a - sum_a**2 / n
+        raw_bb = sq_b - sum_b**2 / n
+        aa = raw_aa - qq_a
+        bb = raw_bb - qq_b
+        ab = -sum_a * sum_b / n - qq_ab
+        ok_a = (
+            self._allowed
+            & (raw_aa > _DEGENERATE_TOL * scale)
+            & (aa > _DEGENERATE_TOL * raw_aa)
+        )
+        ok_b = (
+            self._allowed
+            & (raw_bb > _DEGENERATE_TOL * scale)
+            & (bb > _DEGENERATE_TOL * raw_bb)
+        )
+        ok_pair = ok_a & ok_b & (aa * bb - ab**2 > _DEGENERATE_TOL * aa * bb)
+        return ok_a, ok_b, ok_pair, aa, bb, ab
 
     def best_pair(
         self, grad: np.ndarray
@@ -240,26 +285,17 @@ class _HingeScorer:
             negative) hinges to add; ``score`` is ``-inf`` when every
             candidate is degenerate.
         """
-        n = self.X.shape[0]
-        sq_a, sq_b, sum_a, sum_b, qq_a, qq_b, qq_ab = np.moveaxis(self._stats, -1, 0)
-        raw_aa = sq_a - sum_a**2 / n
-        raw_bb = sq_b - sum_b**2 / n
-        aa = raw_aa - qq_a
-        bb = raw_bb - qq_b
-        ab = -sum_a * sum_b / n - qq_ab
+        ok_a, ok_b, ok_pair, aa, bb, ab = self.gram()
         # <G, h_perp> = <G_perp, h>: projecting the gradient off the basis once
         # replaces projecting every candidate. G is not already orthogonal to
         # the basis (the ridge keeps the refit's gradient off zero).
         na, nb = self._hinge_inner(self._parents, grad - self.q @ (self.q.T @ grad))
         na_sq, nb_sq = np.sum(na**2, axis=-1), np.sum(nb**2, axis=-1)
 
-        ok_a = self._allowed & (aa > _DEGENERATE_TOL * raw_aa)
-        ok_b = self._allowed & (bb > _DEGENERATE_TOL * raw_bb)
-        det = aa * bb - ab**2
-        ok_pair = ok_a & ok_b & (det > _DEGENERATE_TOL * aa * bb)
-
         with np.errstate(divide="ignore", invalid="ignore"):
-            pair = (bb * na_sq - 2 * ab * np.sum(na * nb, axis=-1) + aa * nb_sq) / det
+            pair = (bb * na_sq - 2 * ab * np.sum(na * nb, axis=-1) + aa * nb_sq) / (
+                aa * bb - ab**2
+            )
             single_a = np.where(ok_a, na_sq / aa, -np.inf)
             single_b = np.where(ok_b, nb_sq / bb, -np.inf)
         scores = np.where(ok_pair, pair, np.maximum(single_a, single_b))
@@ -285,18 +321,23 @@ class _HingeScorer:
 class _MarsEncoder:
     """Per-view MARS encoder: a centred basis of products of hinge functions.
 
-    Holds the terms selected by :class:`MARSCCA`'s forward pass and their
-    fitted coefficients; the terms themselves are chosen, and the
-    coefficients fit, by :class:`MARSCCA`, not by this class.
+    A snapshot of one view after a forward-pass round: the terms selected so
+    far, the training means of their raw columns, and their fitted
+    coefficients.
     """
 
-    def __init__(self, X: np.ndarray, k: int) -> None:
-        self.n, self.p = X.shape
-        self.k = k
-        self.terms_: list[_Term] = []
-        self.basis_mean_: np.ndarray = np.zeros(0)
-        self.coef_: np.ndarray = np.zeros((0, k))
-        self._train_pred: np.ndarray = np.zeros((self.n, k))
+    def __init__(
+        self,
+        terms: list[_Term],
+        basis_mean: np.ndarray,
+        coef: np.ndarray,
+        train_pred: np.ndarray,
+    ) -> None:
+        self.terms_ = terms
+        self.basis_mean_ = basis_mean
+        self.coef_ = coef
+        self.k = coef.shape[1]
+        self._train_pred = train_pred
 
     def predict(self) -> np.ndarray:
         """Encoder output on the training data, shape (n_samples, k)."""
@@ -308,6 +349,13 @@ class _MarsEncoder:
             _evaluate_terms(X, self.terms_) - self.basis_mean_
         ) @ self.coef_
         return result
+
+
+class _Round(NamedTuple):
+    """One forward-pass round: the model after its refit, and its held-out score."""
+
+    encoders: list[_MarsEncoder]
+    validation_score: float
 
 
 class MARSCCA(BaseModel):
@@ -345,14 +393,30 @@ class MARSCCA(BaseModel):
     (:func:`~cca_zoo._utils._ey.cheap_orthonormal_projection_weights`),
     which the first refit replaces entirely.
 
-    Note:
-        Classical MARS follows the forward pass with a backward pruning
-        pass scored by generalised cross-validation. GCV is a
-        squared-error-residual criterion with no EY-loss counterpart, so
-        MARSCCA has no pruning pass: model size is controlled by
-        ``max_terms`` directly, and the ridge penalty ``alpha`` shrinks
-        whichever terms turn out not to be needed. Tune both by
-        cross-validation.
+    The forward pass deliberately overshoots, so, as in classical MARS, the
+    model is then pruned back. ``earth``'s default prunes by generalised
+    cross-validation, a squared-error criterion with no EY-loss
+    counterpart; MARSCCA instead uses ``earth``'s cross-validated pruning
+    (``pmethod="cv"``), which carries over exactly. Every forward-pass round
+    ends in a joint refit, so each round is a complete candidate model. Each
+    of ``cv`` folds runs its own forward pass and records its held-out
+    canonical correlation after every round at no extra cost. The size is
+    the earliest round not worse than the best round (highest mean score) by
+    more than one standard error, the one-standard-error rule of ``rpart``
+    and ``glmnet``'s ``lambda.1se``: the curve over rounds is noisy, and its
+    bare maximum systematically lands late — on pure noise, a couple of
+    standard errors above zero at a model with dozens of terms. The standard
+    error is that of each round's *paired* difference from the best round
+    across folds, because greedy forward passes on different folds can
+    settle on better or worse paths, and that fold-level offset would
+    otherwise inflate the unpaired error enough to stop far too early. The
+    model is the full-data forward pass as it stood after that round. The criterion
+    is correlation — the scale-free analogue of ``earth``'s held-out
+    $R^2$ — rather than the held-out EY loss itself, whose value also
+    rewards embeddings whose held-out variance happens to sit near one: on
+    pure noise it favours the largest model. Unlike ``earth``'s
+    backward pass, the pruned models are prefixes of the forward sequence,
+    which is what makes every size free to evaluate.
 
     References:
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
@@ -387,7 +451,18 @@ class MARSCCA(BaseModel):
             ``"trust-krylov"`` refit. Default is 100.
         tol: Gradient-norm convergence tolerance for each joint refit.
             Default is 1e-6.
-        random_state: Seed for the initial linear warm start.
+        cv: Number of cross-validation folds used to prune the forward
+            pass (see above). None skips pruning and keeps every term the
+            forward pass adds, up to ``max_terms``. Default is 5.
+        random_state: Seed for the initial linear warm start and the
+            cross-validation fold assignment.
+
+    Attributes:
+        cv_scores_: Held-out canonical correlation (summed over latent
+            dimensions, as :meth:`score` reports it) of each fold after
+            each forward-pass round, shape (cv, n_rounds); None when ``cv``
+            is None.
+        n_rounds_: Number of forward-pass rounds kept in the fitted model.
 
     Examples:
         >>> import numpy as np
@@ -412,6 +487,7 @@ class MARSCCA(BaseModel):
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "cv": [Interval(Integral, 2, None, closed="left"), None],
     }
 
     def __init__(
@@ -424,6 +500,7 @@ class MARSCCA(BaseModel):
         alpha: float | list[float] = 0.1,
         max_iter: int = 100,
         tol: float = 1e-6,
+        cv: int | None = 5,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -433,6 +510,7 @@ class MARSCCA(BaseModel):
         self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
+        self.cv = cv
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
@@ -450,28 +528,76 @@ class MARSCCA(BaseModel):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
+        if self.cv is None:
+            rounds = self._forward_pass(views_)
+            best = len(rounds) - 1
+            self.cv_scores_: np.ndarray | None = None
+        else:
+            folds = KFold(self.cv, shuffle=True, random_state=self.random_state)
+            fold_scores = [
+                [
+                    r.validation_score
+                    for r in self._forward_pass(
+                        [X[train] for X in views_], [X[test] for X in views_]
+                    )
+                ]
+                for train, test in folds.split(views_[0])
+            ]
+            rounds = self._forward_pass(views_)
+            # A fold whose forward pass stopped early keeps its final model.
+            n_rounds = max(len(rounds), *(len(f) for f in fold_scores))
+            self.cv_scores_ = np.array(
+                [f + [f[-1]] * (n_rounds - len(f)) for f in fold_scores]
+            )
+            top = int(np.argmax(self.cv_scores_.mean(axis=0)))
+            # Paired against the best round within each fold, so a fold whose
+            # forward pass settles on a worse path adds no spread.
+            diff = self.cv_scores_ - self.cv_scores_[:, [top]]
+            se = diff.std(axis=0, ddof=1) / np.sqrt(self.cv)
+            within = np.flatnonzero(diff.mean(axis=0) + se >= 0)
+            best = min(int(within[0]), len(rounds) - 1)
+
+        self.n_rounds_: int = best + 1
+        self.encoders_: list[_MarsEncoder] = rounds[best].encoders
+        return self
+
+    def _forward_pass(
+        self, views: list[np.ndarray], validation: list[np.ndarray] | None = None
+    ) -> list[_Round]:
+        """Greedy forward pass; one fitted model per round (add a pair, refit).
+
+        Args:
+            views: Centred training views.
+            validation: Optional held-out views, scored after every round.
+
+        Returns:
+            One :class:`_Round` per round, in order; each holds the complete
+            encoders as they stood after that round's refit.
+        """
         k = self.latent_dimensions
-        max_terms_ = perview_parameter("max_terms", self.max_terms, 20, self.n_views_)
-        max_degree_ = perview_parameter("max_degree", self.max_degree, 1, self.n_views_)
-        alpha_ = perview_parameter("alpha", self.alpha, 0.1, self.n_views_)
-        scorers = [_HingeScorer(X, self.n_candidate_knots) for X in views_]
+        m = len(views)
+        max_terms_ = perview_parameter("max_terms", self.max_terms, 20, m)
+        max_degree_ = perview_parameter("max_degree", self.max_degree, 1, m)
+        alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
+        scorers = [_HingeScorer(X, self.n_candidate_knots) for X in views]
 
         rng = np.random.default_rng(self.random_state)
-        warm_start = cheap_orthonormal_projection_weights(views_, k, None, rng)
-        representations = [X @ w for X, w in zip(views_, warm_start)]
-        encoders = [_MarsEncoder(X, k) for X in views_]
-        raw_bases = [np.zeros((X.shape[0], 0)) for X in views_]
-        parent_terms: list[list[_Term]] = [[()] for _ in views_]
-        growing = [True] * self.n_views_
+        warm_start = cheap_orthonormal_projection_weights(views, k, None, rng)
+        representations = [X @ w for X, w in zip(views, warm_start)]
+        terms: list[list[_Term]] = [[] for _ in views]
+        raw_bases = [np.zeros((X.shape[0], 0)) for X in views]
+        parent_terms: list[list[_Term]] = [[()] for _ in views]
+        growing = [True] * m
+        rounds: list[_Round] = []
 
         while any(growing):
             grads = ey_grad_z(representations)
-            for i in range(self.n_views_):
+            for i in range(m):
                 if not growing[i]:
                     continue
                 added = self._add_best_pair(
                     scorers[i],
-                    encoders[i],
+                    terms[i],
                     parent_terms[i],
                     grads[i],
                     max_degree_[i],
@@ -481,7 +607,7 @@ class MARSCCA(BaseModel):
                     growing[i] = False
                     continue
                 raw_bases[i] = np.column_stack([raw_bases[i], added])
-                growing[i] = len(encoders[i].terms_) < max_terms_[i]
+                growing[i] = len(terms[i]) < max_terms_[i]
 
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
             coefficients = ridge_basis_ey_trust_krylov(
@@ -495,27 +621,36 @@ class MARSCCA(BaseModel):
                 self.tol,
             )
             representations = [b @ c for b, c in zip(bases, coefficients)]
-
-        for enc, raw, coef, rep in zip(
-            encoders, raw_bases, coefficients, representations
-        ):
-            enc.basis_mean_ = raw.mean(axis=0)
-            enc.coef_ = coef
-            enc._train_pred = rep
-
-        self.encoders_: list[_MarsEncoder] = encoders
-        return self
+            encoders = [
+                _MarsEncoder(list(t), raw.mean(axis=0), coef, rep)
+                for t, raw, coef, rep in zip(
+                    terms, raw_bases, coefficients, representations
+                )
+            ]
+            score = (
+                float(
+                    average_pairwise_correlations(
+                        pairwise_correlations(
+                            [enc.predict_new(X) for enc, X in zip(encoders, validation)]
+                        )
+                    ).sum()
+                )
+                if validation is not None
+                else np.nan
+            )
+            rounds.append(_Round(encoders, score))
+        return rounds
 
     @staticmethod
     def _add_best_pair(
         scorer: _HingeScorer,
-        encoder: _MarsEncoder,
+        terms: list[_Term],
         parent_terms: list[_Term],
         grad: np.ndarray,
         max_degree: int,
         max_terms: int,
     ) -> np.ndarray | None:
-        """Append the best-scoring hinge pair to ``encoder.terms_``.
+        """Append the best-scoring hinge pair to ``terms``.
 
         ``parent_terms`` lists the terms ``scorer`` holds as parents, in its
         registration order; new parents are appended to both.
@@ -527,7 +662,7 @@ class MARSCCA(BaseModel):
         score, parent, j, knot, keep = scorer.best_pair(grad)
         if score == -np.inf:
             return None
-        if len(encoder.terms_) + sum(keep) > max_terms:
+        if len(terms) + sum(keep) > max_terms:
             keep = (True, False)
         new_terms: list[_Term] = [
             (*parent_terms[parent], (j, knot, sign))
@@ -546,7 +681,7 @@ class MARSCCA(BaseModel):
             else:
                 parent_allowed.append(None)
         scorer.add_columns(columns, parent_allowed)
-        encoder.terms_ += new_terms
+        terms += new_terms
         return columns
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
