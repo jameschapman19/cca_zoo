@@ -145,10 +145,13 @@ raw feature units.
 The forward pass deliberately overshoots, so, as in R's `earth`, a backward pass prunes it: from
 every term the forward pass added, it repeatedly deletes the term (from whichever view) whose
 removal raises the refit training EY loss least, down to `n_terms` terms in total. Every refit
-being a closed-form eigenproblem, each deletion is exact, and every candidate is scored at once
-by one batched eigenvalue decomposition. Unlike truncating the forward sequence, the backward
-pass can drop a stepping-stone term — a lone hinge in $x_1$, say — once the interaction it led
-to has taken over its job.
+being a closed-form eigenproblem, each deletion is exact: removing a term restricts that
+eigenproblem by one linear constraint, so every candidate's new eigenvalues follow from one
+eigendecomposition per step, the eigenvalue analogue of `earth`'s least-squares downdates.
+Unlike truncating the forward sequence, the backward pass can drop a stepping-stone term — a
+lone hinge in $x_1$, say — once the interaction it led to has taken over its job. The forward
+pass itself also stops early, as `earth`'s does, once a round lowers the loss by less than a
+fraction `thresh` (default 0.001).
 
 `earth` then picks the size by GCV, a squared-error quantity with no EY-loss counterpart. Its
 alternative, choosing the size along the backward sequence by cross-validation
@@ -167,6 +170,17 @@ gs = GridSearchCV(
 ).fit([X1, X2])
 ```
 
+### Variable importance
+
+`model.variable_importance(criterion)` is `earth`'s `evimp`, computed over the backward pass's
+nested subsets from the fitted model down: `"nsubsets"` counts the subsets that use each
+feature, and `"loss"` credits each subset's decrease in EY loss over the next smaller one to
+every feature it uses, scaled so the most important feature across views scores 100.
+
+```python
+importance = model.variable_importance("loss")  # one array per view
+```
+
 | Parameter | Description |
 |---|---|
 | `max_terms` | Maximum basis functions per view in the forward pass (each step adds at most two). Scalar or per-view list. |
@@ -175,4 +189,5 @@ gs = GridSearchCV(
 | `n_candidate_knots` | Maximum candidate knots per feature and parent term, thinned evenly from the points `minspan`/`endspan` allow. Raise it to consider every allowed point, as `earth` does. |
 | `minspan`, `endspan` | `earth`'s knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms). `None` uses Friedman's (1991) formulas, `earth`'s default. |
 | `n_rescore` | Forward candidates, ranked by how much EY gradient they absorb, re-ranked by their exact refit loss — `earth`'s criterion. `1` uses the gradient ranking alone. |
+| `thresh` | Forward-pass stopping threshold (`earth`'s): stop once a round lowers the loss by less than `thresh` times its magnitude. `0` always grows to `max_terms`. |
 | `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |

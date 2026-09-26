@@ -13,17 +13,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
   regression spline (Friedman, 1991) as the per-view encoder, trained on the same
   Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
   `MARSCCA` grows each view's basis greedily as classical MARS does — every forward step
-  adds the reflected hinge pair (any existing term as parent, any feature, any candidate
-  quantile knot) that absorbs the most of the current EY gradient, then refits every
-  view's coefficients jointly — so knots go only where cross-view signal needs them, and
+  adds the reflected hinge pair (any existing term as parent, any feature, any knot
+  `earth`'s `minspan`/`endspan` rules allow within the parent's support) that absorbs the
+  most of the current EY gradient, with the top `n_rescore` re-ranked by their exact refit
+  loss (`earth`'s criterion), then refits every view's coefficients jointly, stopping
+  early by `earth`'s `thresh` rule — so knots go only where cross-view signal needs them, and
   `max_degree >= 2` admits within-view interactions that an additive model cannot
   represent. As in `earth`, a backward pass (`n_terms`) then deletes, one at a time, the
   term whose removal raises the refit training EY loss least; the size is chosen by
   searching `n_terms` with `refit=one_standard_error("n_terms")`, `earth`'s
   `pmethod="cv"` (its default, GCV, has no EY-loss counterpart). Every refit is the
-  closed-form optimum of a generalized eigenproblem, so each backward step scores every
-  candidate exactly with one batched eigendecomposition. Selected terms are
-  inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
+  closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
+  one linear constraint, so each backward step scores every candidate exactly from one
+  eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
+  terms are inspectable via `model.basis_functions(view)`, and
+  `model.variable_importance()` is `earth`'s `evimp` (`nsubsets` and loss criteria). Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto
   the (incrementally orthonormalised) basis is cached as three running scalars and the
