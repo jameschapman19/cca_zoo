@@ -48,7 +48,7 @@ Every model follows the same three-step pattern:
 ```python
 from cca_zoo.linear import CCA
 
-model = CCA(latent_dimensions=2)  # 1. construct
+model = CCA(n_components=2)  # 1. construct
 model.fit(views)  # 2. fit
 z = model.transform(views)  # 3. use
 ```
@@ -56,7 +56,7 @@ z = model.transform(views)  # 3. use
 Or equivalently:
 
 ```python
-z = CCA(latent_dimensions=2).fit_transform(views)
+z = CCA(n_components=2).fit_transform(views)
 ```
 
 ### Evaluating fit quality
@@ -78,7 +78,7 @@ After fitting, a linear model's `weights_` is a list of weight matrices (one per
 every model's `feature_importances_` gives one non-negative array per view summing to 1:
 
 ```python
-W1, W2 = model.weights_  # each shape (n_features_i, latent_dimensions)
+W1, W2 = model.weights_  # each shape (n_features_i, n_components)
 imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
 ```
 
@@ -117,24 +117,26 @@ have some views but not others.
 ### Two-view CCA
 
 ```python
-import numpy as np
-from cca_zoo.datasets import JointData
+from sklearn.model_selection import train_test_split
+
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.linear import CCA
 
 # Simulate data from a linear latent variable model
-data = JointData(
-    n_views=2,
-    n_samples=200,
+views = make_joint_data(
+    n_samples=400,
     n_features=[50, 50],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=2.0,
     random_state=0,
 )
-train_views = data.sample()
-test_views = data.sample()
+X1_train, X1_test, X2_train, X2_test = train_test_split(
+    *views, test_size=0.5, random_state=0
+)
+train_views, test_views = [X1_train, X2_train], [X1_test, X2_test]
 
 # Fit and evaluate
-model = CCA(latent_dimensions=2).fit(train_views)
+model = CCA(n_components=2).fit(train_views)
 print("Mean canonical correlation:", model.score(test_views))
 
 # Project into the shared latent space
@@ -147,20 +149,19 @@ print("Latent shape:", z1.shape)  # (200, 2)
 ```python
 from cca_zoo.linear import MCCA
 
-data = JointData(n_views=3, n_samples=200, n_features=30, random_state=0)
-views = data.sample()
+views = make_joint_data(n_samples=200, n_features=30, n_views=3, random_state=0)
 
-model = MCCA(latent_dimensions=2).fit(views)
+model = MCCA(n_components=2).fit(views)
 print(model.score(views))
 ```
 
 ### Regularised CCA
 
 ```python
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
 # c controls the ridge penalty (0 = CCA, 1 = PLS)
-model = rCCA(latent_dimensions=2, c=0.1).fit(train_views)
+model = RidgeCCA(n_components=2, c=0.1).fit(train_views)
 ```
 
 ### Kernel CCA
@@ -168,7 +169,7 @@ model = rCCA(latent_dimensions=2, c=0.1).fit(train_views)
 ```python
 from cca_zoo.nonparametric import KCCA
 
-model = KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit(train_views)
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit(train_views)
 z1, z2 = model.transform(test_views)
 ```
 
@@ -181,7 +182,7 @@ from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
 param_grid = {"c": [0.01, 0.1, 1.0], "gamma": [0.01, 0.1]}
-gs = GridSearchCV(KCCA(latent_dimensions=2, kernel="rbf"), param_grid, cv=5)
+gs = GridSearchCV(KCCA(n_components=2, kernel="rbf"), param_grid, cv=5)
 gs.fit(train_views)
 print("Best params:", gs.best_params_)
 ```

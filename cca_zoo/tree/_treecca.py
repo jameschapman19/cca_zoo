@@ -249,7 +249,7 @@ class TreeCCA(BaseModel, ABC):
     :class:`~cca_zoo.linear.gradient.CCAEY` and
     :class:`~cca_zoo.deep.DCCAEY`). The encoders are fit by alternating
     (Gauss-Seidel) gradient boosting: each round, for every view in turn, one
-    tree is added to each of its ``latent_dimensions`` boosters using each
+    tree is added to each of its ``n_components`` boosters using each
     sample's own EY-loss gradient as a custom regression objective (so
     ``learning_rate`` is a true step size and the steps shrink as the fit
     converges), and — when ``gauss_seidel=True`` — the gradient is
@@ -282,7 +282,7 @@ class TreeCCA(BaseModel, ABC):
         Gradient-Boosted Trees. arXiv:2607.27027.
 
     Args:
-        latent_dimensions: Number of latent components. Must not exceed the
+        n_components: Number of latent components. Must not exceed the
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
@@ -312,12 +312,12 @@ class TreeCCA(BaseModel, ABC):
             gradient (Gauss-Seidel); if False, both gradients are computed
             from the same stale embeddings (Jacobi). Default is True.
         random_state: Seed for the boosters and for drawing the
-            random-orthogonal initial embedding. Default is 0.
+            random-orthogonal initial embedding. Default is None.
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         n_estimators: int | list[int] = 200,
         max_depth: int | list[int] = 3,
@@ -326,9 +326,9 @@ class TreeCCA(BaseModel, ABC):
         colsample_bytree: float | list[float] = 0.8,
         min_child_weight: float | list[float] = 20,
         gauss_seidel: bool = True,
-        random_state: int = 0,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.learning_rate = learning_rate
@@ -346,6 +346,7 @@ class TreeCCA(BaseModel, ABC):
         subsample: float,
         colsample_bytree: float,
         min_child_weight: float,
+        seed: int,
     ) -> dict[str, object]:
         """Build the backend-specific booster parameter dictionary for one view.
 
@@ -355,6 +356,7 @@ class TreeCCA(BaseModel, ABC):
             subsample: This view's resolved ``subsample``.
             colsample_bytree: This view's resolved ``colsample_bytree``.
             min_child_weight: This view's resolved ``min_child_weight``.
+            seed: Integer seed for the backend's own randomness.
 
         Returns:
             Dictionary of training parameters for this backend.
@@ -418,7 +420,7 @@ class TreeCCA(BaseModel, ABC):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
-        k = self.latent_dimensions
+        k = self.n_components
         n_views = len(views_)
 
         n_estimators_ = perview_parameter(
@@ -444,6 +446,9 @@ class TreeCCA(BaseModel, ABC):
             base_margins.append(bm)
             projections.append(proj)
         self._projections_: list[np.ndarray] = projections
+        # The backends take an integer seed; drawing it from the fit's own
+        # generator makes random_state=None give a fresh one each fit.
+        seed = int(rng.integers(2**31 - 1))
 
         params_per_view = [
             self._booster_params(
@@ -452,6 +457,7 @@ class TreeCCA(BaseModel, ABC):
                 subsample_[i],
                 colsample_bytree_[i],
                 min_child_weight_[i],
+                seed,
             )
             for i in range(n_views)
         ]
@@ -497,13 +503,13 @@ class XGBoostCCA(TreeCCA):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))
         >>> X2 = rng.standard_normal((100, 5))
-        >>> model = XGBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> model = XGBoostCCA(n_components=2, n_estimators=10).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
         A different tree depth and boosting budget per view:
 
         >>> model = XGBoostCCA(
-        ...     latent_dimensions=2, n_estimators=[10, 20], max_depth=[3, 6]
+        ...     n_components=2, n_estimators=[10, 20], max_depth=[3, 6]
         ... ).fit([X1, X2])
     """
 
@@ -514,6 +520,7 @@ class XGBoostCCA(TreeCCA):
         subsample: float,
         colsample_bytree: float,
         min_child_weight: float,
+        seed: int,
     ) -> dict[str, object]:
         return {
             "tree_method": "hist",
@@ -524,7 +531,7 @@ class XGBoostCCA(TreeCCA):
             "subsample": subsample,
             "colsample_bytree": colsample_bytree,
             "min_child_weight": min_child_weight,
-            "seed": int(self.random_state),
+            "seed": seed,
         }
 
     def _make_encoder(
@@ -557,7 +564,7 @@ class LightGBMCCA(TreeCCA):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))
         >>> X2 = rng.standard_normal((100, 5))
-        >>> model = LightGBMCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> model = LightGBMCCA(n_components=2, n_estimators=10).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
@@ -588,6 +595,7 @@ class LightGBMCCA(TreeCCA):
         subsample: float,
         colsample_bytree: float,
         min_child_weight: float,
+        seed: int,
     ) -> dict[str, object]:
         return {
             "objective": "regression",
@@ -604,7 +612,7 @@ class LightGBMCCA(TreeCCA):
             "feature_pre_filter": False,
             "min_data_in_bin": 1,
             "verbose": -1,
-            "seed": int(self.random_state),
+            "seed": seed,
         }
 
     def _make_encoder(
@@ -646,7 +654,7 @@ class CatBoostCCA(TreeCCA):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 5))
         >>> X2 = rng.standard_normal((100, 5))
-        >>> model = CatBoostCCA(latent_dimensions=2, n_estimators=10).fit([X1, X2])
+        >>> model = CatBoostCCA(n_components=2, n_estimators=10).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
@@ -677,6 +685,7 @@ class CatBoostCCA(TreeCCA):
         subsample: float,
         colsample_bytree: float,
         min_child_weight: float,
+        seed: int,
     ) -> dict[str, object]:
         return {
             "depth": max_depth,
@@ -693,7 +702,7 @@ class CatBoostCCA(TreeCCA):
             "eval_metric": "RMSE",
             "allow_writing_files": False,
             "verbose": False,
-            "random_seed": int(self.random_state),
+            "random_seed": seed,
         }
 
     def _make_encoder(

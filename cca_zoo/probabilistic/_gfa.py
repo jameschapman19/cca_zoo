@@ -58,13 +58,13 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
 
     Inference is closed-form coordinate-ascent mean-field variational Bayes
     (conjugate throughout, so no black-box SVI is needed here unlike
-    :class:`~cca_zoo.probabilistic.VariationalBayesCCA`). ``latent_dimensions``
+    :class:`~cca_zoo.probabilistic.VariationalBayesCCA`). ``n_components``
     is an *upper bound*: dimensions whose posterior mean squared value
     falls below ``1e-7`` in every view are pruned during fitting
     (``drop_k=True``, the R package's default), so the fitted number of
     components, ``n_components_``, can end up smaller than
-    ``latent_dimensions`` — every output array's last axis has size
-    ``n_components_``, not ``latent_dimensions``.
+    ``n_components`` — every output array's last axis has size
+    ``n_components_``, not ``n_components``.
 
     Note:
         This port omits the R package's optional orthogonal-rotation step
@@ -99,7 +99,7 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         Group Sparsity." ICML.
 
     Args:
-        latent_dimensions: Upper bound on the number of latent components.
+        n_components: Upper bound on the number of latent components.
             Default is 1.
         center: Whether to center each view before fitting. Default is True.
         max_iter: Maximum number of coordinate-ascent iterations, and the
@@ -121,35 +121,35 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         drop_k: Whether to prune latent dimensions with near-zero posterior
             mean squared value across the whole run. Default is True
             (matches the R package's ``dropK``).
-        num_posterior_samples: Number of samples drawn from the fitted
+        n_posterior_samples: Number of samples drawn from the fitted
             variational posterior to populate ``posterior_samples_``.
             Default is 1000.
-        random_state: Integer seed for reproducible initialization. Default
-            is 0.
+        random_state: Seed for reproducible initialization. Default is
+            None.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
-        >>> model = GFA(latent_dimensions=2, max_iter=50).fit([X1, X2])
+        >>> model = GFA(n_components=2, max_iter=50).fit([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         max_iter: int = 10000,
         tol: float = 1e-4,
         drop_k: bool = True,
-        num_posterior_samples: int = 1000,
-        random_state: int = 0,
+        n_posterior_samples: int = 1000,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.max_iter = max_iter
         self.tol = tol
         self.drop_k = drop_k
-        self.num_posterior_samples = num_posterior_samples
+        self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
     # ------------------------------------------------------------------
@@ -178,7 +178,7 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         m_views = len(views_arr)
         n = views_arr[0].shape[0]
         d = [v.shape[1] for v in views_arr]
-        k = self.latent_dimensions
+        k = self.n_components
 
         # --- initialization (CCAGFA::GFA(), matching getDefaultOpts()) ---
         z = rng.standard_normal((n, k))
@@ -323,7 +323,7 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         interface, which is exact (homoscedastic is a special case of
         per-feature noise with every entry equal), not an approximation.
         """
-        s = self.num_posterior_samples
+        s = self.n_posterior_samples
         m_views = len(w)
         k = z.shape[1]
         samples: dict[str, np.ndarray] = {}

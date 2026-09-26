@@ -43,7 +43,7 @@ class _BaseIterative(BaseModel):
     vector for a single view given the current scores of all other views.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         max_iter: Maximum number of ALS iterations per latent dimension.
         tol: Convergence tolerance (weight change L2 norm). Default 1e-6.
@@ -52,13 +52,13 @@ class _BaseIterative(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         max_iter: int = 500,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
@@ -79,12 +79,12 @@ class _BaseIterative(BaseModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        # Initialise weight storage: (n_features_i, latent_dimensions)
+        # Initialise weight storage: (n_features_i, n_components)
         self.weights_: list[np.ndarray] = [
-            np.zeros((p, self.latent_dimensions)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_in_
         ]
         deflated = [v.copy() for v in views_]
-        for d in range(self.latent_dimensions):
+        for d in range(self.n_components):
             # Random initialisation for this dimension
             w = [rng.standard_normal(p) for p in self.n_features_in_]
             w = [wi / np.linalg.norm(wi) for wi in w]
@@ -250,7 +250,7 @@ class PMDCCA(_BaseIterative):
         10(3), 515–534.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         tau: L1 bound scaling factor(s) in ``(0, 1]``.  The actual L1 bound
             is ``tau * sqrt(n_features_i)``.  Default is 1 (no sparsity).
@@ -268,7 +268,7 @@ class PMDCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         tau: float | list[float] = 1.0,
         max_iter: int = 500,
@@ -276,7 +276,7 @@ class PMDCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -427,7 +427,7 @@ class ADMMCCA(_BaseIterative):
         correlation analysis. *arXiv:1705.10865*.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         tau: L1 regularisation weight(s). Default is 0.1.
         mu: ADMM penalty parameter. Default is 1.0.
@@ -448,7 +448,7 @@ class ADMMCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         tau: float | list[float] = 0.1,
         mu: float = 1.0,
@@ -458,7 +458,7 @@ class ADMMCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -562,7 +562,7 @@ class IPLSCCA(_BaseIterative):
         75(3), 734–744.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         alpha: Elastic net penalty strength(s). Default is 0.
         l1_ratio: Ratio of L1 to total penalty. 1 = lasso, 0 = ridge.
@@ -581,7 +581,7 @@ class IPLSCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         alpha: float | list[float] = 0.0,
         l1_ratio: float | list[float] = 1.0,
@@ -590,7 +590,7 @@ class IPLSCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -671,7 +671,7 @@ class SpanCCA(_BaseIterative):
         *arXiv:1605.08961*.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         span: Number of non-zero entries to retain per view.  Either a single
             int or a list.  Default is None (keep all — no sparsity).
@@ -689,7 +689,7 @@ class SpanCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         span: int | list[int] | None = None,
         max_iter: int = 500,
@@ -697,7 +697,7 @@ class SpanCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -797,7 +797,7 @@ class WaijenborgCCA(_BaseIterative):
         *Statistical Applications in Genetics and Molecular Biology*, 7(1).
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         alpha: Elastic net regularisation strength. Default is 0.
         l1_ratio: L1 / total penalty ratio. Default is 0.5.
@@ -815,7 +815,7 @@ class WaijenborgCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         alpha: float | list[float] = 0.0,
         l1_ratio: float | list[float] = 0.5,
@@ -824,7 +824,7 @@ class WaijenborgCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -910,7 +910,7 @@ class ParkhomenkoCCA(_BaseIterative):
         Biology*, 8(1).
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         tau: Soft-threshold parameter(s). Default is 0.1.
         max_iter: Maximum ALS iterations. Default is 500.
@@ -927,7 +927,7 @@ class ParkhomenkoCCA(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         tau: float | list[float] = 0.1,
         max_iter: int = 500,
@@ -935,7 +935,7 @@ class ParkhomenkoCCA(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -1090,7 +1090,7 @@ class SAR(_BaseIterative):
         Journal*, 57(5), 834-851. *arXiv:1501.01231*.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         n_lambda: Number of points in each BIC-selected lasso path's
             automatically-generated $\lambda$ grid. Default is 100.
@@ -1111,7 +1111,7 @@ class SAR(_BaseIterative):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         n_lambda: int = 100,
         max_iter: int = 500,
@@ -1119,7 +1119,7 @@ class SAR(_BaseIterative):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -1143,10 +1143,10 @@ class SAR(_BaseIterative):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_: list[np.ndarray] = [
-            np.zeros((p, self.latent_dimensions)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_in_
         ]
         deflated = [v.copy() for v in views_]
-        for d in range(self.latent_dimensions):
+        for d in range(self.n_components):
             w = [rng.standard_normal(p) for p in self.n_features_in_]
             w = [wi / np.linalg.norm(wi) for wi in w]
             self._fit_single(deflated, w, d)

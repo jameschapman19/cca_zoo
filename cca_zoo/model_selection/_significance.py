@@ -23,29 +23,29 @@ class PermutationTestResult:
     """Result of :func:`permutation_test_significance`.
 
     Attributes:
-        correlations_: Observed per-dimension average pairwise canonical
+        correlations: Observed per-dimension average pairwise canonical
             correlations, shape (k,).
-        null_correlations_: Per-dimension correlations from each
+        null_correlations: Per-dimension correlations from each
             permutation, shape (n_permutations, k).
-        p_values_: Per-dimension permutation p-value for the canonical
+        p_values: Per-dimension permutation p-value for the canonical
             correlations, shape (k,).
-        loadings_: Observed factor loadings, one array of shape
+        loadings: Observed factor loadings, one array of shape
             (n_features_i, k) per view (see
-            :meth:`~cca_zoo._base.BaseModel.get_factor_loadings`).
-        null_loadings_: Permuted factor loadings, realigned to
-            ``loadings_`` via :func:`scipy.linalg.orthogonal_procrustes`, one array of
+            :func:`cca_zoo.metrics.factor_loadings`).
+        null_loadings: Permuted factor loadings, realigned to
+            ``loadings`` via :func:`scipy.linalg.orthogonal_procrustes`, one array of
             shape (n_permutations, n_features_i, k) per view.
-        loading_p_values_: Per-feature, per-dimension permutation p-value
+        loading_p_values: Per-feature, per-dimension permutation p-value
             for the factor loadings, one array of shape (n_features_i, k)
             per view.
     """
 
-    correlations_: np.ndarray
-    null_correlations_: np.ndarray
-    p_values_: np.ndarray
-    loadings_: list[np.ndarray]
-    null_loadings_: list[np.ndarray]
-    loading_p_values_: list[np.ndarray]
+    correlations: np.ndarray
+    null_correlations: np.ndarray
+    p_values: np.ndarray
+    loadings: list[np.ndarray]
+    null_loadings: list[np.ndarray]
+    loading_p_values: list[np.ndarray]
 
 
 def _correlations_and_loadings(
@@ -72,14 +72,14 @@ def permutation_test_significance(
     correspondence while preserving each view's own covariance structure --
     to build a null distribution.
 
-    Canonical-correlation significance (``p_values_``) compares each
+    Canonical-correlation significance (``p_values``) compares each
     dimension's observed correlation directly to its permuted
     counterparts: since both the observed and permuted fits rank
     dimensions by correlation strength, the d-th dimension of a permuted
     fit is already the right null comparison for the d-th observed
     dimension, with no realignment needed.
 
-    Feature-loading significance (``loading_p_values_``) is subtler: a
+    Feature-loading significance (``loading_p_values``) is subtler: a
     permuted refit is not guaranteed to recover canonical variates in the
     same order or with the same sign as the observed fit, since
     permutation can induce an arbitrary rotation or reflection of
@@ -117,9 +117,9 @@ def permutation_test_significance(
         >>> X1 = z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((40, 5))
         >>> X2 = z @ rng.standard_normal((1, 4)) + 0.1 * rng.standard_normal((40, 4))
         >>> result = permutation_test_significance(
-        ...     CCA(latent_dimensions=1), [X1, X2], n_permutations=49, random_state=0
+        ...     CCA(n_components=1), [X1, X2], n_permutations=49, random_state=0
         ... )
-        >>> result.p_values_.shape
+        >>> result.p_values.shape
         (1,)
     """
     arrays = validate_views(views)
@@ -158,10 +158,10 @@ def permutation_test_significance(
     ]
 
     return PermutationTestResult(
-        correlations_=true_corr,
-        null_correlations_=null_correlations,
-        p_values_=p_values,
-        loadings_=true_loadings,
-        null_loadings_=null_loadings,
-        loading_p_values_=loading_p_values,
+        correlations=true_corr,
+        null_correlations=null_correlations,
+        p_values=p_values,
+        loadings=true_loadings,
+        null_loadings=null_loadings,
+        loading_p_values=loading_p_values,
     )

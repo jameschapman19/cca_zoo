@@ -45,7 +45,7 @@ Because every embedding stays exactly linear in the raw (centred) view throughou
 **When to use:** Multiview CCA where the true relationship is linear but only a subset of
 features in each view actually drive the shared structure — `l1_ratio > 0` drives irrelevant
 features' weights to exactly zero, giving feature selection alongside the fitted canonical
-directions. When every feature is expected to contribute, plain `CCAEY`/`rCCA` need less
+directions. When every feature is expected to contribute, plain `CCAEY`/`RidgeCCA` need less
 hyperparameter tuning (no `alpha`/`l1_ratio` to select).
 
 Passing `positive=True` additionally constrains every weight to be non-negative, mirroring
@@ -66,9 +66,7 @@ dimensions are not independent "tasks" fit separately but different views of the
 ```python
 from cca_zoo.sparse import MultiTaskElasticNetCCA
 
-model = MultiTaskElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit(
-    [X1, X2]
-)
+model = MultiTaskElasticNetCCA(n_components=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
 active_features = (model.weights_[0] != 0).any(axis=1)  # same mask for every component
 ```
 
@@ -93,9 +91,7 @@ joint (unpenalised) optimum after every addition.
 ```python
 from cca_zoo.sparse import OrthogonalMatchingPursuitCCA
 
-model = OrthogonalMatchingPursuitCCA(latent_dimensions=2, n_nonzero_coefs=5).fit(
-    [X1, X2]
-)
+model = OrthogonalMatchingPursuitCCA(n_components=2, n_nonzero_coefs=5).fit([X1, X2])
 active_features = (model.weights_[0] != 0).any(axis=1)
 assert active_features.sum() == 5
 ```
@@ -111,19 +107,19 @@ default.
 ```python
 from cca_zoo.sparse import ElasticNetCCA
 
-model = ElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
+model = ElasticNetCCA(n_components=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corr = model.score([X1, X2])  # mean canonical correlation
 
 # ElasticNetCCA also supports more than two views
-model3 = ElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2, X3])
+model3 = ElasticNetCCA(n_components=2, alpha=0.1).fit([X1, X2, X3])
 ```
 
 `l1_ratio=0` is pure ridge (no sparsity); `l1_ratio=1` is pure lasso. Increasing `alpha` shrinks
 more weights to exactly zero:
 
 ```python
-model = ElasticNetCCA(latent_dimensions=1, alpha=0.5, l1_ratio=0.9).fit([X1, X2])
+model = ElasticNetCCA(n_components=1, alpha=0.5, l1_ratio=0.9).fit([X1, X2])
 nonzero_features = (model.weights_[0] != 0).any(axis=1)
 ```
 
@@ -150,7 +146,7 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 ## Practical notes
 
 - All three support 2 or more views.
-- `latent_dimensions` must not exceed the number of features in any view.
+- `n_components` must not exceed the number of features in any view.
 - Like every EY-loss model, $\mathcal{L}_{EY}$ is not convex in $W$ jointly, so fitting is only
   guaranteed to reach a stationary point, and different `random_state` initialisations can land
   on different ones — the same caveat that already applies to `CCAEY`'s gradient descent.
@@ -186,7 +182,7 @@ $$
 ```python
 from cca_zoo.sparse import PMDCCA
 
-model = PMDCCA(latent_dimensions=2, tau=0.5, random_state=0).fit([X1, X2])
+model = PMDCCA(n_components=2, tau=0.5, random_state=0).fit([X1, X2])
 ```
 
 ### ADMMCCA
@@ -208,7 +204,7 @@ the identity.
 ```python
 from cca_zoo.sparse import ADMMCCA
 
-model = ADMMCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+model = ADMMCCA(n_components=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
 ### IPLSCCA
@@ -219,9 +215,7 @@ Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
 ```python
 from cca_zoo.sparse import IPLSCCA
 
-model = IPLSCCA(latent_dimensions=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit(
-    [X1, X2]
-)
+model = IPLSCCA(n_components=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit([X1, X2])
 ```
 
 ### WaijenborgCCA
@@ -235,9 +229,9 @@ heuristic).
 ```python
 from cca_zoo.sparse import WaijenborgCCA
 
-model = WaijenborgCCA(
-    latent_dimensions=2, alpha=0.01, l1_ratio=0.5, random_state=0
-).fit([X1, X2])
+model = WaijenborgCCA(n_components=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
+    [X1, X2]
+)
 ```
 
 ### ParkhomenkoCCA
@@ -248,7 +242,7 @@ but `tau` is a fixed threshold, not an L1 bound.
 ```python
 from cca_zoo.sparse import ParkhomenkoCCA
 
-model = ParkhomenkoCCA(latent_dimensions=2, tau=0.1, random_state=0).fit([X1, X2])
+model = ParkhomenkoCCA(n_components=2, tau=0.1, random_state=0).fit([X1, X2])
 ```
 
 ### SpanCCA
@@ -262,7 +256,7 @@ features is known in advance.
 ```python
 from cca_zoo.sparse import SpanCCA
 
-model = SpanCCA(latent_dimensions=2, span=10, random_state=0).fit([X1, X2])
+model = SpanCCA(n_components=2, span=10, random_state=0).fit([X1, X2])
 ```
 
 ### SAR
@@ -276,5 +270,5 @@ requires and an OLS-based one does not (see the class docstring for why).
 ```python
 from cca_zoo.sparse import SAR
 
-model = SAR(latent_dimensions=2, random_state=0).fit([X1, X2])
+model = SAR(n_components=2, random_state=0).fit([X1, X2])
 ```

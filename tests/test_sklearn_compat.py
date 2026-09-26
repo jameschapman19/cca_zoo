@@ -82,4 +82,4 @@ def test_sklearn_estimator_contract(ModelClass: type[BaseModel], check: Any) -> 
 def test_discovered_at_least_the_core_modules() -> None:
     """Sanity check that discovery actually found the always-available models."""
     names = {c.__name__ for c in _MODEL_CLASSES}
-    assert {"CCA", "rCCA", "MCCA", "GCCA", "TCCA", "CCAR3"} <= names
+    assert {"CCA", "RidgeCCA", "MCCA", "GCCA", "TCCA", "CCAR3"} <= names

@@ -14,7 +14,7 @@ default, but ``docs/api/linear.md`` overrides that for ``BaseModel`` with
 an explicit ``members:`` allowlist (to control display order). That
 allowlist is hand-maintained, so ``BaseModel.predict`` shipped in #240
 without being added to it and silently rendered nothing in the API
-reference until #242 noticed. ``BaseDeep``/``JointData``/``objectives``
+reference until #242 noticed. ``BaseDeep``/``objectives``
 have similar ``members:`` overrides but are deliberately curated
 subsets of their class's full public surface, not "all of it", so
 they're not covered here -- only ``BaseModel``, where the allowlist is

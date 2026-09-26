@@ -46,7 +46,7 @@ class PerViewTransformer(BaseEstimator):
         >>> pipe = Pipeline([
         ...     ("scale", PerViewTransformer(StandardScaler())),
         ...     ("pca", PerViewTransformer(PCA(n_components=5))),
-        ...     ("cca", CCA(latent_dimensions=2)),
+        ...     ("cca", CCA(n_components=2)),
         ... ])
         >>> scores = pipe.fit_transform([X1, X2])
     """

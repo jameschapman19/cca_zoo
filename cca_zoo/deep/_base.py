@@ -22,24 +22,24 @@ class BaseDeep(pl.LightningModule):
     provided for convenience, wrapping the Lightning training loop.
 
     Args:
-        latent_dimensions: Dimensionality of the latent space.
+        n_components: Dimensionality of the latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
-        lr: Learning rate for the Adam optimiser. Default is 1e-3.
+        learning_rate: Learning rate for the Adam optimiser. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Small constant for numerical stability. Default is 1e-6.
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__()
-        self.latent_dimensions = latent_dimensions
-        self.lr = lr
+        self.n_components = n_components
+        self.learning_rate = learning_rate
         self.max_epochs = max_epochs
         self.eps = eps
         self.encoders = nn.ModuleList(encoders)
@@ -51,7 +51,7 @@ class BaseDeep(pl.LightningModule):
             views: List of tensors, each (batch_size, n_features_i).
 
         Returns:
-            List of tensors, each (batch_size, latent_dimensions).
+            List of tensors, each (batch_size, n_components).
         """
         return [enc(v) for enc, v in zip(self.encoders, views)]
 
@@ -131,7 +131,7 @@ class BaseDeep(pl.LightningModule):
         Returns:
             Adam optimiser with the configured learning rate.
         """
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     @torch.no_grad()
     def transform(self, loader: torch.utils.data.DataLoader) -> list[np.ndarray]:
@@ -141,7 +141,7 @@ class BaseDeep(pl.LightningModule):
             loader: DataLoader yielding batches with a ``"views"`` key.
 
         Returns:
-            List of numpy arrays, each (n_samples, latent_dimensions).
+            List of numpy arrays, each (n_samples, n_components).
         """
         self.eval()
         all_reprs: list[list[torch.Tensor]] = []
@@ -167,7 +167,7 @@ class BaseDeep(pl.LightningModule):
         """
         representations = self.transform(loader)
         return (
-            MCCA(latent_dimensions=self.latent_dimensions)
+            MCCA(n_components=self.n_components)
             .fit(representations)
             .score(representations)
         )

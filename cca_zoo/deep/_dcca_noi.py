@@ -88,13 +88,13 @@ class DCCANOI(DCCA):
         nonlinear orthogonal iterations." Allerton 2015. IEEE.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         rho: Exponential moving average momentum for the batch whitening
             layers. Must be in [0, 1]. Default is 0.1.
         objective: Ignored; the NOI loss is fixed. Accepted for API
             compatibility.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Regularisation for the whitening layers. Default is 1e-6.
 
@@ -106,33 +106,33 @@ class DCCANOI(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCANOI(latent_dimensions=4, encoders=[enc1, enc2], rho=0.1)
+        >>> model = DCCANOI(n_components=4, encoders=[enc1, enc2], rho=0.1)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         rho: float = 0.1,
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         if rho < 0.0 or rho > 1.0:
             raise ValueError(f"rho must be in [0, 1], got {rho}.")
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
             objective=objective,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
         self.rho = rho
         self.mse = nn.MSELoss(reduction="sum")
         self.bws = nn.ModuleList(
-            [_BatchWhiten(latent_dimensions, momentum=rho, eps=eps) for _ in encoders]
+            [_BatchWhiten(n_components, momentum=rho, eps=eps) for _ in encoders]
         )
 
     def loss(
@@ -147,7 +147,7 @@ class DCCANOI(DCCA):
 
         Args:
             representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
+                of shape (batch_size, n_components).
             independent_representations: Unused; present for API
                 compatibility.
 

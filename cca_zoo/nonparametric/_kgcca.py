@@ -33,7 +33,7 @@ class KGCCA(BaseModel):
         Analysis*, 90, 114–131.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Regularisation parameter(s). Default is 0.1.
         kernel: Kernel name(s). Default is ``"linear"``.
@@ -50,12 +50,12 @@ class KGCCA(BaseModel):
         >>> X1 = rng.standard_normal((30, 5))
         >>> X2 = rng.standard_normal((30, 5))
         >>> X3 = rng.standard_normal((30, 5))
-        >>> model = KGCCA(latent_dimensions=2).fit([X1, X2, X3])
+        >>> model = KGCCA(n_components=2).fit([X1, X2, X3])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
@@ -66,7 +66,7 @@ class KGCCA(BaseModel):
         view_weights: list[float] | None = None,
         eps: float = 1e-6,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.kernel = kernel
         self.gamma = gamma
@@ -121,8 +121,8 @@ class KGCCA(BaseModel):
                 B_i += (self.eps - min_eig) * np.eye(B_i.shape[0])
             Q += mi * K @ np.linalg.inv(B_i) @ K
 
-        _, eigvecs = gevp(Q, None, self.latent_dimensions)
-        T = eigvecs[:, : self.latent_dimensions]
+        _, eigvecs = gevp(Q, None, self.n_components)
+        T = eigvecs[:, : self.n_components]
         self.weights_: list[np.ndarray] = [np.linalg.pinv(K) @ T for K in kernels]
         # Store kernel parameters for transform
         self._kernel = kernel_

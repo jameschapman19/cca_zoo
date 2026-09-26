@@ -103,7 +103,7 @@ def test_dcca_trains_with_multiview_dataset() -> None:
     loader = data.DataLoader(MultiviewDataset([x1, x2]), batch_size=20, shuffle=True)
 
     encoders = [nn.Linear(6, 2), nn.Linear(5, 2)]
-    model = DCCA(latent_dimensions=2, encoders=encoders, max_epochs=1)
+    model = DCCA(n_components=2, encoders=encoders, max_epochs=1)
     trainer = lightning.pytorch.Trainer(
         max_epochs=1, enable_progress_bar=False, logger=False
     )
@@ -124,7 +124,7 @@ def test_dcca_training_completes() -> None:
     """DCCA trains for 2 epochs on tiny data without error."""
     latent = 2
     encoders = _make_encoders(5, latent)
-    model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader()
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
@@ -134,12 +134,12 @@ def test_dcca_training_completes() -> None:
 
 @pytest.mark.slow
 def test_dcca_transform_output_shapes() -> None:
-    """DCCA transform returns arrays of shape (n_samples, latent_dimensions)."""
+    """DCCA transform returns arrays of shape (n_samples, n_components)."""
     latent = 2
     n = 20
     p = 5
     encoders = _make_encoders(p, latent)
-    model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader(n=n, p=p)
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
@@ -156,7 +156,7 @@ def test_dcca_score_shape() -> None:
     """DCCA score is one float, like every model's."""
     latent = 2
     encoders = _make_encoders(5, latent)
-    model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DCCA(n_components=latent, encoders=encoders, max_epochs=2)
     loader = _make_loader()
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
@@ -171,7 +171,7 @@ def test_dcca_with_mcca_objective() -> None:
     latent = 2
     encoders = _make_encoders(5, latent)
     model = DCCA(
-        latent_dimensions=latent,
+        n_components=latent,
         encoders=encoders,
         objective=MCCALoss(eps=1e-4),
         max_epochs=2,
@@ -191,7 +191,7 @@ def test_dcca_with_gcca_objective() -> None:
     latent = 2
     encoders = _make_encoders(5, latent)
     model = DCCA(
-        latent_dimensions=latent,
+        n_components=latent,
         encoders=encoders,
         objective=GCCALoss(eps=1e-4),
         max_epochs=2,
@@ -275,7 +275,7 @@ def test_base_deep_forward_output_shapes() -> None:
     """BaseDeep forward method returns latent representations of correct shape."""
     latent = 3
     encoders = _make_encoders(5, latent)
-    model = DCCA(latent_dimensions=latent, encoders=encoders)
+    model = DCCA(n_components=latent, encoders=encoders)
     x1 = torch.randn(8, 5)
     x2 = torch.randn(8, 5)
     result = model([x1, x2])
@@ -312,7 +312,7 @@ def test_dcca_three_view_training() -> None:
 
     loader = data.DataLoader(ThreeViewDataset(), batch_size=n)
     model = DCCA(
-        latent_dimensions=latent,
+        n_components=latent,
         encoders=encoders,
         objective=MCCALoss(eps=1e-4),
         max_epochs=2,
@@ -357,7 +357,7 @@ def test_dmcca_defaults_to_mcca_loss() -> None:
     """DMCCA uses MCCALoss regardless of the objective passed in."""
     latent = 2
     encoders = _make_encoders(5, latent)
-    model = DMCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DMCCA(n_components=latent, encoders=encoders, max_epochs=2)
     assert isinstance(model.objective, MCCALoss)
 
 
@@ -368,7 +368,7 @@ def test_dmcca_three_view_training() -> None:
     n, p = 20, 5
     encoders = [nn.Linear(p, latent) for _ in range(3)]
     loader = _make_three_view_loader(n=n, p=p)
-    model = DMCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DMCCA(n_components=latent, encoders=encoders, max_epochs=2)
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
     )
@@ -384,7 +384,7 @@ def test_dgcca_defaults_to_gcca_loss() -> None:
     """DGCCA uses GCCALoss regardless of the objective passed in."""
     latent = 2
     encoders = _make_encoders(5, latent)
-    model = DGCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DGCCA(n_components=latent, encoders=encoders, max_epochs=2)
     assert isinstance(model.objective, GCCALoss)
 
 
@@ -395,7 +395,7 @@ def test_dgcca_three_view_training() -> None:
     n, p = 20, 5
     encoders = [nn.Linear(p, latent) for _ in range(3)]
     loader = _make_three_view_loader(n=n, p=p)
-    model = DGCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
+    model = DGCCA(n_components=latent, encoders=encoders, max_epochs=2)
     trainer = lightning.pytorch.Trainer(
         max_epochs=2, enable_progress_bar=False, logger=False
     )

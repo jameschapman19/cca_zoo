@@ -59,12 +59,12 @@ expect fitting to be markedly slower than `GAMCCA` or `TreeCCA` on large dataset
 ```python
 from cca_zoo.gp import GaussianProcessCCA
 
-model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
+model = GaussianProcessCCA(n_components=1).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corr = model.score([X1, X2])  # mean canonical correlation
 
 # GaussianProcessCCA also supports more than two views
-model3 = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2, X3])
+model3 = GaussianProcessCCA(n_components=1).fit([X1, X2, X3])
 ```
 
 ## Predictive uncertainty
@@ -76,7 +76,7 @@ component's posterior standard deviation alongside its mean:
 means, stds = model.transform([X1, X2], return_std=True)
 ```
 
-`stds[i]` has the same shape as `means[i]` (`(n_samples, latent_dimensions)`) and is the posterior
+`stds[i]` has the same shape as `means[i]` (`(n_samples, n_components)`) and is the posterior
 standard deviation of view `i`'s latent component — larger away from the training data, smaller
 near it, exactly as for any other GP posterior. This does not depend on the fitted coefficients at
 all (a standard GP fact: posterior variance only involves the kernel, the noise level, and the
@@ -100,7 +100,7 @@ selected via `sklearn.cluster.kmeans_plusplus`'s seeding — reducing fitting to
 $O(n \, m^2 + m^3)$ for $m$ basis points instead of $O(n^3)$:
 
 ```python
-model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200).fit(
+model = GaussianProcessCCA(n_components=1, n_inducing=200).fit(
     [X1, X2]
 )  # X1, X2 have many samples
 ```
@@ -129,7 +129,7 @@ whether increasing it changes the held-out canonical correlation.
 ## Practical notes
 
 - `GaussianProcessCCA` supports 2 or more views.
-- `latent_dimensions` must not exceed the number of features in any view.
+- `n_components` must not exceed the number of features in any view.
 - Exact inference (`n_inducing=None`) is $O(n^3)$ in the number of training samples; set
   `n_inducing` for datasets beyond a few thousand samples, or consider `GAMCCA` (if the
   relationship is additive) or `TreeCCA` instead.

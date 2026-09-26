@@ -27,7 +27,7 @@ class KTCCA(BaseModel):
         correlation analysis for action classification. *CVPR 2007*. IEEE.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Regularisation parameter(s). Default is 0.1.
         kernel: Kernel name(s). Default is ``"linear"``.
@@ -44,12 +44,12 @@ class KTCCA(BaseModel):
         >>> X1 = rng.standard_normal((20, 5))
         >>> X2 = rng.standard_normal((20, 5))
         >>> X3 = rng.standard_normal((20, 5))
-        >>> model = KTCCA(latent_dimensions=1, random_state=0).fit([X1, X2, X3])
+        >>> model = KTCCA(n_components=1, random_state=0).fit([X1, X2, X3])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
@@ -60,7 +60,7 @@ class KTCCA(BaseModel):
         eps: float = 1e-3,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.kernel = kernel
         self.gamma = gamma
@@ -119,7 +119,7 @@ class KTCCA(BaseModel):
         tl.set_backend("numpy")
         parafac_result = parafac(
             M,
-            self.latent_dimensions,
+            self.n_components,
             verbose=False,
             random_state=self.random_state,
         )

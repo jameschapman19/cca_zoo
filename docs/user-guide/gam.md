@@ -34,7 +34,7 @@ basis's row space.
 ```python
 from cca_zoo.gam import GAMCCA
 
-model = GAMCCA(latent_dimensions=2).fit([X1, X2])
+model = GAMCCA(n_components=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corr = model.score([X1, X2])  # mean canonical correlation
 
@@ -66,7 +66,7 @@ fitted smooth, `plot.gam`'s partial effect:
 import numpy as np
 
 x_grid = np.linspace(X1[:, 0].min(), X1[:, 0].max(), 200)
-shape = model.shape_function(view=0, feature=0, x=x_grid)  # (200, latent_dimensions)
+shape = model.shape_function(view=0, feature=0, x=x_grid)  # (200, n_components)
 ```
 
 Summing every feature's `shape_function` at the training values reproduces
@@ -114,9 +114,9 @@ inspectable term by term.
 ```python
 from cca_zoo.gam import MARSCCA
 
-model = MARSCCA(latent_dimensions=1, degree=2, nk=20).fit([X1, X2])
+model = MARSCCA(n_components=1, degree=2, nk=20).fit([X1, X2])
 terms = model.basis_functions(0)  # e.g. ['h(x1 - 0.41)', 'h(0.41 - x1)', ...]
-coefs = model.encoders_[0].coef_  # (len(terms), latent_dimensions), row m ↔ terms[m]
+coefs = model.encoders_[0].coef_  # (len(terms), n_components), row m ↔ terms[m]
 ```
 
 Products appear as e.g. `'h(x1 - 0.41) * h(x0 + 0.2)'`, with `h(u) = max(0, u)` and knots in the

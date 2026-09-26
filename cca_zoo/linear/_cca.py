@@ -1,13 +1,13 @@
-"""CCA — standard Canonical Correlation Analysis (c=0 special case of rCCA)."""
+"""CCA — standard Canonical Correlation Analysis (c=0 special case of RidgeCCA)."""
 
 from __future__ import annotations
 
 from numpy.typing import ArrayLike
 
-from cca_zoo.linear._rcca import rCCA
+from cca_zoo.linear._ridge_cca import RidgeCCA
 
 
-class CCA(rCCA):
+class CCA(RidgeCCA):
     r"""Canonical Correlation Analysis.
 
     Finds the pair of linear projections that maximise the Pearson correlation
@@ -20,7 +20,7 @@ class CCA(rCCA):
     \end{aligned}
     $$
 
-    This is a special case of :class:`rCCA` with ``c=0``.  The solution uses
+    This is a special case of :class:`RidgeCCA` with ``c=0``.  The solution uses
     PCA whitening followed by an SVD of the cross-covariance matrix, which is
     numerically stable even for high-dimensional views.
 
@@ -29,7 +29,7 @@ class CCA(rCCA):
         *Biometrika*, 28(3/4), 321–377.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
 
     Examples:
@@ -37,17 +37,17 @@ class CCA(rCCA):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+        >>> model = CCA(n_components=2).fit([X1, X2])
         >>> corrs = model.score([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             c=0.0,
         )
@@ -71,6 +71,6 @@ class CCA(rCCA):
             >>> rng = np.random.default_rng(0)
             >>> X1 = rng.standard_normal((50, 10))
             >>> X2 = rng.standard_normal((50, 8))
-            >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+            >>> model = CCA(n_components=2).fit([X1, X2])
         """
         return super().fit(views, y)

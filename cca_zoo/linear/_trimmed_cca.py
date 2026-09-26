@@ -44,7 +44,7 @@ def _per_sample_terms(
     becomes a genuine quadratic form over the selection (rank up to
     $k(k+1)/2$, not the rank-1 "square of one linear functional" this
     relies on), which is why :class:`TrimmedCCA` doesn't support
-    ``latent_dimensions > 1``.
+    ``n_components > 1``.
 
     Args:
         zs: Per-view projections, each of shape (n,) (one per view).
@@ -197,7 +197,7 @@ class TrimmedCCA(BaseModel):
     increase the loss (refit is monotone by construction; a selection
     step that fails to improve is rejected and the loop stops there) --
     the classical C-step argument, applied to CCAEY's real objective
-    rather than a proxy score. Repeated over ``n_starts`` random restarts
+    rather than a proxy score. Repeated over ``n_init`` random restarts
     (this objective is non-convex, so a single start can land on a poor
     local optimum), keeping the lowest-loss result.
 
@@ -225,7 +225,7 @@ class TrimmedCCA(BaseModel):
         exactly what's unknown.
 
         ``TrimmedCCA`` supports any number of views (2 or more) but only
-        ``latent_dimensions=1``. The selection rule's closed-form
+        ``n_components=1``. The selection rule's closed-form
         derivation (see :func:`_per_sample_terms`) relies on CCAEY's
         penalty term being the *square of a single linear functional* of
         the selection -- true regardless of the number of views, but not
@@ -240,7 +240,7 @@ class TrimmedCCA(BaseModel):
         fraction.
 
     Args:
-        latent_dimensions: Must be 1 (the only value currently
+        n_components: Must be 1 (the only value currently
             supported; see the ``Note`` above).
         center: Whether to subtract column means. Default True.
         c: Ridge blend in ``[0, 1]``, same semantics as
@@ -251,7 +251,7 @@ class TrimmedCCA(BaseModel):
             ``CCAEY``'s own note on this).
         h_frac: Fraction of rows kept every concentration step, in
             ``(0, 1]``. Default 0.75.
-        n_starts: Random restarts; the lowest-loss result is kept.
+        n_init: Random restarts; the lowest-loss result is kept.
             Default 10.
         max_iter: Maximum concentration steps per restart. Default 30.
         tol: Convergence tolerance for each refit's L-BFGS-B call, passed
@@ -290,26 +290,26 @@ class TrimmedCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "c": RIDGE_PARAMETER,
         "h_frac": [Interval(Real, 0, 1, closed="right")],
-        "n_starts": POSITIVE_INT,
+        "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": [Interval(Real, 0, None, closed="neither")],
     }
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float = 0.1,
         h_frac: float = 0.75,
-        n_starts: int = 10,
+        n_init: int = 10,
         max_iter: int = 30,
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.h_frac = h_frac
-        self.n_starts = n_starts
+        self.n_init = n_init
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
@@ -326,14 +326,14 @@ class TrimmedCCA(BaseModel):
 
         Raises:
             ValueError: If fewer than 2 views are provided.
-            ValueError: If ``latent_dimensions`` isn't 1 (see the class's
+            ValueError: If ``n_components`` isn't 1 (see the class's
                 ``Note``).
         """
         views_ = self._setup_fit(views)
-        if self.latent_dimensions != 1:
+        if self.n_components != 1:
             raise ValueError(
-                "TrimmedCCA currently supports only latent_dimensions=1, "
-                f"got {self.latent_dimensions}."
+                "TrimmedCCA currently supports only n_components=1, "
+                f"got {self.n_components}."
             )
         n = self.n_samples_
         h = max(2, int(round(self.h_frac * n)))
@@ -341,12 +341,12 @@ class TrimmedCCA(BaseModel):
         # CCAEY's own _objective/_derivative back both the selection score
         # and the refit, rather than a second implementation of the loss
         # living here -- .fit() is never called on it, only these two.
-        model = CCAEY(latent_dimensions=1, c=self.c)
+        model = CCAEY(n_components=1, c=self.c)
 
         best_weights: list[np.ndarray] | None = None
         best_mask: np.ndarray | None = None
         best_obj = np.inf
-        for _ in range(self.n_starts):
+        for _ in range(self.n_init):
             weights = []
             for xv in views_:
                 w = rng.standard_normal((xv.shape[1], 1))

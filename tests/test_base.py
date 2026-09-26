@@ -25,7 +25,7 @@ class _MinimalModel(BaseModel):
     def fit(self, views: list, y: None = None) -> _MinimalModel:
         """Fit by storing identity-like weight matrices."""
         validated = self._setup_fit(views)
-        self.weights_ = [np.eye(v.shape[1], self.latent_dimensions) for v in validated]
+        self.weights_ = [np.eye(v.shape[1], self.n_components) for v in validated]
         return self
 
 
@@ -42,8 +42,8 @@ def test_cannot_instantiate_base_model() -> None:
 
 def test_minimal_subclass_instantiates() -> None:
     """A concrete subclass with fit implemented can be instantiated."""
-    model = _MinimalModel(latent_dimensions=2)
-    assert model.latent_dimensions == 2
+    model = _MinimalModel(n_components=2)
+    assert model.n_components == 2
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ def test_weights_raises_before_fit() -> None:
 
 def test_weights_accessible_after_fit(two_views: list[np.ndarray]) -> None:
     """Accessing .weights_ after fit returns a list of arrays."""
-    model = _MinimalModel(latent_dimensions=1).fit(two_views)
+    model = _MinimalModel(n_components=1).fit(two_views)
     w = model.weights_
     assert isinstance(w, list)
     assert len(w) == len(two_views)
@@ -128,8 +128,8 @@ def test_fit_transform_equals_fit_then_transform(
     two_views: list[np.ndarray],
 ) -> None:
     """fit_transform output must equal fit().transform() numerically."""
-    result_ft = _MinimalModel(latent_dimensions=1).fit_transform(two_views)
-    model = _MinimalModel(latent_dimensions=1).fit(two_views)
+    result_ft = _MinimalModel(n_components=1).fit_transform(two_views)
+    model = _MinimalModel(n_components=1).fit(two_views)
     result_sep = model.transform(two_views)
     for ft, sep in zip(result_ft, result_sep):
         np.testing.assert_allclose(ft, sep, rtol=1e-12)
@@ -141,32 +141,32 @@ def test_fit_transform_equals_fit_then_transform(
 
 
 def test_score_shape(two_views: list[np.ndarray]) -> None:
-    """Score returns shape (latent_dimensions,)."""
+    """Score returns shape (n_components,)."""
     k = 2
-    model = CCA(latent_dimensions=k).fit(two_views)
+    model = CCA(n_components=k).fit(two_views)
     s = model.score(two_views)
     assert isinstance(s, float)
 
 
 def test_score_values_in_range(correlated_views: list[np.ndarray]) -> None:
     """All score values must be in [-1, 1]."""
-    model = CCA(latent_dimensions=2).fit(correlated_views)
+    model = CCA(n_components=2).fit(correlated_views)
     s = model.score(correlated_views)
     assert np.all(s >= -1.0 - 1e-9)
     assert np.all(s <= 1.0 + 1e-9)
 
 
 def test_pairwise_correlations_shape(two_views: list[np.ndarray]) -> None:
-    """pairwise_correlations returns shape (n_views, n_views, latent_dimensions)."""
+    """pairwise_correlations returns shape (n_views, n_views, n_components)."""
     k = 2
-    model = CCA(latent_dimensions=k).fit(two_views)
+    model = CCA(n_components=k).fit(two_views)
     corrs = pairwise_correlations(model.transform(two_views))
     assert corrs.shape == (2, 2, k)
 
 
 def test_pairwise_correlations_diagonal_is_one(two_views: list[np.ndarray]) -> None:
     """Diagonal entries of pairwise_correlations should be 1 (self-correlation)."""
-    model = CCA(latent_dimensions=1).fit(two_views)
+    model = CCA(n_components=1).fit(two_views)
     corrs = pairwise_correlations(model.transform(two_views))
     np.testing.assert_allclose(corrs[0, 0, :], 1.0, atol=1e-10)
     np.testing.assert_allclose(corrs[1, 1, :], 1.0, atol=1e-10)
@@ -176,7 +176,7 @@ def test_score_is_the_mean_canonical_correlation(
     two_views: list[np.ndarray],
 ) -> None:
     """Score is the mean over dimensions of the per-dimension correlations."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     per_dimension = average_pairwise_correlations(
         pairwise_correlations(model.transform(two_views))
     )
@@ -191,7 +191,7 @@ def test_score_is_the_mean_canonical_correlation(
 def test_get_factor_loadings_shapes(two_views: list[np.ndarray]) -> None:
     """factor_loadings returns one array per view with shape (n_features, k)."""
     k = 2
-    model = CCA(latent_dimensions=k).fit(two_views)
+    model = CCA(n_components=k).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
@@ -240,7 +240,7 @@ def test_predict_wrong_n_features_raises(two_views: list[np.ndarray]) -> None:
 
 def test_predict_output_shapes(two_views: list[np.ndarray]) -> None:
     """Predict returns one reconstruction per view, each matching its input shape."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     preds = model.predict([two_views[0], None])
     assert len(preds) == 2
     assert preds[0].shape == two_views[0].shape
@@ -257,7 +257,7 @@ def test_predict_reconstructs_correlated_views(
     data is pre-whitened, so this checks the actual, unwhitened, correlated
     fixture data reconstructs well via the least-squares loadings instead.
     """
-    model = CCA(latent_dimensions=2).fit(correlated_views)
+    model = CCA(n_components=2).fit(correlated_views)
     x2_pred = model.predict([correlated_views[0], None])[1]
     corr = np.corrcoef(x2_pred.ravel(), correlated_views[1].ravel())[0, 1]
     assert corr > 0.9
@@ -277,7 +277,7 @@ def test_predict_self_reconstruction_beats_naive_weights_reconstruction(
     rng = np.random.default_rng(1)
     scales = [rng.uniform(0.5, 20, size=v.shape[1]) for v in correlated_views]
     views = [v * s for v, s in zip(correlated_views, scales)]
-    model = CCA(latent_dimensions=2).fit(views)
+    model = CCA(n_components=2).fit(views)
 
     x2_pred = model.predict([views[0], None])[1]
     corr_predict = np.corrcoef(x2_pred.ravel(), views[1].ravel())[0, 1]
@@ -291,7 +291,7 @@ def test_predict_self_reconstruction_beats_naive_weights_reconstruction(
 
 def test_predict_ignores_extra_observed_views(two_views: list[np.ndarray]) -> None:
     """Passing an observed (not None) target view doesn't change its shape."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     both_observed = model.predict(two_views)
     one_observed = model.predict([two_views[0], None])
     assert both_observed[1].shape == one_observed[1].shape
@@ -311,7 +311,7 @@ def test_inverse_transform_raises_before_fit(two_views: list[np.ndarray]) -> Non
 
 def test_inverse_transform_wrong_length_raises(two_views: list[np.ndarray]) -> None:
     """inverse_transform raises ValueError when scores has the wrong length."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     scores = model.transform(two_views)
     with pytest.raises(ValueError, match="Expected 2 score arrays"):
         model.inverse_transform([scores[0]])
@@ -321,15 +321,15 @@ def test_inverse_transform_wrong_n_latent_dims_raises(
     two_views: list[np.ndarray],
 ) -> None:
     """inverse_transform raises ValueError when a score array has the wrong width."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     scores = model.transform(two_views)
-    with pytest.raises(ValueError, match="expected latent_dimensions=2"):
+    with pytest.raises(ValueError, match="expected n_components=2"):
         model.inverse_transform([scores[0][:, :1], scores[1]])
 
 
 def test_inverse_transform_output_shapes(two_views: list[np.ndarray]) -> None:
     """inverse_transform returns one reconstruction per view, matching its width."""
-    model = CCA(latent_dimensions=2).fit(two_views)
+    model = CCA(n_components=2).fit(two_views)
     scores = model.transform(two_views)
     approx = model.inverse_transform(scores)
     assert len(approx) == 2
@@ -341,7 +341,7 @@ def test_inverse_transform_round_trips_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """inverse_transform(transform(views)) approximately recovers views."""
-    model = CCA(latent_dimensions=2).fit(correlated_views)
+    model = CCA(n_components=2).fit(correlated_views)
     scores = model.transform(correlated_views)
     approx = model.inverse_transform(scores)
     for a, view in zip(approx, correlated_views):
@@ -363,7 +363,7 @@ def test_inverse_transform_round_trips_on_heterogeneous_scales(
     rng = np.random.default_rng(2)
     scales = [rng.uniform(0.5, 20, size=v.shape[1]) for v in correlated_views]
     views = [v * s for v, s in zip(correlated_views, scales)]
-    model = CCA(latent_dimensions=2).fit(views)
+    model = CCA(n_components=2).fit(views)
     scores = model.transform(views)
     approx = model.inverse_transform(scores)
     for a, view in zip(approx, views):
@@ -381,7 +381,7 @@ def test_inverse_transform_differs_from_predict(
     but distinct views, they should not give numerically identical
     reconstructions of view 2.
     """
-    model = CCA(latent_dimensions=2).fit(correlated_views)
+    model = CCA(n_components=2).fit(correlated_views)
     scores = model.transform(correlated_views)
     via_inverse_transform = model.inverse_transform(scores)[1]
     via_predict = model.predict([correlated_views[0], None])[1]
@@ -395,13 +395,13 @@ def test_inverse_transform_differs_from_predict(
 
 def test_get_params_set_params_roundtrip() -> None:
     """get_params / set_params roundtrip for BaseModel subclass."""
-    model = _MinimalModel(latent_dimensions=3, center=False)
+    model = _MinimalModel(n_components=3, center=False)
     params = model.get_params()
-    assert params["latent_dimensions"] == 3
+    assert params["n_components"] == 3
     assert params["center"] is False
     model2 = _MinimalModel()
     model2.set_params(**params)
-    assert model2.latent_dimensions == 3
+    assert model2.n_components == 3
     assert model2.center is False
 
 

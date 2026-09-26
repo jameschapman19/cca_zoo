@@ -9,6 +9,11 @@ import scipy.linalg
 from numpy.typing import ArrayLike
 
 
+def _integer_seed(random_state: int | None) -> int:
+    """An integer seed for JAX's PRNG from any ``random_state``, ``None`` included."""
+    return int(np.random.default_rng(random_state).integers(2**31 - 1))
+
+
 def posterior_mean_latent(
     centered_views: list[np.ndarray],
     weights: list[np.ndarray],
@@ -208,7 +213,7 @@ class PosteriorMeanTransformMixin:
                 (n_samples, n_features_i) or ``None``.
 
         Returns:
-            Array of shape (n_samples, latent_dimensions).
+            Array of shape (n_samples, n_components).
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
@@ -243,7 +248,7 @@ class PosteriorMeanTransformMixin:
         integrated out (see
         :func:`~cca_zoo.probabilistic._utils.marginal_log_likelihood`).
         Larger (less negative) is better; useful for comparing different
-        ``latent_dimensions`` or comparing this fit against another
+        ``n_components`` or comparing this fit against another
         probabilistic model on the same data.
 
         Args:

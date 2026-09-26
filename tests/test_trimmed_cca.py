@@ -11,7 +11,7 @@ from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
 
 
 def _make_model(**kwargs: object) -> TrimmedCCA:
-    return TrimmedCCA(n_starts=3, max_iter=10, random_state=0, **kwargs)
+    return TrimmedCCA(n_init=3, max_iter=10, random_state=0, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ def test_select_usually_matches_brute_force_objective(m: int) -> None:
     ``test_trimmed_cca_beats_ransac_near_breakdown_point`` for that
     safeguard holding up end to end. Parametrized over the number of
     views ``m`` since the underlying algebra (and hence this guarantee)
-    doesn't depend on it -- only on ``latent_dimensions == 1``.
+    doesn't depend on it -- only on ``n_components == 1``.
     """
     rng = np.random.default_rng(0)
     n, h = 9, 5
@@ -107,10 +107,10 @@ def test_single_view_raises(two_views_small: list[np.ndarray]) -> None:
         _make_model().fit([two_views_small[0]])
 
 
-def test_latent_dimensions_above_one_raises(two_views_small: list[np.ndarray]) -> None:
-    """latent_dimensions > 1 is rejected explicitly."""
-    with pytest.raises(ValueError, match="latent_dimensions=1"):
-        _make_model(latent_dimensions=2).fit(two_views_small)
+def test_n_components_above_one_raises(two_views_small: list[np.ndarray]) -> None:
+    """n_components > 1 is rejected explicitly."""
+    with pytest.raises(ValueError, match="n_components=1"):
+        _make_model(n_components=2).fit(two_views_small)
 
 
 def test_weights_shapes_and_matches_transform(
@@ -155,7 +155,7 @@ def test_trimmed_cca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """On clean, uncontaminated data TrimmedCCA still finds real correlation."""
-    model = TrimmedCCA(n_starts=5, random_state=0)
+    model = TrimmedCCA(n_init=5, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -256,9 +256,9 @@ def test_trimmed_cca_multiview_beats_plain_mcca() -> None:
         seed=0, n_train=300, n_test=200, ps=[8, 6, 5], contam_frac=0.40
     )
 
-    mcca_model = MCCA(latent_dimensions=1, c=0.1).fit(train_views)
+    mcca_model = MCCA(n_components=1, c=0.1).fit(train_views)
     trimmed_model = TrimmedCCA(
-        c=0.1, h_frac=0.63, n_starts=15, max_iter=30, random_state=0
+        c=0.1, h_frac=0.63, n_init=15, max_iter=30, random_state=0
     ).fit(train_views)
 
     mcca_corrs = average_pairwise_correlations(
@@ -289,7 +289,7 @@ def test_trimmed_cca_beats_ransac_near_breakdown_point() -> None:
     )
 
     ransac_corr = _held_out_corr(
-        RANSACCCA(latent_dimensions=1, c=0.1, random_state=0).fit([x_train, y_train]),
+        RANSACCCA(n_components=1, c=0.1, random_state=0).fit([x_train, y_train]),
         x_test,
         y_test,
     )
@@ -297,7 +297,7 @@ def test_trimmed_cca_beats_ransac_near_breakdown_point() -> None:
         TrimmedCCA(
             c=0.1,
             h_frac=1.0 - contam_frac + 0.02,
-            n_starts=40,
+            n_init=40,
             max_iter=30,
             random_state=0,
         ).fit([x_train, y_train]),
@@ -317,7 +317,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = TrimmedCCA(c=0.2, h_frac=0.8, n_starts=5, max_iter=20, random_state=0)
+    model = TrimmedCCA(c=0.2, h_frac=0.8, n_init=5, max_iter=20, random_state=0)
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 
@@ -333,8 +333,8 @@ def test_invalid_h_frac_raises() -> None:
 
 
 def test_invalid_n_starts_raises() -> None:
-    """n_starts below 1 is rejected by parameter validation."""
+    """n_init below 1 is rejected by parameter validation."""
     from sklearn.utils._param_validation import InvalidParameterError
 
     with pytest.raises(InvalidParameterError):
-        TrimmedCCA(n_starts=0)._validate_params()
+        TrimmedCCA(n_init=0)._validate_params()

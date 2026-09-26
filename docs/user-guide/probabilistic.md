@@ -56,7 +56,7 @@ where $\mathbf{x}$ is the concatenation of every view's centred features for one
 stacks every view's loading matrix, and $\Psi$ is the (block-)diagonal noise-variance matrix.
 This is evaluated jointly across the concatenated views rather than per view: because every view
 shares the same $z$, marginalising it induces cross-view covariance that a per-view likelihood
-would silently ignore. Use `log_likelihood` to compare `latent_dimensions` choices, or to compare
+would silently ignore. Use `log_likelihood` to compare `n_components` choices, or to compare
 any of the three classes against each other on the same data — larger (less negative) is better.
 
 ```python
@@ -90,8 +90,8 @@ need for NumPyro/JAX at all. `GFA` works with just the base `cca-zoo` install.
 ```python
 from cca_zoo.probabilistic import GFA
 
-# latent_dimensions is an upper bound; drop_k=True (default) prunes it
-model = GFA(latent_dimensions=5, random_state=0)
+# n_components is an upper bound; drop_k=True (default) prunes it
+model = GFA(n_components=5, random_state=0)
 model.fit([X1, X2])
 
 print(model.n_components_)  # <= 5: how many components survived pruning
@@ -126,10 +126,10 @@ full-batch NUTS scales poorly with $n$.
 from cca_zoo.probabilistic import ProbabilisticCCA
 
 model = ProbabilisticCCA(
-    latent_dimensions=2,
+    n_components=2,
     center=True,
-    num_warmup=500,
-    num_samples=1000,
+    n_warmup=500,
+    n_posterior_samples=1000,
     random_state=0,
 )
 model.fit([X1, X2])
@@ -163,7 +163,7 @@ $$
 $$
 
 ```python
-z = model.posterior_mean([X1, X2])  # shape (n_samples, latent_dimensions)
+z = model.posterior_mean([X1, X2])  # shape (n_samples, n_components)
 z_from_x1 = model.posterior_mean([X1, None])  # conditioning on view 1 alone
 ```
 
@@ -185,7 +185,7 @@ Because $\alpha_k$ ties every view's $k$-th loading column together, a shared la
 is only retained if some view actually uses it — irrelevant dimensions get shrunk toward zero in
 every view at once. The posterior mean of $\alpha_k$ (`model.ard_relevance_`) is a direct
 usefulness score per dimension: large values mean "shrunk away, safe to drop". This gives
-automatic latent-dimensionality selection, as an alternative to sweeping `latent_dimensions` with
+automatic latent-dimensionality selection, as an alternative to sweeping `n_components` with
 `GridSearchCV`.
 
 Inference uses mean-field **stochastic variational inference (SVI)** rather than the closed-form
@@ -197,10 +197,10 @@ full NUTS.
 ```python
 from cca_zoo.probabilistic import VariationalBayesCCA
 
-# latent_dimensions is an upper bound here — set it generously and let ARD prune it
+# n_components is an upper bound here — set it generously and let ARD prune it
 model = VariationalBayesCCA(
-    latent_dimensions=5,
-    num_steps=2000,
+    n_components=5,
+    max_iter=2000,
     learning_rate=1e-2,
     random_state=0,
 )
@@ -217,33 +217,30 @@ holds the ELBO trace across SVI steps, useful for checking convergence.
 ## Full example
 
 ```python
-import numpy as np
-from cca_zoo.datasets import JointData
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.probabilistic import GFA, ProbabilisticCCA, VariationalBayesCCA
 
 # Simulate correlated views
-data = JointData(
-    n_views=2,
+views = make_joint_data(
     n_samples=100,
     n_features=[10, 10],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=3.0,
     random_state=0,
 )
-views = data.sample()
 
 # Fit with GFA (no extra dependencies), requesting more dimensions than
 # needed to see per-view ARD prune the unsupported ones
-gfa_model = GFA(latent_dimensions=4, random_state=42)
+gfa_model = GFA(n_components=4, random_state=42)
 gfa_model.fit(views)
 print("GFA n_components_ after pruning:", gfa_model.n_components_)
 print("Per-view relevance:", gfa_model.view_relevance_)
 
 # Fit with MCMC (reduce warmup/samples for speed in examples)
 mcmc_model = ProbabilisticCCA(
-    latent_dimensions=2,
-    num_warmup=200,
-    num_samples=500,
+    n_components=2,
+    n_warmup=200,
+    n_posterior_samples=500,
     random_state=42,
 )
 mcmc_model.fit(views)
@@ -252,8 +249,8 @@ print("Posterior mean weights shape:", mcmc_model.weights_[0].shape)  # (10, 2)
 # Fit with variational inference, requesting more dimensions than needed
 # to see ARD prune the unsupported ones
 vb_model = VariationalBayesCCA(
-    latent_dimensions=4,
-    num_steps=2000,
+    n_components=4,
+    max_iter=2000,
     random_state=42,
 )
 vb_model.fit(views)
@@ -274,10 +271,10 @@ print("Latent shape:", z.shape)  # (100, 4)
   you need the most accurate posterior (e.g. for final reported credible intervals) and $n$ is
   small enough for MCMC to be practical.
 - **Warmup vs samples (MCMC).** NUTS requires a warm-up phase to adapt the step size. A typical
-  setting is `num_warmup=500, num_samples=1000`. For exploration, `num_warmup=100,
-  num_samples=200` is enough.
-- **num_steps vs learning_rate (VB).** Check `model.losses_` — if it hasn't plateaued, increase
-  `num_steps`. If it's noisy or diverging, lower `learning_rate`.
+  setting is `n_warmup=500, n_posterior_samples=1000`. For exploration, `n_warmup=100,
+  n_posterior_samples=200` is enough.
+- **max_iter vs learning_rate (VB).** Check `model.losses_` — if it hasn't plateaued, increase
+  `max_iter`. If it's noisy or diverging, lower `learning_rate`.
 - **max_iter vs tol (GFA).** Convergence-based early stopping is a best-effort heuristic (see the
   warning above) — if `n_components_` looks too large, raise `max_iter` rather than lowering
   `tol` further.
@@ -288,6 +285,6 @@ print("Latent shape:", z.shape)  # (100, 4)
 - **Convergence diagnostics.** Use [ArviZ](https://python.arviz.org/) on the NumPyro MCMC object
   (accessible via `model.mcmc_` on `ProbabilisticCCA`) for R-hat and effective sample size checks.
 - **Comparing models.** Use `model.log_likelihood(held_out_views)` rather than `model.score(...)`
-  when the question is "which model/latent_dimensions fits this data better" — it's the
+  when the question is "which model/n_components fits this data better" — it's the
   statistically proper Bayesian criterion, unlike the correlation-based `score` every model
   shares for `GridSearchCV` consistency.

@@ -28,8 +28,8 @@ pcca_module = pytest.importorskip(
 def _fast_kwargs(cls: type) -> dict:
     """Return kwargs that make ``cls`` fit quickly for a test."""
     if cls.__name__ == "ProbabilisticCCA":
-        return dict(num_warmup=20, num_samples=20)
-    return dict(num_steps=300)
+        return dict(n_warmup=20, n_posterior_samples=20)
+    return dict(max_iter=300)
 
 
 def _model_classes() -> list[type]:
@@ -63,9 +63,9 @@ def test_score_is_finite_two_views(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
     """score() must not be nan for a 2-view fit (regression for the 0/0 bug)."""
-    model = ModelClass(
-        latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
-    ).fit(two_views)
+    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
+        two_views
+    )
     assert np.all(np.isfinite(canonical_correlations(model, two_views)))
 
 
@@ -77,9 +77,9 @@ def test_score_is_finite_three_views(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
     """score() must not be nan for a 3-view fit."""
-    model = ModelClass(
-        latent_dimensions=1, random_state=0, **_fast_kwargs(ModelClass)
-    ).fit(three_views)
+    model = ModelClass(n_components=1, random_state=0, **_fast_kwargs(ModelClass)).fit(
+        three_views
+    )
     assert np.isfinite(model.score(three_views))
 
 
@@ -91,9 +91,9 @@ def test_pairwise_correlations_shape(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
     """pairwise_correlations returns (n_views, n_views, k), not degenerate (1,1,k)."""
-    model = ModelClass(
-        latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
-    ).fit(three_views)
+    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
+        three_views
+    )
     corrs = pairwise_correlations(model.transform(three_views))
     assert corrs.shape == (3, 3, 2)
     assert np.all(np.isfinite(corrs))
@@ -108,9 +108,9 @@ def test_get_factor_loadings_one_per_view(
 ) -> None:
     """factor_loadings returns one array per view, not just the first."""
     k = 2
-    model = ModelClass(
-        latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
-    ).fit(three_views)
+    model = ModelClass(n_components=k, random_state=0, **_fast_kwargs(ModelClass)).fit(
+        three_views
+    )
     loadings = factor_loadings(three_views, model.transform(three_views))
     assert len(loadings) == 3
     for loading, view in zip(loadings, three_views):
@@ -125,9 +125,9 @@ def test_log_likelihood_is_finite_scalar(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
     """log_likelihood returns a finite scalar, evaluated jointly across views."""
-    model = ModelClass(
-        latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
-    ).fit(three_views)
+    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
+        three_views
+    )
     ll = model.log_likelihood(three_views)
     assert isinstance(ll, float)
     assert np.isfinite(ll)
@@ -155,10 +155,10 @@ def test_log_likelihood_prefers_better_fit(ModelClass: type) -> None:
     bad_views = [rng.standard_normal((n, 4)), rng.standard_normal((n, 3))]
 
     good_model = ModelClass(
-        latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
+        n_components=k, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(good_views)
     bad_model = ModelClass(
-        latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
+        n_components=k, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(bad_views)
 
     assert good_model.log_likelihood(good_views) > bad_model.log_likelihood(good_views)

@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin
+from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin, _integer_seed
 
 # Weak, near-uninformative Gamma hyperprior on each ARD precision alpha_k,
 # following the standard choice for automatic relevance determination in
@@ -41,7 +41,7 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
     ``ard_relevance_``) is therefore a direct, per-dimension usefulness
     score: large values indicate a dimension that has been shrunk away and
     can be dropped, giving automatic latent-dimensionality selection instead
-    of a `GridSearchCV` sweep over `latent_dimensions`.
+    of a `GridSearchCV` sweep over `n_components`.
 
     Inference uses mean-field stochastic variational inference (SVI) via
     numpyro, rather than the closed-form conjugate coordinate-ascent updates
@@ -64,17 +64,17 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         analysis." IEEE Transactions on Neural Networks 18.3 (2007).
 
     Args:
-        latent_dimensions: Dimensionality of the latent space. Default is 1.
+        n_components: Dimensionality of the latent space. Default is 1.
             Because of the ARD prior, this should be set generously (an
             upper bound on the number of shared factors you expect); use
             ``ard_relevance_`` after fitting to see how many were retained.
         center: Whether to center each view before fitting. Default is True.
-        num_steps: Number of SVI gradient steps. Default is 2000.
+        max_iter: Number of SVI gradient steps. Default is 2000.
         learning_rate: Adam learning rate for SVI. Default is 1e-2.
-        num_posterior_samples: Number of samples drawn from the fitted
+        n_posterior_samples: Number of samples drawn from the fitted
             variational posterior to populate ``posterior_samples_``.
             Default is 1000.
-        random_state: Integer seed for JAX PRNG. Default is 0.
+        random_state: Seed for the JAX PRNG. Default is None.
 
     Examples:
         >>> import numpy as np
@@ -82,23 +82,23 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
         >>> model = VariationalBayesCCA(
-        ...     latent_dimensions=2, num_steps=50
+        ...     n_components=2, max_iter=50
         ... ).fit([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
-        num_steps: int = 2000,
+        max_iter: int = 2000,
         learning_rate: float = 1e-2,
-        num_posterior_samples: int = 1000,
-        random_state: int = 0,
+        n_posterior_samples: int = 1000,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.num_steps = num_steps
+        super().__init__(n_components=n_components, center=center)
+        self.max_iter = max_iter
         self.learning_rate = learning_rate
-        self.num_posterior_samples = num_posterior_samples
+        self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
     # ------------------------------------------------------------------
@@ -116,7 +116,7 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         import numpyro.distributions as dist
 
         n = views[0].shape[0]
-        k = self.latent_dimensions
+        k = self.n_components
 
         # Shared ARD precision per latent dimension, tying all views' loading
         # columns together so shrinkage decisions are made jointly.
@@ -188,15 +188,15 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         svi = SVI(self._model, guide, optim.Adam(self.learning_rate), Trace_ELBO())
 
         rng_key, predictive_key = jax.random.split(
-            jax.random.PRNGKey(self.random_state)
+            jax.random.PRNGKey(_integer_seed(self.random_state))
         )
-        svi_result = svi.run(rng_key, self.num_steps, validated, progress_bar=False)
+        svi_result = svi.run(rng_key, self.max_iter, validated, progress_bar=False)
         self.svi_result_ = svi_result
         self.losses_: np.ndarray = np.array(svi_result.losses)
         self.guide_ = guide
 
         predictive = Predictive(
-            guide, params=svi_result.params, num_samples=self.num_posterior_samples
+            guide, params=svi_result.params, num_samples=self.n_posterior_samples
         )
         self.posterior_samples_: dict[str, Any] = predictive(predictive_key, validated)
 

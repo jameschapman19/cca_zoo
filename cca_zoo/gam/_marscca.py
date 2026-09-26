@@ -767,7 +767,7 @@ class MARSCCA(BaseModel):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Number of latent components. Must not exceed the
+        n_components: Number of latent components. Must not exceed the
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
@@ -810,14 +810,15 @@ class MARSCCA(BaseModel):
             counterpart, so None keeps every term the forward pass adds —
             choose it by cross-validation instead (see above). Default is
             None.
-        random_state: Seed for the initial linear warm start.
+        random_state: Seed for the initial linear warm start. Default is
+            None.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 5))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = MARSCCA(latent_dimensions=2).fit([X1, X2])
+        >>> model = MARSCCA(n_components=2).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
         Pairwise interactions, with a larger basis for the second view:
@@ -840,7 +841,7 @@ class MARSCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         degree: int | list[int] = 1,
         nk: int | list[int | None] | None = None,
@@ -849,9 +850,9 @@ class MARSCCA(BaseModel):
         endspan: int | list[int | None] | None = None,
         alpha: float | list[float] = 0.1,
         nprune: int | None = None,
-        random_state: int = 0,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.degree = degree
         self.nk = nk
         self.thresh = thresh
@@ -876,7 +877,7 @@ class MARSCCA(BaseModel):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
-        k = self.latent_dimensions
+        k = self.n_components
         m = self.n_views_
         max_degree_ = perview_parameter("degree", self.degree, 1, m)
         nk_: list[int | None] = perview_parameter("nk", self.nk, None, m)

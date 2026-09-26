@@ -230,7 +230,7 @@ class GAMCCA(BaseModel):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Number of latent components. Must not exceed the
+        n_components: Number of latent components. Must not exceed the
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
@@ -259,12 +259,12 @@ class GAMCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 5))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = GAMCCA(latent_dimensions=2).fit([X1, X2])
+        >>> model = GAMCCA(n_components=2).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
         A different basis size and smoothing per view:
 
-        >>> model = GAMCCA(latent_dimensions=2, k=[8, 12], sp=[0.1, 10.0]).fit(
+        >>> model = GAMCCA(n_components=2, k=[8, 12], sp=[0.1, 10.0]).fit(
         ...     [X1, X2]
         ... )
     """
@@ -278,13 +278,13 @@ class GAMCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         k: int | list[int] = 10,
         m: int | tuple[int, int] | list[int | tuple[int, int]] = 2,
         sp: float | list[float] = 0.01,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.k = k
         self.m = m
         self.sp = sp
@@ -363,7 +363,7 @@ class GAMCCA(BaseModel):
         coefficients = penalised_gram_ey_closed_form(
             reduced_gram,
             reduced_view,
-            self.latent_dimensions,
+            self.n_components,
             [penalty for _, _, penalty in reduced],
         )
         for enc, (lift_i, _, _), coef in zip(encoders, reduced, coefficients):
@@ -405,7 +405,7 @@ class GAMCCA(BaseModel):
                 the term, shape (n,).
 
         Returns:
-            Array of shape (n, latent_dimensions): that feature's
+            Array of shape (n, n_components): that feature's
             contribution alone, for every latent component.
 
         Raises:

@@ -14,7 +14,7 @@ FULL_BATCH_MODELS = [PLSEY, CCAEY, HuberCCA]
 ALL_GRADIENT_MODELS = [PLSEY, CCAEY, StochasticCCAEY, HuberCCA]
 
 # Use fewer iterations for speed in tests
-_FIT_KWARGS: dict = dict(latent_dimensions=1, max_iter=50, random_state=0)
+_FIT_KWARGS: dict = dict(n_components=1, max_iter=50, random_state=0)
 
 
 @pytest.fixture
@@ -61,9 +61,9 @@ def test_three_view_fit_completes(
 def test_transform_shapes_two_view(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """Transform returns list of (n_samples, latent_dimensions) arrays."""
+    """Transform returns list of (n_samples, n_components) arrays."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
     result = model.transform(two_views)
     assert len(result) == len(two_views)
     for arr, view in zip(result, two_views):
@@ -76,9 +76,7 @@ def test_transform_shapes_multi_view(
 ) -> None:
     """Transform returns correct shapes for three views."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(
-        three_views
-    )
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(three_views)
     result = model.transform(three_views)
     assert len(result) == len(three_views)
     for arr, view in zip(result, three_views):
@@ -95,7 +93,7 @@ def test_fit_transform_consistency(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
     """fit_transform equals fit().transform()."""
-    kwargs = dict(latent_dimensions=1, max_iter=50, random_state=0)
+    kwargs = dict(n_components=1, max_iter=50, random_state=0)
     result_ft = ModelClass(**kwargs).fit_transform(two_views)
     result_sep = ModelClass(**kwargs).fit(two_views).transform(two_views)
     for a, b in zip(result_ft, result_sep):
@@ -111,7 +109,7 @@ def test_fit_transform_consistency(
 def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
     s = model.score(two_views)
     assert isinstance(s, float)
 
@@ -120,11 +118,9 @@ def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
 def test_score_shape_multi_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """Score returns array of shape (latent_dimensions,) for multi-view."""
+    """Score returns array of shape (n_components,) for multi-view."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(
-        three_views
-    )
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(three_views)
     s = model.score(three_views)
     assert isinstance(s, float)
 
@@ -140,9 +136,9 @@ def test_score_shape_multi_view(
 
 @pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Weights shapes are (n_features_i, latent_dimensions) per view."""
+    """Weights shapes are (n_features_i, n_components) per view."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
     w = model.weights_
     assert len(w) == len(two_views)
     for weight, view in zip(w, two_views):
@@ -160,7 +156,7 @@ def test_get_factor_loadings_shapes(
 ) -> None:
     """factor_loadings returns (n_features_i, k) per view."""
     k = 2
-    model = ModelClass(latent_dimensions=k, max_iter=50, random_state=0).fit(two_views)
+    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
     loadings = factor_loadings(two_views, model.transform(two_views))
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
@@ -174,9 +170,7 @@ def test_get_factor_loadings_shapes(
 
 def test_mini_batch_training(two_views: list[np.ndarray]) -> None:
     """StochasticCCAEY trains without error with batch_size < n_samples."""
-    model = StochasticCCAEY(
-        latent_dimensions=1, max_iter=20, batch_size=16, random_state=0
-    )
+    model = StochasticCCAEY(n_components=1, max_iter=20, batch_size=16, random_state=0)
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
@@ -188,7 +182,7 @@ def test_mini_batch_training(two_views: list[np.ndarray]) -> None:
 def test_full_batch_training(two_views: list[np.ndarray]) -> None:
     """StochasticCCAEY trains without error with batch_size=None (full batch)."""
     model = StochasticCCAEY(
-        latent_dimensions=1, max_iter=20, batch_size=None, random_state=0
+        n_components=1, max_iter=20, batch_size=None, random_state=0
     )
     model.fit(two_views)
     result = model.transform(two_views)
@@ -205,7 +199,7 @@ def test_reproducibility_same_random_state(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
     """Same random_state gives identical weights."""
-    kwargs = dict(latent_dimensions=1, max_iter=50, random_state=123)
+    kwargs = dict(n_components=1, max_iter=50, random_state=123)
     w1 = ModelClass(**kwargs).fit(two_views).weights_
     w2 = ModelClass(**kwargs).fit(two_views).weights_
     for a, b in zip(w1, w2):
@@ -217,8 +211,8 @@ def test_different_seeds_give_different_results(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
     """Different random_state values generally give different initial weights."""
-    kwargs_a = dict(latent_dimensions=1, max_iter=2, random_state=0)
-    kwargs_b = dict(latent_dimensions=1, max_iter=2, random_state=999)
+    kwargs_a = dict(n_components=1, max_iter=2, random_state=0)
+    kwargs_b = dict(n_components=1, max_iter=2, random_state=999)
     w1 = ModelClass(**kwargs_a).fit(two_views).weights_
     w2 = ModelClass(**kwargs_b).fit(two_views).weights_
     # At least one weight matrix should differ
@@ -229,7 +223,7 @@ def test_different_seeds_give_different_results(
 # ---------------------------------------------------------------------------
 # CCAEY's `c` ridge parameter continuously blends its loss towards PLSEY's
 # (see cca_zoo._utils._ey.weight_gram_mean); PLSEY is implemented as a thin
-# CCAEY subclass with `c` fixed at 1, mirroring how CCA/PLS are thin rCCA
+# CCAEY subclass with `c` fixed at 1, mirroring how CCA/PLS are thin RidgeCCA
 # subclasses with `c` fixed at 0/1. StochasticCCAEY inherits the same `c`
 # from CCAEY, fit by mini-batch momentum SGD instead of full-batch L-BFGS-B.
 # ---------------------------------------------------------------------------
@@ -257,8 +251,8 @@ def test_pls_ey_loss_matches_cca_ey_at_c_equal_one(
     rng = np.random.default_rng(0)
     weights = [rng.standard_normal((v.shape[1], k)) for v in two_views]
     representations = [v @ w for v, w in zip(two_views, weights)]
-    pls = PLSEY(latent_dimensions=k)
-    cca_c1 = CCAEY(latent_dimensions=k, c=1.0)
+    pls = PLSEY(n_components=k)
+    cca_c1 = CCAEY(n_components=k, c=1.0)
     grads_pls = pls._derivative(two_views, representations, weights)
     grads_cca = cca_c1._derivative(two_views, representations, weights)
     for a, b in zip(grads_pls, grads_cca):
@@ -275,7 +269,7 @@ def test_cca_ey_c_zero_matches_shared_ey_gradient(
     from cca_zoo._utils._ey import ey_grad_z
 
     k = 2
-    model = CCAEY(latent_dimensions=k, c=0.0, random_state=0)
+    model = CCAEY(n_components=k, c=0.0, random_state=0)
     views_ = model._setup_fit(two_views)
     rng = np.random.default_rng(0)
     weights = [rng.standard_normal((v.shape[1], k)) for v in views_]
@@ -296,7 +290,7 @@ def test_cca_ey_c_zero_matches_shared_ey_gradient(
 @pytest.mark.parametrize("ModelClass", ALL_GRADIENT_MODELS)
 def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
     """All gradient models work with center=False."""
-    model = ModelClass(latent_dimensions=1, max_iter=20, center=False, random_state=0)
+    model = ModelClass(n_components=1, max_iter=20, center=False, random_state=0)
     model.fit(two_views)
     result = model.transform(two_views)
     assert len(result) == 2
@@ -316,10 +310,10 @@ def test_cca_ey_matches_cca(correlated_views: list[np.ndarray]) -> None:
     """Converged CCAEY recovers the same correlations as exact CCA."""
     k = 2
     s_cca = canonical_correlations(
-        CCA(latent_dimensions=k).fit(correlated_views), correlated_views
+        CCA(n_components=k).fit(correlated_views), correlated_views
     )
     s_ey = canonical_correlations(
-        CCAEY(latent_dimensions=k, random_state=0).fit(correlated_views),
+        CCAEY(n_components=k, random_state=0).fit(correlated_views),
         correlated_views,
     )
     # L-BFGS-B does not guarantee components are returned in
@@ -333,10 +327,10 @@ def test_pls_ey_matches_pls(correlated_views: list[np.ndarray]) -> None:
     """Converged PLSEY recovers the same correlations as exact PLS."""
     k = 2
     s_pls = canonical_correlations(
-        PLS(latent_dimensions=k).fit(correlated_views), correlated_views
+        PLS(n_components=k).fit(correlated_views), correlated_views
     )
     s_ey = canonical_correlations(
-        PLSEY(latent_dimensions=k, random_state=0).fit(correlated_views),
+        PLSEY(n_components=k, random_state=0).fit(correlated_views),
         correlated_views,
     )
     np.testing.assert_allclose(
@@ -350,10 +344,10 @@ def test_cca_ey_matches_mcca_for_three_views(
     """CCAEY, given 3 views directly, recovers the same correlations as exact MCCA."""
     k = 2
     s_mcca = canonical_correlations(
-        MCCA(latent_dimensions=k).fit(three_correlated_views), three_correlated_views
+        MCCA(n_components=k).fit(three_correlated_views), three_correlated_views
     )
     s_ey = canonical_correlations(
-        CCAEY(latent_dimensions=k, random_state=0).fit(three_correlated_views),
+        CCAEY(n_components=k, random_state=0).fit(three_correlated_views),
         three_correlated_views,
     )
     np.testing.assert_allclose(
@@ -367,7 +361,7 @@ def test_gradient_models_find_high_correlation(
 ) -> None:
     """Full-batch EY models find substantial correlation on correlated views."""
     s = (
-        ModelClass(latent_dimensions=1, max_iter=500, random_state=0)
+        ModelClass(n_components=1, max_iter=500, random_state=0)
         .fit(correlated_views)
         .score(correlated_views)
     )
@@ -379,7 +373,7 @@ def test_stochastic_cca_ey_finds_high_correlation(
 ) -> None:
     """StochasticCCAEY finds substantial correlation on correlated views."""
     s = (
-        StochasticCCAEY(latent_dimensions=1, max_iter=500, random_state=0)
+        StochasticCCAEY(n_components=1, max_iter=500, random_state=0)
         .fit(correlated_views)
         .score(correlated_views)
     )
@@ -402,7 +396,7 @@ def test_pls_ey_initial_weights_are_orthonormal(two_views: list[np.ndarray]) -> 
     """PLSEY's initial weights have exactly orthonormal columns per view."""
     k = 2
     rng = np.random.default_rng(0)
-    model = PLSEY(latent_dimensions=k, random_state=0)
+    model = PLSEY(n_components=k, random_state=0)
     weights = model._initial_weights(two_views, rng)
     for w in weights:
         np.testing.assert_allclose(w.T @ w, np.eye(k), atol=1e-10)
@@ -419,7 +413,7 @@ def test_cca_ey_initial_weights_give_orthonormal_projections(
     """
     k = 2
     rng = np.random.default_rng(0)
-    model = CCAEY(latent_dimensions=k, random_state=0)
+    model = CCAEY(n_components=k, random_state=0)
     weights = model._initial_weights(two_views, rng)
     for view, w in zip(two_views, weights):
         z = view @ w
@@ -436,7 +430,7 @@ def test_stochastic_cca_ey_initial_weights_give_orthonormal_projections(
     k = 2
     bs = 16
     rng = np.random.default_rng(0)
-    model = StochasticCCAEY(latent_dimensions=k, batch_size=bs, random_state=0)
+    model = StochasticCCAEY(n_components=k, batch_size=bs, random_state=0)
     weights = model._initial_weights(two_views, rng)
     # Re-derive, with a fresh rng in the same state, exactly which rows the
     # initialiser sampled, so the projection can be checked on that batch.
@@ -455,6 +449,6 @@ def test_cca_ey_initial_weights_differ_from_pls_ey(
     k = 2
     rng_pls = np.random.default_rng(0)
     rng_cca = np.random.default_rng(0)
-    w_pls = PLSEY(latent_dimensions=k)._initial_weights(two_views, rng_pls)
-    w_cca = CCAEY(latent_dimensions=k)._initial_weights(two_views, rng_cca)
+    w_pls = PLSEY(n_components=k)._initial_weights(two_views, rng_pls)
+    w_cca = CCAEY(n_components=k)._initial_weights(two_views, rng_cca)
     assert any(not np.allclose(a, b) for a, b in zip(w_pls, w_cca))

@@ -37,7 +37,7 @@ class KCCA(BaseModel):
         *Neural Computation*, 16(12), 2639–2664.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Regularisation parameter(s) in ``[0, 1]``. Default is 0.1.
         kernel: Kernel name(s) or callable(s) passed to
@@ -53,13 +53,13 @@ class KCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((30, 5))
         >>> X2 = rng.standard_normal((30, 5))
-        >>> model = KCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
+        >>> model = KCCA(n_components=2, c=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
@@ -69,7 +69,7 @@ class KCCA(BaseModel):
         kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
         eps: float = 1e-3,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.kernel = kernel
         self.gamma = gamma
@@ -105,7 +105,7 @@ class KCCA(BaseModel):
         A = self._build_A(kernels)
         B = self._build_B(kernels, c_)
         splits = np.cumsum([k.shape[1] for k in kernels])
-        _, eigvecs = gevp(A, B, self.latent_dimensions)
+        _, eigvecs = gevp(A, B, self.n_components)
         self.weights_: list[np.ndarray] = list(np.split(eigvecs, splits[:-1], axis=0))
         # Store kernel parameters for transform
         self._kernel: list[str] = kernel_

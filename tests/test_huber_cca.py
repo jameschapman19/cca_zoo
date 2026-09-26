@@ -115,7 +115,7 @@ def test_huber_cca_robust_to_high_leverage_outliers_unlike_ccaey() -> None:
         z1, z2 = model.transform([x_test, y_test])
         return abs(np.corrcoef(z1[:, 0], z2[:, 0])[0, 1])
 
-    kwargs = dict(latent_dimensions=1, max_iter=1500, random_state=0)
+    kwargs = dict(n_components=1, max_iter=1500, random_state=0)
     ccaey_corr = held_out_corr(CCAEY(**kwargs).fit([x_train, y_train]))
     huber_corr = held_out_corr(HuberCCA(**kwargs).fit([x_train, y_train]))
 

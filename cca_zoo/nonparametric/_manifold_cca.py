@@ -381,7 +381,7 @@ class ManifoldCCA(BaseModel):
         Computation, 15(6), 1373-1396.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default
             True.
         method: ``"laplacian"`` (graph Laplacian, matching
@@ -422,7 +422,7 @@ class ManifoldCCA(BaseModel):
             against plain unregularised ``MCCA`` at the same nominal
             dimensionality). Either a single value (or ``None``) applied to
             every view or a list of per-view values. Default ``None``:
-            ``max(4 * latent_dimensions, 10)``, clipped to
+            ``max(4 * n_components, 10)``, clipped to
             ``n_samples - 1``, independently per view.
         eps: Floor applied to each kept operator eigenvalue (see
             :func:`_smooth_basis`) to ensure positive definiteness. Default
@@ -460,7 +460,7 @@ class ManifoldCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         method: str = "laplacian",
         n_neighbors: int | list[int] = 10,
@@ -470,7 +470,7 @@ class ManifoldCCA(BaseModel):
         n_operator_components: int | list[int | None] | None = None,
         eps: float = 1e-6,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.method = method
         self.n_neighbors = n_neighbors
         self.affinity = affinity
@@ -484,7 +484,7 @@ class ManifoldCCA(BaseModel):
     ) -> int:
         if n_operator_components is not None:
             return min(n_operator_components, n - 1)
-        return min(max(4 * self.latent_dimensions, 10), n - 1)
+        return min(max(4 * self.n_components, 10), n - 1)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ManifoldCCA:
         """Fit ManifoldCCA by a joint generalised eigenproblem over per-view graphs.
@@ -562,7 +562,7 @@ class ManifoldCCA(BaseModel):
                     A[offsets[i] : offsets[i + 1], offsets[j] : offsets[j + 1]] = block
         A /= m
 
-        _, eigvecs = gevp(A, B, self.latent_dimensions)
+        _, eigvecs = gevp(A, B, self.n_components)
         blocks = list(np.split(eigvecs, offsets[1:-1], axis=0))
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
         self.embedding_: list[np.ndarray] = embedding
@@ -602,7 +602,7 @@ class ManifoldCCA(BaseModel):
             views: List of arrays, each of shape (n_samples, n_features_i).
 
         Returns:
-            List of arrays, each of shape (n_samples, latent_dimensions).
+            List of arrays, each of shape (n_samples, n_components).
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.

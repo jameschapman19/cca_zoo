@@ -9,9 +9,9 @@ from cca_zoo.sparse import OrthogonalMatchingPursuitCCA
 
 
 def _make_model(
-    latent_dimensions: int = 1, **kwargs: object
+    n_components: int = 1, **kwargs: object
 ) -> OrthogonalMatchingPursuitCCA:
-    return OrthogonalMatchingPursuitCCA(latent_dimensions=latent_dimensions, **kwargs)
+    return OrthogonalMatchingPursuitCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -39,9 +39,9 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, n_components) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k, n_nonzero_coefs=2).fit(two_views_small)
+    model = _make_model(n_components=k, n_nonzero_coefs=2).fit(two_views_small)
     result = model.transform(two_views_small)
     assert len(result) == 2
     n = two_views_small[0].shape[0]
@@ -54,7 +54,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
-    model = _make_model(latent_dimensions=k, n_nonzero_coefs=2).fit(two_views_small)
+    model = _make_model(n_components=k, n_nonzero_coefs=2).fit(two_views_small)
     weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
@@ -97,7 +97,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = _make_model(latent_dimensions=k, n_nonzero_coefs=2).fit(two_views_small)
+    model = _make_model(n_components=k, n_nonzero_coefs=2).fit(two_views_small)
     s = model.score(two_views_small)
     assert isinstance(s, float)
 
@@ -133,7 +133,7 @@ def test_omp_finds_correlation_on_correlated_views(
 ) -> None:
     """OrthogonalMatchingPursuitCCA finds substantial correlation on correlated data."""
     model = OrthogonalMatchingPursuitCCA(
-        latent_dimensions=1, n_nonzero_coefs=3, random_state=0
+        n_components=1, n_nonzero_coefs=3, random_state=0
     )
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
@@ -145,7 +145,7 @@ def test_active_feature_count_matches_budget(
     """Each view has exactly n_nonzero_coefs active (nonzero-row) features."""
     budget = 3
     model = OrthogonalMatchingPursuitCCA(
-        latent_dimensions=2, n_nonzero_coefs=budget, random_state=0
+        n_components=2, n_nonzero_coefs=budget, random_state=0
     )
     model.fit(correlated_views)
     for w in model.weights_:
@@ -157,7 +157,7 @@ def test_per_view_budget_list(correlated_views: list[np.ndarray]) -> None:
     """A list of per-view budgets is honoured independently per view."""
     budgets = [2, 4]
     model = OrthogonalMatchingPursuitCCA(
-        latent_dimensions=1, n_nonzero_coefs=budgets, random_state=0
+        n_components=1, n_nonzero_coefs=budgets, random_state=0
     )
     model.fit(correlated_views)
     for w, budget in zip(model.weights_, budgets):
@@ -171,7 +171,7 @@ def test_budget_exceeding_n_features_is_capped(
     """A budget larger than a view's feature count is capped, not an error."""
     n_features = correlated_views[0].shape[1]
     model = OrthogonalMatchingPursuitCCA(
-        latent_dimensions=1, n_nonzero_coefs=n_features + 100, random_state=0
+        n_components=1, n_nonzero_coefs=n_features + 100, random_state=0
     )
     model.fit(correlated_views)
     n_active = int(np.sum(np.abs(model.weights_[0].ravel()) > 1e-10))
@@ -182,7 +182,7 @@ def test_default_n_nonzero_coefs_is_ten_percent(
     correlated_views: list[np.ndarray],
 ) -> None:
     """With n_nonzero_coefs=None, each view defaults to max(1, n_features // 10)."""
-    model = OrthogonalMatchingPursuitCCA(latent_dimensions=1, random_state=0)
+    model = OrthogonalMatchingPursuitCCA(n_components=1, random_state=0)
     model.fit(correlated_views)
     for w, v in zip(model.weights_, correlated_views):
         expected = max(1, v.shape[1] // 10)
@@ -214,7 +214,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     from sklearn.base import clone
 
     model = OrthogonalMatchingPursuitCCA(
-        latent_dimensions=2, n_nonzero_coefs=3, random_state=0
+        n_components=2, n_nonzero_coefs=3, random_state=0
     )
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()

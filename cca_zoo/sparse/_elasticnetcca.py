@@ -56,7 +56,7 @@ class ElasticNetCCA(BaseModel):
         :class:`~cca_zoo.linear.gradient.CCAEY`'s gradient descent.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         alpha: Overall elastic-net penalty strength(s). Either a single
             float applied to every view or a list of per-view floats.
@@ -79,12 +79,12 @@ class ElasticNetCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))
         >>> X2 = rng.standard_normal((200, 15))
-        >>> model = ElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2])
+        >>> model = ElasticNetCCA(n_components=2, alpha=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
         A different penalty per view:
 
-        >>> model = ElasticNetCCA(latent_dimensions=2, alpha=[0.1, 0.5]).fit(
+        >>> model = ElasticNetCCA(n_components=2, alpha=[0.1, 0.5]).fit(
         ...     [X1, X2]
         ... )
     """
@@ -100,7 +100,7 @@ class ElasticNetCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         alpha: float | list[float] = 1.0,
         l1_ratio: float | list[float] = 0.5,
@@ -109,7 +109,7 @@ class ElasticNetCCA(BaseModel):
         random_state: int | None = None,
         positive: bool = False,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.alpha = alpha
         self.l1_ratio = l1_ratio
         self.max_iter = max_iter
@@ -137,7 +137,7 @@ class ElasticNetCCA(BaseModel):
         rng = np.random.default_rng(self.random_state)
         weights, _ = coordinate_descent_ey(
             bases=views_,
-            k=self.latent_dimensions,
+            k=self.n_components,
             alpha=alpha_,
             l1_ratio=l1_ratio_,
             max_iter=self.max_iter,

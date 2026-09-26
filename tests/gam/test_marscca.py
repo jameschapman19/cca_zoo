@@ -23,22 +23,22 @@ from cca_zoo.gam._marscca import (
 
 def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
     """Fit completes on two-view data and returns self."""
-    model = MARSCCA()
+    model = MARSCCA(random_state=0)
     assert model.fit(two_views_small) is model
 
 
 def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
     """Fit completes on three-view data, one encoder per view."""
-    model = MARSCCA().fit(three_views_small)
+    model = MARSCCA(random_state=0).fit(three_views_small)
     assert len(model.encoders_) == 3
 
 
 @pytest.mark.parametrize("k", [1, 2])
 def test_transform_shapes(two_views_small: list[np.ndarray], k: int) -> None:
-    """Transform returns (n_samples, latent_dimensions) arrays on new data."""
+    """Transform returns (n_samples, n_components) arrays on new data."""
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    model = MARSCCA(latent_dimensions=k).fit(two_views_small)
+    model = MARSCCA(n_components=k, random_state=0).fit(two_views_small)
     for arr in model.transform(test_views):
         assert arr.shape == (10, k)
 
@@ -47,21 +47,25 @@ def test_transform_reproduces_training_embedding(
     two_views_small: list[np.ndarray],
 ) -> None:
     """Transform on the training data reproduces the fitted embeddings exactly."""
-    model = MARSCCA(latent_dimensions=2, degree=2).fit(two_views_small)
+    model = MARSCCA(n_components=2, degree=2, random_state=0).fit(two_views_small)
     for z, enc in zip(model.transform(two_views_small), model.encoders_):
         np.testing.assert_allclose(z, enc.predict(), atol=1e-10)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
     """Score is one float in [-1, 1]."""
-    s = MARSCCA(latent_dimensions=2).fit(two_views_small).score(two_views_small)
+    s = (
+        MARSCCA(n_components=2, random_state=0)
+        .fit(two_views_small)
+        .score(two_views_small)
+    )
     assert isinstance(s, float)
     assert abs(s) <= 1.0 + 1e-9
 
 
 def test_center_false(two_views_small: list[np.ndarray]) -> None:
     """MARSCCA works with center=False."""
-    model = MARSCCA(center=False).fit(two_views_small)
+    model = MARSCCA(center=False, random_state=0).fit(two_views_small)
     assert len(model.transform(two_views_small)) == 2
 
 
@@ -80,7 +84,7 @@ def test_per_view_parameters_accept_none_entries(
     (50 samples, endspan 10), while view 1 keeps Friedman's spacing.
     """
     model = MARSCCA(
-        nk=[None, 6], minspan=[40, None], endspan=[None, 1], thresh=0.0
+        nk=[None, 6], minspan=[40, None], endspan=[None, 1], thresh=0.0, random_state=0
     ).fit(correlated_views)
     assert len(model.encoders_[1].terms_) == 6
     view0 = model.encoders_[0].terms_
@@ -95,13 +99,13 @@ def test_per_view_parameter_wrong_length_raises(
 ) -> None:
     """Every per-view parameter must have one entry per view."""
     with pytest.raises(ValueError, match=name):
-        MARSCCA(**{name: [2, 2, 2]}).fit(two_views_small)
+        MARSCCA(**{name: [2, 2, 2]}, random_state=0).fit(two_views_small)
 
 
 @pytest.mark.parametrize("nk", [1, 4, 7])
 def test_nk_respected(correlated_views: list[np.ndarray], nk: int) -> None:
     """No view's basis exceeds its nk budget, odd budgets included."""
-    model = MARSCCA(nk=nk).fit(correlated_views)
+    model = MARSCCA(nk=nk, random_state=0).fit(correlated_views)
     for enc in model.encoders_:
         assert 1 <= len(enc.terms_) <= nk
         assert enc.coef_.shape == (len(enc.terms_), 1)
@@ -109,7 +113,7 @@ def test_nk_respected(correlated_views: list[np.ndarray], nk: int) -> None:
 
 def test_per_view_nk(correlated_views: list[np.ndarray]) -> None:
     """A per-view nk list gives each view its own budget."""
-    model = MARSCCA(nk=[4, 12], thresh=0.0).fit(correlated_views)
+    model = MARSCCA(nk=[4, 12], thresh=0.0, random_state=0).fit(correlated_views)
     assert len(model.encoders_[0].terms_) == 4
     assert len(model.encoders_[1].terms_) == 12
 
@@ -120,15 +124,15 @@ def test_thresh_stops_forward_pass_early(correlated_views: list[np.ndarray]) -> 
     thresh=0 always grows to nk; a huge thresh stops after the
     second round, the first whose improvement can be measured.
     """
-    grown = MARSCCA(nk=30, thresh=0.0).fit(correlated_views)
-    stopped = MARSCCA(nk=30, thresh=1e6).fit(correlated_views)
+    grown = MARSCCA(nk=30, thresh=0.0, random_state=0).fit(correlated_views)
+    stopped = MARSCCA(nk=30, thresh=1e6, random_state=0).fit(correlated_views)
     assert [len(e.terms_) for e in grown.encoders_] == [30, 30]
     assert [len(e.terms_) for e in stopped.encoders_] == [4, 4]
 
 
 def test_max_degree_one_is_additive(correlated_views: list[np.ndarray]) -> None:
     """degree=1 selects only single-hinge (additive) terms."""
-    model = MARSCCA(degree=1).fit(correlated_views)
+    model = MARSCCA(degree=1, random_state=0).fit(correlated_views)
     for enc in model.encoders_:
         assert all(len(term) == 1 for term in enc.terms_)
 
@@ -137,7 +141,7 @@ def test_max_degree_bounds_interaction_order(
     correlated_views: list[np.ndarray],
 ) -> None:
     """No term uses more factors than max_degree, nor a feature twice."""
-    model = MARSCCA(degree=2, nk=30).fit(correlated_views)
+    model = MARSCCA(degree=2, nk=30, random_state=0).fit(correlated_views)
     for enc in model.encoders_:
         for term in enc.terms_:
             features = [f for f, _, _ in term]
@@ -147,7 +151,7 @@ def test_max_degree_bounds_interaction_order(
 
 def test_basis_columns_are_not_degenerate(correlated_views: list[np.ndarray]) -> None:
     """Every selected basis function is nonzero and linearly independent."""
-    model = MARSCCA(degree=2, nk=20).fit(correlated_views)
+    model = MARSCCA(degree=2, nk=20, random_state=0).fit(correlated_views)
     for X, enc in zip(correlated_views, model.encoders_):
         basis = _evaluate_terms(X - X.mean(axis=0), enc.terms_)
         centred = basis - basis.mean(axis=0)
@@ -350,7 +354,7 @@ def test_basis_stays_well_conditioned_with_near_duplicate_features() -> None:
 def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
     """basis_functions reports raw-unit knots, one string per term."""
     views = [v + 10.0 for v in two_views_small]
-    model = MARSCCA(nk=4).fit(views)
+    model = MARSCCA(nk=4, random_state=0).fit(views)
     names = model.basis_functions(0)
     assert len(names) == len(model.encoders_[0].terms_)
     feature, knot, sign = model.encoders_[0].terms_[0][0]
@@ -365,13 +369,13 @@ def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
 def test_basis_functions_not_fitted_raises() -> None:
     """basis_functions before fitting raises NotFittedError."""
     with pytest.raises(NotFittedError):
-        MARSCCA().basis_functions(0)
+        MARSCCA(random_state=0).basis_functions(0)
 
 
 def test_weights_not_fitted_raises() -> None:
     """Transform before fitting raises NotFittedError."""
     with pytest.raises(NotFittedError):
-        MARSCCA().transform([np.ones((3, 2)), np.ones((3, 2))])
+        MARSCCA(random_state=0).transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -383,7 +387,7 @@ def test_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """MARSCCA finds substantial correlation on views with shared structure."""
-    s = MARSCCA().fit(correlated_views).score(correlated_views)
+    s = MARSCCA(random_state=0).fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
@@ -403,8 +407,8 @@ def test_interactions_beat_additive_models_on_product_signal() -> None:
     train = [X1[:500], X2[:500]]
     test = [X1[500:], X2[500:]]
 
-    interaction = MARSCCA(degree=2).fit(train).score(test)
-    additive = MARSCCA(degree=1).fit(train).score(test)
+    interaction = MARSCCA(degree=2, random_state=0).fit(train).score(test)
+    additive = MARSCCA(degree=1, random_state=0).fit(train).score(test)
     gam = GAMCCA().fit(train).score(test)
 
     assert interaction > 0.9, f"Expected MARSCCA(degree=2) > 0.9, got {interaction}"
@@ -419,7 +423,7 @@ def test_degree_three_recovers_three_way_interaction() -> None:
     a, b, c = rng.standard_normal((3, n))
     X1 = np.column_stack([a, b, c, rng.standard_normal((n, 7))])
     X2 = np.column_stack([a * b * c + 0.3 * rng.standard_normal(n) for _ in range(5)])
-    model = MARSCCA(degree=3, nk=40).fit([X1[:1000], X2[:1000]])
+    model = MARSCCA(degree=3, nk=40, random_state=0).fit([X1[:1000], X2[:1000]])
     assert max(len(term) for term in model.encoders_[0].terms_) == 3
     score = model.score([X1[1000:], X2[1000:]])
     assert score > 0.9, f"Expected held-out correlation > 0.9, got {score}"
@@ -515,9 +519,11 @@ def test_backward_pass_keeps_nprune_as_subset(
     correlated_views: list[np.ndarray],
 ) -> None:
     """Exactly nprune terms survive, at least one per view, all forward-pass terms."""
-    full = MARSCCA(degree=2, nk=10).fit(correlated_views)
+    full = MARSCCA(degree=2, nk=10, random_state=0).fit(correlated_views)
     for nprune in (2, 5, 13):
-        pruned = MARSCCA(degree=2, nk=10, nprune=nprune).fit(correlated_views)
+        pruned = MARSCCA(degree=2, nk=10, nprune=nprune, random_state=0).fit(
+            correlated_views
+        )
         assert sum(len(e.terms_) for e in pruned.encoders_) == nprune
         for p_enc, f_enc in zip(pruned.encoders_, full.encoders_):
             assert len(p_enc.terms_) >= 1
@@ -528,8 +534,8 @@ def test_backward_pass_noop_when_nprune_not_smaller(
     correlated_views: list[np.ndarray],
 ) -> None:
     """An nprune at or above the forward pass's size leaves the model unchanged."""
-    full = MARSCCA(nk=6).fit(correlated_views)
-    same = MARSCCA(nk=6, nprune=100).fit(correlated_views)
+    full = MARSCCA(nk=6, random_state=0).fit(correlated_views)
+    same = MARSCCA(nk=6, nprune=100, random_state=0).fit(correlated_views)
     for a, b in zip(full.encoders_, same.encoders_):
         assert a.terms_ == b.terms_
         np.testing.assert_allclose(a.coef_, b.coef_)
@@ -543,8 +549,8 @@ def test_too_few_samples_for_any_knot_raises_clearly() -> None:
     rng = np.random.default_rng(0)
     views = [rng.standard_normal((15, 4)), rng.standard_normal((15, 3))]
     with pytest.raises(ValueError, match="could not place a single hinge"):
-        MARSCCA().fit(views)
-    model = MARSCCA(endspan=0).fit(views)
+        MARSCCA(random_state=0).fit(views)
+    model = MARSCCA(endspan=0, random_state=0).fit(views)
     assert all(len(e.terms_) >= 1 for e in model.encoders_)
 
 
@@ -553,7 +559,7 @@ def test_nprune_below_number_of_views_raises(
 ) -> None:
     """Every view must keep a term, so nprune below n_views is an error."""
     with pytest.raises(ValueError, match="nprune"):
-        MARSCCA(nk=6, nprune=1).fit(correlated_views)
+        MARSCCA(nk=6, nprune=1, random_state=0).fit(correlated_views)
 
 
 def test_feature_importances_rank_the_interaction_features() -> None:
@@ -568,7 +574,7 @@ def test_feature_importances_rank_the_interaction_features() -> None:
         np.column_stack([a, b, rng.standard_normal((n, 6))]),
         np.column_stack([a * b + 0.3 * rng.standard_normal(n) for _ in range(3)]),
     ]
-    model = MARSCCA(degree=2, nk=16, nprune=10).fit(views)
+    model = MARSCCA(degree=2, nk=16, nprune=10, random_state=0).fit(views)
     importances = model.feature_importances_
     assert [imp.shape for imp in importances] == [(8,), (3,)]
     assert set(np.argsort(importances[0])[-2:]) == {0, 1}

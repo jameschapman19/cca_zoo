@@ -27,14 +27,14 @@ numerically stable result even for high-dimensional views.
 ```python
 from cca_zoo.linear import CCA
 
-model = CCA(latent_dimensions=2).fit([X1, X2])
+model = CCA(n_components=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 print(model.score([X1, X2]))  # mean canonical correlation
 ```
 
-### rCCA — Regularised CCA
+### RidgeCCA — Regularised CCA
 
-**When to use:** CCA breaks down when $n < p$ (more features than samples). rCCA adds a ridge
+**When to use:** CCA breaks down when $n < p$ (more features than samples). RidgeCCA adds a ridge
 penalty to stabilise the covariance matrices.
 
 The parameter `c` controls the regularisation strength:
@@ -44,9 +44,9 @@ The parameter `c` controls the regularisation strength:
 - `0 < c < 1` → interpolates between the two
 
 ```python
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
-model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
+model = RidgeCCA(n_components=2, c=0.1).fit([X1, X2])
 ```
 
 ### PLS — Partial Least Squares
@@ -54,7 +54,7 @@ model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
 **When to use:** When you want to maximise *covariance* rather than *correlation*. PLS is
 more robust to noise and does not require invertible covariance matrices.
 
-PLS is a special case of rCCA with `c=1`:
+PLS is a special case of RidgeCCA with `c=1`:
 
 $$
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
@@ -64,7 +64,7 @@ $$
 ```python
 from cca_zoo.linear import PLS
 
-model = PLS(latent_dimensions=2).fit([X1, X2])
+model = PLS(n_components=2).fit([X1, X2])
 ```
 
 ---
@@ -89,7 +89,7 @@ where $A$ contains the cross-view covariances and $B$ the regularised within-vie
 ```python
 from cca_zoo.linear import MCCA
 
-model = MCCA(latent_dimensions=2, c=0.1).fit([X1, X2, X3])
+model = MCCA(n_components=2, c=0.1).fit([X1, X2, X3])
 ```
 
 ### GCCA — Generalised CCA
@@ -110,7 +110,7 @@ the shared projection.
 ```python
 from cca_zoo.linear import GCCA
 
-model = GCCA(latent_dimensions=2, c=0.01).fit([X1, X2, X3])
+model = GCCA(n_components=2, c=0.01).fit([X1, X2, X3])
 ```
 
 ### TCCA — Tensor CCA
@@ -128,7 +128,7 @@ $$
 ```python
 from cca_zoo.linear import TCCA
 
-model = TCCA(latent_dimensions=2, c=0.01, random_state=0).fit([X1, X2, X3])
+model = TCCA(n_components=2, c=0.01, random_state=0).fit([X1, X2, X3])
 ```
 
 ---
@@ -161,7 +161,7 @@ usually enough).
 ```python
 from cca_zoo.linear import CCAEY
 
-model = CCAEY(latent_dimensions=2, max_iter=200)
+model = CCAEY(n_components=2, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -176,13 +176,13 @@ statistics. Every sample still contributes *something* (smooth downweighting, ne
 zero). Fit by the same full-batch L-BFGS-B as `CCAEY`, so it shares that class's `nan`-on
 ill-conditioned-data caveat above; it has no ridge-blend `c` of its own. The `delta` parameter
 sets the cutoff as a multiple of the dataset's own median sample leverage (self-calibrating, so
-it doesn't need re-tuning per `latent_dimensions`); values below 1 downweight the majority of the
+it doesn't need re-tuning per `n_components`); values below 1 downweight the majority of the
 data and are not recommended.
 
 ```python
 from cca_zoo.linear import HuberCCA
 
-model = HuberCCA(latent_dimensions=2, delta=4.0, max_iter=200)
+model = HuberCCA(n_components=2, delta=4.0, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -206,7 +206,7 @@ magnitude, it catches exactly the contamination `HuberCCA` can't:
 ```python
 from cca_zoo.linear import RANSACCCA
 
-model = RANSACCCA(latent_dimensions=2, min_samples=0.25, random_state=0)
+model = RANSACCCA(n_components=2, min_samples=0.25, random_state=0)
 model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
@@ -232,7 +232,7 @@ close to the true clean fraction, this holds up where `RANSACCCA`'s search degra
 ```python
 from cca_zoo.linear import TrimmedCCA
 
-model = TrimmedCCA(h_frac=0.55, n_starts=40, random_state=0)
+model = TrimmedCCA(h_frac=0.55, n_init=40, random_state=0)
 model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
@@ -240,7 +240,7 @@ inliers = model.inlier_mask_  # boolean array over the training rows
 `h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
 good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
 once true contamination exceeds `1 - h_frac`. `TrimmedCCA` supports any number of views (2 or more)
-but only `latent_dimensions=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
+but only `n_components=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
 penalty being the square of a *single* linear functional of the selection, which holds for any
 number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
 matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multiplier bisection can't
@@ -257,7 +257,7 @@ resulting scores, never forming a covariance matrix at all.
 from cca_zoo.linear import ProjectionPursuitCCA
 
 model = ProjectionPursuitCCA(
-    latent_dimensions=2, projection_index="spearman", random_state=0
+    n_components=2, projection_index="spearman", random_state=0
 )
 model.fit([X1, X2])
 ```
@@ -267,7 +267,7 @@ insensitive to an outlier's exact magnitude, only its rank) and `"mcd"` (a
 minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
 robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
 scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
-by derivative-free search (`n_restarts` random restarts of `scipy.optimize.minimize` with
+by derivative-free search (`n_init` random restarts of `scipy.optimize.minimize` with
 Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
 solvers don't apply). Unlike the other three estimators here, there is no `inlier_mask_`:
 its robustness comes from the projection index's own insensitivity to extreme values, not
@@ -313,7 +313,7 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 | Scenario | Recommended |
 |---|---|
 | $n \gg p$, two views | `CCA` |
-| $n < p$ or ill-conditioned | `rCCA` (tune `c`) |
+| $n < p$ or ill-conditioned | `RidgeCCA` (tune `c`) |
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |

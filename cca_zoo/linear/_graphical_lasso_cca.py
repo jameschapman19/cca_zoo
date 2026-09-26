@@ -59,7 +59,7 @@ class GraphicalLassoCCA(MCCA):
         rather than truncate the covariance's rank.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default
             True.
         c: Ridge blend applied on top of the graphical-lasso covariance
@@ -110,7 +110,7 @@ class GraphicalLassoCCA(MCCA):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
         alpha: float | list[float | None] | None = 0.01,
@@ -119,7 +119,7 @@ class GraphicalLassoCCA(MCCA):
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             c=c,
             pca=False,

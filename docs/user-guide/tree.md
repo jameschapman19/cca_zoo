@@ -28,7 +28,7 @@ $i = j$ terms) and $V$ the mean auto-covariance across all views. `TreeCCA` uses
 gradient-boosted-tree ensemble in place of a linear map or neural network as the function class
 for each $f_i$.
 
-Each of the `latent_dimensions` canonical components is a separate scalar booster per view.
+Each of the `n_components` canonical components is a separate scalar booster per view.
 Training proceeds by alternating (Gauss-Seidel) gradient boosting: each round, for every view in
 turn, the EY-loss gradient is computed from the current embeddings and used as a custom
 regression objective to add one tree to that view's boosters; with `gauss_seidel=True` (the
@@ -56,12 +56,12 @@ abstract base class and cannot be instantiated directly:
 ```python
 from cca_zoo.tree import XGBoostCCA
 
-model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
+model = XGBoostCCA(n_components=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
 corr = model.score([X1, X2])  # mean canonical correlation
 
 # XGBoostCCA also supports more than two views
-model3 = XGBoostCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])
+model3 = XGBoostCCA(n_components=2, n_estimators=200).fit([X1, X2, X3])
 ```
 
 Use `LightGBMCCA` or `CatBoostCCA` to train with LightGBM or CatBoost instead (each requires its
@@ -71,8 +71,8 @@ own optional package — `pip install lightgbm` / `pip install catboost` — bot
 ```python
 from cca_zoo.tree import CatBoostCCA, LightGBMCCA
 
-model = LightGBMCCA(latent_dimensions=2).fit([X1, X2])
-model = CatBoostCCA(latent_dimensions=2).fit([X1, X2])
+model = LightGBMCCA(n_components=2).fit([X1, X2])
+model = CatBoostCCA(n_components=2).fit([X1, X2])
 ```
 
 `CatBoostCCA` has no in-place "continue this booster" call the way XGBoost/LightGBM do, so it
@@ -87,7 +87,7 @@ faster default.
 and normalised to sum to 1, the same convention as sklearn's gradient-boosting models:
 
 ```python
-model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
+model = XGBoostCCA(n_components=2).fit([X1, X2])
 imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
 ```
 
@@ -116,7 +116,7 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 ## Practical notes
 
 - `XGBoostCCA`, `LightGBMCCA`, and `CatBoostCCA` all support 2 or more views.
-- `latent_dimensions` must not exceed the number of features in any view (the random-orthogonal
+- `n_components` must not exceed the number of features in any view (the random-orthogonal
   initialisation draws that many orthogonal directions in feature space).
 - Unlike `KCCA`, none of the three classes stores the training data for inference — new data is
   passed directly through the fitted boosters, so `transform` on held-out data is inexpensive.

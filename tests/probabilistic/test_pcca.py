@@ -58,12 +58,12 @@ def pcca_class() -> type:
 
 @pytest.mark.slow
 def test_pcca_fit_completes(pcca_class: type) -> None:
-    """ProbabilisticCCA.fit completes for minimal num_warmup and num_samples."""
+    """ProbabilisticCCA.fit completes for minimal n_warmup and n_posterior_samples."""
     views = _make_small_views()
     model = pcca_class(
-        latent_dimensions=1,
-        num_warmup=10,
-        num_samples=10,
+        n_components=1,
+        n_warmup=10,
+        n_posterior_samples=10,
         random_state=0,
     )
     fitted = model.fit(views)
@@ -75,9 +75,9 @@ def test_pcca_fit_sets_params(pcca_class: type) -> None:
     """ProbabilisticCCA.fit stores inferred parameters."""
     views = _make_small_views()
     model = pcca_class(
-        latent_dimensions=1,
-        num_warmup=10,
-        num_samples=10,
+        n_components=1,
+        n_warmup=10,
+        n_posterior_samples=10,
         random_state=0,
     )
     model.fit(views)
@@ -96,9 +96,9 @@ def test_pcca_transform_output_shapes(pcca_class: type) -> None:
     n, k = 20, 1
     views = _make_small_views(n=n)
     model = pcca_class(
-        latent_dimensions=k,
-        num_warmup=10,
-        num_samples=10,
+        n_components=k,
+        n_warmup=10,
+        n_posterior_samples=10,
         random_state=0,
     )
     model.fit(views)
@@ -108,23 +108,23 @@ def test_pcca_transform_output_shapes(pcca_class: type) -> None:
 
 
 # ---------------------------------------------------------------------------
-# latent_dimensions parameter
+# n_components parameter
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("k", [1, 2])
-def test_pcca_latent_dimensions(pcca_class: type, k: int) -> None:
-    """ProbabilisticCCA can be instantiated with various latent_dimensions."""
+def test_pcca_n_components(pcca_class: type, k: int) -> None:
+    """ProbabilisticCCA can be instantiated with various n_components."""
     model = pcca_class(
-        latent_dimensions=k,
-        num_warmup=5,
-        num_samples=5,
+        n_components=k,
+        n_warmup=5,
+        n_posterior_samples=5,
         random_state=0,
     )
     views = _make_small_views(n=15)
     model.fit(views)
-    assert model.latent_dimensions == k
+    assert model.n_components == k
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +138,9 @@ def test_pcca_supports_more_than_two_views(pcca_class: type) -> None:
     rng = np.random.default_rng(0)
     three_views = [rng.standard_normal((15, 4)) for _ in range(3)]
     model = pcca_class(
-        latent_dimensions=1,
-        num_warmup=5,
-        num_samples=5,
+        n_components=1,
+        n_warmup=5,
+        n_posterior_samples=5,
         random_state=0,
     )
     model.fit(three_views)
@@ -153,9 +153,9 @@ def test_pcca_rejects_single_view(pcca_class: type) -> None:
     rng = np.random.default_rng(0)
     one_view = [rng.standard_normal((15, 4))]
     model = pcca_class(
-        latent_dimensions=1,
-        num_warmup=5,
-        num_samples=5,
+        n_components=1,
+        n_warmup=5,
+        n_posterior_samples=5,
         random_state=0,
     )
     with pytest.raises(ValueError, match="views"):
@@ -186,7 +186,7 @@ def test_pcca_posterior_draws_are_rotation_aligned(pcca_class: type) -> None:
     x2 = z @ rng.standard_normal((2, 5)) + 0.1 * rng.standard_normal((n, 5))
 
     model = pcca_class(
-        latent_dimensions=2, num_warmup=500, num_samples=1000, random_state=0
+        n_components=2, n_warmup=500, n_posterior_samples=1000, random_state=0
     ).fit([x1, x2])
 
     w_samples = np.concatenate(
@@ -214,7 +214,7 @@ def test_pcca_z_rotation_matches_realigned_weights(pcca_class: type) -> None:
     x2 = rng.standard_normal((n, 4))
 
     model = pcca_class(
-        latent_dimensions=2, num_warmup=50, num_samples=50, random_state=0
+        n_components=2, n_warmup=50, n_posterior_samples=50, random_state=0
     ).fit([x1, x2])
 
     z_samples = model.posterior_samples_["z"]  # (S, n, k)

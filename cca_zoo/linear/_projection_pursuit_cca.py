@@ -180,7 +180,7 @@ class ProjectionPursuitCCA(BaseModel):
     maximised over the stacked angle vector by Powell's method
     (derivative-free, unlike the L-BFGS-B used elsewhere in this package,
     since the objective's gradient is undefined almost everywhere) from
-    ``n_restarts`` random starting points, keeping the best. Later latent
+    ``n_init`` random starting points, keeping the best. Later latent
     dimensions are fit the same way on views deflated by the previously
     found directions (:func:`~cca_zoo._utils._linalg.deflate`, the same
     Gram-Schmidt convention :mod:`cca_zoo.sparse`'s ALS-based methods use).
@@ -197,14 +197,14 @@ class ProjectionPursuitCCA(BaseModel):
 
         The random-restart search is not guaranteed to find the global
         optimum (the objective is non-convex and, for ``"spearman"``,
-        genuinely discontinuous), and its cost scales with ``n_restarts``
+        genuinely discontinuous), and its cost scales with ``n_init``
         times the cost of one projection-index evaluation times
-        ``latent_dimensions``; ``"mcd"`` is markedly more expensive per
+        ``n_components``; ``"mcd"`` is markedly more expensive per
         evaluation than ``"spearman"`` since it re-fits a robust covariance
         estimator at every candidate direction.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         projection_index: ``"spearman"`` (default) or ``"mcd"`` -- which
             robust bivariate correlation measure to maximise; see
@@ -212,7 +212,7 @@ class ProjectionPursuitCCA(BaseModel):
             :func:`mcd_projection_index`.
         mcd_support_fraction: Passed to :class:`~sklearn.covariance.MinCovDet`
             when ``projection_index="mcd"``; ignored otherwise. Default 0.75.
-        n_restarts: Random restarts of the direction search per latent
+        n_init: Random restarts of the direction search per latent
             dimension; the best-scoring result is kept. Default 10.
         max_iter: Maximum Powell iterations per restart. Default 200.
         tol: Convergence tolerance for Powell's method (``xtol``/``ftol``).
@@ -241,7 +241,7 @@ class ProjectionPursuitCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 6))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = ProjectionPursuitCCA(latent_dimensions=1, random_state=0)
+        >>> model = ProjectionPursuitCCA(n_components=1, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -249,26 +249,26 @@ class ProjectionPursuitCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "projection_index": [StrOptions({"spearman", "mcd"})],
         "mcd_support_fraction": [Interval(Real, 0, 1, closed="right")],
-        "n_restarts": POSITIVE_INT,
+        "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": [Interval(Real, 0, None, closed="neither")],
     }
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         projection_index: str = "spearman",
         mcd_support_fraction: float = 0.75,
-        n_restarts: int = 10,
+        n_init: int = 10,
         max_iter: int = 200,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.projection_index = projection_index
         self.mcd_support_fraction = mcd_support_fraction
-        self.n_restarts = n_restarts
+        self.n_init = n_init
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
@@ -322,7 +322,7 @@ class ProjectionPursuitCCA(BaseModel):
 
         best_value = np.inf
         best_theta = np.zeros(n_theta)
-        for _ in range(self.n_restarts):
+        for _ in range(self.n_init):
             theta0 = rng.uniform(0.0, 2 * np.pi, size=n_theta)
             result = minimize(
                 objective,
@@ -358,10 +358,10 @@ class ProjectionPursuitCCA(BaseModel):
         pairs = list(combinations(range(self.n_views_), 2))
 
         weights: list[np.ndarray] = [
-            np.zeros((p, self.latent_dimensions)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_in_
         ]
         deflated = [v.copy() for v in views_]
-        for d in range(self.latent_dimensions):
+        for d in range(self.n_components):
             directions = self._fit_directions(deflated, pairs, index_fn, rng)
             for i, a in enumerate(directions):
                 weights[i][:, d] = a

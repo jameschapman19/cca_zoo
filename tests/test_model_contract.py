@@ -20,13 +20,13 @@ from tests.test_sklearn_compat import _MODEL_CLASSES
 # Constructor arguments that keep each fit small; every other model runs on
 # its defaults.
 _FAST: dict[str, dict[str, Any]] = {
-    "ProbabilisticCCA": {"num_warmup": 20, "num_samples": 20},
-    "VariationalBayesCCA": {"num_steps": 50},
+    "ProbabilisticCCA": {"n_warmup": 20, "n_posterior_samples": 20},
+    "VariationalBayesCCA": {"max_iter": 50},
     "GFA": {"max_iter": 50},
     "XGBoostCCA": {"n_estimators": 5},
     "LightGBMCCA": {"n_estimators": 5},
     "CatBoostCCA": {"n_estimators": 5},
-    "ProjectionPursuitCCA": {"n_restarts": 1, "max_iter": 5},
+    "ProjectionPursuitCCA": {"n_init": 1, "max_iter": 5},
     "StochasticCCAEY": {"max_iter": 5},
 }
 
@@ -41,7 +41,7 @@ def _views(seed: int, shift: float = 0.0) -> list[np.ndarray]:
 
 
 def _make(cls: type[BaseModel]) -> BaseModel:
-    model = cls(latent_dimensions=1, **_FAST.get(cls.__name__, {}))
+    model = cls(n_components=1, **_FAST.get(cls.__name__, {}))
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
     return model
@@ -126,7 +126,7 @@ def test_linear_importance_matches_the_permutation_definition() -> None:
         z @ rng.standard_normal((1, p)) + rng.standard_normal((20000, p))
         for p in (4, 3)
     ]
-    model = CCA(latent_dimensions=2).fit(views)
+    model = CCA(n_components=2).fit(views)
     closed_form = model._feature_importances()
     permuted = model._permutation_importances()
     for exact, estimate in zip(closed_form, permuted):
@@ -150,7 +150,8 @@ def _signal_in_first_feature(n: int) -> list[np.ndarray]:
 
 
 @pytest.mark.parametrize(
-    "name", ["rCCA", "GAMCCA", "MARSCCA", "XGBoostCCA", "KCCA", "GaussianProcessCCA"]
+    "name",
+    ["RidgeCCA", "GAMCCA", "MARSCCA", "XGBoostCCA", "KCCA", "GaussianProcessCCA"],
 )
 def test_importance_finds_the_signal_feature(name: str) -> None:
     """Each importance family ranks the one informative feature first."""
@@ -159,7 +160,7 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
         pytest.skip(f"{name}'s optional dependency is not installed")
     cls = classes[name]
     kwargs = {"kernel": "rbf"} if name == "KCCA" else {}
-    model = cls(latent_dimensions=1, **kwargs)
+    model = cls(n_components=1, **kwargs)
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
     importances = model.fit(_signal_in_first_feature(300)).feature_importances_

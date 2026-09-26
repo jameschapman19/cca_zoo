@@ -38,7 +38,7 @@ class PLSEY(CCAEY):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
@@ -51,20 +51,20 @@ class PLSEY(CCAEY):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 500))
         >>> X2 = rng.standard_normal((200, 400))
-        >>> model = PLSEY(latent_dimensions=4, random_state=0)
+        >>> model = PLSEY(n_components=4, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         max_iter: int = 1000,
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             c=1.0,
             max_iter=max_iter,
@@ -97,4 +97,4 @@ class PLSEY(CCAEY):
         default, since this loss's own penalty targets weight-space
         orthonormality rather than projection-space decorrelation.
         """
-        return random_orthonormal_weights(views, self.latent_dimensions, rng)
+        return random_orthonormal_weights(views, self.n_components, rng)

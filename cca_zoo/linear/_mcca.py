@@ -54,7 +54,7 @@ class MCCA(BaseModel):
         production. *Journal of Econometrics*, 4(2), 147–166.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation parameter(s).  Either a single float applied
             to all views or a list of per-view floats in ``[0, 1]``.
@@ -72,7 +72,7 @@ class MCCA(BaseModel):
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
-        >>> model = MCCA(latent_dimensions=2).fit([X1, X2, X3])
+        >>> model = MCCA(n_components=2).fit([X1, X2, X3])
         >>> scores = model.transform([X1, X2, X3])
     """
 
@@ -85,13 +85,13 @@ class MCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
         pca: bool = True,
         eps: float = 1e-6,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.pca = pca
         self.eps = eps
@@ -123,7 +123,7 @@ class MCCA(BaseModel):
             B = self._build_B(views_, c_)
 
         splits = np.cumsum([v.shape[1] for v in (views_pca if self.pca else views_)])
-        _, eigvecs = gevp(A, B, self.latent_dimensions)
+        _, eigvecs = gevp(A, B, self.n_components)
 
         raw_weights = np.split(eigvecs, splits[:-1], axis=0)
         if self.pca:

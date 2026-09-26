@@ -45,7 +45,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         different active sets.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         n_nonzero_coefs: Target number of active features per view. An
             ``int`` applies the same budget to every view; a list gives one
@@ -69,7 +69,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         >>> X1 = rng.standard_normal((200, 20))
         >>> X2 = rng.standard_normal((200, 15))
         >>> model = OrthogonalMatchingPursuitCCA(
-        ...     latent_dimensions=2, n_nonzero_coefs=5
+        ...     n_components=2, n_nonzero_coefs=5
         ... ).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
@@ -82,14 +82,14 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         n_nonzero_coefs: int | list[int] | None = None,
         max_iter: int = 10,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.n_nonzero_coefs = n_nonzero_coefs
         self.max_iter = max_iter
         self.tol = tol
@@ -148,7 +148,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         rng = np.random.default_rng(self.random_state)
         weights, _ = omp_coordinate_descent_ey(
             bases=views_,
-            k=self.latent_dimensions,
+            k=self.n_components,
             n_nonzero_coefs=n_nonzero_coefs,
             max_iter=self.max_iter,
             tol=self.tol,

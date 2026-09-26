@@ -34,7 +34,7 @@ class DCCAE(BaseDeep):
         ICML 2015.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects mapping each
             view to the latent space.
         decoders: List of :class:`torch.nn.Module` objects mapping the
@@ -44,7 +44,7 @@ class DCCAE(BaseDeep):
             autoencoder. Default is 0.5.
         objective: Differentiable CCA loss operating on a list of latent
             tensors.  Defaults to :class:`~cca_zoo.deep.objectives.CCALoss`.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Ridge regularisation for the CCA loss. Default is 1e-6.
 
@@ -57,7 +57,7 @@ class DCCAE(BaseDeep):
         >>> enc1, enc2 = nn.Linear(10, 4), nn.Linear(8, 4)
         >>> dec1, dec2 = nn.Linear(4, 10), nn.Linear(4, 8)
         >>> model = DCCAE(
-        ...     latent_dimensions=4,
+        ...     n_components=4,
         ...     encoders=[enc1, enc2],
         ...     decoders=[dec1, dec2],
         ... )
@@ -65,21 +65,21 @@ class DCCAE(BaseDeep):
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         decoders: list[nn.Module],
         lam: float = 0.5,
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         if lam < 0.0 or lam > 1.0:
             raise ValueError(f"lam must be in [0, 1], got {lam}.")
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
@@ -92,7 +92,7 @@ class DCCAE(BaseDeep):
 
         Args:
             representations: List of latent tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             List of reconstructed tensors, each matching the

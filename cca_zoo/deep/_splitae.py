@@ -33,14 +33,14 @@ class SplitAE(BaseDeep):
     a single-paper reproduction.
 
     Args:
-        latent_dimensions: Dimensionality of each encoder's output.
+        n_components: Dimensionality of each encoder's output.
             Decoders receive the concatenation of all encoder outputs,
-            so their input size is n_views * latent_dimensions.
+            so their input size is n_views * n_components.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         decoders: List of :class:`torch.nn.Module` objects.  Each
             decoder's input dimension should be
-            n_views * latent_dimensions.
-        lr: Learning rate. Default is 1e-3.
+            n_views * n_components.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Unused; present for API consistency. Default is 1e-6.
 
@@ -53,7 +53,7 @@ class SplitAE(BaseDeep):
         >>> dec1 = nn.Linear(8, 10)
         >>> dec2 = nn.Linear(8, 8)
         >>> model = SplitAE(
-        ...     latent_dimensions=4,
+        ...     n_components=4,
         ...     encoders=[enc1, enc2],
         ...     decoders=[dec1, dec2],
         ... )
@@ -61,17 +61,17 @@ class SplitAE(BaseDeep):
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         decoders: list[nn.Module],
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
@@ -82,7 +82,7 @@ class SplitAE(BaseDeep):
 
         Args:
             representations: List of latent tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             List of reconstructed tensors, one per decoder.

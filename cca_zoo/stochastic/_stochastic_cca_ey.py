@@ -28,7 +28,7 @@ class StochasticCCAEY(CCAEY):
     gradient evaluation is too slow to repeat every iteration.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
             (1). Default is 0; see :class:`~cca_zoo.linear.gradient.CCAEY`'s
@@ -49,7 +49,7 @@ class StochasticCCAEY(CCAEY):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((5000, 200))
         >>> X2 = rng.standard_normal((5000, 150))
-        >>> model = StochasticCCAEY(latent_dimensions=4, batch_size=128, random_state=0)
+        >>> model = StochasticCCAEY(n_components=4, batch_size=128, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -62,7 +62,7 @@ class StochasticCCAEY(CCAEY):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float = 0.0,
         learning_rate: float = 1e-2,
@@ -73,7 +73,7 @@ class StochasticCCAEY(CCAEY):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             c=c,
             max_iter=max_iter,
@@ -114,7 +114,7 @@ class StochasticCCAEY(CCAEY):
         exists to avoid.
         """
         return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, self.batch_size, rng
+            views, self.n_components, self.batch_size, rng
         )
 
     def _fit_sgd(

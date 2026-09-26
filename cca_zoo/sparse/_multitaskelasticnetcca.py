@@ -30,7 +30,7 @@ class MultiTaskElasticNetCCA(BaseModel):
     $$
 
     where $\|W_i\|_{2,1} = \sum_j \|W_i[j,:]\|_2$ sums each *feature's*
-    weight-row Euclidean norm over all ``latent_dimensions`` components.
+    weight-row Euclidean norm over all ``n_components`` components.
     Because the penalty on a row is zero only when the whole row is zero,
     a feature is either used by every canonical variate or by none —
     unlike :class:`~cca_zoo.sparse.ElasticNetCCA`, which can (and often
@@ -39,7 +39,7 @@ class MultiTaskElasticNetCCA(BaseModel):
     :class:`~sklearn.linear_model.MultiTaskLasso` buys over plain
     :class:`~sklearn.linear_model.Lasso` for ordinary multi-output
     regression, and it is arguably an even more natural fit here, since a
-    CCA model's ``latent_dimensions`` are not independent "tasks" to be
+    CCA model's ``n_components`` are not independent "tasks" to be
     fit separately but different views of the same underlying features.
 
     Fit by :func:`~cca_zoo._utils._ey.group_coordinate_descent_ey` —
@@ -60,7 +60,7 @@ class MultiTaskElasticNetCCA(BaseModel):
         points — see :class:`~cca_zoo.sparse.ElasticNetCCA`'s docstring.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         alpha: Overall penalty strength(s). Either a single float applied
             to every view or a list of per-view floats. Default is 1.0.
@@ -79,13 +79,13 @@ class MultiTaskElasticNetCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 20))
         >>> X2 = rng.standard_normal((200, 15))
-        >>> model = MultiTaskElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2])
+        >>> model = MultiTaskElasticNetCCA(n_components=2, alpha=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
 
         A different penalty per view:
 
         >>> model = MultiTaskElasticNetCCA(
-        ...     latent_dimensions=2, alpha=[0.1, 0.5]
+        ...     n_components=2, alpha=[0.1, 0.5]
         ... ).fit([X1, X2])
     """
 
@@ -99,7 +99,7 @@ class MultiTaskElasticNetCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         alpha: float | list[float] = 1.0,
         l1_ratio: float | list[float] = 0.5,
@@ -107,7 +107,7 @@ class MultiTaskElasticNetCCA(BaseModel):
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.alpha = alpha
         self.l1_ratio = l1_ratio
         self.max_iter = max_iter
@@ -134,7 +134,7 @@ class MultiTaskElasticNetCCA(BaseModel):
         rng = np.random.default_rng(self.random_state)
         weights, _ = group_coordinate_descent_ey(
             bases=views_,
-            k=self.latent_dimensions,
+            k=self.n_components,
             alpha=alpha_,
             l1_ratio=l1_ratio_,
             max_iter=self.max_iter,

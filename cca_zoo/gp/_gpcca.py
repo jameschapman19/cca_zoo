@@ -116,7 +116,7 @@ class _GpEncoder:
         kernel: Kernel,
         ridge: float,
         n_inducing: int | None,
-        random_state: int,
+        random_state: int | None,
     ) -> None:
         self.n, self.p = X.shape
         self.k = k
@@ -248,7 +248,7 @@ class GaussianProcessCCA(BaseModel):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Number of latent components. Must not exceed the
+        n_components: Number of latent components. Must not exceed the
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
@@ -277,22 +277,23 @@ class GaussianProcessCCA(BaseModel):
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
             is 1e-6.
         random_state: Seed for the initial coefficients and (if
-            ``n_inducing`` is set) for selecting inducing points.
+            ``n_inducing`` is set) for selecting inducing points. Default is
+            None.
 
     Examples:
         >>> import numpy as np
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 3))
         >>> X2 = rng.standard_normal((100, 3))
-        >>> model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
+        >>> model = GaussianProcessCCA(n_components=1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
         >>> means, stds = model.transform([X1, X2], return_std=True)
         >>> # For larger datasets, cap inference cost with inducing points:
-        >>> big_model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200)
+        >>> big_model = GaussianProcessCCA(n_components=1, n_inducing=200)
 
         A different ridge penalty per view:
 
-        >>> model = GaussianProcessCCA(latent_dimensions=1, alpha=[0.01, 0.1]).fit(
+        >>> model = GaussianProcessCCA(n_components=1, alpha=[0.01, 0.1]).fit(
         ...     [X1, X2]
         ... )
     """
@@ -307,16 +308,16 @@ class GaussianProcessCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         kernel: Kernel | list[Kernel | None] | None = None,
         alpha: float | list[float] = 0.01,
         n_inducing: int | list[int | None] | None = None,
         max_iter: int = 1000,
         tol: float = 1e-6,
-        random_state: int = 0,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.kernel = kernel
         self.alpha = alpha
         self.n_inducing = n_inducing
@@ -339,7 +340,7 @@ class GaussianProcessCCA(BaseModel):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
-        k = self.latent_dimensions
+        k = self.n_components
 
         kernel_ = perview_parameter("kernel", self.kernel, None, self.n_views_)
         alpha_ = perview_parameter("alpha", self.alpha, 0.01, self.n_views_)
@@ -408,7 +409,7 @@ class GaussianProcessCCA(BaseModel):
                 deviation alongside its mean.
 
         Returns:
-            List of arrays, each (n_samples, latent_dimensions); or, if
+            List of arrays, each (n_samples, n_components); or, if
             ``return_std`` is True, a tuple ``(means, stds)`` of two such
             lists.
 

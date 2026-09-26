@@ -17,8 +17,9 @@ from cca_zoo.gp._gpcca import _GpEncoder
 from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GaussianProcessCCA:
-    return GaussianProcessCCA(latent_dimensions=latent_dimensions, **kwargs)
+def _make_model(n_components: int = 1, **kwargs: object) -> GaussianProcessCCA:
+    kwargs.setdefault("random_state", 0)
+    return GaussianProcessCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -47,9 +48,9 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, n_components) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(two_views_small)
     assert len(result) == 2
     n = two_views_small[0].shape[0]
@@ -62,7 +63,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(test_views)
     assert len(result) == 2
     for arr in result:
@@ -72,7 +73,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
 def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
     """Transform on three-view data returns one array per view."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(three_views_small)
+    model = _make_model(n_components=k).fit(three_views_small)
     result = model.transform(three_views_small)
     assert len(result) == 3
     n = three_views_small[0].shape[0]
@@ -90,7 +91,7 @@ def test_transform_return_std_shapes_and_positive(
 ) -> None:
     """transform(..., return_std=True) returns matching-shape, positive stds."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     means, stds = model.transform(two_views_small, return_std=True)
     n = two_views_small[0].shape[0]
     assert len(means) == 2
@@ -124,7 +125,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     s = model.score(two_views_small)
     assert isinstance(s, float)
 
@@ -151,7 +152,7 @@ def test_weights_not_fitted_raises() -> None:
     """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
-    model = GaussianProcessCCA()
+    model = GaussianProcessCCA(random_state=0)
     with pytest.raises(NotFittedError):
         model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
@@ -164,7 +165,7 @@ def test_weights_not_fitted_raises() -> None:
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
@@ -179,7 +180,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
 def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
@@ -205,7 +206,7 @@ def test_center_false(two_views_small: list[np.ndarray]) -> None:
 def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
     """encoders_ has one encoder per view, each producing k-dim output."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     assert len(model.encoders_) == 2
     for enc in model.encoders_:
         assert enc.k == k
@@ -268,7 +269,7 @@ def test_gpcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """GaussianProcessCCA finds substantial correlation on shared latent structure."""
-    model = GaussianProcessCCA(latent_dimensions=1, random_state=0)
+    model = GaussianProcessCCA(n_components=1, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -281,7 +282,7 @@ def test_gpcca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = GaussianProcessCCA(latent_dimensions=1, random_state=0)
+    model = GaussianProcessCCA(n_components=1, random_state=0)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -296,7 +297,7 @@ def test_sparse_fit_completes_and_shapes(two_views_small: list[np.ndarray]) -> N
     k = 2
     n = two_views_small[0].shape[0]
     n_inducing = n // 2
-    model = _make_model(latent_dimensions=k, n_inducing=n_inducing).fit(two_views_small)
+    model = _make_model(n_components=k, n_inducing=n_inducing).fit(two_views_small)
     for enc in model.encoders_:
         assert isinstance(enc, _GpEncoder)
         assert enc.inducing_.shape[0] == n_inducing
@@ -312,7 +313,7 @@ def test_sparse_return_std_shapes_and_positive(
     """Sparse transform(..., return_std=True) returns positive, matching-shape stds."""
     k = 2
     n = two_views_small[0].shape[0]
-    model = _make_model(latent_dimensions=k, n_inducing=n // 2).fit(two_views_small)
+    model = _make_model(n_components=k, n_inducing=n // 2).fit(two_views_small)
     means, stds = model.transform(two_views_small, return_std=True)
     for mean, std in zip(means, stds):
         assert mean.shape == (n, k)
@@ -337,7 +338,7 @@ def test_sparse_finds_correlation_on_correlated_views(
     """The sparse approximation still recovers substantial correlation."""
     n = correlated_views[0].shape[0]
     model = GaussianProcessCCA(
-        latent_dimensions=1, random_state=0, n_inducing=max(10, n // 3)
+        n_components=1, random_state=0, n_inducing=max(10, n // 3)
     )
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
@@ -361,7 +362,7 @@ def test_sparse_scales_to_large_sample_sizes() -> None:
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    model = GaussianProcessCCA(latent_dimensions=1, random_state=0, n_inducing=100)
+    model = GaussianProcessCCA(n_components=1, random_state=0, n_inducing=100)
     test_corr = model.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
     assert test_corr > 0.7, (
         f"Expected substantial held-out correlation, got {test_corr}"
@@ -370,7 +371,7 @@ def test_sparse_scales_to_large_sample_sizes() -> None:
 
 @pytest.mark.slow
 def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
-    """GaussianProcessCCA beats GAMCCA, TreeCCA, and rCCA on a feature-interaction task.
+    """GaussianProcessCCA beats GAMCCA, TreeCCA and RidgeCCA on an interaction task.
 
     View 1 is two noisy independent factors ``u, v``; view 2 is a noisy
     copy of their *interaction* ``u * v`` -- not additively separable into
@@ -386,7 +387,7 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     """
     pytest.importorskip("xgboost", reason="xgboost is not installed")
     from cca_zoo.gam import GAMCCA
-    from cca_zoo.linear import rCCA
+    from cca_zoo.linear import RidgeCCA
     from cca_zoo.tree import XGBoostCCA
 
     rng = np.random.default_rng(0)
@@ -402,18 +403,16 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    gp = GaussianProcessCCA(latent_dimensions=1, random_state=0)
+    gp = GaussianProcessCCA(n_components=1, random_state=0)
     gp_test = gp.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    gam = GAMCCA(latent_dimensions=1)
+    gam = GAMCCA(n_components=1)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    tree = XGBoostCCA(
-        latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0
-    )
+    tree = XGBoostCCA(n_components=1, n_estimators=150, max_depth=5, random_state=0)
     tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
+    rcca = RidgeCCA(n_components=1, c=[0.3, 0.3])
     rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     assert gp_test > 0.7, (
@@ -429,5 +428,5 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     )
     assert gp_test > rcca_test + 0.3, (
         f"Expected GaussianProcessCCA ({gp_test}) to clearly beat linear "
-        f"rCCA ({rcca_test})"
+        f"RidgeCCA ({rcca_test})"
     )

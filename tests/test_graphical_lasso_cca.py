@@ -10,8 +10,8 @@ from sklearn.covariance import GraphicalLasso
 from cca_zoo.linear import MCCA, GraphicalLassoCCA
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GraphicalLassoCCA:
-    return GraphicalLassoCCA(latent_dimensions=latent_dimensions, **kwargs)
+def _make_model(n_components: int = 1, **kwargs: object) -> GraphicalLassoCCA:
+    return GraphicalLassoCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
@@ -118,8 +118,8 @@ def test_small_alpha_close_to_plain_mcca(two_views_small: list[np.ndarray]) -> N
     into a genuine non-convergence edge case at small ``alpha`` -- unrelated
     to this class's own logic.
     """
-    gl_model = GraphicalLassoCCA(latent_dimensions=1, alpha=0.01).fit(two_views_small)
-    mcca_model = MCCA(latent_dimensions=1, c=0.0, pca=False).fit(two_views_small)
+    gl_model = GraphicalLassoCCA(n_components=1, alpha=0.01).fit(two_views_small)
+    mcca_model = MCCA(n_components=1, c=0.0, pca=False).fit(two_views_small)
 
     gl_corr = gl_model.score(two_views_small)
     mcca_corr = mcca_model.score(two_views_small)
@@ -157,9 +157,7 @@ def test_fits_in_high_dimensional_regime() -> None:
     x1 = z @ rng.standard_normal((1, 50)) + 0.5 * rng.standard_normal((30, 50))
     x2 = z @ rng.standard_normal((1, 40)) + 0.5 * rng.standard_normal((30, 40))
 
-    model = GraphicalLassoCCA(latent_dimensions=1, alpha=0.5, max_iter=500).fit(
-        [x1, x2]
-    )
+    model = GraphicalLassoCCA(n_components=1, alpha=0.5, max_iter=500).fit([x1, x2])
     assert model.score([x1, x2]) > 0.3
 
 
@@ -172,7 +170,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = GraphicalLassoCCA(latent_dimensions=2, c=0.1, alpha=0.05, mode="cd")
+    model = GraphicalLassoCCA(n_components=2, c=0.1, alpha=0.05, mode="cd")
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 

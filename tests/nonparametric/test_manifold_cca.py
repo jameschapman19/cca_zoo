@@ -162,7 +162,7 @@ def test_three_view_fit_completes(
 def test_weights_shapes(two_views_small: list[np.ndarray]) -> None:
     """embedding_[i] is (n_train_samples, k), the training embedding itself."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     n = two_views_small[0].shape[0]
     for w in model.embedding_:
         assert w.shape == (n, k)
@@ -173,7 +173,7 @@ def test_transform_shapes_on_new_data(
 ) -> None:
     """Transform on unseen data returns (n_test, k) arrays via the extrapolator."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     test_views = [v[:, :5] for v in two_views_test]  # match two_views_small's width
     transformed = model.transform(test_views)
     assert len(transformed) == 2
@@ -231,7 +231,7 @@ def test_per_view_n_operator_components_list_fits_and_transforms(
 ) -> None:
     """A per-view n_operator_components list (differing block sizes) still works."""
     k = 2
-    model = _make_model(latent_dimensions=k, n_operator_components=[8, 15]).fit(
+    model = _make_model(n_components=k, n_operator_components=[8, 15]).fit(
         two_views_small
     )
     n = two_views_small[0].shape[0]
@@ -290,7 +290,7 @@ def test_independent_views_dont_overfit_worse_than_plain_cca() -> None:
     # linear CCA at this same nominal per-view dimensionality is the fair
     # baseline, not a held-out generalisation number.
     b1, b2 = rng.standard_normal((n, k_op)), rng.standard_normal((n, k_op))
-    baseline_model = MCCA(latent_dimensions=1, c=0.0, pca=False).fit([b1, b2])
+    baseline_model = MCCA(n_components=1, c=0.0, pca=False).fit([b1, b2])
     baseline = abs(baseline_model.score([b1, b2]))
 
     for method in ["laplacian", "lle"]:
@@ -321,7 +321,7 @@ def test_duplicate_view_reduces_to_plain_spectral_embedding() -> None:
     n = 120
     x = rng.standard_normal((n, 6))
 
-    model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=3).fit(
+    model = ManifoldCCA(method="laplacian", n_neighbors=10, n_components=3).fit(
         [x, x.copy()]
     )
     z1, z2 = model.embedding_
@@ -359,7 +359,7 @@ def test_lle_transform_matches_locally_linear_embedding_on_duplicate_views() -> 
     x_train = rng.standard_normal((n_train, 6))
     x_new = rng.standard_normal((10, 6))
 
-    model = ManifoldCCA(method="lle", n_neighbors=10, latent_dimensions=3).fit(
+    model = ManifoldCCA(method="lle", n_neighbors=10, n_components=3).fit(
         [x_train, x_train.copy()]
     )
     z1_new, z2_new = model.transform([x_new, x_new.copy()])
@@ -436,12 +436,10 @@ def test_laplacian_beats_linear_mcca_on_a_shared_nonlinear_spiral() -> None:
     x1_te, x2_te = _spiral_views(t_test, rng)
 
     linear_corr = (
-        MCCA(latent_dimensions=1, c=0.1, pca=False)
-        .fit([x1_tr, x2_tr])
-        .score([x1_te, x2_te])
+        MCCA(n_components=1, c=0.1, pca=False).fit([x1_tr, x2_tr]).score([x1_te, x2_te])
     )
     manifold_corr = (
-        ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1)
+        ManifoldCCA(method="laplacian", n_neighbors=10, n_components=1)
         .fit([x1_tr, x2_tr])
         .score([x1_te, x2_te])
     )
@@ -461,7 +459,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = ManifoldCCA(latent_dimensions=2, method="lle", n_neighbors=6, lle_reg=1e-2)
+    model = ManifoldCCA(n_components=2, method="lle", n_neighbors=6, lle_reg=1e-2)
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 

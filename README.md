@@ -49,23 +49,26 @@ uv add "cca-zoo[all]"           # Everything above
 ## Quick start
 
 ```python
-from cca_zoo.datasets import JointData
+from sklearn.model_selection import train_test_split
+
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.linear import CCA
 
 # Generate correlated two-view data from a linear latent variable model
-data = JointData(
-    n_views=2,
-    n_samples=200,
+views = make_joint_data(
+    n_samples=400,
     n_features=[50, 50],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=2.0,
     random_state=0,
 )
-train_views = data.sample()
-test_views = data.sample()
+X1_train, X1_test, X2_train, X2_test = train_test_split(
+    *views, test_size=0.5, random_state=0
+)
+train_views, test_views = [X1_train, X2_train], [X1_test, X2_test]
 
 # Fit CCA and evaluate
-model = CCA(latent_dimensions=2).fit(train_views)
+model = CCA(n_components=2).fit(train_views)
 print(model.score(test_views))  # mean canonical correlation
 
 # Project views into the shared latent space
@@ -81,7 +84,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Description | Citation | Views |
 |---|---|---|---|
 | `CCA` | Standard CCA | Hotelling (1936) | 2 |
-| `rCCA` | Regularised CCA / canonical ridge | Vinod (1976) | 2 |
+| `RidgeCCA` | Regularised CCA / canonical ridge | Vinod (1976) | 2 |
 | `PLS` | Partial Least Squares | Wold (1975) | 2 |
 | `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
 | `GCCA` | Generalised CCA — shared latent projection | Tenenhaus & Tenenhaus (2011) | ≥2 |

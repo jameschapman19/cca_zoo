@@ -25,11 +25,11 @@ def pairwise_correlations(transformed: Sequence[ArrayLike]) -> np.ndarray:
 
     Args:
         transformed: List of arrays, each of shape (n_samples,
-            latent_dimensions) -- one per view's own canonical variate
+            n_components) -- one per view's own canonical variate
             (e.g. the output of a fitted model's ``transform``).
 
     Returns:
-        Array of shape (n_views, n_views, latent_dimensions) where entry
+        Array of shape (n_views, n_views, n_components) where entry
         ``[i, j, d]`` is the Pearson correlation between view i's and view
         j's d-th canonical variate.
 
@@ -56,11 +56,11 @@ def average_pairwise_correlations(correlations: ArrayLike) -> np.ndarray:
     """Mean off-diagonal pairwise correlation per canonical dimension.
 
     Args:
-        correlations: Array of shape (n_views, n_views, latent_dimensions)
+        correlations: Array of shape (n_views, n_views, n_components)
             -- typically the output of :func:`pairwise_correlations`.
 
     Returns:
-        Array of shape (latent_dimensions,) with the average off-diagonal
+        Array of shape (n_components,) with the average off-diagonal
         pairwise correlation for each canonical dimension.
 
     Examples:
@@ -93,11 +93,11 @@ def factor_loadings(
     Args:
         views: List of arrays, each of shape (n_samples, n_features_i).
         transformed: List of arrays, each of shape (n_samples,
-            latent_dimensions), aligned with ``views`` -- view i's own
+            n_components), aligned with ``views`` -- view i's own
             canonical variate.
 
     Returns:
-        List of arrays, each of shape (n_features_i, latent_dimensions),
+        List of arrays, each of shape (n_features_i, n_components),
         where entry ``[j, d]`` is the correlation between feature j of
         view i and the d-th canonical variate of view i.
 

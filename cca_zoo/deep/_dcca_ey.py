@@ -14,12 +14,12 @@ def _cca_cv(
 
     Args:
         representations: List of tensors each of shape
-            (batch_size, latent_dimensions).
+            (batch_size, n_components).
 
     Returns:
         Tuple ``(C, V)`` where C is the mean pairwise cross-covariance
         and V is the mean auto-covariance, both of shape
-        (latent_dimensions, latent_dimensions).
+        (n_components, n_components).
     """
     k = representations[0].shape[1]
     device = representations[0].device
@@ -64,11 +64,11 @@ class DCCAEY(DCCA):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         objective: Ignored; the EY objective is fixed for this class.
             Accepted for API compatibility but overridden internally.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Regularisation for numerical stability. Default is 1e-6.
 
@@ -77,7 +77,7 @@ class DCCAEY(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCAEY(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> model = DCCAEY(n_components=4, encoders=[enc1, enc2])
     """
 
     def loss(

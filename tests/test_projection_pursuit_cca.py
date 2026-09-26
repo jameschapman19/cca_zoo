@@ -13,10 +13,10 @@ from cca_zoo.linear._projection_pursuit_cca import (
 )
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> ProjectionPursuitCCA:
+def _make_model(n_components: int = 1, **kwargs: object) -> ProjectionPursuitCCA:
     return ProjectionPursuitCCA(
-        latent_dimensions=latent_dimensions,
-        n_restarts=2,
+        n_components=n_components,
+        n_init=2,
         max_iter=30,
         random_state=0,
         **kwargs,
@@ -102,7 +102,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
@@ -124,7 +124,7 @@ def test_weights_not_fitted_raises() -> None:
 
 def test_directions_are_unit_norm(two_views_small: list[np.ndarray]) -> None:
     """Each fitted per-dimension weight vector has unit norm."""
-    model = _make_model(latent_dimensions=2).fit(two_views_small)
+    model = _make_model(n_components=2).fit(two_views_small)
     for w in model.weights_:
         norms = np.linalg.norm(w, axis=0)
         np.testing.assert_allclose(norms, np.ones(2), atol=1e-6)
@@ -139,7 +139,7 @@ def test_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """On clean data ProjectionPursuitCCA still finds real correlation."""
-    model = ProjectionPursuitCCA(latent_dimensions=1, n_restarts=5, random_state=0)
+    model = ProjectionPursuitCCA(n_components=1, n_init=5, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -193,11 +193,11 @@ def test_robust_to_extreme_outliers_unlike_mcca() -> None:
     )
 
     mcca_corr = _held_out_corr(
-        MCCA(latent_dimensions=1, c=0.1).fit([x_train, y_train]), x_test, y_test
+        MCCA(n_components=1, c=0.1).fit([x_train, y_train]), x_test, y_test
     )
-    pp_model = ProjectionPursuitCCA(
-        latent_dimensions=1, n_restarts=5, random_state=0
-    ).fit([x_train, y_train])
+    pp_model = ProjectionPursuitCCA(n_components=1, n_init=5, random_state=0).fit(
+        [x_train, y_train]
+    )
     pp_corr = _held_out_corr(pp_model, x_test, y_test)
 
     assert pp_corr > mcca_corr + 0.2
@@ -213,10 +213,10 @@ def test_clone_and_get_params_roundtrip() -> None:
     from sklearn.base import clone
 
     model = ProjectionPursuitCCA(
-        latent_dimensions=2,
+        n_components=2,
         projection_index="mcd",
         mcd_support_fraction=0.8,
-        n_restarts=3,
+        n_init=3,
         random_state=0,
     )
     cloned = clone(model)
@@ -232,11 +232,11 @@ def test_invalid_projection_index_raises() -> None:
 
 
 def test_invalid_n_restarts_raises() -> None:
-    """n_restarts below 1 is rejected by parameter validation."""
+    """n_init below 1 is rejected by parameter validation."""
     from sklearn.utils._param_validation import InvalidParameterError
 
     with pytest.raises(InvalidParameterError):
-        ProjectionPursuitCCA(n_restarts=0)._validate_params()
+        ProjectionPursuitCCA(n_init=0)._validate_params()
 
 
 def test_invalid_mcd_support_fraction_raises() -> None:

@@ -38,7 +38,7 @@ class CCAEY(BaseFullBatchEYModel):
     *within-view normalisation* between the data's own auto-covariance and
     the identity (in weight space, $W_i^\top I W_i = W_i^\top W_i$) —
     exactly the canonical-ridge blend $(1-c)X^\top X + cI$ already used by
-    :class:`~cca_zoo.linear.rCCA`, translated into this unconstrained
+    :class:`~cca_zoo.linear.RidgeCCA`, translated into this unconstrained
     setting:
 
     $$
@@ -63,7 +63,7 @@ class CCAEY(BaseFullBatchEYModel):
     :class:`~cca_zoo.linear.gradient.StochasticCCAEY`.
 
     Note:
-        Unlike the exact, closed-form :class:`~cca_zoo.linear.rCCA` (where
+        Unlike the exact, closed-form :class:`~cca_zoo.linear.RidgeCCA` (where
         ``c=0`` is always numerically safe), optimising the raw,
         *unregularised* ($c=0$) objective can be poorly conditioned when the
         number of samples doesn't outnumber the number of features by a
@@ -77,7 +77,7 @@ class CCAEY(BaseFullBatchEYModel):
         arXiv:2310.01012.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
             (1). Default is 0 (standard, unregularised CCAEY); see the
@@ -97,13 +97,13 @@ class CCAEY(BaseFullBatchEYModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((1000, 20))
         >>> X2 = rng.standard_normal((1000, 15))
-        >>> model = CCAEY(latent_dimensions=4, random_state=0)
+        >>> model = CCAEY(n_components=4, random_state=0)
         >>> model = model.fit([X1, X2])
 
         More than two views are supported directly:
 
         >>> X3 = rng.standard_normal((1000, 10))
-        >>> model = CCAEY(latent_dimensions=4, random_state=0).fit([X1, X2, X3])
+        >>> model = CCAEY(n_components=4, random_state=0).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -113,7 +113,7 @@ class CCAEY(BaseFullBatchEYModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float = 0.0,
         max_iter: int = 1000,
@@ -121,7 +121,7 @@ class CCAEY(BaseFullBatchEYModel):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -159,9 +159,7 @@ class CCAEY(BaseFullBatchEYModel):
         loss's own reward term at its fixed point (see
         :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
         """
-        return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, None, rng
-        )
+        return cheap_orthonormal_projection_weights(views, self.n_components, None, rng)
 
     def _derivative(
         self,

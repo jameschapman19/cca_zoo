@@ -34,7 +34,7 @@ def test_permutation_test_returns_result_object(
 ) -> None:
     """permutation_test_significance returns a PermutationTestResult."""
     result = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=19,
         random_state=0,
@@ -47,22 +47,22 @@ def test_permutation_test_shapes(signal_and_noise_views: list[np.ndarray]) -> No
     k = 1
     n_perm = 19
     result = permutation_test_significance(
-        CCA(latent_dimensions=k),
+        CCA(n_components=k),
         signal_and_noise_views,
         n_permutations=n_perm,
         random_state=0,
     )
-    assert result.correlations_.shape == (k,)
-    assert result.null_correlations_.shape == (n_perm, k)
-    assert result.p_values_.shape == (k,)
-    assert len(result.loadings_) == 2
-    assert len(result.null_loadings_) == 2
-    assert len(result.loading_p_values_) == 2
+    assert result.correlations.shape == (k,)
+    assert result.null_correlations.shape == (n_perm, k)
+    assert result.p_values.shape == (k,)
+    assert len(result.loadings) == 2
+    assert len(result.null_loadings) == 2
+    assert len(result.loading_p_values) == 2
     for view, loading, null_loading, loading_p in zip(
         signal_and_noise_views,
-        result.loadings_,
-        result.null_loadings_,
-        result.loading_p_values_,
+        result.loadings,
+        result.null_loadings,
+        result.loading_p_values,
     ):
         assert loading.shape == (view.shape[1], k)
         assert null_loading.shape == (n_perm, view.shape[1], k)
@@ -72,15 +72,15 @@ def test_permutation_test_shapes(signal_and_noise_views: list[np.ndarray]) -> No
 def test_permutation_test_p_values_in_valid_range(
     signal_and_noise_views: list[np.ndarray],
 ) -> None:
-    """p_values_ and loading_p_values_ all lie in (0, 1]."""
+    """p_values and loading_p_values all lie in (0, 1]."""
     result = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=19,
         random_state=0,
     )
-    assert np.all(result.p_values_ > 0) and np.all(result.p_values_ <= 1)
-    for p in result.loading_p_values_:
+    assert np.all(result.p_values > 0) and np.all(result.p_values <= 1)
+    for p in result.loading_p_values:
         assert np.all(p > 0) and np.all(p <= 1)
 
 
@@ -93,14 +93,14 @@ def test_permutation_test_signal_features_more_significant_than_noise(
     drive a canonical dimension from features that don't.
     """
     result = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=199,
         random_state=0,
     )
     # View 0: first 4 columns are signal, last 3 are noise.
-    signal_p = result.loading_p_values_[0][:4, 0]
-    noise_p = result.loading_p_values_[0][4:, 0]
+    signal_p = result.loading_p_values[0][:4, 0]
+    noise_p = result.loading_p_values[0][4:, 0]
     assert signal_p.mean() < noise_p.mean()
     assert np.all(signal_p < 0.1)
     assert np.all(noise_p > 0.1)
@@ -112,9 +112,9 @@ def test_permutation_test_unrelated_views_not_significant() -> None:
     x1 = rng.standard_normal((60, 5))
     x2 = rng.standard_normal((60, 5))
     result = permutation_test_significance(
-        CCA(latent_dimensions=1), [x1, x2], n_permutations=99, random_state=0
+        CCA(n_components=1), [x1, x2], n_permutations=99, random_state=0
     )
-    assert result.p_values_[0] > 0.1
+    assert result.p_values[0] > 0.1
 
 
 def test_permutation_test_reproducible_with_same_random_state(
@@ -122,19 +122,19 @@ def test_permutation_test_reproducible_with_same_random_state(
 ) -> None:
     """Same random_state gives identical results."""
     result_a = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=15,
         random_state=42,
     )
     result_b = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=15,
         random_state=42,
     )
     np.testing.assert_array_equal(
-        result_a.null_correlations_, result_b.null_correlations_
+        result_a.null_correlations, result_b.null_correlations
     )
 
 
@@ -142,7 +142,7 @@ def test_permutation_test_does_not_mutate_estimator(
     signal_and_noise_views: list[np.ndarray],
 ) -> None:
     """The passed-in estimator is cloned, not fitted in place."""
-    estimator = CCA(latent_dimensions=1)
+    estimator = CCA(n_components=1)
     permutation_test_significance(
         estimator, signal_and_noise_views, n_permutations=9, random_state=0
     )
@@ -152,13 +152,13 @@ def test_permutation_test_does_not_mutate_estimator(
 def test_permutation_test_n_jobs(signal_and_noise_views: list[np.ndarray]) -> None:
     """permutation_test_significance works with n_jobs=2."""
     result = permutation_test_significance(
-        CCA(latent_dimensions=1),
+        CCA(n_components=1),
         signal_and_noise_views,
         n_permutations=9,
         random_state=0,
         n_jobs=2,
     )
-    assert result.correlations_.shape == (1,)
+    assert result.correlations.shape == (1,)
 
 
 def test_permutation_test_invalid_n_permutations_raises(
@@ -167,5 +167,5 @@ def test_permutation_test_invalid_n_permutations_raises(
     """n_permutations must be positive."""
     with pytest.raises(ValueError, match="n_permutations"):
         permutation_test_significance(
-            CCA(latent_dimensions=1), signal_and_noise_views, n_permutations=0
+            CCA(n_components=1), signal_and_noise_views, n_permutations=0
         )

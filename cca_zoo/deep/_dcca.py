@@ -35,13 +35,13 @@ class DCCA(BaseDeep):
         ICML 2013.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects mapping each
             view to the latent space.
         objective: Differentiable loss module operating on a list of
             latent tensors.  If ``None``, defaults to
             :class:`~cca_zoo.deep.objectives.CCALoss`.
-        lr: Learning rate for the Adam optimiser. Default is 1e-3.
+        learning_rate: Learning rate for the Adam optimiser. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Regularisation parameter passed to the default CCALoss when
             ``objective`` is ``None``. Default is 1e-6.
@@ -51,22 +51,22 @@ class DCCA(BaseDeep):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> model = DCCA(n_components=4, encoders=[enc1, enc2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
@@ -81,7 +81,7 @@ class DCCA(BaseDeep):
 
         Args:
             representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
+                of shape (batch_size, n_components).
             independent_representations: Optional second set of encodings
                 (unused in the base DCCA formulation).
 

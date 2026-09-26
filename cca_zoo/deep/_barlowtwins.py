@@ -28,13 +28,13 @@ class BarlowTwins(DCCA):
         redundancy reduction." ICML 2021.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         lam: Weight for the off-diagonal redundancy penalty.
             Default is 5e-3.
         objective: Ignored; the Barlow Twins loss is fixed. Accepted for
             API compatibility.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Unused. Present for API compatibility. Default is 1e-6.
 
@@ -43,30 +43,30 @@ class BarlowTwins(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = BarlowTwins(latent_dimensions=4, encoders=[enc1, enc2], lam=5e-3)
+        >>> model = BarlowTwins(n_components=4, encoders=[enc1, enc2], lam=5e-3)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         lam: float = 5e-3,
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
             objective=objective,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
         self.lam = lam
         self.bns = nn.ModuleList(
-            [nn.BatchNorm1d(latent_dimensions, affine=False) for _ in encoders]
+            [nn.BatchNorm1d(n_components, affine=False) for _ in encoders]
         )
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
@@ -89,7 +89,7 @@ class BarlowTwins(DCCA):
 
         Args:
             representations: List containing exactly two batch-normalised
-                tensors, each of shape (batch_size, latent_dimensions).
+                tensors, each of shape (batch_size, n_components).
             independent_representations: Unused.
 
         Returns:

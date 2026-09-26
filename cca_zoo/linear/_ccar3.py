@@ -19,16 +19,16 @@ from cca_zoo.linear._rrr_common import (
 
 
 def _row_sparse_rrr(
-    X: np.ndarray, Y_tilde: np.ndarray, lambda_: float, max_iter: int, tol: float
+    X: np.ndarray, Y_tilde: np.ndarray, alpha: float, max_iter: int, tol: float
 ) -> np.ndarray:
-    r"""Solve min_B (1/n)||Y_tilde - XB||^2 + lambda_ * sum_j ||B[j,:]||_2.
+    r"""Solve min_B (1/n)||Y_tilde - XB||^2 + alpha * sum_j ||B[j,:]||_2.
 
     This is exactly :class:`~sklearn.linear_model.MultiTaskLasso`'s row-group
     (L2,1) penalised multi-output regression -- ``B``'s rows are ``X``'s
     features, its columns the whitened targets, and MultiTaskLasso's own
     objective is $\frac{1}{2n}\lVert Y - XB \rVert_F^2 + \alpha \sum_j
-    \lVert B_{j,:} \rVert_2$, i.e. this objective at ``alpha = lambda_ / 2``
-    (the factor of 2 is sklearn's own $\frac{1}{2n}$ convention, not
+    \lVert B_{j,:} \rVert_2$, i.e. this objective with sklearn's ``alpha``
+    half of ours (the factor of 2 is sklearn's own $\frac{1}{2n}$ convention, not
     ``cca_zoo``'s $\frac1n$). A previous version of this function solved the
     same problem with a hand-rolled ADMM; verified against an independent
     proximal-gradient solve, that ADMM converged to a *different*, higher
@@ -42,7 +42,7 @@ def _row_sparse_rrr(
     converging to the same support).
     """
     model = MultiTaskLasso(
-        alpha=lambda_ / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
+        alpha=alpha / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
     )
     model.fit(X, Y_tilde)
     return np.asarray(model.coef_.T)
@@ -75,12 +75,12 @@ class CCAR3(BaseModel):
     $$
 
     which is exactly the problem :class:`~sklearn.linear_model.MultiTaskLasso`
-    solves (at ``alpha = lambda_ / 2``, to match sklearn's own $\frac{1}{2n}$
-    loss convention), so it's solved by delegating to that estimator's
+    solves (with sklearn's ``alpha`` half of ours, to match sklearn's own
+    $\frac{1}{2n}$ loss convention), so it's solved by delegating to that estimator's
     coordinate-descent solver rather than a hand-rolled one. This drives
     whole rows of $B$ (whole $X$ features) to zero, giving a
     sparse-in-$X$ solution well-suited to $p \gg n$. The rank-
-    ``latent_dimensions`` SVD of $\hat{B}$ gives the canonical directions,
+    ``n_components`` SVD of $\hat{B}$ gives the canonical directions,
     which are then whitened so that the canonical variates have unit
     variance, sign-aligned to positive correlation, and sorted in
     descending order.
@@ -93,7 +93,7 @@ class CCAR3(BaseModel):
     [ccar3](https://github.com/jameschapman19/ccar3), reusing scikit-learn's
     own :class:`~sklearn.linear_model.MultiTaskLasso` in place of the R
     package's CVXR/rrpack solver backends; use `GridSearchCV` from
-    `cca_zoo.model_selection` to select ``lambda_`` as for any other
+    `cca_zoo.model_selection` to select ``alpha`` as for any other
     estimator.
 
     References:
@@ -101,9 +101,9 @@ class CCAR3(BaseModel):
         as Reduced Rank Regression in High Dimensions. arXiv:2405.19539.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
-        lambda_: Row-group-lasso regularisation strength used when
+        alpha: Row-group-lasso regularisation strength used when
             ``highdim=True``. ``0`` disables the penalty. Default is 0.
         highdim: Whether to estimate the reduced-rank coefficient with the
             group-lasso penalty (default, needed when ``X`` has more
@@ -125,13 +125,13 @@ class CCAR3(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = CCAR3(latent_dimensions=2, highdim=False).fit([X1, X2])
+        >>> model = CCAR3(n_components=2, highdim=False).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "lambda_": [Interval(Real, 0, None, closed="left")],
+        "alpha": [Interval(Real, 0, None, closed="left")],
         "highdim": ["boolean"],
         "ledoit_wolf": ["boolean"],
         "max_iter": POSITIVE_INT,
@@ -141,17 +141,17 @@ class CCAR3(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
-        lambda_: float = 0.0,
+        alpha: float = 0.0,
         highdim: bool = True,
         ledoit_wolf: bool = True,
         max_iter: int = 10_000,
         tol: float = 1e-4,
         eps: float = 1e-8,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.lambda_ = lambda_
+        super().__init__(n_components=n_components, center=center)
+        self.alpha = alpha
         self.highdim = highdim
         self.ledoit_wolf = ledoit_wolf
         self.max_iter = max_iter
@@ -185,14 +185,14 @@ class CCAR3(BaseModel):
 
         if self.highdim:
             B = _row_sparse_rrr(
-                X, Y_tilde, lambda_=self.lambda_, max_iter=self.max_iter, tol=self.tol
+                X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
             )
         else:
             Sx = X.T @ X / n + self.eps * np.eye(X.shape[1])
             B = np.linalg.solve(Sx, X.T @ Y_tilde / n)
 
         U, V = _postprocess_rrr_fit(
-            B, X, Y, sqrt_inv_Sy, self.latent_dimensions, ridge=self.eps
+            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
         )
         self.weights_: list[np.ndarray] = [U, V]
         return self

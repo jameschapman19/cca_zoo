@@ -15,7 +15,7 @@ objective itself — by mini-batch momentum SGD instead of full-batch L-BFGS-B:
 from cca_zoo.stochastic import StochasticCCAEY
 
 model = StochasticCCAEY(
-    latent_dimensions=2, learning_rate=0.01, batch_size=128, max_iter=200
+    n_components=2, learning_rate=0.01, batch_size=128, max_iter=200
 )
 model.fit([X1, X2])
 ```

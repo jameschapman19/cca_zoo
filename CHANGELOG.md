@@ -16,6 +16,17 @@ The table below gives each replacement.
 
 | 3.x | 4.0 |
 |---|---|
+| `latent_dimensions=` (every model) | `n_components=`, sklearn's name (as in its `CCA`, `PLSCanonical` and `PCA`) |
+| `rCCA` | `RidgeCCA` (CapWords, like every other class) |
+| `JointData(...).sample()` | `make_joint_data(...)`, an sklearn-style `make_*` generator; for train and test sets, split its output with `sklearn.model_selection.train_test_split(*views)` |
+| `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
+| `TrimmedCCA(n_starts=)`, `ProjectionPursuitCCA(n_restarts=)` | `n_init=`, sklearn's name for random restarts |
+| deep models' `lr=` | `learning_rate=`, as for every other model |
+| `ProbabilisticCCA(num_warmup=, num_samples=)` | `n_warmup=`, `n_posterior_samples=` |
+| `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `max_iter=`, `n_posterior_samples=` |
+| `MultiviewWrapper(split_indices=)` | `n_features_per_view=` (it holds each view's feature count, not indices) |
+| `PermutationTestResult.correlations_`, `.p_values_`, and the other fields | the same names without the trailing `_` |
+| `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `MARSCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
 | `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
 | `model.weights` | `model.weights_` |
 | `model.pairwise_correlations(views)` | `cca_zoo.metrics.pairwise_correlations(model.transform(views))` |
@@ -151,6 +162,9 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `CCAR3` and `ECCA` named a constructor parameter `lambda_`; sklearn's `check_is_fitted`
+  treats any trailing-underscore attribute as fitted state, so an unfitted model raised a
+  confusing `AttributeError` instead of `NotFittedError`. The parameter is now `alpha`.
 - `TreeCCA` (`XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA`) barely learned at its defaults:
   0.14 held-out correlation on a plain linear signal where linear CCA reaches 0.91. It
   started from a unit-variance random projection and renormalised every round's gradient

@@ -1,4 +1,4 @@
-"""Regularised CCA (rCCA) — canonical ridge via SVD for exactly two views."""
+"""Regularised CCA (RidgeCCA) — canonical ridge via SVD for exactly two views."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
-class rCCA(BaseModel):
+class RidgeCCA(BaseModel):
     r"""Regularised Canonical Correlation Analysis (canonical ridge).
 
     Finds the pair of linear projections of two views that maximise their
@@ -37,7 +37,7 @@ class rCCA(BaseModel):
         production. *Journal of Econometrics*, 4(2), 147–166.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation parameter(s) in ``[0, 1]``.  A single float
             is applied to both views; a list ``[c1, c2]`` applies per-view
@@ -48,7 +48,7 @@ class rCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
+        >>> model = RidgeCCA(n_components=2, c=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
@@ -59,15 +59,15 @@ class rCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> rCCA:
-        """Fit the rCCA model.
+    def fit(self, views: list[ArrayLike], y: None = None) -> RidgeCCA:
+        """Fit the RidgeCCA model.
 
         Args:
             views: List of exactly two arrays, each (n_samples, n_features_i).
@@ -83,7 +83,7 @@ class rCCA(BaseModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         if self.n_views_ != 2:
             raise ValueError(
-                f"rCCA requires exactly 2 views, got {self.n_views_}. "
+                f"RidgeCCA requires exactly 2 views, got {self.n_views_}. "
                 "Use MCCA for more than 2 views."
             )
         c_ = perview_parameter("c", self.c, 0.0, 2)
@@ -92,7 +92,7 @@ class rCCA(BaseModel):
         X1_w, W1 = svd_whiten(X1, c_[0])
         X2_w, W2 = svd_whiten(X2, c_[1])
         # SVD of the cross-covariance of whitened views
-        k = min(self.latent_dimensions, X1_w.shape[1], X2_w.shape[1])
+        k = min(self.n_components, X1_w.shape[1], X2_w.shape[1])
         cross_cov = X1_w.T @ X2_w / (X1.shape[0] - 1)
         U, _, Vt = np.linalg.svd(cross_cov, full_matrices=False)
         U = U[:, :k]

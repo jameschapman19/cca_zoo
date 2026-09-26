@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from cca_zoo._base import BaseModel
 from cca_zoo.probabilistic._utils import (
     PosteriorMeanTransformMixin,
+    _integer_seed,
     align_posterior_rotation,
 )
 
@@ -55,11 +56,11 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         analysis." IEEE Transactions on Neural Networks 18.3 (2007).
 
     Args:
-        latent_dimensions: Dimensionality of the latent space. Default is 1.
+        n_components: Dimensionality of the latent space. Default is 1.
         center: Whether to center each view before fitting. Default is True.
-        num_warmup: Number of NUTS warm-up (burn-in) steps. Default is 500.
-        num_samples: Number of NUTS posterior samples to draw. Default is 1000.
-        random_state: Integer seed for JAX PRNG. Default is 0.
+        n_warmup: Number of NUTS warm-up (burn-in) steps. Default is 500.
+        n_posterior_samples: Number of NUTS posterior samples to draw. Default is 1000.
+        random_state: Seed for the JAX PRNG. Default is None.
 
     Examples:
         >>> import numpy as np
@@ -67,21 +68,21 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
         >>> model = ProbabilisticCCA(
-        ...     latent_dimensions=2, num_warmup=10, num_samples=10
+        ...     n_components=2, n_warmup=10, n_posterior_samples=10
         ... ).fit([X1, X2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
-        num_warmup: int = 500,
-        num_samples: int = 1000,
-        random_state: int = 0,
+        n_warmup: int = 500,
+        n_posterior_samples: int = 1000,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.num_warmup = num_warmup
-        self.num_samples = num_samples
+        super().__init__(n_components=n_components, center=center)
+        self.n_warmup = n_warmup
+        self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
     # ------------------------------------------------------------------
@@ -99,7 +100,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         import numpyro.distributions as dist
 
         n = views[0].shape[0]
-        k = self.latent_dimensions
+        k = self.n_components
 
         # Sample per-view parameters
         ws: list[Any] = []
@@ -158,10 +159,10 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         nuts_kernel = NUTS(self._model)
         mcmc = MCMC(
             nuts_kernel,
-            num_warmup=self.num_warmup,
-            num_samples=self.num_samples,
+            num_warmup=self.n_warmup,
+            num_samples=self.n_posterior_samples,
         )
-        rng_key = jax.random.PRNGKey(self.random_state)
+        rng_key = jax.random.PRNGKey(_integer_seed(self.random_state))
         mcmc.run(rng_key, validated)
         self.mcmc_ = mcmc
         self.posterior_samples_ = {
@@ -174,7 +175,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         # the same rotation to keep it internally consistent.
         w_stack = np.concatenate(
             [self.posterior_samples_[f"W_{i}"] for i in range(self.n_views_)], axis=1
-        )  # (num_samples, P, k)
+        )  # (n_posterior_samples, P, k)
         aligned_w, rotations = align_posterior_rotation(w_stack)
         splits = np.cumsum(self.n_features_in_)[:-1]
         for i, w_i_aligned in enumerate(np.split(aligned_w, splits, axis=1)):

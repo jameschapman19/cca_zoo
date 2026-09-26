@@ -59,9 +59,9 @@ def vbcca_class() -> type:
 
 @pytest.mark.slow
 def test_vbcca_fit_completes(vbcca_class: type) -> None:
-    """VariationalBayesCCA.fit completes for a minimal num_steps."""
+    """VariationalBayesCCA.fit completes for a minimal max_iter."""
     views = _make_small_views()
-    model = vbcca_class(latent_dimensions=1, num_steps=20, random_state=0)
+    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
     fitted = model.fit(views)
     assert fitted is model
 
@@ -70,7 +70,7 @@ def test_vbcca_fit_completes(vbcca_class: type) -> None:
 def test_vbcca_fit_sets_params(vbcca_class: type) -> None:
     """VariationalBayesCCA.fit stores posterior samples and ARD relevance."""
     views = _make_small_views()
-    model = vbcca_class(latent_dimensions=2, num_steps=20, random_state=0).fit(views)
+    model = vbcca_class(n_components=2, max_iter=20, random_state=0).fit(views)
     assert hasattr(model, "posterior_samples_")
     assert hasattr(model, "ard_relevance_")
     assert model.ard_relevance_.shape == (2,)
@@ -80,7 +80,7 @@ def test_vbcca_fit_sets_params(vbcca_class: type) -> None:
 def test_vbcca_losses_decrease(vbcca_class: type) -> None:
     """The ELBO loss should be lower at the end of SVI than at the start."""
     views = _make_small_views(n=40)
-    model = vbcca_class(latent_dimensions=1, num_steps=300, random_state=0).fit(views)
+    model = vbcca_class(n_components=1, max_iter=300, random_state=0).fit(views)
     assert model.losses_[-1] < model.losses_[0]
 
 
@@ -94,7 +94,7 @@ def test_vbcca_transform_output_shapes(vbcca_class: type) -> None:
     """One transform array per view; posterior_mean gives the joint latent."""
     n, k = 20, 2
     views = _make_small_views(n=n)
-    model = vbcca_class(latent_dimensions=k, num_steps=20, random_state=0).fit(views)
+    model = vbcca_class(n_components=k, max_iter=20, random_state=0).fit(views)
     result = model.transform(views)
     assert len(result) == len(views)
     assert all(r.shape == (n, k) for r in result)
@@ -109,7 +109,7 @@ def test_vbcca_transform_output_shapes(vbcca_class: type) -> None:
 
 @pytest.mark.slow
 def test_vbcca_ard_shrinks_unsupported_dimensions(vbcca_class: type) -> None:
-    """With more latent_dimensions than true shared factors, ARD should shrink the rest.
+    """With more n_components than true shared factors, ARD should shrink the rest.
 
     The relevance score (posterior mean ARD precision) for the two true
     shared dimensions should end up substantially smaller than for the
@@ -118,7 +118,7 @@ def test_vbcca_ard_shrinks_unsupported_dimensions(vbcca_class: type) -> None:
     """
     true_k = 2
     views, _ = _make_low_rank_views(n=150, true_k=true_k, seed=0)
-    model = vbcca_class(latent_dimensions=3, num_steps=2000, random_state=0).fit(views)
+    model = vbcca_class(n_components=3, max_iter=2000, random_state=0).fit(views)
     relevance = model.ard_relevance_
     assert relevance.shape == (3,)
     spurious_relevance = np.max(relevance)
@@ -127,18 +127,18 @@ def test_vbcca_ard_shrinks_unsupported_dimensions(vbcca_class: type) -> None:
 
 
 # ---------------------------------------------------------------------------
-# latent_dimensions parameter / view-count handling
+# n_components parameter / view-count handling
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("k", [1, 2])
-def test_vbcca_latent_dimensions(vbcca_class: type, k: int) -> None:
-    """VariationalBayesCCA can be instantiated with various latent_dimensions."""
-    model = vbcca_class(latent_dimensions=k, num_steps=20, random_state=0)
+def test_vbcca_n_components(vbcca_class: type, k: int) -> None:
+    """VariationalBayesCCA can be instantiated with various n_components."""
+    model = vbcca_class(n_components=k, max_iter=20, random_state=0)
     views = _make_small_views(n=15)
     model.fit(views)
-    assert model.latent_dimensions == k
+    assert model.n_components == k
 
 
 @pytest.mark.slow
@@ -146,7 +146,7 @@ def test_vbcca_supports_more_than_two_views(vbcca_class: type) -> None:
     """VariationalBayesCCA's generative model is view-count generic (>=2)."""
     rng = np.random.default_rng(0)
     three_views = [rng.standard_normal((15, 4)) for _ in range(3)]
-    model = vbcca_class(latent_dimensions=1, num_steps=20, random_state=0)
+    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
     model.fit(three_views)
     assert len(model.weights_) == 3
 
@@ -156,7 +156,7 @@ def test_vbcca_rejects_single_view(vbcca_class: type) -> None:
     """VariationalBayesCCA raises ValueError when given fewer than 2 views."""
     rng = np.random.default_rng(0)
     one_view = [rng.standard_normal((15, 4))]
-    model = vbcca_class(latent_dimensions=1, num_steps=20, random_state=0)
+    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
     with pytest.raises(ValueError, match="views"):
         model.fit(one_view)
 
@@ -182,8 +182,8 @@ def test_vbcca_recovers_true_latent_factor(vbcca_class: type) -> None:
     from cca_zoo.linear import CCA
 
     views, z_true = _make_low_rank_views(n=150, true_k=2, seed=0)
-    model = vbcca_class(latent_dimensions=2, num_steps=2000, random_state=0).fit(views)
+    model = vbcca_class(n_components=2, max_iter=2000, random_state=0).fit(views)
     z_hat = model.posterior_mean(views)
 
-    recovery = CCA(latent_dimensions=2).fit([z_true, z_hat]).score([z_true, z_hat])
+    recovery = CCA(n_components=2).fit([z_true, z_hat]).score([z_true, z_hat])
     assert np.all(recovery > 0.8), f"Expected near-total recovery, got {recovery}"

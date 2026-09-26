@@ -26,7 +26,7 @@ class BaseFullBatchEYModel(BaseModel):
     for the shared EY-loss machinery used by the CCA-family subclasses.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
         tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
@@ -52,13 +52,13 @@ class BaseFullBatchEYModel(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         max_iter: int = 1000,
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
@@ -107,9 +107,9 @@ class BaseFullBatchEYModel(BaseModel):
 
         Returns:
             List of weight matrices, each (p_i, k) with orthonormal columns,
-            where ``k = min(latent_dimensions, p_i)``.
+            where ``k = min(n_components, p_i)``.
         """
-        return random_orthonormal_weights(views, self.latent_dimensions, rng)
+        return random_orthonormal_weights(views, self.n_components, rng)
 
     def _fit_lbfgsb(
         self, views: list[np.ndarray], rng: np.random.Generator

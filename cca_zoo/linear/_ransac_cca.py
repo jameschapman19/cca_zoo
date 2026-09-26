@@ -90,7 +90,7 @@ class RANSACCCA(BaseModel):
         itself becomes too ambiguous for any method to resolve reliably).
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         c: Ridge regularisation passed to every internal
             :class:`~cca_zoo.linear.MCCA` fit (candidate, and final refit).
@@ -115,7 +115,7 @@ class RANSACCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 8))
         >>> X2 = rng.standard_normal((200, 6))
-        >>> model = RANSACCCA(latent_dimensions=1, random_state=0).fit([X1, X2])
+        >>> model = RANSACCCA(n_components=1, random_state=0).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
@@ -133,7 +133,7 @@ class RANSACCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.1,
         min_samples: int | float = 0.25,
@@ -142,7 +142,7 @@ class RANSACCCA(BaseModel):
         stop_probability: float = 0.99,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.min_samples = min_samples
         self.residual_threshold = residual_threshold
@@ -181,7 +181,7 @@ class RANSACCCA(BaseModel):
         """
         views_ = self._setup_fit(views)
         n = self.n_samples_
-        k = self.latent_dimensions
+        k = self.n_components
         min_samples = self._resolve_min_samples(n)
         threshold = 0.0 if self.residual_threshold is None else self.residual_threshold
         rng = np.random.default_rng(self.random_state)
@@ -192,9 +192,7 @@ class RANSACCCA(BaseModel):
         trial = 0
         while trial < dynamic_max_trials:
             idx = rng.choice(n, min_samples, replace=False)
-            candidate = MCCA(latent_dimensions=k, c=self.c).fit(
-                [v[idx] for v in views_]
-            )
+            candidate = MCCA(n_components=k, c=self.c).fit([v[idx] for v in views_])
             agreement = _cross_view_agreement(
                 candidate.transform(cast("list[ArrayLike]", views_))
             )
@@ -211,7 +209,7 @@ class RANSACCCA(BaseModel):
             trial += 1
 
         assert best_mask is not None
-        final = MCCA(latent_dimensions=k, c=self.c).fit([v[best_mask] for v in views_])
+        final = MCCA(n_components=k, c=self.c).fit([v[best_mask] for v in views_])
         self.weights_: list[np.ndarray] = final.weights_
         self.inlier_mask_: np.ndarray = best_mask
         self.n_trials_: int = trial

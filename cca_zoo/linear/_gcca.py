@@ -43,7 +43,7 @@ class GCCA(BaseModel):
         canonical correlation analysis. *Psychometrika*, 76(2), 257–284.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
         view_weights: Per-view weights $\mu_i$ in the GCCA objective.
@@ -56,7 +56,7 @@ class GCCA(BaseModel):
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
-        >>> model = GCCA(latent_dimensions=2).fit([X1, X2, X3])
+        >>> model = GCCA(n_components=2).fit([X1, X2, X3])
         >>> scores = model.transform([X1, X2, X3])
     """
 
@@ -68,13 +68,13 @@ class GCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
         view_weights: list[float] | None = None,
         eps: float = 1e-6,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.view_weights = view_weights
         self.eps = eps
@@ -112,6 +112,6 @@ class GCCA(BaseModel):
                 for v, ci, mi in zip(views_, c_, mu)
             ]
         )
-        T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.latent_dimensions]
+        T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.n_components]
         self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
         return self

@@ -135,7 +135,7 @@ def test_composes_with_sklearn_pipeline(two_views: list[np.ndarray]) -> None:
         [
             ("scale", PerViewTransformer(StandardScaler())),
             ("pca", PerViewTransformer(PCA(n_components=3))),
-            ("cca", CCA(latent_dimensions=2)),
+            ("cca", CCA(n_components=2)),
         ]
     )
     scores = pipe.fit_transform(two_views)
@@ -151,9 +151,9 @@ def test_pipeline_with_multiview_grid_search(two_views: list[np.ndarray]) -> Non
             ("cca", CCA()),
         ]
     )
-    gs = GridSearchCV(pipe, param_grid={"cca__latent_dimensions": [1, 2]}, cv=2)
+    gs = GridSearchCV(pipe, param_grid={"cca__n_components": [1, 2]}, cv=2)
     gs.fit(two_views)
-    assert gs.best_params_["cca__latent_dimensions"] in [1, 2]
+    assert gs.best_params_["cca__n_components"] in [1, 2]
 
 
 # ---------------------------------------------------------------------------

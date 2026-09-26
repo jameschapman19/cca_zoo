@@ -42,7 +42,7 @@ class TCCA(BaseModel):
         correlation analysis for action classification. *CVPR 2007*. IEEE.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation in ``[0, 1]``.  Default is 0.
         eps: Regularisation floor for within-view covariance matrices.
@@ -54,7 +54,7 @@ class TCCA(BaseModel):
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 5))
         >>> X3 = rng.standard_normal((50, 5))
-        >>> model = TCCA(latent_dimensions=2, random_state=0).fit([X1, X2, X3])
+        >>> model = TCCA(n_components=2, random_state=0).fit([X1, X2, X3])
         >>> scores = model.transform([X1, X2, X3])
     """
 
@@ -67,13 +67,13 @@ class TCCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
         eps: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
+        super().__init__(n_components=n_components, center=center)
         self.c = c
         self.eps = eps
         self.random_state = random_state
@@ -101,7 +101,7 @@ class TCCA(BaseModel):
         tl.set_backend("numpy")
         parafac_result = parafac(
             M,
-            self.latent_dimensions,
+            self.n_components,
             verbose=False,
             random_state=self.random_state,
         )

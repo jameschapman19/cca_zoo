@@ -13,20 +13,30 @@ import numpy as np
 import pytest
 from sklearn.utils._param_validation import InvalidParameterError
 
-from cca_zoo.linear import CCA, CCAR3, ECCA, GCCA, GRCCA, MCCA, TCCA, PartialCCA, rCCA
+from cca_zoo.linear import (
+    CCA,
+    CCAR3,
+    ECCA,
+    GCCA,
+    GRCCA,
+    MCCA,
+    TCCA,
+    PartialCCA,
+    RidgeCCA,
+)
 
 # ---------------------------------------------------------------------------
-# Base parameters (latent_dimensions, center), shared by every model
+# Base parameters (n_components, center), shared by every model
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("latent_dimensions", [0, -1, 1.5])
-def test_invalid_latent_dimensions_rejected(
-    latent_dimensions: object, two_views: list[np.ndarray]
+@pytest.mark.parametrize("n_components", [0, -1, 1.5])
+def test_invalid_n_components_rejected(
+    n_components: object, two_views: list[np.ndarray]
 ) -> None:
-    """A non-positive or non-integer latent_dimensions raises."""
+    """A non-positive or non-integer n_components raises."""
     with pytest.raises(InvalidParameterError):
-        CCA(latent_dimensions=latent_dimensions).fit(two_views)  # type: ignore[arg-type]
+        CCA(n_components=n_components).fit(two_views)  # type: ignore[arg-type]
 
 
 def test_invalid_center_rejected(two_views: list[np.ndarray]) -> None:
@@ -36,12 +46,12 @@ def test_invalid_center_rejected(two_views: list[np.ndarray]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# c: ridge parameter in [0, 1] — rCCA, MCCA, GCCA, and (via inheritance)
+# c: ridge parameter in [0, 1] — RidgeCCA, MCCA, GCCA, and (via inheritance)
 # PartialCCA / GRCCA
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ModelClass", [rCCA, MCCA, GCCA])
+@pytest.mark.parametrize("ModelClass", [RidgeCCA, MCCA, GCCA])
 @pytest.mark.parametrize("c", [-0.1, 1.1])
 def test_invalid_c_rejected(
     ModelClass: type, c: float, two_views: list[np.ndarray]
@@ -91,7 +101,7 @@ def test_tcca_invalid_random_state_rejected(three_views: list[np.ndarray]) -> No
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"lambda_": -1.0},
+        {"alpha": -1.0},
         {"highdim": "nope"},
         {"ledoit_wolf": "nope"},
         {"max_iter": 0},
@@ -110,7 +120,7 @@ def test_ccar3_invalid_params_rejected(
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"lambda_": -1.0},
+        {"alpha": -1.0},
         {"max_iter": 0},
         {"tol": 0.0},
         {"eps": 0.0},
@@ -131,7 +141,7 @@ def test_ecca_invalid_params_rejected(
 
 def test_valid_parameters_still_fit(two_views: list[np.ndarray]) -> None:
     """Documented-valid parameter values are accepted, not false-positives."""
-    rCCA(c=0.5).fit(two_views)
+    RidgeCCA(c=0.5).fit(two_views)
     MCCA(c=[0.1, 0.9], pca=False, eps=1e-8).fit(two_views)
-    CCAR3(lambda_=0.1, highdim=False, max_iter=100, tol=1e-3).fit(two_views)
-    ECCA(lambda_=0.1, max_iter=100, tol=1e-3).fit(two_views)
+    CCAR3(alpha=0.1, highdim=False, max_iter=100, tol=1e-3).fit(two_views)
+    ECCA(alpha=0.1, max_iter=100, tol=1e-3).fit(two_views)

@@ -45,17 +45,17 @@ The parameter `c` controls regularisation: larger `c` → stronger regularisatio
 from cca_zoo.nonparametric import KCCA
 
 # Linear kernel (recovers classical CCA in feature space)
-model = KCCA(latent_dimensions=2, kernel="linear", c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="linear", c=0.1).fit([X1, X2])
 
 # RBF kernel
-model = KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2])
 
 # Polynomial kernel
-model = KCCA(latent_dimensions=2, kernel="poly", degree=3, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="poly", degree=3, c=0.1).fit([X1, X2])
 
 # Per-view kernel parameters (list = one entry per view)
 model = KCCA(
-    latent_dimensions=2,
+    n_components=2,
     kernel=["rbf", "poly"],
     gamma=[0.01, None],
     degree=[1, 3],
@@ -89,7 +89,7 @@ where $B_i = c_i K_i + (1-c_i) K_i^2$.
 ```python
 from cca_zoo.nonparametric import KGCCA
 
-model = KGCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2, X3])
+model = KGCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2, X3])
 ```
 
 ---
@@ -104,7 +104,7 @@ PARAFAC decomposition:
 ```python
 from cca_zoo.nonparametric import KTCCA
 
-model = KTCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit(
+model = KTCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit(
     [X1, X2, X3]
 )
 ```
@@ -129,14 +129,12 @@ the joint eigenproblem solves for *is* each view's training-set embedding direct
 ```python
 from cca_zoo.nonparametric import ManifoldCCA
 
-model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit(
-    [X1, X2]
-)
+model = ManifoldCCA(method="laplacian", n_neighbors=10, n_components=1).fit([X1, X2])
 train_embedding = model.embedding_  # (n_train, k) per view
 ```
 
 Before solving, every view's operator is truncated to its own `n_operator_components`
-smallest-eigenvalue directions (default `max(4 * latent_dimensions, 10)`) -- the same truncation
+smallest-eigenvalue directions (default `max(4 * n_components, 10)`) -- the same truncation
 every spectral method already applies, and effectively this class's regularisation strength.
 Set too large (approaching `n_samples - 1`), the joint eigenproblem hands each view as many free
 directions as training points and, like any unregularised multivariate CCA at that
@@ -187,7 +185,7 @@ param_grid = {
     "gamma": [0.001, 0.01, 0.1],
 }
 gs = GridSearchCV(
-    KCCA(latent_dimensions=2, kernel="rbf"),
+    KCCA(n_components=2, kernel="rbf"),
     param_grid=param_grid,
     cv=5,
 )
@@ -214,7 +212,7 @@ def my_kernel(X, Y, sigma=1.0):
 
 
 model = KCCA(
-    latent_dimensions=2,
+    n_components=2,
     kernel=my_kernel,
     kernel_params={"sigma": 0.5},
     c=0.1,

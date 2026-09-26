@@ -18,9 +18,10 @@ from cca_zoo.tree._treecca import TreeCCA
 pytestmark = pytest.mark.slow
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> XGBoostCCA:
+def _make_model(n_components: int = 1, **kwargs: object) -> XGBoostCCA:
     kwargs.setdefault("n_estimators", 5)
-    return XGBoostCCA(latent_dimensions=latent_dimensions, **kwargs)
+    kwargs.setdefault("random_state", 0)
+    return XGBoostCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -67,9 +68,9 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, n_components) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(two_views_small)
     assert len(result) == 2
     n = two_views_small[0].shape[0]
@@ -82,7 +83,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(test_views)
     assert len(result) == 2
     for arr in result:
@@ -92,7 +93,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
 def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
     """Transform on three-view data returns one array per view."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(three_views_small)
+    model = _make_model(n_components=k).fit(three_views_small)
     result = model.transform(three_views_small)
     assert len(result) == 3
     n = three_views_small[0].shape[0]
@@ -123,7 +124,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     s = model.score(two_views_small)
     assert isinstance(s, float)
 
@@ -150,7 +151,7 @@ def test_weights_not_fitted_raises() -> None:
     """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
-    model = XGBoostCCA()
+    model = XGBoostCCA(random_state=0)
     with pytest.raises(NotFittedError):
         model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
@@ -163,7 +164,7 @@ def test_weights_not_fitted_raises() -> None:
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
@@ -178,7 +179,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
 def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
@@ -216,7 +217,7 @@ def test_jacobi_variant_fit_completes(two_views_small: list[np.ndarray]) -> None
 def test_boosters_attribute_shape(two_views_small: list[np.ndarray]) -> None:
     """boosters_ has one list of k boosters per view."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     assert len(model.boosters_) == 2
     for view_boosters in model.boosters_:
         assert len(view_boosters) == k
@@ -267,7 +268,9 @@ def test_lightgbm_fit_completes(two_views_small: list[np.ndarray]) -> None:
     """Fit completes end-to-end with LightGBMCCA."""
     lightgbm = pytest.importorskip("lightgbm", reason="lightgbm is not installed")
     k = 2
-    model = LightGBMCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
+    model = LightGBMCCA(n_components=k, n_estimators=5, random_state=0).fit(
+        two_views_small
+    )
     result = model.transform(two_views_small)
     n = two_views_small[0].shape[0]
     for arr in result:
@@ -285,7 +288,7 @@ def test_lightgbm_missing_raises_import_error(
     import cca_zoo.tree._treecca as treecca_module
 
     monkeypatch.setattr(treecca_module, "_LGBM_AVAILABLE", False)
-    model = LightGBMCCA(n_estimators=5)
+    model = LightGBMCCA(n_estimators=5, random_state=0)
     with pytest.raises(ImportError, match="lightgbm"):
         model.fit(two_views_small)
 
@@ -295,8 +298,8 @@ def test_lightgbm_fit_transform_consistency(
 ) -> None:
     """fit_transform equals fit().transform() for LightGBMCCA."""
     pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    m1 = LightGBMCCA(n_estimators=5)
-    m2 = LightGBMCCA(n_estimators=5)
+    m1 = LightGBMCCA(n_estimators=5, random_state=0)
+    m2 = LightGBMCCA(n_estimators=5, random_state=0)
     result_ft = m1.fit_transform(two_views_small)
     result_sep = m2.fit(two_views_small).transform(two_views_small)
     for a, b in zip(result_ft, result_sep):
@@ -312,7 +315,9 @@ def test_catboost_fit_completes(two_views_small: list[np.ndarray]) -> None:
     """Fit completes end-to-end with CatBoostCCA."""
     pytest.importorskip("catboost", reason="catboost is not installed")
     k = 2
-    model = CatBoostCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
+    model = CatBoostCCA(n_components=k, n_estimators=5, random_state=0).fit(
+        two_views_small
+    )
     result = model.transform(two_views_small)
     n = two_views_small[0].shape[0]
     for arr in result:
@@ -328,7 +333,7 @@ def test_catboost_missing_raises_import_error(
     import cca_zoo.tree._treecca as treecca_module
 
     monkeypatch.setattr(treecca_module, "_CATBOOST_AVAILABLE", False)
-    model = CatBoostCCA(n_estimators=5)
+    model = CatBoostCCA(n_estimators=5, random_state=0)
     with pytest.raises(ImportError, match="catboost"):
         model.fit(two_views_small)
 
@@ -338,8 +343,8 @@ def test_catboost_fit_transform_consistency(
 ) -> None:
     """fit_transform equals fit().transform() for CatBoostCCA."""
     pytest.importorskip("catboost", reason="catboost is not installed")
-    m1 = CatBoostCCA(n_estimators=5)
-    m2 = CatBoostCCA(n_estimators=5)
+    m1 = CatBoostCCA(n_estimators=5, random_state=0)
+    m2 = CatBoostCCA(n_estimators=5, random_state=0)
     result_ft = m1.fit_transform(two_views_small)
     result_sep = m2.fit(two_views_small).transform(two_views_small)
     for a, b in zip(result_ft, result_sep):
@@ -355,9 +360,7 @@ def test_treecca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """XGBoostCCA finds substantial correlation on correlated views."""
-    model = XGBoostCCA(
-        latent_dimensions=1, n_estimators=60, max_depth=3, random_state=0
-    )
+    model = XGBoostCCA(n_components=1, n_estimators=60, max_depth=3, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -370,9 +373,7 @@ def test_treecca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = XGBoostCCA(
-        latent_dimensions=1, n_estimators=300, max_depth=3, random_state=0
-    )
+    model = XGBoostCCA(n_components=1, n_estimators=300, max_depth=3, random_state=0)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 

@@ -9,8 +9,8 @@ from cca_zoo.metrics import factor_loadings, pairwise_correlations
 from cca_zoo.sparse import ElasticNetCCA
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> ElasticNetCCA:
-    return ElasticNetCCA(latent_dimensions=latent_dimensions, **kwargs)
+def _make_model(n_components: int = 1, **kwargs: object) -> ElasticNetCCA:
+    return ElasticNetCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +38,9 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, n_components) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(two_views_small)
     assert len(result) == 2
     n = two_views_small[0].shape[0]
@@ -53,7 +53,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(test_views)
     for arr in result:
         assert arr.shape == (10, k)
@@ -82,7 +82,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     s = model.score(two_views_small)
     assert isinstance(s, float)
 
@@ -114,7 +114,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
@@ -133,7 +133,7 @@ def test_weights_shapes_and_matches_transform(
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
@@ -143,7 +143,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
 def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
@@ -170,7 +170,7 @@ def test_elasticnetcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """ElasticNetCCA finds substantial correlation on correlated views."""
-    model = ElasticNetCCA(latent_dimensions=1, alpha=0.01, random_state=0)
+    model = ElasticNetCCA(n_components=1, alpha=0.01, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -184,7 +184,7 @@ def test_objective_decreases_monotonically(
     objs = []
     for n_iter in range(1, 11):
         model = ElasticNetCCA(
-            latent_dimensions=1,
+            n_components=1,
             alpha=0.1,
             l1_ratio=0.5,
             max_iter=n_iter,
@@ -208,9 +208,7 @@ def test_higher_alpha_increases_sparsity(
     """Increasing alpha (with l1_ratio > 0) should not decrease sparsity."""
     n_nonzero = []
     for alpha in [0.001, 0.1, 1.0]:
-        model = ElasticNetCCA(
-            latent_dimensions=1, alpha=alpha, l1_ratio=0.9, random_state=0
-        )
+        model = ElasticNetCCA(n_components=1, alpha=alpha, l1_ratio=0.9, random_state=0)
         model.fit(correlated_views)
         n_nonzero.append(sum((np.abs(w) > 1e-10).sum() for w in model.weights_))
     assert n_nonzero[0] >= n_nonzero[1] >= n_nonzero[2]
@@ -221,7 +219,7 @@ def test_per_view_alpha_list_gives_sparser_penalised_view(
 ) -> None:
     """A per-view alpha list applies a stronger penalty to only one view."""
     model = ElasticNetCCA(
-        latent_dimensions=1, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
+        n_components=1, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
     ).fit(correlated_views)
     n_nonzero = [int((np.abs(w) > 1e-10).sum()) for w in model.weights_]
     assert n_nonzero[1] < n_nonzero[0]
@@ -244,7 +242,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
     from sklearn.base import clone
 
-    model = ElasticNetCCA(latent_dimensions=2, alpha=0.3, l1_ratio=0.4, random_state=0)
+    model = ElasticNetCCA(n_components=2, alpha=0.3, l1_ratio=0.4, random_state=0)
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()
 
@@ -267,7 +265,7 @@ def test_positive_constraint_yields_nonnegative_weights(
 ) -> None:
     """positive=True yields weights with no negative entries."""
     model = ElasticNetCCA(
-        latent_dimensions=2, alpha=0.05, l1_ratio=0.5, positive=True, random_state=0
+        n_components=2, alpha=0.05, l1_ratio=0.5, positive=True, random_state=0
     )
     model.fit(correlated_views)
     for w in model.weights_:

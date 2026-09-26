@@ -13,8 +13,8 @@ def _invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     """Compute the MSE similarity loss between two representations.
 
     Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
+        z1: Tensor of shape (batch_size, n_components).
+        z2: Tensor of shape (batch_size, n_components).
 
     Returns:
         Scalar MSE loss.
@@ -29,8 +29,8 @@ def _variance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     each dimension to be used.
 
     Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
+        z1: Tensor of shape (batch_size, n_components).
+        z2: Tensor of shape (batch_size, n_components).
 
     Returns:
         Scalar variance penalty.
@@ -48,8 +48,8 @@ def _covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
     representations to reduce redundancy.
 
     Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
+        z1: Tensor of shape (batch_size, n_components).
+        z2: Tensor of shape (batch_size, n_components).
 
     Returns:
         Scalar covariance penalty.
@@ -96,14 +96,14 @@ class VICReg(DCCA):
         arXiv:2105.04906 (2022).
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         sim_coeff: Weight for the invariance (MSE) term. Default is 25.0.
         std_coeff: Weight for the variance hinge term. Default is 25.0.
         cov_coeff: Weight for the covariance penalty term. Default is 1.0.
         objective: Ignored; the VICReg loss is fixed. Accepted for API
             compatibility.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Unused. Present for API compatibility. Default is 1e-6.
 
@@ -112,26 +112,26 @@ class VICReg(DCCA):
         >>> import torch.nn as nn
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
-        >>> model = VICReg(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> model = VICReg(n_components=4, encoders=[enc1, enc2])
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         sim_coeff: float = 25.0,
         std_coeff: float = 25.0,
         cov_coeff: float = 1.0,
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
             objective=objective,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
@@ -148,7 +148,7 @@ class VICReg(DCCA):
 
         Args:
             representations: List of tensors, each of shape
-                (batch_size, latent_dimensions).  Currently only the
+                (batch_size, n_components).  Currently only the
                 first two views are used.
             independent_representations: Unused.
 

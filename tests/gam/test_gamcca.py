@@ -15,8 +15,8 @@ from cca_zoo.gam import GAMCCA
 from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GAMCCA:
-    return GAMCCA(latent_dimensions=latent_dimensions, **kwargs)
+def _make_model(n_components: int = 1, **kwargs: object) -> GAMCCA:
+    return GAMCCA(n_components=n_components, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -45,9 +45,9 @@ def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
 
 
 def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
+    """Transform on training data returns (n_samples, n_components) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(two_views_small)
     assert len(result) == 2
     n = two_views_small[0].shape[0]
@@ -60,7 +60,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
     rng = np.random.default_rng(99)
     test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     result = model.transform(test_views)
     assert len(result) == 2
     for arr in result:
@@ -70,7 +70,7 @@ def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
 def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
     """Transform on three-view data returns one array per view."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(three_views_small)
+    model = _make_model(n_components=k).fit(three_views_small)
     result = model.transform(three_views_small)
     assert len(result) == 3
     n = three_views_small[0].shape[0]
@@ -101,7 +101,7 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
     """Score is one float, as sklearn expects."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     s = model.score(two_views_small)
     assert isinstance(s, float)
 
@@ -141,7 +141,7 @@ def test_weights_not_fitted_raises() -> None:
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
     """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
@@ -156,7 +156,7 @@ def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
 def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
@@ -182,7 +182,7 @@ def test_center_false(two_views_small: list[np.ndarray]) -> None:
 def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
     """encoders_ has one encoder per view, each producing k-dim output."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     assert len(model.encoders_) == 2
     for enc in model.encoders_:
         assert enc.coef_.shape[1] == k
@@ -256,8 +256,8 @@ def test_k_too_small_for_m_raises(two_views_small: list[np.ndarray]) -> None:
 
 def test_fit_is_deterministic(correlated_views: list[np.ndarray]) -> None:
     """The closed-form fit has no random start: two fits agree up to sign."""
-    a = _make_model(latent_dimensions=2).fit(correlated_views)
-    b = _make_model(latent_dimensions=2).fit(correlated_views)
+    a = _make_model(n_components=2).fit(correlated_views)
+    b = _make_model(n_components=2).fit(correlated_views)
     for za, zb in zip(a.transform(correlated_views), b.transform(correlated_views)):
         np.testing.assert_allclose(np.abs(za), np.abs(zb), atol=1e-8)
 
@@ -292,7 +292,7 @@ def test_data_free_splines_are_filled_in_by_the_penalty() -> None:
 def test_shape_function_shape(two_views_small: list[np.ndarray]) -> None:
     """shape_function evaluates one feature's additive term at given points."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     x_grid = np.linspace(-2, 2, 7)
     term = model.shape_function(view=0, feature=1, x=x_grid)
     assert term.shape == (7, k)
@@ -304,7 +304,7 @@ def test_shape_function_sums_to_prediction(two_views_small: list[np.ndarray]) ->
     Summing every feature's shape_function at the training values should
     reproduce the encoder's raw (base-margin-free) training prediction.
     """
-    model = _make_model(latent_dimensions=1).fit(two_views_small)
+    model = _make_model(n_components=1).fit(two_views_small)
     view = two_views_small[0]
     total = sum(model.shape_function(0, j, view[:, j]) for j in range(view.shape[1]))
     np.testing.assert_allclose(total, model.encoders_[0].predict(), atol=1e-6)
@@ -328,7 +328,7 @@ def test_gamcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """GAMCCA finds substantial correlation on views with shared latent structure."""
-    model = GAMCCA(latent_dimensions=1)
+    model = GAMCCA(n_components=1)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -341,20 +341,20 @@ def test_gamcca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = GAMCCA(latent_dimensions=1)
+    model = GAMCCA(n_components=1)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 @pytest.mark.slow
 def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> None:
-    """GAMCCA beats rCCA and TreeCCA on a held-out, smooth-but-nonlinear task.
+    """GAMCCA beats RidgeCCA and TreeCCA on a held-out, smooth-but-nonlinear task.
 
     View 1 is a noisy linear copy of a shared latent factor ``z``; view 2 is
     a noisy linear copy of ``z ** 2`` — a smooth but *non-monotonic* (even)
     transform, chosen so that ``corr(z, z**2) ~ 0`` for symmetric ``z``.  No
     linear combination of view 1's raw features can align with view 2 (so
-    ``rCCA`` is expected to fail), while a per-view nonlinear encoder that
+    ``RidgeCCA`` is expected to fail), while a per-view nonlinear encoder that
     (approximately) learns the "square" transform recovers near-perfect
     cross-view correlation. GAMCCA's B-spline basis represents a quadratic
     almost exactly and its closed-form fit is the global optimum, so it
@@ -364,7 +364,7 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     dependency, not part of the base ``dev`` install.
     """
     pytest.importorskip("xgboost", reason="xgboost is not installed")
-    from cca_zoo.linear import rCCA
+    from cca_zoo.linear import RidgeCCA
     from cca_zoo.tree import XGBoostCCA
 
     rng = np.random.default_rng(0)
@@ -376,13 +376,13 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    gam = GAMCCA(latent_dimensions=1)
+    gam = GAMCCA(n_components=1)
     gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    tree = XGBoostCCA(latent_dimensions=1, random_state=0)
+    tree = XGBoostCCA(n_components=1, random_state=0)
     tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
+    rcca = RidgeCCA(n_components=1, c=[0.3, 0.3])
     rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     assert gam_test > 0.9, (
@@ -392,5 +392,5 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
         f"Expected GAMCCA ({gam_test}) to beat TreeCCA ({tree_test})"
     )
     assert gam_test > rcca_test + 0.5, (
-        f"Expected GAMCCA ({gam_test}) to clearly beat linear rCCA ({rcca_test})"
+        f"Expected GAMCCA ({gam_test}) to clearly beat linear RidgeCCA ({rcca_test})"
     )

@@ -101,7 +101,7 @@ def weight_gram_mean(weights: list[np.ndarray]) -> np.ndarray:
 
 
 def random_orthonormal_weights(
-    views: list[np.ndarray], latent_dimensions: int, rng: np.random.Generator
+    views: list[np.ndarray], n_components: int, rng: np.random.Generator
 ) -> list[np.ndarray]:
     r"""Cheap, data-independent initial weights with orthonormal columns.
 
@@ -115,7 +115,7 @@ def random_orthonormal_weights(
 
     Args:
         views: Per-view arrays; only ``.shape[1]`` (feature count) is used.
-        latent_dimensions: Requested number of latent dimensions.
+        n_components: Requested number of latent dimensions.
         rng: Random generator.
 
     Returns:
@@ -125,7 +125,7 @@ def random_orthonormal_weights(
     weights = []
     for v in views:
         p = v.shape[1]
-        k = min(latent_dimensions, p)
+        k = min(n_components, p)
         w, _ = np.linalg.qr(rng.standard_normal((p, k)))
         weights.append(w)
     return weights
@@ -133,7 +133,7 @@ def random_orthonormal_weights(
 
 def cheap_orthonormal_projection_weights(
     views: list[np.ndarray],
-    latent_dimensions: int,
+    n_components: int,
     batch_size: int | None,
     rng: np.random.Generator,
 ) -> list[np.ndarray]:
@@ -167,7 +167,7 @@ def cheap_orthonormal_projection_weights(
 
     Args:
         views: Per-view arrays, each $(n, p_i)$.
-        latent_dimensions: Requested number of latent dimensions.
+        n_components: Requested number of latent dimensions.
         batch_size: Mini-batch size used for the initial projection.
             ``None`` uses the full dataset.
         rng: Random generator.
@@ -181,7 +181,7 @@ def cheap_orthonormal_projection_weights(
     weights = []
     for v in views:
         p = v.shape[1]
-        k = min(latent_dimensions, p)
+        k = min(n_components, p)
         w0, _ = np.linalg.qr(rng.standard_normal((p, k)))
         z0 = v[idx] @ w0
         _, r = np.linalg.qr(z0)

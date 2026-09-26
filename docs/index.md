@@ -34,7 +34,7 @@ CCA-Zoo extends classical CCA in several directions:
 
 - :material-chart-scatter-plot: **Linear & regularised**
 
-    Classical CCA, ridge-regularised rCCA, PLS, and seven sparse/elastic-net
+    Classical CCA, ridge-regularised RidgeCCA, PLS, and seven sparse/elastic-net
     variants for high-dimensional settings.
 
     [Linear methods →](user-guide/linear.md)
@@ -76,11 +76,11 @@ CCA-Zoo extends classical CCA in several directions:
 Every model follows the same three-step scikit-learn pattern:
 
 ```python
-from cca_zoo.linear import CCA, rCCA, PLS
+from cca_zoo.linear import CCA, RidgeCCA, PLS
 from cca_zoo.nonparametric import KCCA
 
 # 1. construct
-model = CCA(latent_dimensions=2)
+model = CCA(n_components=2)
 
 # 2. fit — views is a list of arrays, one per dataset
 model.fit([X1, X2])

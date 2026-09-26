@@ -22,10 +22,10 @@ held-out folds, using sklearn's cross-validation machinery under the hood.
 
 ```python
 from cca_zoo.model_selection import GridSearchCV
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
 param_grid = {"c": [0.001, 0.01, 0.1, 1.0]}
-gs = GridSearchCV(rCCA(latent_dimensions=2), param_grid=param_grid, cv=5)
+gs = GridSearchCV(RidgeCCA(n_components=2), param_grid=param_grid, cv=5)
 gs.fit([X1, X2])
 
 print("Best c:", gs.best_params_["c"])
@@ -50,7 +50,7 @@ from cca_zoo.nonparametric import KCCA
 param_grid = {"c__0": [0.01, 0.1, 1.0], "c__1": [0.001, 0.01]}  # all 6 combinations
 
 gs = GridSearchCV(
-    KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01), param_grid=param_grid, cv=5
+    KCCA(n_components=2, kernel="rbf", gamma=0.01), param_grid=param_grid, cv=5
 )
 gs.fit([X1, X2])
 print(gs.best_params_)  # e.g. {"c__0": 0.1, "c__1": 0.01}
@@ -130,10 +130,10 @@ random parameter settings rather than trying every grid point.
 ```python
 from scipy.stats import loguniform
 from cca_zoo.model_selection import RandomizedSearchCV
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
 rs = RandomizedSearchCV(
-    rCCA(latent_dimensions=2),
+    RidgeCCA(n_components=2),
     param_distributions={"c": loguniform(1e-4, 1.0)},
     n_iter=20,
     cv=5,
@@ -159,8 +159,8 @@ from cca_zoo.model_selection import MultiviewWrapper
 from cca_zoo.linear import CCA
 
 views = [X1, X2]
-split_indices = [v.shape[1] for v in views]
-wrapper = MultiviewWrapper(CCA(latent_dimensions=2), split_indices=split_indices)
+n_features_per_view = [v.shape[1] for v in views]
+wrapper = MultiviewWrapper(CCA(n_components=2), n_features_per_view=n_features_per_view)
 
 results = cross_validate(wrapper, np.hstack(views), cv=5, return_train_score=True)
 print(results["test_score"])
@@ -171,21 +171,18 @@ print(results["test_score"])
 ## Full example: tuning kernel CCA
 
 ```python
-import numpy as np
-from cca_zoo.datasets import JointData
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
 # Simulate data
-data = JointData(
-    n_views=2,
+views = make_joint_data(
     n_samples=200,
     n_features=[30, 30],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=2.0,
     random_state=0,
 )
-views = data.sample()
 
 # Grid search over kernel and regularisation
 param_grid = {
@@ -194,7 +191,7 @@ param_grid = {
     "gamma": [0.01, 0.1],
 }
 gs = GridSearchCV(
-    KCCA(latent_dimensions=2),
+    KCCA(n_components=2),
     param_grid=param_grid,
     cv=5,
 )
@@ -208,7 +205,7 @@ print("Best score: ", gs.best_score_)
 
 ## Tips
 
-- `score` is the mean canonical correlation across all `latent_dimensions`, averaged over
+- `score` is the mean canonical correlation across all `n_components`, averaged over
   all pairwise view combinations.
 - Cross-validation is done on the full set of views passed to `fit`; train/test splits are
   row-wise (same rows held out across all views).
@@ -232,19 +229,19 @@ from cca_zoo.linear import CCA
 from cca_zoo.model_selection import permutation_test_significance
 
 result = permutation_test_significance(
-    CCA(latent_dimensions=2), [X1, X2], n_permutations=1000, random_state=0
+    CCA(n_components=2), [X1, X2], n_permutations=1000, random_state=0
 )
 
-print("Canonical correlations:", result.correlations_)
-print("p-values (per dimension):", result.p_values_)
+print("Canonical correlations:", result.correlations)
+print("p-values (per dimension):", result.p_values)
 
 # Per-feature, per-dimension p-values for view 1's loadings
-print(result.loading_p_values_[0])
+print(result.loading_p_values[0])
 ```
 
 It works by refitting the model many times on data where every view except the first
 has had its rows independently shuffled, breaking the true cross-view relationship while
-keeping each view's own covariance structure intact. `p_values_` compares each
+keeping each view's own covariance structure intact. `p_values` compares each
 dimension's true correlation directly against its shuffled counterparts. For the
 loadings, a shuffled refit isn't guaranteed to recover components in the same order or
 sign as the true fit — permutation can rotate or reflect near-tied dimensions — so each

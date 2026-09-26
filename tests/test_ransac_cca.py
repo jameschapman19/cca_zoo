@@ -9,10 +9,8 @@ from cca_zoo.linear import MCCA, RANSACCCA, HuberCCA
 from cca_zoo.linear._ransac_cca import _cross_view_agreement
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> RANSACCCA:
-    return RANSACCCA(
-        latent_dimensions=latent_dimensions, max_trials=30, random_state=0, **kwargs
-    )
+def _make_model(n_components: int = 1, **kwargs: object) -> RANSACCCA:
+    return RANSACCCA(n_components=n_components, max_trials=30, random_state=0, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +69,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
+    model = _make_model(n_components=k).fit(two_views_small)
     weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
@@ -114,7 +112,7 @@ def test_ransac_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """On clean, uncontaminated data RANSACCCA still finds real correlation."""
-    model = RANSACCCA(latent_dimensions=1, max_trials=100, random_state=0)
+    model = RANSACCCA(n_components=1, max_trials=100, random_state=0)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -200,18 +198,14 @@ def test_ransac_robust_to_sign_flipped_rows_unlike_mcca_and_huber() -> None:
     )
 
     mcca_corr = _held_out_corr(
-        MCCA(latent_dimensions=1, c=0.1).fit([x_train, y_train]), x_test, y_test
+        MCCA(n_components=1, c=0.1).fit([x_train, y_train]), x_test, y_test
     )
     huber_corr = _held_out_corr(
-        HuberCCA(latent_dimensions=1, max_iter=1500, random_state=0).fit(
-            [x_train, y_train]
-        ),
+        HuberCCA(n_components=1, max_iter=1500, random_state=0).fit([x_train, y_train]),
         x_test,
         y_test,
     )
-    ransac_model = RANSACCCA(latent_dimensions=1, random_state=0).fit(
-        [x_train, y_train]
-    )
+    ransac_model = RANSACCCA(n_components=1, random_state=0).fit([x_train, y_train])
     ransac_corr = _held_out_corr(ransac_model, x_test, y_test)
 
     assert ransac_corr > mcca_corr + 0.3
@@ -233,7 +227,7 @@ def test_clone_and_get_params_roundtrip() -> None:
     from sklearn.base import clone
 
     model = RANSACCCA(
-        latent_dimensions=2, c=0.2, min_samples=0.3, max_trials=50, random_state=0
+        n_components=2, c=0.2, min_samples=0.3, max_trials=50, random_state=0
     )
     cloned = clone(model)
     assert cloned.get_params() == model.get_params()

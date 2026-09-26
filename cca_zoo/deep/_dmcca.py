@@ -32,11 +32,11 @@ class DMCCA(DCCA):
         variables. *Biometrika*, 58(3), 433-451.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
+        n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         objective: Ignored; the MCCA loss is always used. Accepted for
             API compatibility.
-        lr: Learning rate. Default is 1e-3.
+        learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Ridge regularisation passed to each pairwise CCA loss.
             Default is 1e-6.
@@ -46,24 +46,24 @@ class DMCCA(DCCA):
         >>> enc1 = nn.Linear(10, 4)
         >>> enc2 = nn.Linear(8, 4)
         >>> enc3 = nn.Linear(6, 4)
-        >>> model = DMCCA(latent_dimensions=4, encoders=[enc1, enc2, enc3])
+        >>> model = DMCCA(n_components=4, encoders=[enc1, enc2, enc3])
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         objective: nn.Module | None = None,
-        lr: float = 1e-3,
+        learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
         # Pass objective=None so DCCA creates CCALoss, but we override it
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
             objective=None,
-            lr=lr,
+            learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
@@ -79,7 +79,7 @@ class DMCCA(DCCA):
 
         Args:
             representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
+                of shape (batch_size, n_components).
             independent_representations: Unused.
 
         Returns:

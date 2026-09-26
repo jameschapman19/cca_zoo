@@ -48,18 +48,18 @@ class BaseModel(BaseEstimator, ABC):
     always safe to skip.
 
     Args:
-        latent_dimensions: Number of latent dimensions to fit. Default is 1.
+        n_components: Number of latent dimensions to fit. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             The means are stored in ``means_`` and applied in ``transform``.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        "latent_dimensions": [Interval(Integral, 1, None, closed="left")],
+        "n_components": [Interval(Integral, 1, None, closed="left")],
         "center": ["boolean"],
     }
 
-    def __init__(self, latent_dimensions: int = 1, center: bool = True) -> None:
-        self.latent_dimensions = latent_dimensions
+    def __init__(self, n_components: int = 1, center: bool = True) -> None:
+        self.n_components = n_components
         self.center = center
 
     # ------------------------------------------------------------------
@@ -127,7 +127,7 @@ class BaseModel(BaseEstimator, ABC):
             views: List of arrays, each of shape (n_samples, n_features_i).
 
         Returns:
-            List of arrays, each of shape (n_samples, latent_dimensions).
+            List of arrays, each of shape (n_samples, n_components).
 
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
@@ -228,7 +228,7 @@ class BaseModel(BaseEstimator, ABC):
         regression of that view's centred training data onto that view's
         own training latent score. This makes
         ``inverse_transform(transform(views))`` an approximate round trip
-        of ``views`` (exact wherever ``latent_dimensions`` and each view's
+        of ``views`` (exact wherever ``n_components`` and each view's
         own encoder spans it exactly), mirroring
         :meth:`sklearn.decomposition.PCA.inverse_transform`.
 
@@ -243,7 +243,7 @@ class BaseModel(BaseEstimator, ABC):
 
         Args:
             scores: List of length ``n_views_``, each an array of shape
-                (n_samples, latent_dimensions) — typically the output of
+                (n_samples, n_components) — typically the output of
                 :meth:`transform`.
 
         Returns:
@@ -261,7 +261,7 @@ class BaseModel(BaseEstimator, ABC):
             >>> rng = np.random.default_rng(0)
             >>> X1 = rng.standard_normal((50, 10))
             >>> X2 = rng.standard_normal((50, 8))
-            >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+            >>> model = CCA(n_components=2).fit([X1, X2])
             >>> scores = model.transform([X1, X2])
             >>> X1_approx, X2_approx = model.inverse_transform(scores)
             >>> X1_approx.shape
@@ -274,10 +274,10 @@ class BaseModel(BaseEstimator, ABC):
             )
         arrays = [np.asarray(s) for s in scores]
         for i, s in enumerate(arrays):
-            if s.shape[1] != self.latent_dimensions:
+            if s.shape[1] != self.n_components:
                 raise ValueError(
                     f"scores[{i}] has {s.shape[1]} columns, expected "
-                    f"latent_dimensions={self.latent_dimensions}."
+                    f"n_components={self.n_components}."
                 )
         return [
             s @ _least_squares_map(self._transform_view(i, train), train)
@@ -296,7 +296,7 @@ class BaseModel(BaseEstimator, ABC):
             y: Ignored.
 
         Returns:
-            List of arrays, each of shape (n_samples, latent_dimensions).
+            List of arrays, each of shape (n_samples, n_components).
         """
         return self.fit(views, y).transform(views)
 
@@ -378,7 +378,7 @@ class BaseModel(BaseEstimator, ABC):
             >>> rng = np.random.default_rng(0)
             >>> X1 = rng.standard_normal((50, 10))
             >>> X2 = rng.standard_normal((50, 8))
-            >>> model = CCA(latent_dimensions=2).fit([X1, X2])
+            >>> model = CCA(n_components=2).fit([X1, X2])
             >>> X2_pred = model.predict([X1, None])[1]
             >>> X2_pred.shape
             (50, 8)

@@ -21,7 +21,7 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
     then a sample's leverage is its combined norm across all (view,
     component) pairs. The cutoff is ``delta`` *times the dataset's own
     median leverage*, not an absolute Z-score radius: an absolute radius
-    would need re-tuning for every ``(n_views, latent_dimensions)``
+    would need re-tuning for every ``(n_views, n_components)``
     combination -- the same lesson already applied to
     :func:`cca_zoo._utils._ey.ey_diag_hessian`'s percentile floor. Scaling
     by the dataset's own median instead makes the cutoff self-calibrating
@@ -154,7 +154,7 @@ class HuberCCA(BaseFullBatchEYModel):
         Statistics, 20(2), 203-229.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default True.
         delta: Huber cutoff, as a multiple of the dataset's median sample
             leverage; samples beyond it are downweighted. Values below 1
@@ -172,7 +172,7 @@ class HuberCCA(BaseFullBatchEYModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((1000, 20))
         >>> X2 = rng.standard_normal((1000, 15))
-        >>> model = HuberCCA(latent_dimensions=4, random_state=0)
+        >>> model = HuberCCA(n_components=4, random_state=0)
         >>> model = model.fit([X1, X2])
     """
 
@@ -183,7 +183,7 @@ class HuberCCA(BaseFullBatchEYModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         delta: float = 4.0,
         max_iter: int = 1000,
@@ -191,7 +191,7 @@ class HuberCCA(BaseFullBatchEYModel):
         random_state: int | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             max_iter=max_iter,
             tol=tol,
@@ -228,9 +228,7 @@ class HuberCCA(BaseFullBatchEYModel):
         clean, well-conditioned data has uniform sample weight everywhere
         (see :func:`_huber_sample_weight`).
         """
-        return cheap_orthonormal_projection_weights(
-            views, self.latent_dimensions, None, rng
-        )
+        return cheap_orthonormal_projection_weights(views, self.n_components, None, rng)
 
     def _derivative(
         self,

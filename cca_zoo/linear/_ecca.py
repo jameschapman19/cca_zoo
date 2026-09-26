@@ -16,9 +16,9 @@ from cca_zoo.linear._rrr_common import _postprocess_rrr_fit
 
 
 def _entrywise_sparse_rrr(
-    X: np.ndarray, Y: np.ndarray, lambda_: float, max_iter: int, tol: float
+    X: np.ndarray, Y: np.ndarray, alpha: float, max_iter: int, tol: float
 ) -> np.ndarray:
-    r"""Solve min_B (1/n)||Y - XB||^2 + lambda_ * sum_{j,k} |B[j,k]|.
+    r"""Solve min_B (1/n)||Y - XB||^2 + alpha * sum_{j,k} |B[j,k]|.
 
     Unlike :func:`cca_zoo.linear._ccar3._row_sparse_rrr`'s row-group penalty,
     an entrywise L1 penalty on ``B`` places no coupling between a row's
@@ -26,7 +26,7 @@ def _entrywise_sparse_rrr(
     regression per column of ``Y``: column $k$'s objective is
     $\frac1n\lVert y_k - Xb_k \rVert^2 + \lambda \lVert b_k
     \rVert_1$, exactly :class:`~sklearn.linear_model.Lasso`'s own objective
-    at ``alpha = lambda_ / 2`` (sklearn's $\frac{1}{2n}$ loss convention,
+    with sklearn's ``alpha`` half of ours (sklearn's $\frac{1}{2n}$ convention,
     not ``cca_zoo``'s $\frac1n$ -- see ``_row_sparse_rrr``'s docstring for
     the same factor-of-2 derivation). The reference R implementation
     (``ecca()`` in the `ccar3 <https://github.com/jameschapman19/ccar3>`_
@@ -36,22 +36,22 @@ def _entrywise_sparse_rrr(
     solver, a bank of per-column Lasso fits reaches the same optimum with
     no ADMM machinery at all -- 0.10s vs. 59.0s for R's ``ecca()`` at the
     same n=300, p=300, q=100 problem in a direct benchmark (R's ADMM never
-    converges early there at that ``lambda_``, running its full 20,000
+    converges early there at that ``alpha``, running its full 20,000
     -iteration budget; sklearn's per-column coordinate descent does).
 
-    At ``lambda_ == 0`` this instead solves the unpenalised least-squares
+    At ``alpha == 0`` this instead solves the unpenalised least-squares
     problem directly (``Lasso(alpha=0)`` is mathematically the same
     problem, but sklearn's own coordinate descent warns it "does not
     converge well" there and recommends exactly this alternative).
     """
-    if lambda_ == 0.0:
+    if alpha == 0.0:
         B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
         return np.asarray(B)
     q = Y.shape[1]
     B = np.zeros((X.shape[1], q))
     for k in range(q):
         model = Lasso(
-            alpha=lambda_ / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
+            alpha=alpha / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
         )
         model.fit(X, Y[:, k])
         B[:, k] = model.coef_
@@ -82,7 +82,7 @@ class ECCA(BaseModel):
     :class:`~cca_zoo.sparse.ElasticNetCCA` (entrywise) and
     :class:`~cca_zoo.sparse.MultiTaskElasticNetCCA` (row-group) one level
     up, but here for the reduced-rank-regression family rather than the
-    Eckart-Young-loss family. The rank-``latent_dimensions`` SVD of
+    Eckart-Young-loss family. The rank-``n_components`` SVD of
     $\hat{B}$ gives the canonical directions, whitened so the canonical
     variates have unit variance, sign-aligned to positive correlation, and
     sorted in descending order -- the same postprocessing ``CCAR3`` uses,
@@ -103,7 +103,7 @@ class ECCA(BaseModel):
     keeps an ``Sy`` parameter only "for compatibility" and ignores it. The
     R package's optional block/graph ``groups`` argument (arbitrary
     ``(x, y)`` index pairs sharing one penalty) is out of scope here; use
-    `GridSearchCV` from `cca_zoo.model_selection` to select ``lambda_`` as
+    `GridSearchCV` from `cca_zoo.model_selection` to select ``alpha`` as
     for any other estimator.
 
     References:
@@ -113,9 +113,9 @@ class ECCA(BaseModel):
         as Reduced Rank Regression in High Dimensions. arXiv:2405.19539.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
-        lambda_: Entrywise lasso regularisation strength. ``0`` disables
+        alpha: Entrywise lasso regularisation strength. ``0`` disables
             the penalty. Default is 0.
         max_iter: Maximum number of coordinate-descent iterations, passed
             straight through to :class:`~sklearn.linear_model.Lasso`.
@@ -130,13 +130,13 @@ class ECCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = ECCA(latent_dimensions=2, lambda_=0.1).fit([X1, X2])
+        >>> model = ECCA(n_components=2, alpha=0.1).fit([X1, X2])
         >>> scores = model.transform([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "lambda_": [Interval(Real, 0, None, closed="left")],
+        "alpha": [Interval(Real, 0, None, closed="left")],
         "max_iter": POSITIVE_INT,
         "tol": POSITIVE_EPS,
         "eps": POSITIVE_EPS,
@@ -144,15 +144,15 @@ class ECCA(BaseModel):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
-        lambda_: float = 0.0,
+        alpha: float = 0.0,
         max_iter: int = 10_000,
         tol: float = 1e-4,
         eps: float = 1e-8,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.lambda_ = lambda_
+        super().__init__(n_components=n_components, center=center)
+        self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
         self.eps = eps
@@ -180,12 +180,12 @@ class ECCA(BaseModel):
         X, Y = views_
 
         B = _entrywise_sparse_rrr(
-            X, Y, lambda_=self.lambda_, max_iter=self.max_iter, tol=self.tol
+            X, Y, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
         )
 
         no_whitening = np.eye(Y.shape[1])
         U, V = _postprocess_rrr_fit(
-            B, X, Y, no_whitening, self.latent_dimensions, ridge=self.eps
+            B, X, Y, no_whitening, self.n_components, ridge=self.eps
         )
         self.weights_: list[np.ndarray] = [U, V]
         return self

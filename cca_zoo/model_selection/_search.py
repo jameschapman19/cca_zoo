@@ -52,7 +52,7 @@ class MultiviewWrapper(BaseEstimator):
 
     Args:
         estimator: A multiview CCA estimator (e.g. :class:`~cca_zoo.linear.CCA`).
-        split_indices: Number of features in each view, in order. Used to
+        n_features_per_view: Number of features in each view, in order. Used to
             split the concatenated array back into views.
 
     Examples:
@@ -62,7 +62,7 @@ class MultiviewWrapper(BaseEstimator):
         >>> from cca_zoo.model_selection import MultiviewWrapper
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
-        >>> wrapper = MultiviewWrapper(CCA(), split_indices=[5, 4])
+        >>> wrapper = MultiviewWrapper(CCA(), n_features_per_view=[5, 4])
         >>> scores = cross_val_score(wrapper, np.hstack([X1, X2]), cv=3)
 
     Per-view hyperparameters (a per-view CCA model accepts a scalar,
@@ -76,15 +76,17 @@ class MultiviewWrapper(BaseEstimator):
     that view (broadcast if it was a scalar).
     """
 
-    def __init__(self, estimator: BaseEstimator, split_indices: list[int]) -> None:
+    def __init__(
+        self, estimator: BaseEstimator, n_features_per_view: list[int]
+    ) -> None:
         self.estimator = estimator
-        self.split_indices = split_indices
+        self.n_features_per_view = n_features_per_view
 
     def _split_views(self, X: np.ndarray) -> list[np.ndarray]:
         """Split a concatenated matrix back into individual views."""
         views = []
         start = 0
-        for p in self.split_indices:
+        for p in self.n_features_per_view:
             views.append(X[:, start : start + p])
             start += p
         return views
@@ -130,7 +132,7 @@ class MultiviewWrapper(BaseEstimator):
         if direct:
             self.estimator.set_params(**direct)
 
-        n_views = len(self.split_indices)
+        n_views = len(self.n_features_per_view)
         for name, overrides in per_view.items():
             bad = sorted(idx for idx in overrides if idx >= n_views)
             if bad:
@@ -280,7 +282,7 @@ class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
         arrays = [np.asarray(v) for v in views]
         wrapped_estimator = MultiviewWrapper(
             estimator=self.estimator,
-            split_indices=[a.shape[1] for a in arrays],
+            n_features_per_view=[a.shape[1] for a in arrays],
         )
         self._inner_cv = self._inner_cv_cls(
             estimator=wrapped_estimator, **inner_cv_kwargs
@@ -331,17 +333,17 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> gs = GridSearchCV(
-        ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
+        ...     CCA(), param_grid={"n_components": [1, 2]}, cv=2
         ... )
         >>> gs = gs.fit([X1, X2])
 
-        A per-view estimator parameter (e.g. :class:`~cca_zoo.linear.rCCA`'s
+        A per-view estimator parameter (e.g. :class:`~cca_zoo.linear.RidgeCCA`'s
         ridge ``c``) can be searched independently per view with a
         ``name__<view index>`` suffix in ``param_grid``:
 
-        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> gs = GridSearchCV(
-        ...     rCCA(), param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]}, cv=2
+        ...     RidgeCCA(), param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]}, cv=2
         ... )
         >>> gs = gs.fit([X1, X2])
         >>> sorted(gs.best_params_.items())
@@ -448,13 +450,13 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
     Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
-        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import RandomizedSearchCV
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> rs = RandomizedSearchCV(
-        ...     rCCA(),
+        ...     RidgeCCA(),
         ...     param_distributions={"c": loguniform(1e-3, 1.0)},
         ...     n_iter=5,
         ...     cv=2,
@@ -466,7 +468,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         as :class:`GridSearchCV`:
 
         >>> rs = RandomizedSearchCV(
-        ...     rCCA(),
+        ...     RidgeCCA(),
         ...     param_distributions={
         ...         "c__0": loguniform(1e-3, 1.0),
         ...         "c__1": loguniform(1e-3, 1.0),
@@ -606,16 +608,16 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> hgs = HalvingGridSearchCV(
-        ...     CCA(), param_grid={"latent_dimensions": [1, 2]}, cv=2
+        ...     CCA(), param_grid={"n_components": [1, 2]}, cv=2
         ... )
         >>> hgs = hgs.fit([X1, X2])
 
         Per-view parameters use the same ``name__<view index>`` suffix as
         :class:`GridSearchCV`:
 
-        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> hgs = HalvingGridSearchCV(
-        ...     rCCA(),
+        ...     RidgeCCA(),
         ...     param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]},
         ...     cv=2,
         ...     random_state=0,
@@ -756,13 +758,13 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
     Examples:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
-        >>> from cca_zoo.linear import rCCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import HalvingRandomSearchCV
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> hrs = HalvingRandomSearchCV(
-        ...     rCCA(),
+        ...     RidgeCCA(),
         ...     param_distributions={"c": loguniform(1e-3, 1.0)},
         ...     cv=2,
         ...     random_state=0,
@@ -773,7 +775,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         as :class:`RandomizedSearchCV`:
 
         >>> hrs = HalvingRandomSearchCV(
-        ...     rCCA(),
+        ...     RidgeCCA(),
         ...     param_distributions={
         ...         "c__0": loguniform(1e-3, 1.0),
         ...         "c__1": loguniform(1e-3, 1.0),

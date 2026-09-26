@@ -28,11 +28,11 @@ def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
 
     Args:
         loadings: List of arrays, each of shape (n_features_i,
-            latent_dimensions) -- typically the output of
+            n_components) -- typically the output of
             :func:`~cca_zoo.metrics.factor_loadings`.
 
     Returns:
-        List of arrays, each of shape (latent_dimensions,): view i's own
+        List of arrays, each of shape (n_components,): view i's own
         variance extracted by each of its canonical dimensions.
 
     Examples:
@@ -68,14 +68,14 @@ def redundancy_index(
 
     Args:
         loadings: List of arrays, each of shape (n_features_i,
-            latent_dimensions) -- typically the output of
+            n_components) -- typically the output of
             :func:`~cca_zoo.metrics.factor_loadings`.
-        correlations: Array of shape (n_views, n_views, latent_dimensions)
+        correlations: Array of shape (n_views, n_views, n_components)
             -- typically the output of
             :func:`~cca_zoo.metrics.pairwise_correlations`.
 
     Returns:
-        Array of shape (n_views, n_views, latent_dimensions), where entry
+        Array of shape (n_views, n_views, n_components), where entry
         ``[i, j, d]`` is the redundancy of view i given view j's d-th
         canonical variate. The diagonal ``[i, i, d]`` equals view i's own
         adequacy coefficient, since a view's correlation with itself is 1.
@@ -110,7 +110,7 @@ def total_redundancy(redundancy: ArrayLike) -> np.ndarray:
     """Cumulative redundancy across every retained canonical dimension.
 
     Args:
-        redundancy: Array of shape (n_views, n_views, latent_dimensions) --
+        redundancy: Array of shape (n_views, n_views, n_components) --
             typically the output of :func:`redundancy_index`.
 
     Returns:

@@ -63,7 +63,7 @@ class CCALoss(nn.Module):
 
         Args:
             representations: List of two tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             Scalar tensor: negative sum of squared canonical correlations.
@@ -140,7 +140,7 @@ class MCCALoss(nn.Module):
 
         Args:
             representations: List of tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             Scalar tensor: sum of pairwise negative canonical correlations.
@@ -194,7 +194,7 @@ class GCCALoss(nn.Module):
 
         Args:
             representations: List of tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             Scalar tensor: negative total GCCA objective.
@@ -262,7 +262,7 @@ class TCCALoss(nn.Module):
 
         Args:
             representations: List of tensors, each of shape
-                (batch_size, latent_dimensions).
+                (batch_size, n_components).
 
         Returns:
             Scalar tensor: negative Frobenius norm of the cross-moment tensor.

@@ -33,7 +33,7 @@ class GRCCA(MCCA):
         *Statistical Modelling*.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
+        n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means before fitting. Default True.
         c: Ridge regularisation parameter(s) controlling within-group
             shrinkage. Either a scalar applied to all views or a per-view
@@ -51,7 +51,7 @@ class GRCCA(MCCA):
         >>> X2 = rng.standard_normal((50, 8))
         >>> groups1 = rng.integers(0, 3, size=10)
         >>> groups2 = rng.integers(0, 3, size=8)
-        >>> model = GRCCA(latent_dimensions=2, c=0.5).fit(
+        >>> model = GRCCA(n_components=2, c=0.5).fit(
         ...     [X1, X2], feature_groups=[groups1, groups2]
         ... )
         >>> scores = model.transform([X1, X2])
@@ -59,14 +59,14 @@ class GRCCA(MCCA):
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
         center: bool = True,
         c: float | list[float] = 0.0,
         mu: float | list[float] = 0.0,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
             c=c,
             pca=False,
@@ -113,7 +113,7 @@ class GRCCA(MCCA):
         ]
         A = self._build_A(processed)
         B = self._build_B(processed, c_)
-        _, eigvecs = gevp(A, B, self.latent_dimensions)
+        _, eigvecs = gevp(A, B, self.n_components)
         splits = np.cumsum([v.shape[1] for v in processed])
         raw_blocks = np.split(eigvecs, splits[:-1], axis=0)
 

@@ -25,9 +25,9 @@ encoder1 = nn.Sequential(nn.Linear(100, 64), nn.ReLU(), nn.Linear(64, 16))
 encoder2 = nn.Sequential(nn.Linear(80, 64), nn.ReLU(), nn.Linear(64, 16))
 
 model = DCCA(
-    latent_dimensions=8,
+    n_components=8,
     encoders=[encoder1, encoder2],
-    lr=1e-3,
+    learning_rate=1e-3,
 )
 ```
 
@@ -81,7 +81,7 @@ The `objective` parameter controls which CCA loss is used:
 from cca_zoo.deep import DCCA
 from cca_zoo.deep.objectives import CCALoss, GCCALoss
 
-model = DCCA(latent_dimensions=8, encoders=[e1, e2], objective=CCALoss(eps=1e-4))
+model = DCCA(n_components=8, encoders=[e1, e2], objective=CCALoss(eps=1e-4))
 ```
 
 Available objectives (from `cca_zoo.deep.objectives`):
@@ -101,7 +101,7 @@ Tends to be more stable than the original CCA loss on small batches.
 ```python
 from cca_zoo.deep import DCCAEY
 
-model = DCCAEY(latent_dimensions=8, encoders=[e1, e2])
+model = DCCAEY(n_components=8, encoders=[e1, e2])
 ```
 
 ### DCCANOI — Non-linear Orthogonal Iterations
@@ -112,7 +112,7 @@ while holding the others fixed.
 ```python
 from cca_zoo.deep import DCCANOI
 
-model = DCCANOI(latent_dimensions=8, encoders=[e1, e2])
+model = DCCANOI(n_components=8, encoders=[e1, e2])
 ```
 
 ### DCCASDL — Stochastic Decorrelation Loss
@@ -123,7 +123,7 @@ cross-covariance entries.
 ```python
 from cca_zoo.deep import DCCASDL
 
-model = DCCASDL(latent_dimensions=8, encoders=[e1, e2])
+model = DCCASDL(n_components=8, encoders=[e1, e2])
 ```
 
 ### DCCAE — Deep CCA with Autoencoders
@@ -138,7 +138,7 @@ decoder1 = nn.Sequential(nn.Linear(16, 64), nn.ReLU(), nn.Linear(64, 100))
 decoder2 = nn.Sequential(nn.Linear(16, 64), nn.ReLU(), nn.Linear(64, 80))
 
 model = DCCAE(
-    latent_dimensions=8,
+    n_components=8,
     encoders=[e1, e2],
     decoders=[decoder1, decoder2],
     lam=0.01,  # reconstruction loss weight
@@ -153,7 +153,7 @@ latent variable has an explicit probabilistic prior.
 ```python
 from cca_zoo.deep import DVCCA
 
-model = DVCCA(latent_dimensions=8, encoders=[e1, e2], decoders=[d1, d2])
+model = DVCCA(n_components=8, encoders=[e1, e2], decoders=[d1, d2])
 ```
 
 ### DTCCA — Deep Tensor CCA
@@ -164,7 +164,7 @@ a tensor loss on the encoder outputs.
 ```python
 from cca_zoo.deep import DTCCA
 
-model = DTCCA(latent_dimensions=8, encoders=[e1, e2, e3])
+model = DTCCA(n_components=8, encoders=[e1, e2, e3])
 ```
 
 ### SplitAE — Split Autoencoder
@@ -175,7 +175,7 @@ decodes back to each view independently.
 ```python
 from cca_zoo.deep import SplitAE
 
-model = SplitAE(latent_dimensions=8, encoders=[e1, e2], decoders=[d1, d2])
+model = SplitAE(n_components=8, encoders=[e1, e2], decoders=[d1, d2])
 ```
 
 ### BarlowTwins
@@ -186,7 +186,7 @@ matrix of the two encoded views to be close to the identity.
 ```python
 from cca_zoo.deep import BarlowTwins
 
-model = BarlowTwins(latent_dimensions=8, encoders=[e1, e2], lam=5e-3)
+model = BarlowTwins(n_components=8, encoders=[e1, e2], lam=5e-3)
 ```
 
 ### VICReg
@@ -197,7 +197,7 @@ and **C**ovariance terms.
 ```python
 from cca_zoo.deep import VICReg
 
-model = VICReg(latent_dimensions=8, encoders=[e1, e2])
+model = VICReg(n_components=8, encoders=[e1, e2])
 ```
 
 ---
@@ -209,14 +209,13 @@ import torch.nn as nn
 import lightning as L
 from torch.utils.data import DataLoader
 
-from cca_zoo.datasets import JointData
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.deep import DCCA, MultiviewDataset
 
 # Simulate data
-data = JointData(
-    n_views=2, n_samples=1000, n_features=[100, 80], latent_dimensions=4, random_state=0
+views = make_joint_data(
+    n_samples=1000, n_features=[100, 80], n_components=4, random_state=0
 )
-views = data.sample()
 
 train_loader = DataLoader(MultiviewDataset(views), batch_size=64, shuffle=True)
 
@@ -232,9 +231,9 @@ def make_encoder(in_features: int, latent_dim: int) -> nn.Module:
 
 
 model = DCCA(
-    latent_dimensions=4,
+    n_components=4,
     encoders=[make_encoder(100, 4), make_encoder(80, 4)],
-    lr=1e-3,
+    learning_rate=1e-3,
 )
 
 trainer = L.Trainer(max_epochs=30, enable_progress_bar=True)
@@ -251,8 +250,8 @@ print("Representation shape:", z1.shape)  # (1000, 4)
 ## Tips
 
 - **Batch size matters.** CCA-based losses estimate covariance from mini-batches. Use
-  `batch_size ≥ 4 * latent_dimensions` for stable estimates.
-- **Encoder output dimension ≥ `latent_dimensions`.** The model projects down inside the
+  `batch_size ≥ 4 * n_components` for stable estimates.
+- **Encoder output dimension ≥ `n_components`.** The model projects down inside the
   loss; do not make encoders narrower than the requested latent space.
 - **Use `DCCAEY` for small batches.** The Eckart-Young objective is more numerically stable
   than the original `CCALoss` when batch sizes are small.
