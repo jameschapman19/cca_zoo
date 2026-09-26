@@ -106,7 +106,7 @@ nav:
       - Linear Methods: user-guide/linear.md
       - Nonparametric Methods: user-guide/nonparametric.md
       - Tree Methods: user-guide/tree.md
-      - GAM Methods: user-guide/gam.md
+      - GAM & MARS Methods: user-guide/gam.md
       - GP Methods: user-guide/gp.md
       - Sparse Methods: user-guide/sparse.md
       - Stochastic Methods: user-guide/stochastic.md
@@ -120,7 +120,7 @@ nav:
       - Metrics: api/metrics.md
       - Nonparametric: api/nonparametric.md
       - Tree: api/tree.md
-      - GAM: api/gam.md
+      - GAM & MARS: api/gam.md
       - GP: api/gp.md
       - Sparse: api/sparse.md
       - Stochastic: api/stochastic.md

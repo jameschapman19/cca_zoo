@@ -61,19 +61,25 @@ z = CCA(latent_dimensions=2).fit_transform(views)
 
 ### Evaluating fit quality
 
-`score` returns the average pairwise canonical correlation per latent dimension:
+`score` returns the mean canonical correlation, one float as sklearn expects (so it works
+directly as a `GridSearchCV` criterion). The per-dimension values come from `cca_zoo.metrics`:
 
 ```python
-corrs = model.score(views)  # np.ndarray, shape (latent_dimensions,)
-print(corrs)  # e.g. [0.94, 0.87]
+from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
+
+model.score(views)  # e.g. 0.905
+scores = model.transform(views)
+average_pairwise_correlations(pairwise_correlations(scores))  # e.g. [0.94, 0.87]
 ```
 
 ### Inspecting weights
 
-After fitting, `model.weights` is a list of weight matrices (one per view):
+After fitting, a linear model's `weights_` is a list of weight matrices (one per view), and
+every model's `feature_importances_` gives one non-negative array per view summing to 1:
 
 ```python
-W1, W2 = model.weights  # each shape (n_features_i, latent_dimensions)
+W1, W2 = model.weights_  # each shape (n_features_i, latent_dimensions)
+imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
 ```
 
 ### Predicting a missing view
@@ -129,7 +135,7 @@ test_views = data.sample()
 
 # Fit and evaluate
 model = CCA(latent_dimensions=2).fit(train_views)
-print("Canonical correlations:", model.score(test_views))
+print("Mean canonical correlation:", model.score(test_views))
 
 # Project into the shared latent space
 z1, z2 = model.transform(test_views)

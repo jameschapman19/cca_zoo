@@ -55,7 +55,7 @@ def test_weights_shapes_and_matches_transform(
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k, n_nonzero_coefs=2).fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], k)
@@ -66,12 +66,12 @@ def test_weights_shapes_and_matches_transform(
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = OrthogonalMatchingPursuitCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -95,11 +95,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k, n_nonzero_coefs=2).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -148,7 +148,7 @@ def test_active_feature_count_matches_budget(
         latent_dimensions=2, n_nonzero_coefs=budget, random_state=0
     )
     model.fit(correlated_views)
-    for w in model.weights:
+    for w in model.weights_:
         n_active = int(np.sum(np.linalg.norm(w, axis=1) > 1e-10))
         assert n_active == budget
 
@@ -160,7 +160,7 @@ def test_per_view_budget_list(correlated_views: list[np.ndarray]) -> None:
         latent_dimensions=1, n_nonzero_coefs=budgets, random_state=0
     )
     model.fit(correlated_views)
-    for w, budget in zip(model.weights, budgets):
+    for w, budget in zip(model.weights_, budgets):
         n_active = int(np.sum(np.abs(w.ravel()) > 1e-10))
         assert n_active == budget
 
@@ -174,7 +174,7 @@ def test_budget_exceeding_n_features_is_capped(
         latent_dimensions=1, n_nonzero_coefs=n_features + 100, random_state=0
     )
     model.fit(correlated_views)
-    n_active = int(np.sum(np.abs(model.weights[0].ravel()) > 1e-10))
+    n_active = int(np.sum(np.abs(model.weights_[0].ravel()) > 1e-10))
     assert n_active <= n_features
 
 
@@ -184,7 +184,7 @@ def test_default_n_nonzero_coefs_is_ten_percent(
     """With n_nonzero_coefs=None, each view defaults to max(1, n_features // 10)."""
     model = OrthogonalMatchingPursuitCCA(latent_dimensions=1, random_state=0)
     model.fit(correlated_views)
-    for w, v in zip(model.weights, correlated_views):
+    for w, v in zip(model.weights_, correlated_views):
         expected = max(1, v.shape[1] // 10)
         n_active = int(np.sum(np.abs(w.ravel()) > 1e-10))
         assert n_active == expected

@@ -92,8 +92,11 @@ All contributions must comply with the following:
 1. Create the implementation file in the appropriate subpackage
    (e.g. `cca_zoo/linear/_mymodel.py`).
 2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep). This gets you
-   `transform`, `fit_transform`, `score`, `pairwise_correlations`, `get_factor_loadings`,
-   and correct sklearn `get_params`/`set_params`/tags for free — implement `fit` only.
+   `transform`, `fit_transform`, `predict`, `inverse_transform`, `score`, and correct
+   sklearn `get_params`/`set_params`/tags for free. Implement `fit`, setting `weights_`
+   for a linear model; a nonlinear one overrides `_transform_view(view, centred)`, its
+   per-view encoder, which every other method goes through. Set `feature_importances_`
+   in `fit` (one non-negative array per view, each summing to 1).
 3. Add Google-style docstrings including the mathematical objective and reference(s).
 4. If any constructor parameter has a documented range (e.g. a ridge parameter in
    `[0, 1]`), declare it in `_parameter_constraints` (merging in the parent class's, e.g.

@@ -20,6 +20,8 @@ from cca_zoo.linear import (
     PartialCCA,
     rCCA,
 )
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
+from tests._helpers import canonical_correlations
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -155,11 +157,11 @@ def test_fit_transform_consistency_multi_view(
 
 @pytest.mark.parametrize("ModelClass", TWO_VIEW_MODELS)
 def test_score_shape_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 @pytest.mark.parametrize("ModelClass", TWO_VIEW_MODELS)
@@ -181,7 +183,7 @@ def test_score_shape_multi_view(
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
     s = model.score(three_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 # get_params/set_params roundtrip behaviour (sklearn.BaseEstimator machinery,
@@ -199,7 +201,7 @@ def test_weights_shape_two_view(ModelClass: type, two_views: list[np.ndarray]) -
     """Weights has correct shapes (n_features_i, latent_dimensions) per view."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
-    w = model.weights
+    w = model.weights_
     assert len(w) == len(two_views)
     for weight, view in zip(w, two_views):
         assert weight.shape == (view.shape[1], k)
@@ -212,14 +214,14 @@ def test_weights_shape_multi_view(
     """Weights shapes are correct for multi-view models."""
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
-    w = model.weights
+    w = model.weights_
     assert len(w) == len(three_views)
     for weight, view in zip(w, three_views):
         assert weight.shape == (view.shape[1], k)
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -227,10 +229,10 @@ def test_weights_shape_multi_view(
 def test_get_factor_loadings_shapes_two_view(
     ModelClass: type, two_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns one (n_features_i, latent_dims) array per view."""
+    """factor_loadings returns one (n_features_i, latent_dims) array per view."""
     k = 2
     model = ModelClass(latent_dimensions=k).fit(two_views)
-    loadings = model.get_factor_loadings(two_views)
+    loadings = factor_loadings(two_views, model.transform(two_views))
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
         assert loading.shape == (view.shape[1], k)
@@ -243,7 +245,7 @@ def test_get_factor_loadings_shapes_multi_view(
     """get_factor_loadings shapes are correct for multi-view models."""
     k = 2
     model = _make_multi_view_model(ModelClass, latent_dimensions=k).fit(three_views)
-    loadings = model.get_factor_loadings(three_views)
+    loadings = factor_loadings(three_views, model.transform(three_views))
     assert len(loadings) == len(three_views)
     for loading, view in zip(loadings, three_views):
         assert loading.shape == (view.shape[1], k)
@@ -318,8 +320,8 @@ def test_gcca_view_weights(three_views: list[np.ndarray]) -> None:
 
 def test_tcca_reproducibility(three_views: list[np.ndarray]) -> None:
     """TCCA with same random_state gives identical weights."""
-    w1 = TCCA(latent_dimensions=1, random_state=42).fit(three_views).weights
-    w2 = TCCA(latent_dimensions=1, random_state=42).fit(three_views).weights
+    w1 = TCCA(latent_dimensions=1, random_state=42).fit(three_views).weights_
+    w2 = TCCA(latent_dimensions=1, random_state=42).fit(three_views).weights_
     for a, b in zip(w1, w2):
         np.testing.assert_array_equal(a, b)
 
@@ -349,7 +351,9 @@ def test_cca_perfect_correlation_identical_views() -> None:
 
 def test_cca_correlations_are_decreasing(correlated_views: list[np.ndarray]) -> None:
     """Canonical correlations are returned in non-increasing order."""
-    s = CCA(latent_dimensions=2).fit(correlated_views).score(correlated_views)
+    s = canonical_correlations(
+        CCA(latent_dimensions=2).fit(correlated_views), correlated_views
+    )
     assert s[0] >= s[1] - 1e-10
 
 
@@ -400,7 +404,7 @@ def test_pairwise_correlations_shape_two_view(
     """pairwise_correlations returns shape (n_views, n_views, k) for two views."""
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
-    corrs = model.pairwise_correlations(two_views)
+    corrs = pairwise_correlations(model.transform(two_views))
     assert corrs.shape == (2, 2, k)
 
 
@@ -410,7 +414,7 @@ def test_pairwise_correlations_shape_three_view(
     """pairwise_correlations returns shape (n_views, n_views, k) for three views."""
     k = 2
     model = MCCA(latent_dimensions=k).fit(three_views)
-    corrs = model.pairwise_correlations(three_views)
+    corrs = pairwise_correlations(model.transform(three_views))
     assert corrs.shape == (3, 3, k)
 
 
@@ -497,8 +501,7 @@ def test_partial_cca_score_and_fit_transform(two_views: list[np.ndarray]) -> Non
     )
     for a, b in zip(ft, fit_then_transform):
         np.testing.assert_allclose(np.abs(a), np.abs(b), atol=1e-10)
-    s = model.score(two_views)
-    assert s.shape == (2,)
+    assert isinstance(model.score(two_views), float)
 
 
 def test_partial_cca_removes_confound_effect() -> None:
@@ -730,7 +733,7 @@ def test_ccar3_score_shape(two_views: list[np.ndarray]) -> None:
     k = 2
     model = CCAR3(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 # ---------------------------------------------------------------------------
@@ -842,4 +845,4 @@ def test_ecca_score_shape(two_views: list[np.ndarray]) -> None:
     k = 2
     model = ECCA(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)

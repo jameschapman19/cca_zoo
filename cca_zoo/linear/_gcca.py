@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._linalg import psd_inverse_sqrt
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -34,7 +34,9 @@ class GCCA(BaseModel):
     $$
 
     and computing its top-k eigenvectors $V$, then recovering the
-    per-view weights as $\mathbf{w}_i = X_i^+ V$.
+    per-view weights as $\mathbf{w}_i = X_i^+ V$. $Q = H H^\top$ for the
+    stacked whitened views $H$, so $V$ comes from $H$'s thin SVD without
+    forming the $n \times n$ matrix.
 
     References:
         Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
@@ -95,16 +97,21 @@ class GCCA(BaseModel):
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
-        # Build Q = sum_i mu_i X_i (cov_i)^{-1} X_i^T
-        Q = np.zeros((self.n_samples_, self.n_samples_))
-        for i, (v, ci, mi) in enumerate(zip(views_, c_, mu)):
-            cov_i = (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1])
-            min_eig = np.linalg.eigvalsh(cov_i).min()
-            if min_eig < self.eps:
-                cov_i += (self.eps - min_eig) * np.eye(cov_i.shape[0])
-            Q += mi * (v @ np.linalg.inv(cov_i) @ v.T)
-
-        _, eigvecs = gevp(Q, None, self.latent_dimensions)
-        T = eigvecs[:, : self.latent_dimensions]  # (n_samples, k)
+        # Q = sum_i mu_i X_i cov_i^{-1} X_i^T is H H^T for the stacked
+        # whitened views H = [sqrt(mu_i) X_i cov_i^{-1/2}], so its top
+        # eigenvectors are H's top left singular vectors: an n x sum(p_i)
+        # SVD in place of an n x n eigenproblem.
+        stacked = np.hstack(
+            [
+                np.sqrt(mi)
+                * v
+                @ psd_inverse_sqrt(
+                    (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1]),
+                    self.eps,
+                )
+                for v, ci, mi in zip(views_, c_, mu)
+            ]
+        )
+        T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.latent_dimensions]
         self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
         return self

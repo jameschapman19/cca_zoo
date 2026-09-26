@@ -66,7 +66,7 @@ test_views = data.sample()
 
 # Fit CCA and evaluate
 model = CCA(latent_dimensions=2).fit(train_views)
-print(model.score(test_views))  # canonical correlations, shape (2,)
+print(model.score(test_views))  # mean canonical correlation
 
 # Project views into the shared latent space
 z1, z2 = model.transform(test_views)  # each shape (200, 2)
@@ -119,12 +119,13 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Description | Citation | Views |
 |---|---|---|---|
 | `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `MARSCCA` | Multivariate-adaptive-regression-spline CCA with optional within-view interactions (Eckart-Young objective) | Friedman (1991) | ≥2 |
 
 ### `cca_zoo.gp`
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `GPCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `GaussianProcessCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 
 ### `cca_zoo.sparse`
 
@@ -155,9 +156,9 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | Class | Description | Citation |
 |---|---|---|
 | `DCCA` | Deep CCA, pluggable objective | Andrew et al. (2013) |
-| `DCCA_EY` | Deep CCA via Eigengame / Eckart-Young objective | Chapman, Wells & Lawry Aguila (2024) |
-| `DCCA_NOI` | Deep CCA via non-linear orthogonal iterations | Wang et al. (2015) |
-| `DCCA_SDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) |
+| `DCCAEY` | Deep CCA via Eigengame / Eckart-Young objective | Chapman, Wells & Lawry Aguila (2024) |
+| `DCCANOI` | Deep CCA via non-linear orthogonal iterations | Wang et al. (2015) |
+| `DCCASDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) |
 | `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) |
 | `DVCCA` | Deep variational CCA | Wang et al. (2016) |
 | `DTCCA` | Deep tensor CCA | Wong et al. (2021) |

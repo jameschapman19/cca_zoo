@@ -8,6 +8,11 @@ from sklearn.exceptions import NotFittedError
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear._cca import CCA
+from cca_zoo.metrics import (
+    average_pairwise_correlations,
+    factor_loadings,
+    pairwise_correlations,
+)
 
 # ---------------------------------------------------------------------------
 # Concrete minimal subclass for testing abstract interface
@@ -88,16 +93,16 @@ def test_center_false_means_are_zeros(two_views: list[np.ndarray]) -> None:
 
 
 def test_weights_raises_before_fit() -> None:
-    """Accessing .weights before fit raises NotFittedError."""
+    """Accessing .weights_ before fit raises NotFittedError."""
     model = _MinimalModel()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_weights_accessible_after_fit(two_views: list[np.ndarray]) -> None:
-    """Accessing .weights after fit returns a list of arrays."""
+    """Accessing .weights_ after fit returns a list of arrays."""
     model = _MinimalModel(latent_dimensions=1).fit(two_views)
-    w = model.weights
+    w = model.weights_
     assert isinstance(w, list)
     assert len(w) == len(two_views)
 
@@ -140,7 +145,7 @@ def test_score_shape(two_views: list[np.ndarray]) -> None:
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
     s = model.score(two_views)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(correlated_views: list[np.ndarray]) -> None:
@@ -155,40 +160,39 @@ def test_pairwise_correlations_shape(two_views: list[np.ndarray]) -> None:
     """pairwise_correlations returns shape (n_views, n_views, latent_dimensions)."""
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
-    corrs = model.pairwise_correlations(two_views)
+    corrs = pairwise_correlations(model.transform(two_views))
     assert corrs.shape == (2, 2, k)
 
 
 def test_pairwise_correlations_diagonal_is_one(two_views: list[np.ndarray]) -> None:
     """Diagonal entries of pairwise_correlations should be 1 (self-correlation)."""
     model = CCA(latent_dimensions=1).fit(two_views)
-    corrs = model.pairwise_correlations(two_views)
+    corrs = pairwise_correlations(model.transform(two_views))
     np.testing.assert_allclose(corrs[0, 0, :], 1.0, atol=1e-10)
     np.testing.assert_allclose(corrs[1, 1, :], 1.0, atol=1e-10)
 
 
-def test_average_pairwise_correlations_equals_score(
+def test_score_is_the_mean_canonical_correlation(
     two_views: list[np.ndarray],
 ) -> None:
-    """average_pairwise_correlations and score should return the same values."""
+    """Score is the mean over dimensions of the per-dimension correlations."""
     model = CCA(latent_dimensions=2).fit(two_views)
-    np.testing.assert_allclose(
-        model.average_pairwise_correlations(two_views),
-        model.score(two_views),
-        rtol=1e-12,
+    per_dimension = average_pairwise_correlations(
+        pairwise_correlations(model.transform(two_views))
     )
+    assert model.score(two_views) == pytest.approx(per_dimension.mean(), rel=1e-12)
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings
+# factor_loadings
 # ---------------------------------------------------------------------------
 
 
 def test_get_factor_loadings_shapes(two_views: list[np.ndarray]) -> None:
-    """get_factor_loadings returns one array per view with shape (n_features, k)."""
+    """factor_loadings returns one array per view with shape (n_features, k)."""
     k = 2
     model = CCA(latent_dimensions=k).fit(two_views)
-    loadings = model.get_factor_loadings(two_views)
+    loadings = factor_loadings(two_views, model.transform(two_views))
     assert len(loadings) == len(two_views)
     for loading, view in zip(loadings, two_views):
         assert loading.shape == (view.shape[1], k)

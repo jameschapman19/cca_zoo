@@ -87,8 +87,8 @@ model.fit([X1, X2])
 
 # 3. use
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])  # canonical correlations, shape (2,)
-W1, W2 = model.weights  # weight matrices
+corr = model.score([X1, X2])  # mean canonical correlation (a float)
+W1, W2 = model.weights_  # weight matrices
 ```
 
 Models are `sklearn.base.BaseEstimator` subclasses, so `get_params`/`set_params`/`clone`

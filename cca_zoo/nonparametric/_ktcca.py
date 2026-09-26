@@ -5,12 +5,11 @@ from __future__ import annotations
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
-from scipy.linalg import sqrtm
 from sklearn.metrics import pairwise_kernels
-from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -115,17 +114,7 @@ class KTCCA(BaseModel):
         ]
         whitened, self._cov_invsqrt = self._whiten_kernels(kernels, c_)
 
-        # Build cross-moment tensor
-        M: np.ndarray | None = None
-        for i, wk in enumerate(whitened):
-            if M is None:
-                M = wk
-            else:
-                for _ in range(len(M.shape) - 1):
-                    wk = np.expand_dims(wk, 1)
-                M = np.expand_dims(M, -1) @ wk
-        assert M is not None
-        M = np.mean(M, 0)
+        M = cross_moment_tensor(whitened)
 
         tl.set_backend("numpy")
         parafac_result = parafac(
@@ -139,36 +128,19 @@ class KTCCA(BaseModel):
         ]
         return self
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Transform new views using fitted kernel dual variables.
-
-        Args:
-            views: List of arrays, each (n_samples_test, n_features_i).
-
-        Returns:
-            List of arrays, each (n_samples_test, latent_dimensions).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        check_is_fitted(self)
-        from cca_zoo._utils._validation import validate_views
-
-        validated = validate_views(views)
-        result = []
-        for i, v in enumerate(validated):
-            K_test = pairwise_kernels(
-                self.train_views_[i],
-                Y=v,
-                metric=self._kernel[i],
-                gamma=self._gamma[i],
-                degree=self._degree[i],
-                coef0=self._coef0[i],
-                filter_params=True,
-                **(self._kp[i] if self._kp[i] else {}),
-            )
-            result.append(K_test.T @ self.weights_[i])
-        return result
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        kernel = pairwise_kernels(
+            centred,
+            self.train_views_[view],
+            metric=self._kernel[view],
+            gamma=self._gamma[view],
+            degree=self._degree[view],
+            coef0=self._coef0[view],
+            filter_params=True,
+            **(self._kp[view] if self._kp[view] else {}),
+        )
+        scores: np.ndarray = kernel @ self.weights_[view]
+        return scores
 
     def _whiten_kernels(
         self,
@@ -188,10 +160,7 @@ class KTCCA(BaseModel):
         cov_invsqrt = []
         for i, K in enumerate(kernels):
             cov = (1.0 - c[i]) * K @ K + c[i] * K
-            min_eig = np.linalg.eigvalsh(cov).min()
-            if min_eig < self.eps:
-                cov += (self.eps - min_eig) * np.eye(cov.shape[0])
-            invsqrt = np.linalg.inv(sqrtm(cov).real)
+            invsqrt = psd_inverse_sqrt(cov, self.eps)
             whitened.append(K @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

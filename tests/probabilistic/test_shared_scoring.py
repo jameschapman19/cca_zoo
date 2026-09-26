@@ -1,14 +1,10 @@
 """Regression tests for scoring/loadings shared by every probabilistic model.
 
-``ProbabilisticCCA`` and ``VariationalBayesCCA`` both return a *single*
-shared-latent array from ``transform`` (there is one joint z, not one
-per-view canonical variate). ``BaseModel``'s default ``score`` /
-``pairwise_correlations`` / ``get_factor_loadings`` assume one array per
-view and silently misbehave when only one is returned:
-``average_pairwise_correlations`` degenerates a 2-view problem to a 1x1
-self-comparison (0/0 -> nan), and ``get_factor_loadings`` zips the single
-array against every view, silently truncating to just the first one. Both
-are fixed by ``cca_zoo.probabilistic._utils.PosteriorMeanTransformMixin``.
+``ProbabilisticCCA`` and ``VariationalBayesCCA`` return one projection per
+view from ``transform``, like every model, so ``BaseModel``'s scoring and
+loadings apply unchanged. These tests guard the failure modes an earlier
+single-array ``transform`` had: a 2-view problem degenerating to a 1x1
+self-comparison (0/0 -> nan), and loadings silently truncated to one view.
 All tests are marked slow and require numpyro + jax.
 """
 
@@ -16,6 +12,9 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
+from tests._helpers import canonical_correlations
 
 numpyro = pytest.importorskip("numpyro", reason="numpyro is not installed")
 jax = pytest.importorskip("jax", reason="jax is not installed")
@@ -67,9 +66,7 @@ def test_score_is_finite_two_views(
     model = ModelClass(
         latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(two_views)
-    s = model.score(two_views)
-    assert s.shape == (2,)
-    assert np.all(np.isfinite(s))
+    assert np.all(np.isfinite(canonical_correlations(model, two_views)))
 
 
 @pytest.mark.slow
@@ -83,9 +80,7 @@ def test_score_is_finite_three_views(
     model = ModelClass(
         latent_dimensions=1, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    s = model.score(three_views)
-    assert s.shape == (1,)
-    assert np.all(np.isfinite(s))
+    assert np.isfinite(model.score(three_views))
 
 
 @pytest.mark.slow
@@ -99,7 +94,7 @@ def test_pairwise_correlations_shape(
     model = ModelClass(
         latent_dimensions=2, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    corrs = model.pairwise_correlations(three_views)
+    corrs = pairwise_correlations(model.transform(three_views))
     assert corrs.shape == (3, 3, 2)
     assert np.all(np.isfinite(corrs))
 
@@ -111,12 +106,12 @@ def test_pairwise_correlations_shape(
 def test_get_factor_loadings_one_per_view(
     ModelClass: type, three_views: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns one array per view, not just the first."""
+    """factor_loadings returns one array per view, not just the first."""
     k = 2
     model = ModelClass(
         latent_dimensions=k, random_state=0, **_fast_kwargs(ModelClass)
     ).fit(three_views)
-    loadings = model.get_factor_loadings(three_views)
+    loadings = factor_loadings(three_views, model.transform(three_views))
     assert len(loadings) == 3
     for loading, view in zip(loadings, three_views):
         assert loading.shape == (view.shape[1], k)

@@ -257,4 +257,4 @@ print("Representation shape:", z1.shape)  # (1000, 4)
 - **Use `DCCAEY` for small batches.** The Eckart-Young objective is more numerically stable
   than the original `CCALoss` when batch sizes are small.
 - **Score after training** via `model.score(loader)`, which fits a linear `MCCA` on the
-  learned representations to report canonical correlations.
+  learned representations to report their mean canonical correlation.

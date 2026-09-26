@@ -102,15 +102,9 @@ def test_pcca_transform_output_shapes(pcca_class: type) -> None:
         random_state=0,
     )
     model.fit(views)
-    # The v2-style transform may return representations of shape (n, k)
-    # or (num_samples, n, k) depending on implementation
     result = model.transform(views)
-    # Accept either a list or a single array
-    if isinstance(result, list):
-        for arr in result:
-            assert isinstance(arr, np.ndarray)
-    else:
-        assert isinstance(result, np.ndarray)
+    assert len(result) == len(views)
+    assert model.posterior_mean(views).shape == result[0].shape
 
 
 # ---------------------------------------------------------------------------

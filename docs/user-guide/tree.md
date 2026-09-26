@@ -56,9 +56,9 @@ abstract base class and cannot be instantiated directly:
 ```python
 from cca_zoo.tree import XGBoostCCA
 
-model = XGBoostCCA(latent_dimensions=2, n_estimators=200, max_depth=5).fit([X1, X2])
+model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # XGBoostCCA also supports more than two views
 model3 = XGBoostCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])
@@ -83,22 +83,16 @@ faster default.
 
 ## Feature importance
 
-None of the three classes has linear weight matrices, so `model.weights` raises
-`NotImplementedError`. Use the fitted `boosters_` attribute instead — a `list[list[Booster]]`
-indexed `[view][component]`:
+`feature_importances_` is each view's total split gain, summed over its components' boosters
+and normalised to sum to 1, the same convention as sklearn's gradient-boosting models:
 
 ```python
 model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
-
-# Split-gain feature importance for view 1, canonical component 0
-importance = model.boosters_[0][0].get_score(importance_type="gain")
-
-# Equivalent for LightGBMCCA
-# importance = model.boosters_[0][0].feature_importance(importance_type="gain")
-
-# Equivalent for CatBoostCCA
-# importance = model.boosters_[0][0].get_feature_importance()
+imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
 ```
+
+The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed
+`[view][component]`, for per-component importances or any other backend-specific inspection.
 
 ---
 
@@ -106,8 +100,9 @@ importance = model.boosters_[0][0].get_score(importance_type="gain")
 
 | Parameter | Description |
 |---|---|
-| `n_estimators` | Boosting rounds (trees added per booster). Higher values fit more complex relationships but risk overfitting and cost more time. |
-| `max_depth` | Maximum tree depth. |
+| `n_estimators` | Boosting rounds (trees added per booster). Default 200; held-out correlation plateaus there on typical data, and more rounds cost time. |
+| `max_depth` | Maximum tree depth. Default 3: two tree ensembles fitted to each other overfit quickly, so shallow trees generalise best. |
+| `min_child_weight` | Minimum leaf size (see the notes below). Default 20, for the same reason. |
 | `learning_rate` | Boosting shrinkage. |
 | `subsample`, `colsample_bytree` | Row/column subsampling ratios per tree, for regularisation. |
 | `gauss_seidel` | Use freshly-updated view-1 embeddings when computing view 2's gradient each round (default `True`); set `False` for Jacobi-style stale updates. |

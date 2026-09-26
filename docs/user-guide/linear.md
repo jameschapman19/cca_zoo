@@ -29,7 +29,7 @@ from cca_zoo.linear import CCA
 
 model = CCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-print(model.score([X1, X2]))  # canonical correlations
+print(model.score([X1, X2]))  # mean canonical correlation
 ```
 
 ### rCCA — Regularised CCA

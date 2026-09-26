@@ -26,6 +26,7 @@ allocation, multimetric support, ...) is reused rather than reimplemented.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any, ClassVar, cast
 
 import numpy as np
@@ -151,8 +152,7 @@ class MultiviewWrapper(BaseEstimator):
 
     def score(self, X: np.ndarray, y: None = None) -> float:
         """Mean canonical correlation over all latent dimensions."""
-        scores: np.ndarray = self.estimator_.score(self._split_views(X))
-        return float(scores.mean())
+        return float(self.estimator_.score(self._split_views(X)))
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         """Transform and re-concatenate, so the wrapper composes with Pipeline."""
@@ -195,6 +195,13 @@ def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
     return unwrapped
 
 
+def _unwrapped_refit(refit: Any) -> Any:
+    """Hand a callable ``refit`` the unprefixed ``cv_results_`` users see."""
+    if not callable(refit):
+        return refit
+    return lambda cv_results: refit(_unwrap_cv_results(cv_results))
+
+
 def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
     """Copy every fitted (trailing-underscore) attribute from ``inner``.
 
@@ -221,7 +228,7 @@ def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
 class _MultiviewSearchMixin:
     """Shared ``transform``/``score`` for the wrapped multiview search classes."""
 
-    refit: bool
+    refit: bool | str | Callable[[dict[str, Any]], int]
     _inner_cv: BaseEstimator
     best_estimator_: BaseEstimator
 
@@ -303,7 +310,10 @@ class GridSearchCV(_BaseMultiviewSearchCV):
             default :meth:`score` method is used.
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
-        refit: Whether to refit the best estimator on the full dataset.
+        refit: Whether to refit the best estimator on the full dataset,
+            or, as in sklearn, a callable returning the index of the
+            candidate to refit given ``cv_results_`` (with the same
+            unprefixed parameter names as this object's ``cv_results_``).
             Default is ``True``.
         verbose: Verbosity level. Default is 0.
         pre_dispatch: Controls the number of jobs dispatched during
@@ -348,7 +358,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         cv: int | Any = 5,
         scoring: str | None = None,
         n_jobs: int | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         verbose: int = 0,
         pre_dispatch: str | int = "2*n_jobs",
         error_score: float = np.nan,
@@ -388,7 +398,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
             cv=self.cv,
             scoring=self.scoring,
             n_jobs=self.n_jobs,
-            refit=self.refit,
+            refit=_unwrapped_refit(self.refit),
             verbose=self.verbose,
             pre_dispatch=self.pre_dispatch,
             error_score=self.error_score,
@@ -421,7 +431,10 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
             default :meth:`score` method is used.
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
-        refit: Whether to refit the best estimator on the full dataset.
+        refit: Whether to refit the best estimator on the full dataset,
+            or, as in sklearn, a callable returning the index of the
+            candidate to refit given ``cv_results_`` (with the same
+            unprefixed parameter names as this object's ``cv_results_``).
             Default is ``True``.
         verbose: Verbosity level. Default is 0.
         random_state: Controls the randomness of the parameter sampling.
@@ -478,7 +491,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         cv: int | Any = 5,
         scoring: str | None = None,
         n_jobs: int | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         verbose: int = 0,
         random_state: int | Any = None,
         pre_dispatch: str | int = "2*n_jobs",
@@ -522,7 +535,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
             cv=self.cv,
             scoring=self.scoring,
             n_jobs=self.n_jobs,
-            refit=self.refit,
+            refit=_unwrapped_refit(self.refit),
             verbose=self.verbose,
             random_state=self.random_state,
             pre_dispatch=self.pre_dispatch,

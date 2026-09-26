@@ -81,6 +81,42 @@ print(gs.best_score_)
 best = gs.best_estimator_
 ```
 
+### Custom refit rules
+
+As in sklearn, `refit` also takes a callable that receives `cv_results_` and returns the index of
+the candidate to refit. When CV scores are noisy, the top mean score tends to favour complex
+candidates, and a common remedy is the one-standard-error rule (Breiman's CART, `glmnet`'s
+`lambda.1se`): take the simplest candidate whose mean score is within one standard error of the
+best. sklearn's [Balance model complexity and cross-validated
+score](https://scikit-learn.org/stable/auto_examples/model_selection/plot_grid_search_refit_callable.html)
+example shows the pattern; for `MARSCCA`'s `nprune` (smaller is simpler):
+
+```python
+import numpy as np
+from cca_zoo.gam import MARSCCA
+from cca_zoo.model_selection import GridSearchCV
+
+
+def one_standard_error(cv_results):
+    mean = cv_results["mean_test_score"]
+    se = cv_results["std_test_score"] / np.sqrt(5)  # 5 CV splits
+    best = np.argmax(mean)
+    eligible = np.flatnonzero(mean >= mean[best] - se[best])
+    return eligible[np.argmin(cv_results["param_nprune"][eligible])]
+
+
+gs = GridSearchCV(
+    MARSCCA(degree=2, nk=40),
+    {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+    cv=5,
+    refit=one_standard_error,
+).fit([X1, X2])
+```
+
+`cv_results_` carries the same parameter names you passed in the grid (`param_nprune`, not the
+internal `param_estimator__nprune`). The successive-halving searches choose their final
+candidate themselves and, like sklearn's, take only `refit=True`/`False`.
+
 ---
 
 ## RandomizedSearchCV
@@ -212,7 +248,7 @@ keeping each view's own covariance structure intact. `p_values_` compares each
 dimension's true correlation directly against its shuffled counterparts. For the
 loadings, a shuffled refit isn't guaranteed to recover components in the same order or
 sign as the true fit — permutation can rotate or reflect near-tied dimensions — so each
-permutation's loadings are first realigned to the true fit via `procrustes_rotation`
+permutation's loadings are first realigned to the true fit (`scipy.linalg.orthogonal_procrustes`)
 before being compared feature-by-feature. This follows the resampling-based significance
 testing approach used in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh &
 Lobaugh 2004).

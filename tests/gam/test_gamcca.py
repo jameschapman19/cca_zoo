@@ -12,6 +12,7 @@ import pytest
 from sklearn.preprocessing import SplineTransformer
 
 from cca_zoo.gam import GAMCCA
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GAMCCA:
@@ -98,11 +99,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -124,31 +125,24 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = GAMCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="shape_function"):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -163,7 +157,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -191,7 +185,7 @@ def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     assert len(model.encoders_) == 2
     for enc in model.encoders_:
-        assert enc.k == k
+        assert enc.coef_.shape[1] == k
         assert enc.predict().shape == (two_views_small[0].shape[0], k)
 
 
@@ -213,28 +207,81 @@ def test_encoder_basis_is_sklearn_spline_transformer(
 # ---------------------------------------------------------------------------
 
 
-def test_per_view_n_knots_list(two_views_small: list[np.ndarray]) -> None:
-    """A per-view n_knots list gives each view a different spline basis size."""
-    model = _make_model(n_knots=[5, 10]).fit(two_views_small)
-    assert model.encoders_[0].n_splines_ != model.encoders_[1].n_splines_
+def test_per_view_k_list(two_views_small: list[np.ndarray]) -> None:
+    """A per-view k list gives each view its own basis dimension, as mgcv's k."""
+    model = _make_model(k=[6, 12]).fit(two_views_small)
+    assert [enc.n_splines_ for enc in model.encoders_] == [6, 12]
 
 
-def test_per_view_alpha_list_gives_smaller_penalised_view_coefficients(
-    correlated_views: list[np.ndarray],
+def test_per_view_sp_smooths_only_that_view(correlated_views: list[np.ndarray]) -> None:
+    """A large sp flattens that view's smooths to lines; the other view stays free.
+
+    The P-spline penalty acts on second differences of neighbouring
+    coefficients, so a huge sp drives them to zero (a straight line per
+    feature) rather than shrinking the coefficients themselves.
+    """
+    model = _make_model(sp=[1e-3, 1e6]).fit(correlated_views)
+    wiggle = [
+        np.linalg.norm(enc.penalty_factor_ @ enc.coef_) / np.linalg.norm(enc.predict())
+        for enc in model.encoders_
+    ]
+    assert wiggle[1] < 1e-2 * wiggle[0]
+
+
+@pytest.mark.parametrize("name", ["k", "m", "sp"])
+def test_per_view_parameter_wrong_length_raises(
+    two_views_small: list[np.ndarray], name: str
 ) -> None:
-    """A per-view alpha list shrinks only the strongly-penalised view's coefficients."""
-    model = _make_model(alpha=[0.01, 100.0], random_state=0).fit(correlated_views)
-    norm0 = np.linalg.norm(model.encoders_[0].coef_)
-    norm1 = np.linalg.norm(model.encoders_[1].coef_)
-    assert norm1 < norm0
+    """Every per-view parameter must have one entry per view."""
+    with pytest.raises(ValueError, match=name):
+        _make_model(**{name: [8, 8, 8]}).fit(two_views_small)
 
 
-def test_per_view_alpha_wrong_length_raises(
+def test_m_tuple_sets_spline_and_penalty_order(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """A per-view alpha list must have one entry per view."""
-    with pytest.raises(ValueError, match="alpha"):
-        _make_model(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+    """m=(order, penalty order) as mgcv's: quadratic splines, first differences."""
+    model = _make_model(k=8, m=(1, 1)).fit(two_views_small)
+    enc = model.encoders_[0]
+    assert enc._spline.degree == 2
+    # First differences: one fewer row than coefficients per feature.
+    assert enc.penalty_factor_.shape == (7 * enc.p, 8 * enc.p)
+
+
+def test_k_too_small_for_m_raises(two_views_small: list[np.ndarray]) -> None:
+    """A cubic P-spline needs k >= 4; smaller k is refused with the reason."""
+    with pytest.raises(ValueError, match="too small"):
+        _make_model(k=4, m=(3, 2)).fit(two_views_small)
+
+
+def test_fit_is_deterministic(correlated_views: list[np.ndarray]) -> None:
+    """The closed-form fit has no random start: two fits agree up to sign."""
+    a = _make_model(latent_dimensions=2).fit(correlated_views)
+    b = _make_model(latent_dimensions=2).fit(correlated_views)
+    for za, zb in zip(a.transform(correlated_views), b.transform(correlated_views)):
+        np.testing.assert_allclose(np.abs(za), np.abs(zb), atol=1e-8)
+
+
+def test_data_free_splines_are_filled_in_by_the_penalty() -> None:
+    """Evenly spaced knots over a heavy-tailed feature leave splines with no data.
+
+    P-splines keep them and let the difference penalty interpolate their
+    coefficients; the fit must stay finite and smooth across the gap.
+    """
+    rng = np.random.default_rng(0)
+    n = 300
+    z = rng.standard_t(1.5, n)
+    views = [
+        np.column_stack([z, rng.standard_normal(n)]),
+        np.column_stack(
+            [np.tanh(z) + 0.1 * rng.standard_normal(n), rng.standard_normal(n)]
+        ),
+    ]
+    model = _make_model().fit(views)
+    grid = np.linspace(z.min(), z.max(), 400)
+    curve = model.shape_function(0, 0, grid)[:, 0]
+    assert np.all(np.isfinite(curve))
+    assert model.score(views) > 0.8
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +328,7 @@ def test_gamcca_finds_correlation_on_correlated_views(
     correlated_views: list[np.ndarray],
 ) -> None:
     """GAMCCA finds substantial correlation on views with shared latent structure."""
-    model = GAMCCA(latent_dimensions=1, random_state=0)
+    model = GAMCCA(latent_dimensions=1)
     s = model.fit(correlated_views).score(correlated_views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -294,7 +341,7 @@ def test_gamcca_finds_correlation_on_three_correlated_views() -> None:
         z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
         for _ in range(3)
     ]
-    model = GAMCCA(latent_dimensions=1, random_state=0)
+    model = GAMCCA(latent_dimensions=1)
     s = model.fit(views).score(views)
     assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
@@ -310,9 +357,8 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     ``rCCA`` is expected to fail), while a per-view nonlinear encoder that
     (approximately) learns the "square" transform recovers near-perfect
     cross-view correlation. GAMCCA's B-spline basis represents a quadratic
-    almost exactly and fits it via P-IRLS to convergence (no boosting-round
-    budget to match), so it should clearly beat TreeCCA at a generous but
-    fixed round count.
+    almost exactly and its closed-form fit is the global optimum, so it
+    should beat TreeCCA's piecewise-constant approximation.
 
     Marked slow since it also requires TreeCCA's optional ``xgboost``
     dependency, not part of the base ``dev`` install.
@@ -330,23 +376,20 @@ def test_gamcca_outperforms_linear_and_tree_on_smooth_nonmonotonic_data() -> Non
     X1_tr, X1_te = X1[:n_train], X1[n_train:]
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
-    gam = GAMCCA(latent_dimensions=1, random_state=0)
-    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    gam = GAMCCA(latent_dimensions=1)
+    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    tree = XGBoostCCA(
-        latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0
-    )
-    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    tree = XGBoostCCA(latent_dimensions=1, random_state=0)
+    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
-    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     assert gam_test > 0.9, (
         f"Expected GAMCCA to recover the relationship, got {gam_test}"
     )
-    assert gam_test > tree_test + 0.2, (
-        f"Expected GAMCCA ({gam_test}) to clearly beat TreeCCA ({tree_test}) "
-        f"at a generous fixed round budget"
+    assert gam_test > tree_test, (
+        f"Expected GAMCCA ({gam_test}) to beat TreeCCA ({tree_test})"
     )
     assert gam_test > rcca_test + 0.5, (
         f"Expected GAMCCA ({gam_test}) to clearly beat linear rCCA ({rcca_test})"

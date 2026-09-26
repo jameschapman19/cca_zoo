@@ -39,7 +39,7 @@ def test_weights_shapes_and_matches_transform(
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], k)
@@ -50,12 +50,12 @@ def test_weights_shapes_and_matches_transform(
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = GraphicalLassoCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_covariance_and_precision_shapes(three_views_small: list[np.ndarray]) -> None:
@@ -160,9 +160,7 @@ def test_fits_in_high_dimensional_regime() -> None:
     model = GraphicalLassoCCA(latent_dimensions=1, alpha=0.5, max_iter=500).fit(
         [x1, x2]
     )
-    scores = model.score([x1, x2])
-    assert np.all(np.isfinite(scores))
-    assert scores[0] > 0.3
+    assert model.score([x1, x2]) > 0.3
 
 
 # ---------------------------------------------------------------------------

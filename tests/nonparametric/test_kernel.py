@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import CCA
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 
 ALL_KERNEL_MODELS = [KCCA, KGCCA, KTCCA]
@@ -117,11 +118,11 @@ def test_fit_transform_consistency(
 
 @pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
 def test_score_shape(ModelClass: type, two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 @pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
@@ -149,7 +150,7 @@ def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> 
     """Kernel model weights are dual variables of shape (n_samples, k)."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
-    w = model.weights
+    w = model.weights_
     n = two_views_small[0].shape[0]
     assert len(w) == len(two_views_small)
     for weight in w:
@@ -157,7 +158,7 @@ def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> 
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
@@ -165,10 +166,10 @@ def test_weights_shapes(ModelClass: type, two_views_small: list[np.ndarray]) -> 
 def test_get_factor_loadings_shapes(
     ModelClass: type, two_views_small: list[np.ndarray]
 ) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == len(two_views_small)
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -255,7 +256,7 @@ def test_pairwise_correlations_shape(
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_kernel_model(ModelClass, latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -300,4 +301,22 @@ def test_kcca_regularisation_reduces_correlation(
         .fit(correlated_views)
         .score(correlated_views)
     )
-    assert s_low[0] >= s_high[0] - 1e-6
+    assert s_low >= s_high - 1e-6
+
+
+@pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
+def test_transform_centres_like_fit(ModelClass: type) -> None:
+    """Transforming the training data reproduces the fit-time kernel scores.
+
+    The kernel is formed against the centred training views, so new data
+    must be centred the same way; data far from the origin makes an
+    uncentred transform collapse an RBF kernel to zero.
+    """
+    from sklearn.metrics import pairwise_kernels
+
+    rng = np.random.default_rng(0)
+    views = [5.0 + rng.standard_normal((40, 3)) for _ in range(2)]
+    model = _make_kernel_model(ModelClass, kernel="rbf").fit(views)
+    for i, scores in enumerate(model.transform(views)):
+        kernel = pairwise_kernels(model.train_views_[i], metric="rbf")
+        np.testing.assert_allclose(scores, kernel @ model.weights_[i], atol=1e-10)

@@ -23,7 +23,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import brentq
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
-from sklearn.utils import deprecated
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate, soft_threshold
@@ -1030,8 +1029,21 @@ def _sar_bic_lasso(
         Coefficient vector at the BIC-selected $\lambda$, shape
         (n_features,).
     """
-    n = x.shape[0]
-    _, coefs, _ = lasso_path(x, y, alphas=n_lambda, tol=tol)
+    n, p = x.shape
+    # SAR runs ~1000 paths per fit, so skip sklearn's per-call input
+    # validation (most of each call's time), passing the Gram exactly when
+    # precompute="auto" would build it (n > p).
+    x = np.asfortranarray(x, dtype=float)
+    y = np.ascontiguousarray(y, dtype=float)
+    _, coefs, _ = lasso_path(
+        x,
+        y,
+        alphas=n_lambda,
+        tol=tol,
+        precompute=x.T @ x if n > p else False,
+        Xy=x.T @ y if n > p else None,
+        check_input=False,
+    )
     residuals = y[:, None] - x @ coefs
     rss = np.maximum((residuals**2).sum(axis=0), 1e-12)
     nnz = (np.abs(coefs) > 1e-12).sum(axis=0)
@@ -1242,68 +1254,3 @@ def _make_regressors(
                 )
             )
     return regressors
-
-
-# ---------------------------------------------------------------------------
-# Deprecated underscored aliases (removed in a future release)
-# ---------------------------------------------------------------------------
-
-
-@deprecated("Renamed to PMDCCA; use PMDCCA instead.")
-class SCCA_PMD(PMDCCA):
-    pass
-
-
-@deprecated("Renamed to ADMMCCA; use ADMMCCA instead.")
-class SCCA_ADMM(ADMMCCA):
-    pass
-
-
-@deprecated("Renamed to IPLSCCA; use IPLSCCA instead.")
-class SCCA_IPLS(IPLSCCA):
-    pass
-
-
-@deprecated("Renamed to SpanCCA; use SpanCCA instead.")
-class SCCA_Span(SpanCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to PMDCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use PMDCCA instead."
-)
-class SCCAPMD(PMDCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to ADMMCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use ADMMCCA instead."
-)
-class SCCAADMM(ADMMCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to IPLSCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use IPLSCCA instead."
-)
-class SCCAIPLS(IPLSCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to SpanCCA -- the SCCA prefix is redundant with cca_zoo.sparse's "
-    "own module name; use SpanCCA instead."
-)
-class SCCASpan(SpanCCA):
-    pass
-
-
-@deprecated(
-    "Renamed to WaijenborgCCA to disambiguate from cca_zoo.sparse.ElasticNetCCA "
-    "(the elastic-net-penalised Eckart-Young CCA loss); use WaijenborgCCA instead."
-)
-class ElasticCCA(WaijenborgCCA):
-    pass

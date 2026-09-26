@@ -39,8 +39,8 @@ exact global minimiser directly — no line search, no step size, and no local-o
 linearising the loss.
 
 Because every embedding stays exactly linear in the raw (centred) view throughout fitting,
-`model.weights` returns real per-view canonical weight matrices, unlike `TreeCCA`, `GAMCCA`, and
-`GaussianProcessCCA`, where it raises `NotImplementedError`.
+`model.weights_` holds real per-view canonical weight matrices, which `TreeCCA`, `GAMCCA` and
+`GaussianProcessCCA` don't have.
 
 **When to use:** Multiview CCA where the true relationship is linear but only a subset of
 features in each view actually drive the shared structure — `l1_ratio > 0` drives irrelevant
@@ -69,7 +69,7 @@ from cca_zoo.sparse import MultiTaskElasticNetCCA
 model = MultiTaskElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit(
     [X1, X2]
 )
-active_features = (model.weights[0] != 0).any(axis=1)  # same mask for every component
+active_features = (model.weights_[0] != 0).any(axis=1)  # same mask for every component
 ```
 
 Unlike `ElasticNetCCA`'s exact per-scalar quartic solve, a whole row's $k$ coefficients are
@@ -96,7 +96,7 @@ from cca_zoo.sparse import OrthogonalMatchingPursuitCCA
 model = OrthogonalMatchingPursuitCCA(latent_dimensions=2, n_nonzero_coefs=5).fit(
     [X1, X2]
 )
-active_features = (model.weights[0] != 0).any(axis=1)
+active_features = (model.weights_[0] != 0).any(axis=1)
 assert active_features.sum() == 5
 ```
 
@@ -113,7 +113,7 @@ from cca_zoo.sparse import ElasticNetCCA
 
 model = ElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # ElasticNetCCA also supports more than two views
 model3 = ElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2, X3])
@@ -124,7 +124,7 @@ more weights to exactly zero:
 
 ```python
 model = ElasticNetCCA(latent_dimensions=1, alpha=0.5, l1_ratio=0.9).fit([X1, X2])
-nonzero_features = (model.weights[0] != 0).any(axis=1)
+nonzero_features = (model.weights_[0] != 0).any(axis=1)
 ```
 
 ---

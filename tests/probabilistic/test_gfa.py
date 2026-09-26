@@ -13,7 +13,9 @@ import sys
 import numpy as np
 import pytest
 
+from cca_zoo.metrics import factor_loadings
 from cca_zoo.probabilistic import GFA
+from tests._helpers import canonical_correlations
 
 
 def _make_small_views(
@@ -97,9 +99,9 @@ def test_gfa_transform_output_shapes() -> None:
         views
     )
     result = model.transform(views)
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert result[0].shape == (n, model.n_components_)
+    assert len(result) == len(views)
+    assert all(r.shape == (n, model.n_components_) for r in result)
+    assert model.posterior_mean(views).shape == (n, model.n_components_)
 
 
 def test_gfa_score_is_finite() -> None:
@@ -108,18 +110,16 @@ def test_gfa_score_is_finite() -> None:
     model = GFA(latent_dimensions=2, drop_k=False, max_iter=200, random_state=0).fit(
         views
     )
-    s = model.score(views)
-    assert s.shape == (2,)
-    assert np.all(np.isfinite(s))
+    assert np.all(np.isfinite(canonical_correlations(model, views)))
 
 
 def test_gfa_get_factor_loadings_one_per_view() -> None:
-    """get_factor_loadings returns one array per view."""
+    """factor_loadings returns one array per view."""
     views = _make_low_rank_views(n=60)
     model = GFA(latent_dimensions=2, drop_k=False, max_iter=200, random_state=0).fit(
         views
     )
-    loadings = model.get_factor_loadings(views)
+    loadings = factor_loadings(views, model.transform(views))
     assert len(loadings) == 2
     for loading, view in zip(loadings, views):
         assert loading.shape == (view.shape[1], model.n_components_)
@@ -178,8 +178,8 @@ def test_gfa_reproducibility() -> None:
     """Same random_state gives identical weights."""
     views = _make_small_views()
     kwargs = dict(latent_dimensions=2, max_iter=200, random_state=42)
-    w1 = GFA(**kwargs).fit(views).weights
-    w2 = GFA(**kwargs).fit(views).weights
+    w1 = GFA(**kwargs).fit(views).weights_
+    w2 = GFA(**kwargs).fit(views).weights_
     for a, b in zip(w1, w2):
         np.testing.assert_array_equal(a, b)
 
@@ -190,7 +190,7 @@ def test_gfa_center_false() -> None:
     model = GFA(latent_dimensions=1, center=False, max_iter=200, random_state=0)
     model.fit(views)
     result = model.transform(views)
-    assert len(result) == 1
+    assert len(result) == len(views)
 
 
 # ---------------------------------------------------------------------------

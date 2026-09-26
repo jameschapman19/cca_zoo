@@ -5,7 +5,197 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [4.0.0] - Unreleased
+
+A major release that settles the public API: every model follows one scikit-learn-style
+contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_`),
+and every deprecated alias accumulated through 3.x is removed rather than carried forward.
+The table below gives each replacement.
+
+### Migrating from 3.x
+
+| 3.x | 4.0 |
+|---|---|
+| `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
+| `model.weights` | `model.weights_` |
+| `model.pairwise_correlations(views)` | `cca_zoo.metrics.pairwise_correlations(model.transform(views))` |
+| `model.average_pairwise_correlations(views)` | `cca_zoo.metrics.average_pairwise_correlations(pairwise_correlations(model.transform(views)))` |
+| `model.get_factor_loadings(views)` | `cca_zoo.metrics.factor_loadings(views, model.transform(views))` |
+| probabilistic `model.transform(views)[0]` (joint posterior mean) | `model.posterior_mean(views)` |
+| `ManifoldCCA.weights_` | `ManifoldCCA.embedding_` |
+| `cca_zoo.model_selection.procrustes_rotation(reference, target)` | `scipy.linalg.orthogonal_procrustes(target, reference)[0]` |
+| `GAMCCA(n_knots=..., alpha=...)` | `GAMCCA(k=..., sp=...)` (see Changed) |
+| `XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA` fits | different (and far better) fits: the boosting itself is fixed, with new defaults `n_estimators=200, max_depth=3, min_child_weight=20` (see Fixed) |
+| `SCCA_PMD`, `SCCAPMD` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.PMDCCA` |
+| `SCCA_ADMM`, `SCCAADMM` | `cca_zoo.sparse.ADMMCCA` |
+| `SCCA_IPLS`, `SCCAIPLS` | `cca_zoo.sparse.IPLSCCA` |
+| `SCCA_Span`, `SCCASpan` | `cca_zoo.sparse.SpanCCA` |
+| `ElasticCCA`; `cca_zoo.linear.WaijenborgCCA` | `cca_zoo.sparse.WaijenborgCCA` |
+| `cca_zoo.linear.ParkhomenkoCCA`, `cca_zoo.linear.SAR` | `cca_zoo.sparse.ParkhomenkoCCA`, `cca_zoo.sparse.SAR` |
+| `cca_zoo.linear.StochasticCCAEY` | `cca_zoo.stochastic.StochasticCCAEY` |
+| `CCA_EY`, `MCCAEY`, `MCCA_EY` | `cca_zoo.linear.CCAEY` (2 or more views) |
+| `PLS_EY` | `cca_zoo.linear.PLSEY` |
+| `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
+| `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
+| `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_` |
+
+### Added
+
+- `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
+  regression spline (Friedman, 1991) as the per-view encoder, trained on the same
+  Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
+  `MARSCCA` grows each view's basis greedily as classical MARS does — every forward step
+  adds the reflected hinge pair (any existing term as parent, any feature, any knot
+  `earth`'s `minspan`/`endspan` rules allow within the parent's support) that absorbs the
+  most of the current EY gradient, with the top ten re-ranked by their exact refit
+  loss (`earth`'s criterion), then refits every view's coefficients jointly, stopping
+  early by `earth`'s `thresh` rule — so knots go only where cross-view signal needs them, and
+  `degree >= 2` admits within-view interactions that an additive model cannot
+  represent. As in `earth`, a backward pass (`nprune`) then deletes, one at a time, the
+  term whose removal raises the refit training EY loss least; the size is chosen by
+  searching `nprune` with `GridSearchCV`, `earth`'s `pmethod="cv"` (its default, GCV, has
+  no EY-loss counterpart). Every refit is the
+  closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
+  one linear constraint, so each backward step scores every candidate exactly from one
+  eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
+  terms are inspectable via `model.basis_functions(view)`, and its
+  `feature_importances_` is `earth`'s `evimp` (the loss criterion).
+  Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
+  `minspan`, `endspan`), so an `earth` user can read a call directly. The one default
+  that differs is `minspan`: `minspan=0` is Friedman's spacing exactly, as in `earth`,
+  while the default widens it to at most 20 knots per feature, which pruned held-out
+  correlation on a pure three-way interaction favours 0.94 to 0.61. Candidate scoring uses Friedman's
+  suffix-sum fast update, evaluated for every parent, feature and knot at once by
+  sparse block-membership matrices built once per fit. Each candidate's projection onto
+  the (incrementally orthonormalised) basis is cached as three running scalars and the
+  gradient is projected off the basis once per step, so no candidate column is ever
+  formed and memory stays O(n_samples * n_features) regardless of `nk` or
+  `degree`.
+
+- `feature_importances_` on every model: one non-negative array per view, summing to 1,
+  computed on access as for sklearn's tree models. Each family uses its own literature's
+  importance — a linear model's `Var(x_j) * sum_k w_jk**2`, `GAMCCA` each smooth's variance,
+  `MARSCCA` `earth`'s `evimp`, the tree models their total split gain — and models with no
+  such decomposition (kernel, Gaussian-process, manifold) the mean squared change in a
+  view's latent scores when a feature is permuted, which for a linear or additive model is
+  exactly twice its variance share.
+
+- `ProbabilisticCCA`, `VariationalBayesCCA` and `GFA` gain `posterior_mean(views)`, the
+  posterior mean of the shared latent given every view or, with `None` entries, any subset.
+
+- `GridSearchCV` and `RandomizedSearchCV` accept a callable `refit`, as sklearn's do, and
+  hand it `cv_results_` with the same unprefixed parameter names as their own
+  `cv_results_`. The model-selection guide shows the one-standard-error rule written this way.
+
+- `cca_zoo._utils._ey.penalised_basis_ey_gep` / `penalised_basis_ey_closed_form`: the
+  ridge-penalised EY fit on fixed bases is the generalized eigenproblem
+  `(A - R/4) W = B W (WᵀBW)`, solved in closed form at its global optimum (loss
+  `-Σ μ²` over the top-k eigenvalues), used by `MARSCCA` for every refit.
+
+### Changed
+
+- `GAMCCA` now follows `mgcv`'s API and P-spline smooths. This is a breaking change with
+  no deprecation shim, as was `TreeCCA`'s `backend=` removal, since `GAMCCA` shipped only
+  in 3.3.0. Each feature's smooth is `s(x, bs="ps", k=k, m=m)`: `k` B-splines on evenly
+  spaced knots with Eilers and Marx's difference penalty, which shrinks towards a
+  polynomial — the default towards a straight line — rather than the ridge towards zero
+  the previous version applied despite citing P-splines. `n_knots` and `alpha` become `k`
+  (default 10, `mgcv`'s) and `sp` (default 0.01), and
+  `m` is new. The fit is now one closed-form generalized eigenproblem at the global
+  optimum, so `max_iter`, `tol` and `random_state` are removed. Each feature's constant, which centring makes
+  unidentifiable, is absorbed by a Householder reflection as `mgcv` absorbs its
+  sum-to-zero constraint; any data-dependent rank deficiency left (data-free splines,
+  ties, duplicated features) is resolved by an exact reparametrisation onto the row space
+  (`cca_zoo._utils._ey.full_rank_reparametrisation`). The basis stays sparse, and
+  everything after its Gram is $d \times d$: a fit with 100 features and 5000 samples
+  takes about half a second. Held-out
+  correlation over quadratic, sine, absolute-value and linear relationships rises from
+  0.51 to 0.61 on average. `sp` is chosen by cross-validation, since `mgcv`'s GCV/REML
+  have no EY-loss counterpart.
+- `cca_zoo._utils._ey`: the ridge-only fixed-basis solver becomes
+  `penalised_basis_ey_closed_form` / `penalised_basis_ey_gep` / `penalised_basis_ey_min_loss`,
+  taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it
+  replaced is removed. Each has a Gram-level counterpart (`penalised_gram_ey_gep`,
+  `penalised_gram_ey_closed_form`) for callers that form the Gram themselves, as
+  `GAMCCA` does from its sparse basis.
+
+- **Breaking:** `score` returns one float, the mean canonical correlation, as sklearn's
+  contract for `score` requires; it was an array of per-dimension correlations. Those
+  come from `cca_zoo.metrics`:
+  `average_pairwise_correlations(pairwise_correlations(model.transform(views)))`.
+- **Breaking:** the probabilistic models' `transform` returns one projection `x_i @ W_i`
+  per view, like every other model, instead of a single-element list holding the joint
+  posterior mean (now `posterior_mean`). Their special-cased `score`, correlation and
+  loading methods are gone, since the shared ones now apply.
+- `transform`, `predict` and `inverse_transform` all go through one per-view encoder,
+  `BaseModel._transform_view`: a linear model's projection onto `weights_`, overridden
+  by each nonlinear model. `predict` estimates the shared latent from the observed views
+  through it (the posterior mean, for the probabilistic models).
+- `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
+  use, rather than `weights_`, which elsewhere means weight matrices.
+
+### Removed
+
+Removed outright, with no deprecation period; the table above gives each replacement.
+
+- The `weights` property, which duplicated the `weights_` attribute.
+- The `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings`
+  model methods, which duplicated the `cca_zoo.metrics` functions of the same names.
+- `cca_zoo.model_selection.procrustes_rotation`, which duplicated
+  `scipy.linalg.orthogonal_procrustes`; the permutation test and the probabilistic models'
+  posterior alignment call scipy directly.
+- Every deprecated class alias from 3.x: `SCCA_PMD`, `SCCA_ADMM`, `SCCA_IPLS`,
+  `SCCA_Span`, `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `ElasticCCA`; the
+  `cca_zoo.linear` re-exports of the sparse and stochastic models; `CCA_EY`, `MCCAEY`,
+  `MCCA_EY`, `PLS_EY`; `GPCCA`; `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL`.
+
+### Fixed
+
+- `TreeCCA` (`XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA`) barely learned at its defaults:
+  0.14 held-out correlation on a plain linear signal where linear CCA reaches 0.91. It
+  started from a unit-variance random projection and renormalised every round's gradient
+  to a fixed small size, so the boosters' learned part stayed a fraction of a random
+  embedding they could not undo. It now starts from a random embedding of standard
+  deviation 0.01 and boosts on each sample's own EY gradient, so `learning_rate` is a
+  true step size and steps shrink as the fit converges. Once the steps are the right size,
+  two tree ensembles fitted to each other overfit, so the defaults change to
+  `n_estimators=200`, `max_depth=3`, `min_child_weight=20` (from 50, 5, 5). Held-out
+  correlation on linear, sine and absolute-value relationships goes from 0.16 / 0.03 /
+  -0.01 to 0.88 / 0.72 / 0.72 (`XGBoostCCA`, n = 1000), at about 3 s per fit instead of 1.
+  `CatBoostCCA` now grows depthwise trees, the only CatBoost policy that honours the
+  minimum leaf size; it still converges more slowly than the other two backends on
+  non-monotone relationships. `LightGBMCCA` no longer fails on data too small to split at
+  that leaf size.
+- `predict` and `inverse_transform` projected with `weights_` directly, so they raised or
+  returned the wrong shape for every nonlinear model (`GAMCCA`, `MARSCCA`,
+  `GaussianProcessCCA`, the kernel, manifold and tree models); they now use each model's
+  own encoder.
+- `predict` and `inverse_transform` cached their reconstruction loadings on first use and
+  never invalidated them, so after refitting on new data they silently used the old
+  data's; they are now computed on demand.
+- `KCCA`, `KGCCA` and `KTCCA` formed test kernels from uncentred inputs against centred
+  training data, so `transform` of data far from the origin collapsed (an RBF kernel to
+  zero); inputs are now centred as in `fit`.
+
+### Performance
+
+Same results (to rounding, or up to a rotation inside a degenerate eigenspace), less time:
+
+- `KTCCA` and `TCCA` form the cross-moment tensor by one BLAS contraction
+  (`cca_zoo._utils._linalg.cross_moment_tensor`) instead of materialising every
+  sample's outer product before averaging — for two kernel views an n x n x n
+  intermediate (8 GB at n = 1000) for what is `W1ᵀW2 / n` — and whiten with one
+  symmetric `eigh` (`psd_inverse_sqrt`) instead of `inv(sqrtm(·))`. `KTCCA` at n = 1000
+  drops from 49 s to under 1 s; `TCCA` about 19x.
+- `GCCA` takes its shared latent space from the thin SVD of the stacked whitened views
+  rather than an eigendecomposition of the n x n matrix they span: O(n p²) instead of
+  O(n³), 17x at n = 4000.
+- `SAR` passes its lasso paths the Gram matrix and skips sklearn's per-call input
+  validation (the documented fast path, used exactly where `precompute="auto"` would
+  build the Gram): 1.7x, identical coefficients.
+- `ProjectionPursuitCCA`'s Spearman index ranks with `scipy.stats.rankdata` directly
+  instead of through `spearmanr`'s per-call overhead, and its angle parametrisation is
+  one cumulative product: 1.8x.
 
 ## [3.3.0] - 2026-09-22
 

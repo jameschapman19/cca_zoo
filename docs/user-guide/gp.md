@@ -61,7 +61,7 @@ from cca_zoo.gp import GaussianProcessCCA
 
 model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # GaussianProcessCCA also supports more than two views
 model3 = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2, X3])
@@ -83,9 +83,10 @@ all (a standard GP fact: posterior variance only involves the kernel, the noise 
 design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
 level, and inducing points as the mean fit.
 
-`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to `GAMCCA`'s
-`shape_function` (the kernel is not additive across features), so `model.weights` raises
-`NotImplementedError`.
+`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to
+`GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_`
+is therefore permutation-based: the mean squared change in each view's latent scores when a
+feature's training values are shuffled, normalised to sum to 1 per view.
 
 ---
 

@@ -5,61 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils.parallel import Parallel, delayed
 
 from cca_zoo._utils._validation import validate_views
-
-
-def procrustes_rotation(reference: np.ndarray, target: np.ndarray) -> np.ndarray:
-    """Solve the orthogonal Procrustes problem aligning ``target`` to ``reference``.
-
-    Finds the orthogonal matrix ``R`` minimising ``||reference - target @
-    R||`` (Frobenius norm), via the classical SVD solution (Schönemann,
-    1966): writing the SVD of ``target.T @ reference`` as ``U @ S @ Vt``,
-    the optimum is ``R = U @ Vt``. ``R`` is a general orthogonal matrix, not
-    restricted to a proper (determinant +1) rotation, so it also captures
-    axis reflections (sign flips) -- both are needed when matching
-    permutation- or bootstrap-resampled canonical variates back to a
-    reference fit, since resampling can induce either (Xia et al., 2018,
-    *Nat. Commun.*; McIntosh & Lobaugh, 2004, *NeuroImage*).
-
-    Args:
-        reference: Array of shape (n, k).
-        target: Array of shape (n, k), matched row-for-row with
-            ``reference`` (e.g. the same features/variables in the same
-            order), but not necessarily in the same column (component)
-            order or sign.
-
-    Returns:
-        Orthogonal matrix of shape (k, k) such that ``target @ R`` is
-        optimally aligned to ``reference`` in the least-squares sense.
-
-    Raises:
-        ValueError: If ``reference`` and ``target`` don't have the same
-            shape.
-
-    Examples:
-        >>> import numpy as np
-        >>> from cca_zoo.model_selection import procrustes_rotation
-        >>> rng = np.random.default_rng(0)
-        >>> reference = rng.standard_normal((20, 3))
-        >>> true_rotation, _ = np.linalg.qr(rng.standard_normal((3, 3)))
-        >>> target = reference @ true_rotation.T
-        >>> recovered = procrustes_rotation(reference, target)
-        >>> np.allclose(target @ recovered, reference, atol=1e-8)
-        True
-    """
-    if reference.shape != target.shape:
-        raise ValueError(
-            "reference and target must have the same shape, got "
-            f"{reference.shape} and {target.shape}."
-        )
-    m = target.T @ reference
-    u, _, vt = np.linalg.svd(m)
-    rotation: np.ndarray = u @ vt
-    return rotation
+from cca_zoo.metrics import (
+    average_pairwise_correlations,
+    factor_loadings,
+    pairwise_correlations,
+)
 
 
 @dataclass
@@ -77,7 +33,7 @@ class PermutationTestResult:
             (n_features_i, k) per view (see
             :meth:`~cca_zoo._base.BaseModel.get_factor_loadings`).
         null_loadings_: Permuted factor loadings, realigned to
-            ``loadings_`` via :func:`procrustes_rotation`, one array of
+            ``loadings_`` via :func:`scipy.linalg.orthogonal_procrustes`, one array of
             shape (n_permutations, n_features_i, k) per view.
         loading_p_values_: Per-feature, per-dimension permutation p-value
             for the factor loadings, one array of shape (n_features_i, k)
@@ -90,6 +46,15 @@ class PermutationTestResult:
     loadings_: list[np.ndarray]
     null_loadings_: list[np.ndarray]
     loading_p_values_: list[np.ndarray]
+
+
+def _correlations_and_loadings(
+    model: BaseEstimator, views: list[np.ndarray]
+) -> tuple[np.ndarray, list[np.ndarray]]:
+    """Per-dimension canonical correlations and factor loadings of a fit."""
+    scores = model.transform(views)
+    correlations = average_pairwise_correlations(pairwise_correlations(scores))
+    return correlations, factor_loadings(views, scores)
 
 
 def permutation_test_significance(
@@ -121,7 +86,7 @@ def permutation_test_significance(
     near-tied dimensions (Xia et al., 2018, *Nat. Commun.*; McIntosh &
     Lobaugh, 2004, *NeuroImage*). Each permutation's loadings are
     therefore realigned to the observed loadings via
-    :func:`procrustes_rotation` (fit jointly across all views' stacked
+    :func:`scipy.linalg.orthogonal_procrustes` (fit jointly across all views' stacked
     loadings, since the rotation ambiguity is shared across views) before
     being compared feature-by-feature and dimension-by-dimension.
 
@@ -163,8 +128,7 @@ def permutation_test_significance(
     n_views = len(arrays)
 
     fitted = clone(estimator).fit(arrays)
-    true_corr = np.asarray(fitted.score(arrays))
-    true_loadings = fitted.get_factor_loadings(arrays)
+    true_corr, true_loadings = _correlations_and_loadings(fitted, arrays)
     true_stack = np.vstack(true_loadings)  # (sum(n_features_i), k)
     split_points = np.cumsum([loading.shape[0] for loading in true_loadings[:-1]])
 
@@ -175,10 +139,9 @@ def permutation_test_significance(
         local_rng = np.random.default_rng(seed)
         permuted = [arrays[0]] + [local_rng.permutation(v, axis=0) for v in arrays[1:]]
         model = clone(estimator).fit(permuted)
-        corr = np.asarray(model.score(permuted))
-        loadings = model.get_factor_loadings(permuted)
+        corr, loadings = _correlations_and_loadings(model, permuted)
         stack = np.vstack(loadings)
-        rotation = procrustes_rotation(true_stack, stack)
+        rotation = scipy.linalg.orthogonal_procrustes(stack, true_stack)[0]
         aligned_stack: np.ndarray = stack @ rotation
         return corr, aligned_stack
 

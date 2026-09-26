@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.utils import deprecated
 
 from cca_zoo._utils._ey import random_orthonormal_weights
 from cca_zoo.linear.gradient._cca_ey import CCAEY
@@ -99,8 +98,3 @@ class PLSEY(CCAEY):
         orthonormality rather than projection-space decorrelation.
         """
         return random_orthonormal_weights(views, self.latent_dimensions, rng)
-
-
-@deprecated("Renamed to PLSEY for sklearn-style naming; use PLSEY instead.")
-class PLS_EY(PLSEY):
-    pass

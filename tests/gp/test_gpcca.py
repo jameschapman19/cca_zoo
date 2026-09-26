@@ -14,6 +14,7 @@ from sklearn.gaussian_process.kernels import Kernel
 
 from cca_zoo.gp import GaussianProcessCCA
 from cca_zoo.gp._gpcca import _GpEncoder
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
 def _make_model(latent_dimensions: int = 1, **kwargs: object) -> GaussianProcessCCA:
@@ -121,11 +122,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -147,31 +148,24 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = GaussianProcessCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="Gaussian process"):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings shapes
+# factor_loadings shapes
 # ---------------------------------------------------------------------------
 
 
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -186,7 +180,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -368,7 +362,7 @@ def test_sparse_scales_to_large_sample_sizes() -> None:
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
     model = GaussianProcessCCA(latent_dimensions=1, random_state=0, n_inducing=100)
-    test_corr = model.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    test_corr = model.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
     assert test_corr > 0.7, (
         f"Expected substantial held-out correlation, got {test_corr}"
     )
@@ -409,18 +403,18 @@ def test_gpcca_outperforms_others_on_genuine_interaction() -> None:
     X2_tr, X2_te = X2[:n_train], X2[n_train:]
 
     gp = GaussianProcessCCA(latent_dimensions=1, random_state=0)
-    gp_test = gp.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    gp_test = gp.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
-    gam = GAMCCA(latent_dimensions=1, random_state=0)
-    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    gam = GAMCCA(latent_dimensions=1)
+    gam_test = gam.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     tree = XGBoostCCA(
         latent_dimensions=1, n_estimators=150, max_depth=5, random_state=0
     )
-    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    tree_test = tree.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     rcca = rCCA(latent_dimensions=1, c=[0.3, 0.3])
-    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])[0]
+    rcca_test = rcca.fit([X1_tr, X2_tr]).score([X1_te, X2_te])
 
     assert gp_test > 0.7, (
         f"Expected GaussianProcessCCA to recover the interaction, got {gp_test}"

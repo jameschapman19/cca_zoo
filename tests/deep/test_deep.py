@@ -153,7 +153,7 @@ def test_dcca_transform_output_shapes() -> None:
 
 @pytest.mark.slow
 def test_dcca_score_shape() -> None:
-    """DCCA score returns array of shape (latent_dimensions,)."""
+    """DCCA score is one float, like every model's."""
     latent = 2
     encoders = _make_encoders(5, latent)
     model = DCCA(latent_dimensions=latent, encoders=encoders, max_epochs=2)
@@ -162,8 +162,7 @@ def test_dcca_score_shape() -> None:
         max_epochs=2, enable_progress_bar=False, logger=False
     )
     trainer.fit(model, loader)
-    s = model.score(loader)
-    assert s.shape == (latent,)
+    assert isinstance(model.score(loader), float)
 
 
 @pytest.mark.slow

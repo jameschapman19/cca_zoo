@@ -31,7 +31,11 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
+import scipy.linalg
+from scipy.sparse.linalg import LinearOperator
 
 
 def ey_cross_covariance(
@@ -186,65 +190,37 @@ def cheap_orthonormal_projection_weights(
 
 
 def random_orthogonal_embedding(
-    Xc: np.ndarray, k: int, rng: np.random.Generator
+    Xc: np.ndarray, k: int, rng: np.random.Generator, std: float = 1.0
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Unit-variance random-orthogonal initial embedding and its projection.
+    """Random-orthogonal initial embedding of a given standard deviation.
 
     Draws ``k`` random orthogonal directions in feature space (independent of
     the data's principal directions) and rescales them so each initial
-    component has unit variance. The unit-variance scaling is what matters
-    for a well-conditioned, non-vanishing EY gradient from round zero;
-    orthogonality keeps the initial cross-component covariance at zero. Used
-    as the fixed starting point for nonlinear encoders trained by functional
-    gradient boosting (:class:`~cca_zoo.tree.TreeCCA`,
-    :class:`~cca_zoo.gam.GAMCCA`), which — unlike a linear map — have no
-    natural "zero" to start from.
+    component has standard deviation ``std``; orthogonality keeps the initial
+    cross-component covariance at zero. The EY gradient vanishes at an
+    all-zero embedding, so an encoder trained by functional gradient boosting
+    (:class:`~cca_zoo.tree.TreeCCA`), which has no natural non-zero start,
+    begins from this.
 
     Args:
         Xc: Mean-centred training view, shape (n_samples, n_features).
         k: Number of components. Must not exceed ``n_features``.
         rng: Random generator used to draw the orthogonal directions.
+        std: Standard deviation of each initial component. Default is 1.
 
     Returns:
         Tuple ``(base_margin, projection)``: ``base_margin`` has shape
         (n_samples, k) and is the initial embedding for training;
         ``projection`` has shape (n_features, k) and reproduces the same
-        unit-variance embedding for unseen data via ``Xc_new @ projection``.
+        embedding for unseen data via ``Xc_new @ projection``.
     """
     n, p = Xc.shape
     W, _ = np.linalg.qr(rng.standard_normal((p, k)))
     Z = Xc @ W
-    scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1)
+    scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1) / std
     projection = (W / scale).astype(np.float32)
     base_margin = (Z / scale).astype(np.float32)
     return base_margin, projection
-
-
-def rescale_grads_to_target_std(
-    grads: list[np.ndarray], target_std: float = 0.1
-) -> list[np.ndarray]:
-    r"""Rescale a set of per-view EY gradients to a common target standard deviation.
-
-    The analytic EY gradient (:func:`ey_grad_z`) has magnitude $O(1/n)$
-    (from its ``4 / (M (n - 1))`` prefactor), far smaller than the natural
-    scale of a boosted-tree leaf value. Used unscaled as a functional
-    gradient-boosting target, a single round would then contribute a
-    negligible increment relative to the encoder's starting embedding, no
-    matter the learning rate. Rescaling by one shared scalar restores a
-    well-conditioned target for :class:`~cca_zoo.tree.TreeCCA`'s trees.
-    Since the same scalar is applied to every view, this changes only the
-    effective step size, not the gradient's direction or relative
-    cross-view magnitudes.
-
-    Args:
-        grads: One gradient array per view, each (n_samples, k).
-        target_std: Target standard deviation. Default is 0.1.
-
-    Returns:
-        List of rescaled gradients, same dtype as the input.
-    """
-    scale = max(max(float(g.std()) for g in grads), 1e-6)
-    return [g / scale * target_std for g in grads]
 
 
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
@@ -886,3 +862,298 @@ def omp_coordinate_descent_ey(
         prev_obj = obj
 
     return coefficients, representations
+
+
+def _penalty_matrix(penalty: float | np.ndarray, size: int) -> np.ndarray:
+    """A view's penalty as a matrix: a scalar ridge, per-column ridges, or a matrix."""
+    penalty = np.asarray(penalty, dtype=float)
+    if penalty.ndim == 2:
+        return penalty
+    return np.diag(np.broadcast_to(penalty, size))
+
+
+def penalised_gram_ey_gep(
+    gram: np.ndarray, view: np.ndarray, penalties: Sequence[float | np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""The generalized eigenproblem whose solution minimises the penalised EY loss.
+
+    For fixed column-centred bases $\Phi_i$ and coefficients stacked as
+    $W = [B_1; \dots; B_M]$, the quadratically penalised EY loss is
+
+    $$
+    -2\operatorname{tr}(W^\top A W) + \operatorname{tr}\big((W^\top B W)^2\big)
+        + \tfrac12 \operatorname{tr}(W^\top R W),
+    $$
+
+    with $A = \Phi^\top\Phi / (M(n-1))$ over the concatenated bases (every
+    cross- and auto-covariance block — ``gram``), $B$ its block diagonal
+    (each view's own auto-covariance), and $R = \operatorname{blockdiag}(R_i)$
+    each view's penalty — a ridge $\lambda_i I$ (:class:`~cca_zoo.gam.MARSCCA`)
+    or a P-spline difference penalty (:class:`~cca_zoo.gam.GAMCCA`). Its
+    stationarity condition $(A - R/4)\,W = B W (W^\top B W)$ is solved by
+    the generalized eigenvectors $(A - R/4)\,U = B U \operatorname{diag}(\mu)$,
+    $U^\top B U = I$, scaled as $W = U\operatorname{diag}(\sqrt{\mu})$, where
+    the loss equals $-\sum \mu^2$: the global minimum over $k$ components
+    takes the $k$ largest positive eigenvalues (a component whose eigenvalue
+    is not positive is zero). The fixed-basis penalised EY fit is therefore
+    a closed-form eigenproblem, the same one regularised MCCA solves.
+
+    Args:
+        gram: ``A``, shape (D, D), positive definite on each view's block
+            (see :func:`full_rank_reparametrisation` otherwise).
+        view: View index of each of the D stacked columns.
+        penalties: One per view: a scalar ridge, one ridge per column, or a
+            symmetric positive semi-definite matrix.
+
+    Returns:
+        ``(A - R/4, B)``, the two sides of the eigenproblem.
+    """
+    b = np.where(view[:, None] == view[None, :], gram, 0.0)
+    sizes = np.bincount(view)
+    penalty = scipy.linalg.block_diag(
+        *[_penalty_matrix(p, int(size)) for p, size in zip(penalties, sizes)]
+    )
+    return gram - penalty / 4, b
+
+
+def penalised_basis_ey_gep(
+    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """:func:`penalised_gram_ey_gep` from column-centred bases.
+
+    Returns:
+        ``(A - R/4, B, view)``, with the view index of each stacked column.
+    """
+    gram, view = _stacked_gram(bases)
+    return (*penalised_gram_ey_gep(gram, view, penalties), view)
+
+
+def _stacked_gram(bases: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    """``Phi' Phi / (M (n - 1))`` over the concatenated bases, and column views."""
+    stacked = np.hstack(bases)
+    view = np.repeat(np.arange(len(bases)), [basis.shape[1] for basis in bases])
+    gram: np.ndarray = stacked.T @ stacked / (len(bases) * (stacked.shape[0] - 1))
+    return gram, view
+
+
+def _jacobi_scale(bases: list[np.ndarray]) -> np.ndarray:
+    """Per-column scale giving every stacked basis column unit norm."""
+    scale: np.ndarray = 1.0 / np.linalg.norm(np.hstack(bases), axis=0)
+    return scale
+
+
+def _jacobi_scaled(
+    bases: list[np.ndarray], penalties: Sequence[float | np.ndarray]
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Bases with unit-norm columns, and the penalties that keep the problem unchanged.
+
+    Rescaling columns by ``s`` rescales their coefficients by ``1/s``, so the
+    same fit needs the penalty ``diag(s) R diag(s)`` (the eigenproblem is
+    invariant; only its conditioning improves, which the Cholesky
+    factorisation of ``B`` needs when column norms span orders of
+    magnitude).
+    """
+    scale = _jacobi_scale(bases)
+    split = np.cumsum([b.shape[1] for b in bases])[:-1]
+    per_view = np.split(scale, split)
+    return (
+        [b * sv for b, sv in zip(bases, per_view)],
+        [
+            _penalty_matrix(p, len(sv)) * np.outer(sv, sv)
+            for p, sv in zip(penalties, per_view)
+        ],
+    )
+
+
+def _jacobi(
+    lhs: np.ndarray, rhs: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """``(lhs, rhs)`` scaled by ``1/sqrt(diag(rhs))`` on both sides, and the scale.
+
+    The eigenvalues are unchanged; the Cholesky factorisation of ``rhs`` is
+    conditioned when its diagonal spans orders of magnitude.
+    """
+    scale = 1.0 / np.sqrt(np.diag(rhs))
+    outer = np.outer(scale, scale)
+    return lhs * outer, rhs * outer, scale
+
+
+def _top_eigenpairs(
+    lhs: np.ndarray, rhs: np.ndarray, k: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Top ``k`` eigenpairs of ``(lhs, rhs)``, largest first."""
+    size = lhs.shape[0]
+    lhs_s, rhs_s, scale = _jacobi(lhs, rhs)
+    mu, u = scipy.linalg.eigh(
+        lhs_s, rhs_s, subset_by_index=(max(size - k, 0), size - 1)
+    )
+    return mu[::-1], u[:, ::-1] * scale[:, None]
+
+
+def _top_eigenvalues(lhs: np.ndarray, rhs: np.ndarray, k: int) -> np.ndarray:
+    """Top ``k`` eigenvalues of ``(lhs, rhs)``, largest first."""
+    size = lhs.shape[0]
+    lhs_s, rhs_s, _ = _jacobi(lhs, rhs)
+    mu = scipy.linalg.eigh(
+        lhs_s,
+        rhs_s,
+        eigvals_only=True,
+        subset_by_index=(max(size - k, 0), size - 1),
+    )
+    result: np.ndarray = mu[::-1]
+    return result
+
+
+def penalised_gram_ey_closed_form(
+    gram: np.ndarray, view: np.ndarray, k: int, penalties: Sequence[float | np.ndarray]
+) -> list[np.ndarray]:
+    """Globally optimal penalised-EY coefficients from the stacked Gram matrix.
+
+    Solves :func:`penalised_gram_ey_gep` for its ``k`` largest eigenvalues.
+
+    Args:
+        gram: Stacked ``Phi' Phi / (M (n - 1))``, positive definite per view.
+        view: View index of each stacked column.
+        k: Number of latent dimensions.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
+
+    Returns:
+        Per-view coefficients, each of shape ``(d_i, k)``; components beyond
+        the number of positive eigenvalues are zero.
+    """
+    lhs, rhs = penalised_gram_ey_gep(gram, view, penalties)
+    mu, u = _top_eigenpairs(lhs, rhs, k)
+    w = np.zeros((lhs.shape[0], k))
+    w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
+    return [w[view == i] for i in range(int(view.max()) + 1)]
+
+
+def penalised_basis_ey_closed_form(
+    bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
+) -> list[np.ndarray]:
+    """Globally optimal penalised-EY coefficients on fixed bases.
+
+    Args:
+        bases: Column-centred per-view design matrices of full column rank.
+        k: Number of latent dimensions.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
+
+    Returns:
+        Per-view coefficients, ``coefficients[i]`` of shape
+        ``(bases[i].shape[1], k)``; components beyond the number of positive
+        eigenvalues are zero.
+    """
+    return penalised_gram_ey_closed_form(*_stacked_gram(bases), k, penalties)
+
+
+def penalised_basis_ey_min_loss(
+    bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
+) -> float:
+    """Minimum penalised-EY loss on fixed bases: ``-sum(mu**2)`` over the top k.
+
+    Args:
+        bases: Column-centred per-view design matrices of full column rank.
+        k: Number of latent dimensions.
+        penalties: One per view, as :func:`penalised_gram_ey_gep` takes.
+
+    Returns:
+        The loss :func:`penalised_basis_ey_closed_form`'s coefficients
+        attain, from the eigenvalues alone.
+    """
+    gram, view = _stacked_gram(bases)
+    mu = _top_eigenvalues(*penalised_gram_ey_gep(gram, view, penalties), k)
+    return -float(np.sum(np.maximum(mu, 0.0) ** 2))
+
+
+# Gram eigenvalues below this fraction of the largest count as null in
+# full_rank_reparametrisation: forming the Gram leaves rounding of order
+# d * eps * the largest eigenvalue (~1e-13 for d ~ 1000), and a direction
+# whose data signal is under ~1e-5 of the strongest (the square root of this)
+# is negligible to the embedding while numerically unreliable to fit.
+_GRAM_RANK_TOL = 1e-10
+
+# Row-space directions whose Gram eigenvalue is below this fraction of the
+# largest are projected out of the null basis once more, against the basis
+# itself (see full_rank_reparametrisation); above it eigh's contamination is
+# already below eps / 1e-4 ~ 2e-12.
+_GRAM_REFINE_BELOW = 1e-4
+
+
+def full_rank_reparametrisation(
+    basis: np.ndarray | LinearOperator,
+    gram: np.ndarray,
+    penalty_factor: np.ndarray,
+    penalty_norm: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    r"""Rewrite a rank-deficient penalised basis as an equivalent full-rank one.
+
+    With the basis's Gram matrix $G = \Phi^\top\Phi = V \Lambda V^\top$ and
+    penalty $R = F^\top F$, split coefficients as $w = T a + N c$ with $T$
+    spanning $\Phi$'s row space (eigenvalues above
+    :data:`_GRAM_RANK_TOL` of the largest) and $N$ its null space. The
+    embedding $\Phi w = \Phi T a$ depends on $a$ alone, so for any $a$ the
+    best $c$ minimises only the penalty, the least-squares problem
+    $\min_c \lVert F (T a + N c) \rVert$; its minimum-norm solution
+    $c^\star = -(F N)^{+} F T a$ leaves $w = L a$ with
+    $L = T - N (F N)^{+} F T$ and penalty $(F L)^\top (F L)$ — an equivalent
+    full-rank problem whose Gram is $T^\top G T$ (as $\Phi N = 0$ and
+    $T^\top L = I$; taking it from $L^\top G L$ instead would reintroduce $G$'s
+    null-space block, zero in exact arithmetic but with rounding-sized
+    negative eigenvalues that $L$'s correction amplifies into a negative
+    diagonal). It is what lets a
+    P-spline basis keep splines with no data under them (the difference
+    penalty fills them in) and keep every feature's partition of unity
+    (which centring makes collinear), the identifiability ``mgcv`` resolves
+    by reparametrisation. The split comes from the $d \times d$ Gram,
+    never an SVD of the $n \times d$ basis.
+
+    Three numerical choices keep $L$ accurate. The Gram squares the basis's
+    condition number, so eigh leaves each null vector contaminated along a
+    row-space direction $t_j$ by about $\epsilon \lambda_{\max} / \lambda_j$
+    — up to ~1e-6 at the rank cutoff, which the correction below amplifies
+    into large cancelling coefficients. One projection step against the basis
+    itself, $N \leftarrow N - T_w \Lambda_w^{-1} (\Phi T_w)^\top (\Phi N)$
+    over the weak directions $T_w$ (eigenvalues below
+    :data:`_GRAM_REFINE_BELOW` of the largest), removes it to the accuracy
+    of an SVD of $\Phi$ at the cost of a product with $|T_w| + |N|$ columns.
+    The least-squares problem is The least-squares problem is
+    solved on the penalty's factor $F$ rather than by pseudo-inverting
+    $N^\top R N$, whose condition number is the square of $F N$'s. And its
+    singular values count as zero below $\sqrt{\epsilon}\,\lVert F \rVert$,
+    measured against the penalty's own scale rather than $F N$'s: a
+    direction null in both $\Phi$ and $R$ — every feature's constant, for a
+    P-spline — has a rounding-sized singular value there rather than zero,
+    and a cutoff relative to $F N$ itself inverted it into coefficients of
+    1e13–1e15, harmless to the embedding but ruinous to each feature's own
+    term.
+
+    Args:
+        basis: The basis $\Phi$, shape (n, d), as anything supporting
+            ``basis @ matrix`` (e.g. a sparse
+            :class:`~scipy.sparse.linalg.LinearOperator`).
+        gram: Its Gram matrix ``basis.T @ basis``, shape (d, d).
+        penalty_factor: ``F`` with penalty ``R = F.T @ F``, shape (q, d).
+        penalty_norm: ``F``'s spectral norm.
+
+    Returns:
+        ``(lift, row, reduced_penalty)``: shapes (d, r), (d, r) and (r, r).
+        The reduced problem's Gram is ``row.T @ gram @ row`` (across views,
+        ``row_i.T @ gram_ij @ row_j``), and its coefficients ``a`` map back as
+        ``lift @ a``.
+    """
+    eigenvalues, vectors = np.linalg.eigh(gram)
+    row_mask = eigenvalues > eigenvalues[-1] * _GRAM_RANK_TOL
+    row, null = vectors[:, row_mask], vectors[:, ~row_mask]
+    weak = row_mask & (eigenvalues < eigenvalues[-1] * _GRAM_REFINE_BELOW)
+    if null.shape[1] and weak.any():
+        weak_row = vectors[:, weak]
+        overlap = (basis @ weak_row).T @ (basis @ null)
+        null = np.linalg.qr(null - weak_row @ (overlap / eigenvalues[weak, None]))[0]
+    fu, fs, fvt = np.linalg.svd(penalty_factor @ null, full_matrices=False)
+    keep = fs > np.sqrt(np.finfo(float).eps) * penalty_norm
+    correction = fvt[keep].T @ (
+        (fu[:, keep].T @ (penalty_factor @ row)) / fs[keep, None]
+    )
+    lift = row - null @ correction
+    factor_lift = penalty_factor @ lift
+    return lift, row, factor_lift.T @ factor_lift

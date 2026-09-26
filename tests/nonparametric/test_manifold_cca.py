@@ -147,7 +147,7 @@ def test_laplacian_new_point_affinity_nearest_neighbors_is_binary() -> None:
 def test_two_view_fit_completes(method: str, two_views_small: list[np.ndarray]) -> None:
     """Fit completes on two-view data without error, for both operator types."""
     model = _make_model(method=method).fit(two_views_small)
-    assert hasattr(model, "weights_")
+    assert hasattr(model, "embedding_")
 
 
 @pytest.mark.parametrize("method", ["laplacian", "lle"])
@@ -156,15 +156,15 @@ def test_three_view_fit_completes(
 ) -> None:
     """Fit completes on three-view data without error."""
     model = _make_model(method=method, n_neighbors=6).fit(three_views_small)
-    assert len(model.weights_) == 3
+    assert len(model.embedding_) == 3
 
 
 def test_weights_shapes(two_views_small: list[np.ndarray]) -> None:
-    """weights_[i] is (n_train_samples, k), the training embedding itself."""
+    """embedding_[i] is (n_train_samples, k), the training embedding itself."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     n = two_views_small[0].shape[0]
-    for w in model.weights:
+    for w in model.embedding_:
         assert w.shape == (n, k)
 
 
@@ -195,18 +195,18 @@ def test_transform_on_training_data_matches_weights_reasonably(
     """
     model = _make_model(method=method).fit(two_views_small)
     transformed = model.transform(two_views_small)
-    for w, t in zip(model.weights, transformed):
+    for w, t in zip(model.embedding_, transformed):
         corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
         assert abs(corr) > 0.8
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = ManifoldCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ def test_per_view_n_neighbors_list_fits_and_transforms(
     """A per-view n_neighbors list still fits and extrapolates sensibly."""
     model = _make_model(method=method, n_neighbors=[6, 12]).fit(two_views_small)
     transformed = model.transform(two_views_small)
-    for w, t in zip(model.weights, transformed):
+    for w, t in zip(model.embedding_, transformed):
         corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
         assert abs(corr) > 0.8
 
@@ -235,10 +235,10 @@ def test_per_view_n_operator_components_list_fits_and_transforms(
         two_views_small
     )
     n = two_views_small[0].shape[0]
-    for w in model.weights:
+    for w in model.embedding_:
         assert w.shape == (n, k)
     transformed = model.transform(two_views_small)
-    for w, t in zip(model.weights, transformed):
+    for w, t in zip(model.embedding_, transformed):
         corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
         assert abs(corr) > 0.8
 
@@ -291,11 +291,11 @@ def test_independent_views_dont_overfit_worse_than_plain_cca() -> None:
     # baseline, not a held-out generalisation number.
     b1, b2 = rng.standard_normal((n, k_op)), rng.standard_normal((n, k_op))
     baseline_model = MCCA(latent_dimensions=1, c=0.0, pca=False).fit([b1, b2])
-    baseline = abs(baseline_model.score([b1, b2])[0])
+    baseline = abs(baseline_model.score([b1, b2]))
 
     for method in ["laplacian", "lle"]:
         model = _make_model(method=method, n_operator_components=k_op).fit([x1, x2])
-        z1, z2 = model.weights
+        z1, z2 = model.embedding_
         corr = abs(np.corrcoef(z1[:, 0], z2[:, 0])[0, 1])
         assert corr < baseline + 0.3, (
             f"{method}: spurious correlation {corr:.2f} far exceeds the "
@@ -324,7 +324,7 @@ def test_duplicate_view_reduces_to_plain_spectral_embedding() -> None:
     model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=3).fit(
         [x, x.copy()]
     )
-    z1, z2 = model.weights
+    z1, z2 = model.embedding_
 
     L = _laplacian_operator(
         x - x.mean(0), n_neighbors=10, affinity="nearest_neighbors", gamma=None
@@ -394,7 +394,7 @@ def test_laplacian_transform_stable_on_small_noisy_data() -> None:
 
     model = ManifoldCCA(method="laplacian", n_neighbors=8).fit([x1, x2])
     transformed = model.transform([x1, x2])
-    for w, t in zip(model.weights, transformed):
+    for w, t in zip(model.embedding_, transformed):
         assert t[:, 0].std() < 10 * w[:, 0].std(), (
             "transformed scale blew up relative to the training embedding"
         )
@@ -438,12 +438,12 @@ def test_laplacian_beats_linear_mcca_on_a_shared_nonlinear_spiral() -> None:
     linear_corr = (
         MCCA(latent_dimensions=1, c=0.1, pca=False)
         .fit([x1_tr, x2_tr])
-        .score([x1_te, x2_te])[0]
+        .score([x1_te, x2_te])
     )
     manifold_corr = (
         ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1)
         .fit([x1_tr, x2_tr])
-        .score([x1_te, x2_te])[0]
+        .score([x1_te, x2_te])
     )
 
     assert manifold_corr > linear_corr + 0.3, (

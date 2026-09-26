@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from cca_zoo.metrics import factor_loadings, pairwise_correlations
 from cca_zoo.sparse import ElasticNetCCA
 
 
@@ -79,11 +80,11 @@ def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
+    """Score is one float, as sklearn expects."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
     s = model.score(two_views_small)
-    assert s.shape == (k,)
+    assert isinstance(s, float)
 
 
 def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
@@ -100,12 +101,12 @@ def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = ElasticNetCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_weights_shapes_and_matches_transform(
@@ -114,7 +115,7 @@ def test_weights_shapes_and_matches_transform(
     """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], k)
@@ -125,15 +126,15 @@ def test_weights_shapes_and_matches_transform(
 
 
 # ---------------------------------------------------------------------------
-# get_factor_loadings / pairwise_correlations shapes
+# factor_loadings / pairwise_correlations shapes
 # ---------------------------------------------------------------------------
 
 
 def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
+    """factor_loadings returns (n_features_i, k) arrays."""
     k = 2
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
+    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
     assert len(loadings) == 2
     for loading, view in zip(loadings, two_views_small):
         assert loading.shape == (view.shape[1], k)
@@ -143,7 +144,7 @@ def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
     """pairwise_correlations returns (n_views, n_views, k)."""
     k = 1
     model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
+    corrs = pairwise_correlations(model.transform(two_views_small))
     assert corrs.shape == (2, 2, k)
 
 
@@ -195,7 +196,7 @@ def test_objective_decreases_monotonically(
         penalty = sum(
             model.alpha * model.l1_ratio * np.sum(np.abs(w))
             + 0.5 * model.alpha * (1 - model.l1_ratio) * np.sum(w**2)
-            for w in model.weights
+            for w in model.weights_
         )
         objs.append(ey_loss(reps)["objective"] + penalty)
     assert np.all(np.diff(objs) <= 1e-9), objs
@@ -211,7 +212,7 @@ def test_higher_alpha_increases_sparsity(
             latent_dimensions=1, alpha=alpha, l1_ratio=0.9, random_state=0
         )
         model.fit(correlated_views)
-        n_nonzero.append(sum((np.abs(w) > 1e-10).sum() for w in model.weights))
+        n_nonzero.append(sum((np.abs(w) > 1e-10).sum() for w in model.weights_))
     assert n_nonzero[0] >= n_nonzero[1] >= n_nonzero[2]
 
 
@@ -222,7 +223,7 @@ def test_per_view_alpha_list_gives_sparser_penalised_view(
     model = ElasticNetCCA(
         latent_dimensions=1, alpha=[0.001, 1.0], l1_ratio=0.9, random_state=0
     ).fit(correlated_views)
-    n_nonzero = [int((np.abs(w) > 1e-10).sum()) for w in model.weights]
+    n_nonzero = [int((np.abs(w) > 1e-10).sum()) for w in model.weights_]
     assert n_nonzero[1] < n_nonzero[0]
 
 
@@ -269,5 +270,5 @@ def test_positive_constraint_yields_nonnegative_weights(
         latent_dimensions=2, alpha=0.05, l1_ratio=0.5, positive=True, random_state=0
     )
     model.fit(correlated_views)
-    for w in model.weights:
+    for w in model.weights_:
         assert np.all(w >= -1e-10)

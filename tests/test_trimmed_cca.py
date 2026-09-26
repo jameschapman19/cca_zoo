@@ -7,6 +7,7 @@ import pytest
 
 from cca_zoo.linear import MCCA, RANSACCCA, TrimmedCCA
 from cca_zoo.linear._trimmed_cca import _per_sample_terms, _select
+from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
 
 
 def _make_model(**kwargs: object) -> TrimmedCCA:
@@ -117,7 +118,7 @@ def test_weights_shapes_and_matches_transform(
 ) -> None:
     """Weights are real (p_i, 1) arrays and transform(v) == centred(v) @ weights."""
     model = _make_model().fit(two_views_small)
-    weights = model.weights
+    weights = model.weights_
     assert len(weights) == 2
     for w, v in zip(weights, two_views_small):
         assert w.shape == (v.shape[1], 1)
@@ -128,12 +129,12 @@ def test_weights_shapes_and_matches_transform(
 
 
 def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
+    """Transform before fitting raises NotFittedError."""
     from sklearn.exceptions import NotFittedError
 
     model = TrimmedCCA()
     with pytest.raises(NotFittedError):
-        _ = model.weights
+        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_inlier_mask_shape(two_views_small: list[np.ndarray]) -> None:
@@ -260,8 +261,12 @@ def test_trimmed_cca_multiview_beats_plain_mcca() -> None:
         c=0.1, h_frac=0.63, n_starts=15, max_iter=30, random_state=0
     ).fit(train_views)
 
-    mcca_corrs = mcca_model.average_pairwise_correlations(test_views)
-    trimmed_corrs = trimmed_model.average_pairwise_correlations(test_views)
+    mcca_corrs = average_pairwise_correlations(
+        pairwise_correlations(mcca_model.transform(test_views))
+    )
+    trimmed_corrs = average_pairwise_correlations(
+        pairwise_correlations(trimmed_model.transform(test_views))
+    )
 
     assert trimmed_corrs[0] > abs(mcca_corrs[0]) + 0.08
 

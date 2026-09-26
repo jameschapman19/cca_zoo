@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from numbers import Integral, Real
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -13,7 +13,6 @@ from sklearn.cluster import kmeans_plusplus
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Kernel
 from sklearn.preprocessing import KernelCenterer
-from sklearn.utils import deprecated
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -417,43 +416,18 @@ class GaussianProcessCCA(BaseModel):
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
             ValueError: If fewer than 2 views are provided.
         """
+        if not return_std:
+            return super().transform(views)
         check_is_fitted(self)
-        validated = validate_views(views)
+        validated = validate_views(views, min_views=self.n_views_)
         centred = [v - m for v, m in zip(validated, self.means_)]
-        if return_std:
-            means = []
-            stds = []
-            for v, enc in zip(centred, self.encoders_):
-                mean, std = enc.predict_new(v, return_std=True)
-                means.append(mean)
-                stds.append(std)
-            return means, stds
-        return [enc.predict_new(v) for v, enc in zip(centred, self.encoders_)]
+        means = []
+        stds = []
+        for v, enc in zip(centred, self.encoders_):
+            mean, std = enc.predict_new(v, return_std=True)
+            means.append(mean)
+            stds.append(std)
+        return means, stds
 
-    @property
-    def weights(self) -> list[np.ndarray]:
-        """Not implemented for GaussianProcessCCA.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            NotImplementedError: GaussianProcessCCA encoders are Gaussian processes over
-                the joint feature vector, not linear weight matrices, and
-                have no per-feature decomposition analogous to
-                :meth:`~cca_zoo.gam.GAMCCA.shape_function` (the kernel is
-                not additive across features).
-        """
-        check_is_fitted(self)
-        raise NotImplementedError(
-            "GaussianProcessCCA has no linear weight matrices; its encoders are "
-            "Gaussian processes with a joint (non-additive) kernel over "
-            "each view's raw features, so there is no per-feature "
-            "decomposition to expose."
-        )
-
-
-@deprecated(
-    "Renamed to GaussianProcessCCA for sklearn-style naming "
-    "(matching GaussianProcessRegressor/Classifier); use GaussianProcessCCA instead."
-)
-class GPCCA(GaussianProcessCCA):
-    pass
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        return cast(np.ndarray, self.encoders_[view].predict_new(centred))

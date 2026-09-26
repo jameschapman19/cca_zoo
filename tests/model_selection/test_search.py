@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pytest
 from sklearn.base import clone
@@ -518,3 +520,25 @@ def test_halving_per_view_grid_searches_cartesian_product(
     hgs.fit(two_views)
     assert set(hgs.best_params_) == {"c__0", "c__1"}
     assert hgs.best_estimator_.c == [hgs.best_params_["c__0"], hgs.best_params_["c__1"]]
+
+
+# ---------------------------------------------------------------------------
+# callable refit
+# ---------------------------------------------------------------------------
+
+
+def test_callable_refit_sees_unprefixed_cv_results(
+    two_views: list[np.ndarray],
+) -> None:
+    """A refit callable gets the same parameter names as ``cv_results_``."""
+    seen: list[set[str]] = []
+
+    def smallest_c(cv_results: dict[str, Any]) -> int:
+        seen.append(set(cv_results))
+        return int(np.argmin(cv_results["param_c"]))
+
+    gs = GridSearchCV(
+        rCCA(), param_grid={"c": [0.5, 0.0, 0.9]}, cv=3, refit=smallest_c
+    ).fit(two_views)
+    assert "param_c" in seen[0]
+    assert gs.best_params_["c"] == 0.0
