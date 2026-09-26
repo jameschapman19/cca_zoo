@@ -1,4 +1,4 @@
-"""GaussianProcessCCA — Gaussian-process Canonical Correlation Analysis."""
+"""Gaussian-process CCA."""
 
 from __future__ import annotations
 
@@ -33,22 +33,12 @@ def _lbfgsb_joint_objective(
     sizes: list[int],
     ridge: list[float],
 ) -> tuple[float, np.ndarray]:
-    r"""Penalised EY loss and its exact gradient, jointly over every view.
+    r"""RKHS-penalised EY loss and its gradient in every view's flattened coefficients.
 
-    Writing $Z_i = \text{bases}_i B_i$ for every view at once, this is
-    $\mathcal{L}_{EY} + \tfrac12\sum_i\lambda_i\sum_c B_i[:,c]^\top M_i B_i[:,c]$
-    (the RKHS-norm ridge penalty, $M_i$ = ``ridge_matrices[i]``, $\lambda_i$
-    = ``ridge[i]`` — see :class:`_GpEncoder`) as a function of every view's
-    coefficients $B_i$, concatenated and flattened into one vector ``x``,
-    with its exact analytic gradient
-    $\text{bases}_i^\top\nabla_{Z_i}\mathcal{L}_{EY} + \lambda_i M_i B_i$ per
-    view — the same two ingredients
-    (:func:`~cca_zoo._utils._ey.ey_loss` and
-    :func:`~cca_zoo._utils._ey.ey_grad_z`) every other EY-loss model in this
-    package already uses. Every view's coefficients are optimised
-    simultaneously by a single call to :func:`scipy.optimize.minimize`
-    (see :meth:`GaussianProcessCCA.fit`), rather than one view at a time
-    with every other view held fixed.
+    With $Z_i = \text{bases}_i B_i$, the loss is
+    $\mathcal{L}_{EY} + \tfrac12 \sum_i \lambda_i \operatorname{tr}(B_i^\top M_i B_i)$
+    and its gradient per view is
+    $\text{bases}_i^\top \nabla_{Z_i} \mathcal{L}_{EY} + \lambda_i M_i B_i$.
     """
     coefficients = []
     offset = 0
@@ -73,40 +63,15 @@ def _lbfgsb_joint_objective(
 
 
 class _GpEncoder:
-    r"""Per-view kernel encoder: a fixed, centred cross-kernel basis.
+    r"""Per-view kernel encoder $f(x) = k(x, U)^\top B$ on fixed inducing points $U$.
 
-    Writes the encoder as $f_i(x) = k(x, Z_i)^\top B_i$ for a *fixed* set of
-    basis points $Z_i$ (``inducing_``) and kernel $k$ — the standard
-    Nyström/"subset of regressors" reduced-rank construction (Quiñonero-
-    Candela & Rasmussen, 2005). ``inducing_`` is every training row when
-    ``n_inducing`` is ``None`` or at least ``n_samples`` (exact inference);
-    otherwise it is ``n_inducing`` rows selected via
-    :func:`sklearn.cluster.kmeans_plusplus`'s seeding. Centring the
-    cross-kernel with :class:`~sklearn.preprocessing.KernelCenterer` (fit on
-    the inducing-point Gram matrix, the same textbook double-centring
-    :class:`~sklearn.decomposition.KernelPCA` uses) is what makes
-    $Z_i = \text{basis}_i B_i$ automatically zero-mean for *any*
-    coefficients $B_i$ — no separate recentring step is needed anywhere
-    downstream.
-
-    The coefficients $B_i$ (``coef_``) are fit jointly with every other
-    view's by L-BFGS-B on :func:`_lbfgsb_joint_objective` — the RKHS-norm
-    penalty $B_i^\top K_{mm} B_i$ a Gaussian process's own posterior mean
-    actually minimises, not a plain $\|B_i\|_2^2$ that would ignore the
-    kernel's geometry — not by this class, which only builds and holds the fixed
-    basis and evaluates it once coefficients exist.
-
-    Predictive uncertainty (``predict_new(..., return_std=True)``) does not
-    depend on $B_i$ at all — a standard GP/kernel-ridge fact, since the
-    posterior variance formula only involves the kernel, the noise level,
-    and the design points, never the fitted targets — so it is obtained
-    directly from an actual :class:`~sklearn.gaussian_process.GaussianProcessRegressor`
-    fit on the inducing points with a placeholder (all-zero) target and
-    ``optimizer=None``: only its ``predict(..., return_std=True)``'s second
-    output is ever used. This computes the exact posterior standard
-    deviation under the (uncentred) GP prior implied by the same kernel,
-    noise level, and inducing points as the mean fit, computed
-    independently of the centred-basis construction used for the mean.
+    The subset-of-regressors construction (Quiñonero-Candela & Rasmussen,
+    2005): $U$ is every training row, or ``n_inducing`` rows seeded by
+    :func:`~sklearn.cluster.kmeans_plusplus`. The cross-kernel is centred with
+    :class:`~sklearn.preprocessing.KernelCenterer`, so embeddings are
+    zero-mean for any $B$. The posterior standard deviation does not depend
+    on $B$, so it comes from a
+    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` fitted on $U$.
     """
 
     def __init__(
@@ -148,18 +113,15 @@ class _GpEncoder:
     def predict_new(
         self, X: np.ndarray, return_std: bool = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        """Encoder output for arbitrary (e.g. test) data, shape (n, k).
+        """Encoder output for new data, shape (n, k), optionally with its std.
 
         Args:
-            X: Input data, shape (n_samples, n_features).
-            return_std: If True, also return the posterior standard
-                deviation of each latent component (identical across
-                components, since all ``k`` share the same kernel/noise/
-                inducing points — see the class docstring).
+            X: Input data, shape (n, n_features).
+            return_std: Whether to also return the posterior standard deviation,
+                the same for every component.
 
         Returns:
-            Array of shape (n, k), or, if ``return_std`` is True, a tuple
-            ``(mean, std)`` of two arrays each of shape (n, k).
+            The output, or ``(mean, std)``, each of shape (n, k).
         """
         basis = self._centerer.transform(self.kernel_(X, self.inducing_))
         mean: np.ndarray = basis @ self.coef_
@@ -170,70 +132,33 @@ class _GpEncoder:
 
 
 class GaussianProcessCCA(BaseModel):
-    r"""GaussianProcessCCA — nonlinear multiview CCA with Gaussian-process encoders.
+    r"""Nonlinear CCA with Gaussian-process encoders.
 
-    Learns one nonlinear encoder $f_i$ per view — a Gaussian process with a
-    joint (non-additive) kernel over that view's raw feature vector — that
-    jointly minimise the ridge-penalised Eckart-Young (EY) objective:
+    Each view's encoder is $f_i(x) = k(x, U_i)^\top B_i$ for a kernel $k$ over
+    the whole feature vector and inducing points $U_i$, so it can represent
+    within-view interactions. Every view's $B_i$ is fitted jointly by
+    L-BFGS-B to minimise the EY loss (:mod:`cca_zoo._utils._ey`) plus the
+    RKHS-norm penalty $\tfrac12 \alpha_i \operatorname{tr}(B_i^\top K_i B_i)$.
+    Fitting costs $O(n m^2 + m^3)$ for $m$ inducing points. Kernel
+    hyperparameters are fixed; tune them by cross-validation.
 
-    $$
-    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-    $$
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        kernel: A kernel, cloned per view, or one per view; None uses
+            ``ConstantKernel(1.0) * RBF(np.ones(n_features))``. Default is None.
+        alpha: RKHS-norm penalty, also the noise level of the posterior
+            variance. Per-view. Default is 0.01.
+        n_inducing: Number of inducing points; None, or at least
+            ``n_samples``, uses every training row. Per-view. Default is None.
+        max_iter: Maximum L-BFGS-B iterations. Default is 1000.
+        tol: L-BFGS-B ``ftol``. Default is 1e-6.
+        random_state: Seed for the initial coefficients and inducing points.
+            Default is None.
 
-    where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise
-    cross-covariance (including $i = j$ terms) and $V$ the mean
-    auto-covariance across all views (see :mod:`cca_zoo._utils._ey`, the
-    same shared EY-loss machinery used by
-    :class:`~cca_zoo.linear.gradient.CCAEY`, :class:`~cca_zoo.deep.DCCAEY`,
-    :class:`~cca_zoo.tree.TreeCCA`, :class:`~cca_zoo.gam.GAMCCA`, and
-    :class:`~cca_zoo.sparse.ElasticNetCCA`). Writing $f_i(x) =
-    k(x, Z_i)^\top B_i$ for a fixed kernel $k$ and fixed basis points $Z_i$
-    (:class:`_GpEncoder`; every training row, or ``n_inducing`` of them
-    selected via :func:`sklearn.cluster.kmeans_plusplus`) turns fitting
-    $B_i$ into an ordinary smooth optimisation problem with an exact,
-    cheap analytic gradient — fit directly by **L-BFGS-B**
-    (:func:`scipy.optimize.minimize`), the same algorithm
-    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` itself uses
-    internally, just pointed at $\mathcal{L}_{EY}$ (plus the RKHS-norm
-    penalty $B_i^\top K_{mm} B_i$) instead of the negative log-marginal-
-    likelihood it optimises kernel hyperparameters against. Every view's
-    coefficients $B_1, \dots, B_M$ are optimised **jointly**, in a single
-    L-BFGS-B run over all of them concatenated, via
-    :func:`_lbfgsb_joint_objective` — not one view at a time with the
-    others held fixed: $\mathcal{L}_{EY}$ already couples every view
-    together, so a block Gauss-Seidel scheme (each view solved to
-    convergence before moving to the next) needlessly repeats work and can
-    settle into a worse joint optimum than optimising every view's
-    coefficients simultaneously against the exact joint gradient.
-    L-BFGS-B needs no explicit Hessian — just gradients.
-
-    A joint kernel is not restricted to a sum of univariate terms the way
-    :class:`~cca_zoo.gam.GAMCCA`'s additive splines are: it can represent a
-    genuine *interaction* between two features of the same view directly.
-
-    Kernel hyperparameters (lengthscales, signal variance) are fixed —
-    pass ``kernel`` explicitly, or tune it externally (e.g. with
-    :class:`~sklearn.model_selection.GridSearchCV`, since this is an
-    ordinary ``BaseEstimator``) — there is no automatic marginal-likelihood
-    search.
-
-    As a Bayesian model it still comes with calibrated predictive
-    uncertainty for free: :meth:`transform` can return each latent
-    component's posterior standard deviation alongside its mean. This does
-    not depend on the fitted coefficients at all — a standard GP fact, since
-    posterior variance only involves the kernel, the noise level, and the
-    design points — so it is computed directly by an actual
-    :class:`~sklearn.gaussian_process.GaussianProcessRegressor` fit with a
-    placeholder target purely to reuse its variance formula (see
-    :class:`_GpEncoder`).
-
-    Note:
-        Exact and sparse inference are the same reduced-rank
-        ("subset of regressors") construction, differing only in how many
-        basis points $Z_i$ are used ($n$, i.e. every training row, for
-        exact; ``n_inducing`` < $n$, chosen by ``kmeans_plusplus``, for
-        sparse) — fitting costs $O(n m^2 + m^3)$ for $m$ basis points,
-        linear in $n$ once $m \ll n$.
+    Attributes:
+        encoders_: Fitted per-view encoders, with ``inducing_``, ``kernel_``
+            and ``coef_``.
 
     References:
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
@@ -243,59 +168,14 @@ class GaussianProcessCCA(BaseModel):
         of Sparse Approximate Gaussian Process Regression. Journal of
         Machine Learning Research, 6, 1939-1959.
 
-        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
-        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
-        arXiv:2310.01012.
-
-    Args:
-        n_components: Number of latent components. Must not exceed the
-            number of features in any view. Default is 1.
-        center: Whether to subtract per-view column means before fitting.
-            Default is True.
-        kernel: Kernel(s) used for each view. Either a single kernel
-            (cloned per view -- its hyperparameters, e.g. an ARD
-            ``length_scale`` array, must then be compatible with every
-            view's feature count) or a list of one kernel per view. ``None``
-            entries (including a bare ``None``, the default) fall back to
-            ``ConstantKernel(1.0) * RBF(length_scale=np.ones(p))`` for that
-            view's own feature count ``p``.
-        alpha: Ridge (RKHS-norm) penalty strength(s), also used as the
-            noise level for the posterior-variance calculation. Either a
-            single float applied to every view or a list of per-view
-            floats. Default is 0.01.
-        n_inducing: Number of basis ("inducing") points. Either a single
-            value or a list of per-view values. ``None`` (the default,
-            either as a scalar or a per-view list entry) uses every
-            training row (exact inference, appropriate up to a few thousand
-            samples) for that view. For larger datasets, set this to a few
-            hundred to make fitting scale as
-            $O(n \, \text{n\_inducing}^2)$ instead of $O(n^3)$. Values at or
-            above the number of training samples fall back to exact
-            inference automatically.
-        max_iter: Maximum number of L-BFGS-B iterations for the single,
-            joint solve over every view's coefficients. Default is 1000.
-        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-6.
-        random_state: Seed for the initial coefficients and (if
-            ``n_inducing`` is set) for selecting inducing points. Default is
-            None.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.gp import GaussianProcessCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((100, 3))
         >>> X2 = rng.standard_normal((100, 3))
-        >>> model = GaussianProcessCCA(n_components=1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
+        >>> model = GaussianProcessCCA(alpha=[0.01, 0.1]).fit([X1, X2])
         >>> means, stds = model.transform([X1, X2], return_std=True)
-        >>> # For larger datasets, cap inference cost with inducing points:
-        >>> big_model = GaussianProcessCCA(n_components=1, n_inducing=200)
-
-        A different ridge penalty per view:
-
-        >>> model = GaussianProcessCCA(n_components=1, alpha=[0.01, 0.1]).fit(
-        ...     [X1, X2]
-        ... )
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -326,18 +206,14 @@ class GaussianProcessCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GaussianProcessCCA:
-        """Fit the GaussianProcessCCA model by L-BFGS-B on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_ = self._setup_fit(views)
         k = self.n_components
@@ -400,22 +276,16 @@ class GaussianProcessCCA(BaseModel):
     def transform(  # type: ignore[override]
         self, views: list[ArrayLike], return_std: bool = False
     ) -> list[np.ndarray] | tuple[list[np.ndarray], list[np.ndarray]]:
-        """Project views into the latent space using the fitted encoders.
+        """Project views into the latent space.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i), matching
-                the number of views passed to ``fit``.
-            return_std: If True, also return each view's posterior standard
-                deviation alongside its mean.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            return_std: Whether to also return the posterior standard deviations.
+                Default is False.
 
         Returns:
-            List of arrays, each (n_samples, n_components); or, if
-            ``return_std`` is True, a tuple ``(means, stds)`` of two such
-            lists.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If fewer than 2 views are provided.
+            One array of shape (n_samples, n_components) per view, or
+            ``(means, stds)`` of two such lists.
         """
         if not return_std:
             return super().transform(views)

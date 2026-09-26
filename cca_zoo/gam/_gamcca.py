@@ -1,4 +1,4 @@
-"""GAMCCA — generalized-additive-model Canonical Correlation Analysis."""
+"""Generalized additive model CCA."""
 
 from __future__ import annotations
 
@@ -37,37 +37,22 @@ def _sparse_gram(basis: sparse.csr_array) -> np.ndarray:
 
 
 def _spline_orders(m: int | tuple[int, int]) -> tuple[int, int]:
-    """``mgcv``'s ``m`` for a P-spline: (spline order, penalty order).
-
-    A single value sets both, as in ``mgcv``; the B-splines have degree
-    ``order + 1`` (``m=2``: cubic) and the penalty takes ``penalty``-th
-    order differences of neighbouring coefficients.
-    """
+    """``mgcv``'s P-spline ``m`` as ``(order, penalty_order)``; an int sets both."""
     if isinstance(m, tuple):
         return int(m[0]), int(m[1])
     return int(m), int(m)
 
 
 class _GamEncoder:
-    r"""Per-view additive P-spline encoder: a fixed, centred B-spline basis.
+    """Per-view additive P-spline encoder on a fixed B-spline basis.
 
-    One smooth per feature, each ``mgcv``'s ``s(x, bs="ps", k=k, m=m)``: a
-    ``k``-dimensional B-spline basis on evenly spaced knots, built by
-    :class:`~sklearn.preprocessing.SplineTransformer`, with Eilers and
-    Marx's difference penalty on neighbouring coefficients, kept as its
-    square root (:attr:`penalty_factor_`, the stacked difference matrices,
-    unscaled by ``sp``). Every feature keeps its full partition of unity and
-    splines with no data under them are kept too — the difference penalty is
-    what fills them in. Centring makes each feature's constant coefficient
-    vector exactly unidentifiable (a partition of unity centres to zero), so
-    it is absorbed structurally, as ``mgcv`` absorbs its sum-to-zero
-    constraint: coefficients live in the orthogonal complement of each
-    block's constant (:attr:`constraint_`). Any data-dependent rank
-    deficiency left (empty spline supports, ties, duplicated features) is
-    resolved at fit time by
-    :func:`~cca_zoo._utils._ey.full_rank_reparametrisation`. Centring every column
-    makes $Z_i = \text{basis}_i B_i$ zero-mean for any coefficients; the
-    basis itself stays sparse (B-splines are local), centred only implicitly.
+    One ``mgcv`` smooth ``s(x, bs="ps", k=k, m=m)`` per feature, built with
+    :class:`~sklearn.preprocessing.SplineTransformer`. The difference penalty
+    is kept as its square root, ``penalty_factor_``. Coefficients are
+    constrained to the complement of each feature's constant
+    (``constraint_``), which centring makes unidentifiable, as ``mgcv``'s
+    sum-to-zero constraint does. The basis stays sparse and is centred
+    implicitly.
     """
 
     def __init__(self, X: np.ndarray, k: int, m: int | tuple[int, int]) -> None:
@@ -136,26 +121,18 @@ class _GamEncoder:
         return self._train_pred
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
-        """Encoder output for arbitrary (e.g. test) data, shape (n, k)."""
+        """Encoder output for new data, shape (n, k)."""
         result: np.ndarray = self._spline.transform(X) @ self.coef_ - (
             self.basis_mean_ @ self.coef_
         )
         return result
 
     def feature_term(self, feature_idx: int, x: np.ndarray) -> np.ndarray:
-        """Single feature's additive contribution, shape (n, k).
+        """One feature's additive term, shape (n, k); the terms sum to :meth:`predict`.
 
         Args:
-            feature_idx: Index of the input feature.
-            x: Raw (mean-centred) values for that feature, shape (n,).
-
-        Returns:
-            Array of shape (n, k): this feature's term alone, for each
-            latent component. Because the basis is centred per *column*
-            (not just overall), each feature's own share of that centring
-            is exactly ``basis_mean_[block]`` — so summing this over every
-            feature reproduces :meth:`predict` exactly, with no leftover
-            constant to split arbitrarily across features.
+            feature_idx: Index of the feature.
+            x: Mean-centred values of that feature, shape (n,).
         """
         grid = np.zeros((len(x), self.p))
         grid[:, feature_idx] = x
@@ -169,54 +146,29 @@ class _GamEncoder:
 
 
 class GAMCCA(BaseModel):
-    r"""GAMCCA — nonlinear multiview CCA with generalized-additive-model encoders.
+    r"""Nonlinear CCA with generalized additive model encoders.
 
-    Learns one nonlinear encoder $f_i$ per view — a generalized additive
-    model (GAM), $f_i(x) = \sum_j s_{ij}(x_{ij})$, one smooth per input
-    feature, each ``mgcv``'s P-spline ``s(x_j, bs="ps", k=k, m=m)`` — that
-    jointly minimise the Eckart-Young (EY) objective
+    Each view's encoder is $f_i(x) = \sum_j s_{ij}(x_j)$, one ``mgcv``
+    P-spline smooth ``s(x_j, bs="ps", k=k, m=m)`` per feature, fitted to
+    minimise the EY loss (:mod:`cca_zoo._utils._ey`) plus the smoothing
+    penalty $\tfrac12 \mathrm{sp}_i \sum_j \beta_{ij}^\top D^\top D \beta_{ij}$,
+    with $D$ the ``m[1]``-th order difference matrix. The fit is a single
+    generalized eigenproblem, solved in closed form at its global optimum.
+    ``mgcv``'s GCV and REML have no EY counterpart, so choose ``sp`` by
+    cross-validation. An additive model cannot represent within-view
+    interactions; see :class:`~cca_zoo.gam.MARSCCA`.
 
-    $$
-    \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
-    $$
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        k: B-splines per feature, as ``mgcv``'s ``k``. Per-view. Default is 10.
+        m: ``(order, penalty_order)``, as ``mgcv``'s ``m``: splines of degree
+            ``order + 1`` and a ``penalty_order``-th difference penalty; an
+            int sets both. Per-view. Default is 2.
+        sp: Smoothing parameter; larger is smoother. Per-view. Default is 0.01.
 
-    (for embeddings $Z_i = f_i(X_i)$, $C$ the mean pairwise
-    cross-covariance including $i = j$ terms and $V$ the mean
-    auto-covariance; see :mod:`cca_zoo._utils._ey`), plus each view's
-    P-spline smoothing penalty $\tfrac12\,\mathrm{sp}_i \sum_j
-    \beta_{ij}^\top D^\top D \beta_{ij}$, $D$ the ``m[1]``-th order
-    difference matrix (Eilers and Marx, 1996): the penalty shrinks each
-    smooth towards a polynomial of degree ``m[1] - 1`` (a straight line for
-    the default ``m=2``), not towards zero.
-
-    With the basis fixed, the whole fit is a single generalized
-    eigenproblem (:func:`~cca_zoo._utils._ey.penalised_gram_ey_gep`), solved
-    in closed form at its global optimum — the same solver
-    :class:`~cca_zoo.gam.MARSCCA` refits with — after an exact
-    reparametrisation onto the basis's row space
-    (:func:`~cca_zoo._utils._ey.full_rank_reparametrisation`) that resolves
-    the P-spline basis's intended rank deficiency, as ``mgcv`` does. There
-    is no iterative solve, no convergence tolerance, and no dependence on a
-    random start.
-
-    ``mgcv`` estimates each smoothing parameter by GCV or REML; both are
-    likelihood/residual criteria with no EY-loss counterpart, so ``sp`` is
-    chosen by cross-validation instead::
-
-        GridSearchCV(GAMCCA(), {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]})
-
-    Because each latent component decomposes exactly into one additive term
-    per input feature, the fitted shape of any feature's contribution is
-    available directly via :meth:`shape_function` — ``plot.gam``'s partial
-    effect curves.
-
-    Note:
-        A GAM's additive structure assumes each feature contributes
-        independently; it cannot represent a genuine *interaction* between
-        two features of the same view (e.g. $x_1 x_2$).
-        :class:`~cca_zoo.gam.MARSCCA` with ``degree >= 2`` can, as can
-        :class:`~cca_zoo.tree.TreeCCA` and
-        :class:`~cca_zoo.gp.GaussianProcessCCA`.
+    Attributes:
+        encoders_: Fitted per-view encoders.
 
     References:
         Wood, S. N. (2017). Generalized Additive Models: An Introduction
@@ -225,48 +177,15 @@ class GAMCCA(BaseModel):
         Eilers, P. H., & Marx, B. D. (1996). Flexible smoothing with
         B-splines and penalties. Statistical Science, 11(2), 89-121.
 
-        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
-        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
-        arXiv:2310.01012.
-
-    Args:
-        n_components: Number of latent components. Must not exceed the
-            number of features in any view. Default is 1.
-        center: Whether to subtract per-view column means before fitting.
-            Default is True.
-        k: Basis dimension of every smooth, as ``mgcv``'s ``k``: the number
-            of B-splines per feature. Raise it when a relationship needs more
-            wiggles than ten splines allow; the penalty keeps a generous
-            basis in check. Cost grows with the cube of the total basis
-            size. Either a single value or a list of per-view values.
-            Default is 10, ``mgcv``'s.
-        m: Spline and penalty orders, as ``mgcv``'s ``m`` for ``bs="ps"``:
-            ``(order, penalty_order)`` gives B-splines of degree
-            ``order + 1`` and a ``penalty_order``-th difference penalty, and
-            a single value sets both. Either one such value (int or tuple)
-            or a list of per-view values. Default is 2 (cubic splines,
-            second differences), ``mgcv``'s.
-        sp: Smoothing parameter of every smooth, as ``mgcv``'s ``sp``
-            (penalty ``sp * beta' S beta``); larger is smoother, tending to
-            a polynomial of degree ``penalty_order - 1`` per feature. Either
-            a single value or a list of per-view values. Default is 0.01
-            (with ``k=10``, held-out correlation on smooth nonlinear
-            relationships matched or beat ``k=20, sp=0.1`` at a third of the
-            cost).
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.gam import GAMCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 5))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = GAMCCA(n_components=2).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-
-        A different basis size and smoothing per view:
-
-        >>> model = GAMCCA(n_components=2, k=[8, 12], sp=[0.1, 10.0]).fit(
-        ...     [X1, X2]
-        ... )
+        >>> model = GAMCCA(n_components=2, k=[8, 12], sp=[0.1, 10.0]).fit([X1, X2])
+        >>> model.shape_function(view=0, feature=0, x=X1[:, 0]).shape
+        (200, 2)
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -290,18 +209,16 @@ class GAMCCA(BaseModel):
         self.sp = sp
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GAMCCA:
-        """Fit the GAMCCA model: one closed-form penalised eigenproblem.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
 
         Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
             ValueError: If ``k`` is too small for a view's spline order.
         """
         views_ = self._setup_fit(views)
@@ -389,27 +306,15 @@ class GAMCCA(BaseModel):
         ]
 
     def shape_function(self, view: int, feature: int, x: ArrayLike) -> np.ndarray:
-        r"""Evaluate one feature's fitted additive term $s_j(x_j)$.
-
-        Because GAMCCA's encoder is additive across features, each term can
-        be inspected in isolation — the direct GAM analogue of
-        :class:`~cca_zoo.tree.TreeCCA`'s split-gain feature importance, but
-        an exact, shape-preserving curve rather than a single importance
-        score.
+        """Evaluate one feature's fitted smooth, ``plot.gam``'s partial effect.
 
         Args:
             view: Index of the view.
-            feature: Index of the feature within that view (raw, i.e.
-                un-centred column order).
-            x: Raw (un-centred) values for that feature at which to evaluate
-                the term, shape (n,).
+            feature: Index of the feature.
+            x: Raw values of that feature, shape (n,).
 
         Returns:
-            Array of shape (n, n_components): that feature's
-            contribution alone, for every latent component.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            The feature's contribution, shape (n, n_components).
         """
         check_is_fitted(self)
         x_arr = np.asarray(x, dtype=float) - self.means_[view][feature]

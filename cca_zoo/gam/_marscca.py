@@ -1,4 +1,4 @@
-"""MARSCCA — multivariate-adaptive-regression-spline Canonical Correlation Analysis."""
+"""Multivariate adaptive regression spline CCA."""
 
 from __future__ import annotations
 
@@ -75,22 +75,13 @@ def _knot_spacing(
 ) -> tuple[np.ndarray, int]:
     r"""Knot step and end exclusion for parents with the given support sizes.
 
-    Friedman's (1991, eqs. 43 and 45) rules, as in ``earth``: with
-    $\alpha = 0.05$, $p$ features and $N_m$ support points, knots at least
-    $L = \lfloor -\log_2[-\ln(1 - \alpha) / (p N_m)] / 2.5 \rfloor$ points
-    apart (so a run of positive or negative gradient can't be chased by
-    closely spaced knots) and none within $L_e = \lfloor 3 -
-    \log_2(\alpha / p) \rfloor$ points of either end (where a hinge would
-    rest on too few points to be estimated), $L_e$ doubled for an
-    interaction parent (``Adjust.endspan = 2``).
-
-    ``minspan=0`` is exactly $L$, as ``minspan=0`` is in ``earth``. The
-    default, ``minspan=None``, widens it where needed to leave at most
-    :data:`_DEFAULT_MAX_KNOTS` knots per feature: the forward pass ranks
-    candidates by the EY gradient before scoring its best few exactly, and
-    with $L$'s ~n/7 knots per feature that ranking fills with near-duplicate
-    knots on noise (held-out correlation on a pure three-way interaction,
-    pruned by cross-validation: 0.61 with $L$, 0.94 with the default).
+    Friedman's (1991, eqs. 43 and 45) rules, as in ``earth``: knots at least
+    $L = \lfloor -\log_2[-\ln(1 - \alpha) / (p N_m)] / 2.5 \rfloor$ support
+    points apart and none within $L_e = \lfloor 3 - \log_2(\alpha / p)
+    \rfloor$ of either end, with $\alpha = 0.05$, $p$ features and $N_m$
+    support points; $L_e$ is doubled for an interaction parent. The default
+    ``minspan=None`` widens $L$ to leave at most :data:`_DEFAULT_MAX_KNOTS`
+    knots per feature.
 
     Args:
         n_support: Support sizes, any shape.
@@ -126,11 +117,7 @@ def _knot_ranks(
     endspan: int | None,
     interaction: bool,
 ) -> np.ndarray:
-    """Support ranks (in one feature's sort order) that may carry a knot.
-
-    From ``end`` to ``n_support - 1 - end``, every ``step``-th point, with
-    both from :func:`_knot_spacing`.
-    """
+    """Support ranks, in one feature's sort order, that may carry a knot."""
     step, end = _knot_spacing(
         np.array(n_support), n_features, minspan, endspan, interaction
     )
@@ -141,11 +128,7 @@ def _knot_ranks(
 def _max_knot_slots(
     n_samples: int, n_features: int, minspan: int | None, endspan: int | None
 ) -> int:
-    """Most knots any parent can have: :func:`_knot_ranks`'s count, maximised.
-
-    Not simply the constant parent's: Friedman's spacing shrinks with the
-    support, so a parent nonzero on slightly fewer samples can have more.
-    """
+    """Most knots any parent can have; smaller supports can have more."""
     support = np.arange(1, n_samples + 1)
     most = 0
     for interaction in (False, True):
@@ -158,50 +141,20 @@ def _max_knot_slots(
 class _HingeScorer:
     r"""Scores every candidate hinge pair of one view without forming any.
 
-    For a parent term $u$ (ones for the constant) and a hinge
-    $h_t = u\,(x_j - t)_+$, every quantity the forward-pass score needs is
-    an inner product $\langle h_t, w\rangle$ with a vector $w$ (a constant,
-    a column of the current basis, a column of the EY gradient, or $h_t$
-    itself), and
+    For a parent $u$ and hinge $h_t = u\,(x_j - t)_+$, every inner product
+    the forward-pass score needs is
 
     $$
     \langle h_t, w\rangle
         = \sum_{x_{ij} \ge t} u_i w_i x_{ij} - t \sum_{x_{ij} \ge t} u_i w_i,
     $$
 
-    two *suffix sums* over feature $j$'s sort order — Friedman's (1991,
-    §3.9) fast update. Three engineering choices keep each forward step
-    cheap, all exact:
-
-    - Candidate knots follow ``earth``'s rules within each parent's support
-      (the samples where the parent is nonzero): none within ``endspan``
-      support points of either end, at least ``minspan`` points apart
-      (:func:`_knot_spacing`), every such point a candidate.
-      Which support samples fall between consecutive knots never changes,
-      so each parent's blocks are built once, as a sparse matrix of shape
-      ``(n_knots * n_features, n_samples)`` with the parent's values
-      folded into its data (plus a copy weighted by $x$), and every
-      parent's matrix is stacked into one. Every parent, feature and knot
-      is then scored at once by one sparse-times-dense product and a
-      cumulative sum over the short knot axis — no Python loop, no
-      ``(n_samples, n_features, ...)`` temporary.
-    - The current basis is kept as an orthonormal ``q`` grown by
-      Gram-Schmidt (applied twice, for stability), so existing columns never
-      change. The score needs a candidate's products with ``q`` only through
-      $\lVert q^\top h_a\rVert^2$, $\lVert q^\top h_b\rVert^2$ and
-      $(q^\top h_a)\cdot(q^\top h_b)$ — sums over ``q``'s columns — so those
-      scalars are cached per candidate and grown as columns arrive, while
-      the gradient side uses $\langle G, h_\perp\rangle = \langle G_\perp,
-      h\rangle$ with $G_\perp$ projected off ``q`` once per step. Memory is
-      therefore linear in the number of parents, not in parents times basis
-      columns, and a step computes only the new ``q`` columns against
-      existing parents, every column against new parents (in chunks), and
-      the projected gradient against every parent.
-    - Each parent's hinge norms and sums depend on nothing else, so they
-      are computed once per parent.
-
-    State grows only through :meth:`add_columns`, called with each accepted
-    basis column.
+    two suffix sums over feature $j$'s sort order (Friedman, 1991, §3.9).
+    Each parent's between-knot blocks are built once as a sparse matrix, so
+    every parent, feature and knot is scored by one sparse product and a
+    cumulative sum. The basis is kept orthonormal (``q``) and each
+    candidate's projections onto it are cached as three scalars, so memory
+    is linear in the number of parents.
     """
 
     def __init__(
@@ -235,11 +188,10 @@ class _HingeScorer:
         """One parent's candidate knots and its u-weighted block matrices.
 
         Returns:
-            ``(knots, valid, blocks)``: knot values, shape (n_slots,
-            n_features), padded past the parent's own knot count; which knot
-            slots are real, shape (n_slots,); and the block
-            matrices with data ``u * x**power`` for power 0 and 1, then
-            ``u**2 * x**power`` for power 0, 1, 2.
+            ``(knots, valid, blocks)``: knot values, shape (n_slots, n_features),
+            padded past the parent's own count; which slots are real, shape
+            (n_slots,); and the block matrices with data ``u * x**p`` for
+            ``p = 0, 1`` then ``u**2 * x**p`` for ``p = 0, 1, 2``.
         """
         X = self.X
         n, p = X.shape
@@ -269,7 +221,7 @@ class _HingeScorer:
     def _block_suffix(
         self, block: sparse.csr_array, w: np.ndarray, n_parents: int
     ) -> np.ndarray:
-        """Suffix sums over the knot axis of stacked parents' blocks times ``w``.
+        """Suffix sums over knots of the parents' blocks times ``w``.
 
         Returns shape (n_knots, n_features, n_parents, n_columns).
         """
@@ -285,13 +237,13 @@ class _HingeScorer:
         knots: np.ndarray,
         w: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """``<h_a, w>`` and ``<h_b, w>`` for every knot, feature, parent, column.
+        """``<h_a, w>`` and ``<h_b, w>`` for every knot, feature, parent and column.
 
         Args:
-            blocks: Stacked u- and u*x-weighted block matrices of the parents.
-            parents: Raw values of those parents, shape (n_samples, n_parents).
-            knots: Their knot values, shape (n_knots, n_features, n_parents).
-            w: Columns to take inner products with, shape (n_samples, c).
+            blocks: Stacked block matrices of the parents.
+            parents: Raw parent values, shape (n_samples, n_parents).
+            knots: Knot values, shape (n_knots, n_features, n_parents).
+            w: Columns, shape (n_samples, c).
 
         Returns:
             Two arrays of shape (n_knots, n_features, n_parents, c).
@@ -313,11 +265,7 @@ class _HingeScorer:
         knots: np.ndarray,
         q: np.ndarray,
     ) -> np.ndarray:
-        """``||q^T h_a||^2``, ``||q^T h_b||^2``, ``(q^T h_a).(q^T h_b)``, stacked last.
-
-        ``q`` is consumed in chunks of :data:`_Q_CHUNK` columns, so the
-        transient per-column products never exceed that many columns.
-        """
+        """``||q'h_a||^2``, ``||q'h_b||^2`` and ``(q'h_a).(q'h_b)``, stacked last."""
         stats = np.zeros((*knots.shape, 3))
         for start in range(0, q.shape[1], _Q_CHUNK):
             qh_a, qh_b = self._hinge_inner(
@@ -329,11 +277,7 @@ class _HingeScorer:
         return stats
 
     def _add_parents(self, parents: np.ndarray, allowed: np.ndarray) -> None:
-        """Register new parent terms, computing their per-candidate statistics.
-
-        The first parent registered is the constant; every later one is an
-        interaction parent, whose ``endspan`` ``earth`` doubles.
-        """
+        """Register new parents; the first is the constant, the rest interactions."""
         X = self.X
         first = self._parents.shape[1] == 0
         per_parent = [self._parent_blocks(u, interaction=not first) for u in parents.T]
@@ -386,10 +330,9 @@ class _HingeScorer:
         """Extend the basis with accepted raw columns; some also become parents.
 
         Args:
-            columns: New raw (uncentred) basis columns, shape (n_samples, c).
-            parent_allowed: One entry per column: None if it cannot parent
-                further terms (``degree`` reached), else the features it
-                may be multiplied by, shape (n_features,).
+            columns: New raw basis columns, shape (n_samples, c).
+            parent_allowed: Per column, None if it cannot parent further terms,
+                else a mask of the features it may be multiplied by.
         """
         new_q: list[np.ndarray] = []
         for col in (columns - columns.mean(axis=0)).T:
@@ -417,15 +360,11 @@ class _HingeScorer:
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Every candidate's orthogonalised 2x2 Gram matrix, and which are usable.
 
-        Independent of the gradient: a function of the basis and parents
-        only.
-
         Returns:
             ``(ok_a, ok_b, ok_pair, aa, bb, ab)``, each of shape (n_knots,
             n_features, n_parents): whether the positive hinge, the negative
-            hinge, and the pair are non-degenerate (and allowed), and the
-            entries of the Gram matrix of the two centred hinges after
-            projecting out the current basis.
+            hinge and the pair are non-degenerate, and the Gram entries of the
+            two centred hinges after projecting out the basis.
         """
         n = self.X.shape[0]
         sq_a, sq_b, sum_a, sum_b, scale, qq_a, qq_b, qq_ab = np.moveaxis(
@@ -462,37 +401,22 @@ class _HingeScorer:
     def best_pairs(
         self, grad: np.ndarray, n: int = 1
     ) -> list[tuple[float, int, int, float, tuple[bool, bool]]]:
-        r"""Best ``n`` (parent, feature, knot) reflected hinge pairs for the gradient.
+        r"""Best ``n`` reflected hinge pairs for the gradient.
 
-        Scores every candidate by how much of the current EY gradient $G$
-        the pair $u\,(x_j - t)_+$, $u\,(t - x_j)_+$ can absorb once
-        orthogonalised against the current basis ``q``:
-        $\operatorname{tr}(G^\top P_H G)$, with $P_H$ the projection onto the
-        orthogonalised pair. This is exactly classical MARS's forward-pass
-        criterion — the reduction in residual sum of squares from adding
-        the pair — with the least-squares residual replaced by the EY loss's
-        negative gradient, the same functional-gradient reading
-        :class:`~cca_zoo.tree.TreeCCA` uses to grow trees. The reflected
-        hinge is $u\,(t - x_j)_+ = h_t - u\,(x_j - t)$, so its inner
-        products follow from the same suffix sums and the full-sample
-        totals, and the two hinges have disjoint support, so their raw inner
-        product is zero.
-
-        When one hinge of the pair is degenerate (identically zero on the
-        training data because the parent term vanishes on that side of the
-        knot, or already in the basis span), the other is scored alone, the
-        same way ``earth`` drops the unused half of a pair.
+        A pair is scored by $\operatorname{tr}(G^\top P_H G)$, with $P_H$ the
+        projection onto the pair orthogonalised against the basis: MARS's
+        residual-sum-of-squares reduction with the residual replaced by the
+        negative EY gradient $G$. A pair with one degenerate hinge is scored on
+        the other alone.
 
         Args:
-            grad: Current EY gradient for this view, shape (n_samples, k).
+            grad: EY gradient of this view, shape (n_samples, k).
             n: Number of candidates to return.
 
         Returns:
-            Up to ``n`` tuples ``(score, parent, feature, knot, keep)``,
-            best first (``parent`` indexing parents in registration order,
-            the constant first), ``keep`` flagging which of the (positive,
-            negative) hinges to add; degenerate candidates are never
-            returned, so the list is empty when every candidate is.
+            Up to ``n`` tuples ``(score, parent, feature, knot, keep)``, best
+            first, with ``keep`` flagging which of the (positive, negative) hinges
+            to add.
         """
         ok_a, ok_b, ok_pair, aa, bb, ab = self.gram()
         # <G, h_perp> = <G_perp, h>: projecting the gradient off the basis once
@@ -541,32 +465,20 @@ class _HingeScorer:
 def _constrained_top_eigenvalues(lam: np.ndarray, z: np.ndarray, k: int) -> np.ndarray:
     r"""Top ``k`` eigenvalues of a symmetric matrix restricted to ``v``'s complement.
 
-    For a symmetric $C = U \operatorname{diag}(\lambda) U^\top$ and a unit
-    vector $v$ with $z = U^\top v$, Sylvester's law of inertia applied to
-    the bordered matrix $\begin{pmatrix} C - \mu I & v \\ v^\top & 0
-    \end{pmatrix}$ counts the eigenvalues of $C$ compressed to
-    $v^\perp$ that exceed $\mu$ as
-
-    $$
-    \#\{\lambda_j > \mu\} - 1 + [g(\mu) < 0], \qquad
-    g(\mu) = \sum_j \frac{z_j^2}{\lambda_j - \mu},
-    $$
-
-    exactly, including deflated directions ($z_j = 0$, where $\lambda_j$
-    itself survives). By interlacing, the $i$-th largest compressed
-    eigenvalue lies in $[\lambda_{d-i}, \lambda_{d-i+1}]$, so bisection on
-    that count within those brackets finds it to machine precision —
-    vectorised over every candidate $v$ and every $i \le k$ at once, from a
-    single eigendecomposition of $C$.
+    For $C = U \operatorname{diag}(\lambda) U^\top$ and unit $v$ with
+    $z = U^\top v$, the number of compressed eigenvalues above $\mu$ is
+    $\#\{\lambda_j > \mu\} - 1 + [g(\mu) < 0]$ with
+    $g(\mu) = \sum_j z_j^2 / (\lambda_j - \mu)$. Interlacing brackets each
+    eigenvalue, so bisection finds all of them, for every candidate, from one
+    eigendecomposition.
 
     Args:
         lam: Eigenvalues of ``C``, ascending, shape (d,).
-        z: ``U^T v`` for each candidate, unit rows, shape (n_candidates, d).
+        z: ``U' v`` for each candidate, unit rows, shape (n_candidates, d).
         k: Number of top eigenvalues wanted.
 
     Returns:
-        Shape (n_candidates, k), largest first; entries beyond the ``d - 1``
-        eigenvalues the compressed matrix has are ``-inf``.
+        Shape (n_candidates, k), largest first, ``-inf`` beyond ``d - 1``.
     """
     d = lam.shape[0]
     rank = np.arange(1, k + 1)
@@ -590,26 +502,17 @@ def _constrained_top_eigenvalues(lam: np.ndarray, z: np.ndarray, k: int) -> np.n
 def _backward_path(
     bases: list[np.ndarray], k: int, ridge: list[float]
 ) -> tuple[np.ndarray, np.ndarray]:
-    r"""MARS backward pass on the EY loss, from every column down to one per view.
+    """MARS backward pass on the EY loss, down to one column per view.
 
-    Repeatedly deletes the column, from whichever view, whose removal leaves
-    the lowest refit ridge-EY training loss, never a view's last column.
-    The refit loss over a column set is $-\sum \mu^2$ over the $k$ largest
-    positive eigenvalues of :func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`
-    on it. In the standard form $C = L^{-1}(A - R/4)L^{-\top}$, $B = LL^\top$,
-    deleting column $c$ restricts $C$ to the complement of $L^{-1} e_c$, whose
-    coordinates in $C$'s eigenbasis $U$ are row $c$ of the generalized
-    eigenvectors $L^{-\top}U$ — so every candidate's eigenvalues come from
-    one generalized eigendecomposition per step
-    (:func:`_constrained_top_eigenvalues`) rather than one per candidate:
-    the eigenvalue analogue of the rank-one downdates ``earth`` uses for its
-    least-squares backward pass.
+    Repeatedly deletes the column whose removal leaves the lowest refit
+    ridge-EY loss. Deleting a column restricts the eigenproblem of
+    :func:`~cca_zoo._utils._ey.penalised_basis_ey_gep` to a hyperplane, so
+    every candidate's loss comes from one eigendecomposition per step
+    (:func:`_constrained_top_eigenvalues`).
 
     Returns:
-        ``(removed, loss)``: stacked column indices in the order deleted,
-        and the refit loss of every nested subset from the full model
-        (``loss[0]``) down to one column per view (``loss[-1]``), so
-        ``loss[s]`` is the loss after ``s`` deletions.
+        ``(removed, loss)``: column indices in deletion order, and the refit
+        loss after each number of deletions, from zero (``loss[0]``) on.
     """
     lhs, rhs, view = penalised_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     active = np.ones(len(view), dtype=bool)
@@ -642,9 +545,8 @@ def _exact_loss(
 ) -> Callable[[np.ndarray], float] | None:
     """Refit ridge-EY loss as a function of the columns ``view`` would gain.
 
-    None while any other view has no basis yet: the loss cannot then tell
-    candidates apart, which is the degenerate start the forward pass's
-    linear warm start exists for.
+    None while another view has no basis yet, when the loss cannot rank
+    candidates.
     """
     if any(raw.shape[1] == 0 for i, raw in enumerate(raw_bases) if i != view):
         return None
@@ -662,11 +564,7 @@ def _exact_loss(
 
 
 class _MarsEncoder:
-    """Per-view MARS encoder: a centred basis of products of hinge functions.
-
-    Holds the terms selected by :class:`MARSCCA`'s forward pass, the
-    training means of their raw columns, and their fitted coefficients.
-    """
+    """Per-view MARS encoder: selected terms, their training means and coefficients."""
 
     def __init__(
         self,
@@ -686,7 +584,7 @@ class _MarsEncoder:
         return self._train_pred
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
-        """Encoder output for arbitrary (e.g. test) data, shape (n, k)."""
+        """Encoder output for new data, shape (n, k)."""
         result: np.ndarray = (
             _evaluate_terms(X, self.terms_) - self.basis_mean_
         ) @ self.coef_
@@ -694,135 +592,56 @@ class _MarsEncoder:
 
 
 class MARSCCA(BaseModel):
-    r"""MARSCCA — nonlinear multiview CCA with MARS (adaptive hinge-spline) encoders.
+    r"""Nonlinear CCA with multivariate adaptive regression spline encoders.
 
-    Learns one nonlinear encoder per view — a multivariate adaptive
-    regression spline (MARS; Friedman, 1991), $f_i(x) = \sum_m b_{im}(x)
-    B_{im}$, a linear combination of basis functions each of which is a
-    product of up to ``degree`` hinges $\max(0, \pm(x_j - t))$ — that
-    jointly minimise the ridge-penalised Eckart-Young (EY) objective (see
-    :mod:`cca_zoo._utils._ey`, shared with :class:`~cca_zoo.gam.GAMCCA`,
-    :class:`~cca_zoo.tree.TreeCCA`, and the linear ``*EY`` models).
+    Each view's encoder is a MARS model (Friedman, 1991), a linear
+    combination of products of up to ``degree`` hinges
+    $\max(0, \pm(x_j - t))$, fitted to minimise the ridge-penalised EY loss.
+    As in R's ``earth``, a forward pass grows each basis by the hinge pair
+    that best absorbs the EY gradient, refitting every view jointly in
+    closed form, and a backward pass prunes it to ``nprune`` terms.
+    ``earth``'s GCV has no EY counterpart, so choose ``nprune`` by
+    cross-validation.
 
-    Where :class:`~cca_zoo.gam.GAMCCA` fixes its spline basis up front (a
-    B-spline per feature at quantile knots), MARSCCA *grows* each view's
-    basis greedily, as classical MARS does: every forward step scores every
-    candidate reflected hinge pair $b(x)\max(0, x_j - t)$,
-    $b(x)\max(0, t - x_j)$ — every existing term $b$ (or the constant) as
-    parent, every feature $j$ not already in that parent, every candidate
-    knot $t$ — by how much of the current EY gradient it can absorb
-    (:meth:`_HingeScorer.best_pair`; classical MARS's residual-sum-of-squares
-    reduction, with the residual replaced by the EY loss's negative
-    gradient), adds the best pair to each view in turn, then refits every
-    view's coefficients jointly on the enlarged bases. On a fixed basis the
-    ridge-EY fit is a generalized eigenproblem
-    (:func:`~cca_zoo._utils._ey.penalised_basis_ey_gep`), so each refit is its
-    exact global optimum in closed form, not an iterative solve. Knots are
-    therefore placed only where the cross-view signal needs them, and with
-    ``degree >= 2`` a term can represent a genuine within-view
-    interaction (e.g. $x_1 x_2$) that GAMCCA's additive structure cannot.
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        degree: Maximum hinges per term; 1 is additive, 2 allows pairwise
+            interactions. Per-view. Default is 1.
+        nk: Maximum terms per view in the forward pass; None is ``earth``'s
+            ``min(200, max(20, 2 * n_features))`` less its intercept.
+            Per-view. Default is None.
+        thresh: Stop the forward pass once a round lowers the loss by less
+            than this fraction. Default is 0.001.
+        minspan: Minimum support points between knots; 0 is Friedman's rule,
+            None widens it to at most 20 knots per feature. Per-view. Default
+            is None.
+        endspan: Support points at either end that may not carry a knot,
+            doubled for interactions; None is Friedman's rule. Per-view.
+            Default is None.
+        alpha: Ridge penalty on every basis coefficient. Per-view. Default
+            is 0.1.
+        nprune: Total terms, across views, kept by the backward pass; None
+            keeps them all. Default is None.
+        random_state: Seed for the linear warm start. Default is None.
 
-    The EY loss's all-zero embedding is a stationary point, so there is no
-    gradient to select the very first terms against; every view is
-    therefore warm-started with a random linear projection
-    (:func:`~cca_zoo._utils._ey.cheap_orthonormal_projection_weights`),
-    which the first refit replaces entirely.
-
-    The forward pass deliberately overshoots, so, as in classical MARS, a
-    backward pass prunes it: starting from every term the forward pass
-    added, it repeatedly deletes the term (from whichever view) whose
-    removal raises the refit training EY loss least, down to ``nprune``
-    terms in total. Because every refit is a closed-form eigenproblem, each
-    deletion is exact — every candidate's refit loss is computed, all at
-    once, from one batched eigenvalue decomposition. Unlike the forward
-    sequence, the backward sequence can drop a stepping-stone term (say a
-    lone hinge in $x_1$) once the interaction it led to has taken over its
-    job. The same nested sequence underlies :attr:`feature_importances_`.
-
-    ``earth`` then picks the size by generalised cross-validation, a
-    squared-error criterion with no EY-loss counterpart; its alternative,
-    choosing the size along the backward sequence by cross-validation
-    (``pmethod="cv"``), carries over exactly as a search over ``nprune``::
-
-        GridSearchCV(
-            MARSCCA(degree=2, nk=40), {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]}
-        )
-
-    Note:
-        Every parameter that configures one view's basis — ``degree``,
-        ``nk``, ``alpha``, ``minspan``, ``endspan``
-        — takes a single value or a list of per-view values, as elsewhere
-        in the package. ``thresh`` and ``nprune`` stay global: the forward
-        pass's stopping rule compares the loss of the *joint* refit before
-        and after a round, and the backward pass deletes terms from
-        whichever view costs the joint loss least, so neither has a
-        per-view share to set.
+    Attributes:
+        encoders_: Fitted per-view encoders; ``encoders_[i].coef_`` has one
+            row per entry of :meth:`basis_functions`.
+        backward_path_: ``(view, term)`` in the order the backward pass
+            deleted them.
+        backward_loss_: Training EY loss after each number of deletions.
 
     References:
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
         The Annals of Statistics, 19(1), 1-67.
 
-        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
-        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
-        arXiv:2310.01012.
-
-    Args:
-        n_components: Number of latent components. Must not exceed the
-            number of features in any view. Default is 1.
-        center: Whether to subtract per-view column means before fitting.
-            Default is True.
-        degree: Maximum number of hinge factors in a basis function, as
-            ``earth``'s ``degree``: 1 gives an additive model, 2 allows
-            pairwise interactions, and so on. Either a single value or a
-            list of per-view values. Default is 1.
-        nk: Maximum number of terms per view in the forward pass, as
-            ``earth``'s ``nk`` (each step adds at most two). ``earth`` counts
-            its intercept; views here are centred, so there is none, and
-            the default is ``earth``'s ``min(200, max(20, 2 * n_features))``
-            without it. Either a single value or a list of per-view values,
-            where a None entry takes that view's default. Default is None.
-        thresh: Forward-pass stopping threshold, as ``earth``'s: the pass
-            stops once a round lowers the refit training EY loss by less than
-            ``thresh`` times its magnitude (the EY analogue of an R-squared
-            gain below ``thresh``). 0 always grows to ``nk``. Default
-            is 0.001.
-        minspan: Minimum number of the parent's support points between
-            knots; every point it allows is a candidate. ``0`` is Friedman's
-            (1991) rule, as ``minspan=0`` (the default) is in ``earth``.
-            The default here, None, widens that rule where needed to leave
-            at most 20 knots per feature, which measurably helps this
-            estimator's forward pass find interactions (see
-            :func:`_knot_spacing`); raise it to trade accuracy for speed on
-            large data. Either a single value or a list of per-view values
-            (None entries allowed). Default is None.
-        endspan: Number of the parent's support points at either end of a
-            feature's range that may not carry a knot, doubled for
-            interaction terms as ``earth``'s ``Adjust.endspan=2`` does. None
-            uses Friedman's rule. Either a single value or a list of
-            per-view values (None entries allowed). Default is None.
-        alpha: Ridge penalty strength applied to every basis coefficient.
-            Either a single float or a list of per-view floats. Default is
-            0.1.
-        nprune: Total number of terms, across all views, kept by the
-            backward pass, as ``earth``'s ``nprune`` (again without
-            intercepts; every view keeps at least one term). ``earth``
-            chooses the size by GCV when this is unset; GCV has no EY
-            counterpart, so None keeps every term the forward pass adds —
-            choose it by cross-validation instead (see above). Default is
-            None.
-        random_state: Seed for the initial linear warm start. Default is
-            None.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.gam import MARSCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 5))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = MARSCCA(n_components=2).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-
-        Pairwise interactions, with a larger basis for the second view:
-
         >>> model = MARSCCA(degree=2, nk=[10, 20]).fit([X1, X2])
         >>> len(model.basis_functions(0)) <= 10
         True
@@ -863,18 +682,14 @@ class MARSCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
-        """Fit the MARSCCA model: greedy forward pass with joint refits.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_ = self._setup_fit(views)
         k = self.n_components
@@ -993,16 +808,12 @@ class MARSCCA(BaseModel):
     ) -> np.ndarray | None:
         """Append the best hinge pair to ``terms``.
 
-        The :data:`_N_RESCORE` candidates absorbing the most EY gradient are
-        re-ranked by ``exact_loss`` — the refit ridge-EY loss with the
-        candidate's columns added — when it is given; otherwise the gradient
-        score alone decides. ``parent_terms`` lists the terms ``scorer``
-        holds as parents, in its registration order; new parents are
-        appended to both.
+        The :data:`_N_RESCORE` best candidates by gradient score are re-ranked by
+        ``exact_loss`` when given.
 
         Returns:
-            The new raw basis column(s), shape (n_samples, 1 or 2), or None
-            if no candidate is non-degenerate.
+            The new raw basis columns, shape (n_samples, 1 or 2), or None if no
+            candidate is non-degenerate.
         """
         candidates = scorer.best_pairs(grad, _N_RESCORE if exact_loss else 1)
         if not candidates:
@@ -1039,14 +850,10 @@ class MARSCCA(BaseModel):
         return self.encoders_[view].predict_new(centred)
 
     def _feature_importances(self) -> list[np.ndarray]:
-        """``earth``'s ``evimp`` with its residual-sum-of-squares criterion.
+        """``earth``'s ``evimp``, with the EY loss in place of the RSS.
 
-        The backward pass yields nested subsets of terms, from the fitted
-        model down to one term per view. Every subset's decrease in refit EY
-        training loss over the next smaller subset (the smallest's over the
-        empty model, whose loss is zero) is credited to each feature it
-        uses, and summed: ``evimp``'s ``rss`` criterion with the EY loss in
-        place of the residual sum of squares.
+        Each backward-pass subset's loss decrease over the next smaller one is
+        credited to every feature it uses.
         """
         members: list[set[tuple[int, _Term]]] = [
             {(i, t) for i, enc in enumerate(self.encoders_) for t in enc.terms_}
@@ -1062,20 +869,17 @@ class MARSCCA(BaseModel):
         return importance
 
     def basis_functions(self, view: int) -> list[str]:
-        """Human-readable form of one view's selected basis functions.
+        """Readable form of one view's selected basis functions.
 
-        Knots are reported in the raw (un-centred) feature units, e.g.
-        ``"h(x3 - 0.52) * h(1.1 - x0)"`` with ``h(u) = max(0, u)``. Entry
-        ``m`` corresponds to row ``m`` of ``encoders_[view].coef_``.
+        Knots are in raw feature units, e.g. ``"h(x3 - 0.52) * h(1.1 - x0)"``
+        with ``h(u) = max(0, u)``.
 
         Args:
             view: Index of the view.
 
         Returns:
-            One string per basis function, in the order they were selected.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            One string per basis function, matching the rows of
+            ``encoders_[view].coef_``.
         """
         check_is_fitted(self)
         means = self.means_[view]

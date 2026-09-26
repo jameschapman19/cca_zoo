@@ -1,26 +1,9 @@
-"""Sklearn-idiomatic hyperparameter search for multiview CCA models.
+"""Hyperparameter search for multiview estimators.
 
-Every multiview estimator in cca_zoo already subclasses
-:class:`sklearn.base.BaseEstimator`, so ``get_params``/``set_params``/``clone``
-work out of the box. The one thing standing between these models and sklearn's
-model-selection tools is the calling convention: ``fit``/``transform``/``score``
-take a ``list[ArrayLike]`` of per-view arrays, not a single 2-D ``X``, so
-:class:`sklearn.model_selection.GridSearchCV` and friends can't split folds
-correctly on it.
-
-:class:`MultiviewWrapper` bridges that gap: it concatenates the views into one
-2-D array (so sklearn can index rows/folds normally) and splits them back
-before delegating to the wrapped multiview estimator. It is a plain
-``BaseEstimator``, so once wrapped, *any* sklearn tool applies directly:
-``GridSearchCV``, ``RandomizedSearchCV``, ``HalvingGridSearchCV``,
-``cross_val_score``, ``cross_validate``, ``learning_curve``, ``Pipeline``, etc.
-
-:class:`GridSearchCV`, :class:`RandomizedSearchCV`, :class:`HalvingGridSearchCV`
-and :class:`HalvingRandomSearchCV` below are thin convenience wrappers that do
-this concatenation automatically and delegate the actual search to the
-corresponding :mod:`sklearn.model_selection` class, so all of sklearn's search
-machinery (parallelism, scoring, ``cv_results_``, successive-halving resource
-allocation, multimetric support, ...) is reused rather than reimplemented.
+sklearn's model-selection tools index a single 2-D ``X``.
+:class:`MultiviewWrapper` concatenates the views into one array and splits
+them back, so any sklearn tool applies. The search classes here wrap their
+:mod:`sklearn.model_selection` namesakes to do this automatically.
 """
 
 from __future__ import annotations
@@ -40,22 +23,25 @@ _VIEW_PARAM_RE = re.compile(r"^(.+)__(\d+)$")
 
 
 class MultiviewWrapper(BaseEstimator):
-    """Adapt a multiview estimator to sklearn's single-``X`` estimator API.
+    """Adapt a multiview estimator to sklearn's single-``X`` API.
 
-    Sklearn's model-selection tools (``GridSearchCV``, ``cross_val_score``,
-    ``Pipeline``, ...) require an estimator whose ``fit``/``score`` accept
-    ``(X, y)`` with ``X`` a single 2-D array, so they can index and split rows
-    into folds. This wrapper concatenates the views' feature axes into one
-    array on the way in and splits them back into views on the way out, so
-    any sklearn tool that only ever sees the concatenated array can be used
-    unmodified with a cca_zoo multiview estimator.
+    Views are concatenated along the feature axis on the way in and split
+    back on the way out, so ``cross_val_score``, ``Pipeline`` and the
+    sklearn searches work unmodified.
+
+    A per-view parameter can be set for one view with a ``name__<view>``
+    suffix, e.g. ``estimator__c__0``; unset views keep their current value.
+    This lets a grid such as ``{"c__0": [0.01, 0.1], "c__1": [0.1, 1.0]}``
+    search the views independently.
 
     Args:
-        estimator: A multiview CCA estimator (e.g. :class:`~cca_zoo.linear.CCA`).
-        n_features_per_view: Number of features in each view, in order. Used to
-            split the concatenated array back into views.
+        estimator: A multiview estimator.
+        n_features_per_view: Number of features in each view, in order.
 
-    Examples:
+    Attributes:
+        estimator_: The fitted multiview estimator.
+
+    Example:
         >>> import numpy as np
         >>> from sklearn.model_selection import cross_val_score
         >>> from cca_zoo.linear import CCA
@@ -64,16 +50,6 @@ class MultiviewWrapper(BaseEstimator):
         >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
         >>> wrapper = MultiviewWrapper(CCA(), n_features_per_view=[5, 4])
         >>> scores = cross_val_score(wrapper, np.hstack([X1, X2]), cv=3)
-
-    Per-view hyperparameters (a per-view CCA model accepts a scalar,
-    broadcast to every view, or an explicit list with one value per view --
-    e.g. ``KCCA(c=[0.01, 0.1])``) can be searched independently per view
-    through ``set_params`` using a ``name__<view index>`` suffix, e.g.
-    ``estimator__c__0``. This is mainly useful for grid/randomized search: a
-    param grid of ``{"c__0": [0.01, 0.1], "c__1": [0.1, 1.0]}`` makes
-    sklearn's ``ParameterGrid`` search the Cartesian product of the two
-    views' values. Indices left unset keep the estimator's current value for
-    that view (broadcast if it was a scalar).
     """
 
     def __init__(
@@ -92,13 +68,13 @@ class MultiviewWrapper(BaseEstimator):
         return views
 
     def set_params(self, **params: Any) -> MultiviewWrapper:
-        """Set parameters, honouring per-view ``name__<view index>`` overrides.
+        """Set parameters, including per-view ``estimator__<name>__<view>`` keys.
 
         Args:
-            **params: Parameter names/values. A key of the form
-                ``estimator__<name>__<index>`` sets view ``<index>``'s
-                value of the wrapped estimator's ``<name>`` parameter
-                without disturbing the other views.
+            **params: Parameter names and values.
+
+        Returns:
+            self.
         """
         own: dict[str, Any] = {}
         inner: dict[str, Any] = {}
@@ -178,12 +154,7 @@ def _unprefix(key: str) -> str:
 
 
 def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
-    """Strip the ``estimator__`` prefix from ``cv_results_`` keys/params.
-
-    Without this, ``cv_results_["param_c"]`` doesn't exist -- only
-    ``cv_results_["param_estimator__c"]`` does -- which is inconsistent with
-    the unprefixed keys in ``best_params_``.
-    """
+    """``cv_results_`` with the ``estimator__`` prefix removed from its keys."""
     unwrapped: dict[str, Any] = {}
     for key, value in cv_results.items():
         if key.startswith(f"param_{_PARAM_PREFIX}"):
@@ -205,14 +176,7 @@ def _unwrapped_refit(refit: Any) -> Any:
 
 
 def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
-    """Copy every fitted (trailing-underscore) attribute from ``inner``.
-
-    ``cv_results_``, ``best_params_`` and ``best_estimator_`` need their
-    ``estimator__`` prefix undone; every other fitted attribute (``best_score_``,
-    ``best_index_``, ``scorer_``, ``n_splits_``, ``refit_time_``,
-    ``multimetric_``, ...) is forwarded as-is, so new sklearn attributes are
-    picked up automatically instead of needing to be listed by hand here.
-    """
+    """Copy the fitted attributes of ``inner``, unprefixing the parameter names."""
     special = {"cv_results_", "best_params_", "best_estimator_"}
     for attr, value in vars(inner).items():
         if attr in special or not attr.endswith("_") or attr.endswith("__"):
@@ -235,11 +199,10 @@ class _MultiviewSearchMixin:
     best_estimator_: BaseEstimator
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Transform multiview data using the best estimator.
+        """Transform multiview data with the best estimator.
 
         Raises:
-            AttributeError: If ``refit=False``, so no ``best_estimator_``
-                was fitted.
+            AttributeError: If fitted with ``refit=False``.
         """
         if not self.refit:
             raise AttributeError(
@@ -255,19 +218,7 @@ class _MultiviewSearchMixin:
 
 
 class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
-    """Shared ``fit`` body for the wrapped multiview search classes.
-
-    Both :class:`GridSearchCV` and :class:`RandomizedSearchCV` do exactly
-    the same three things in ``fit``: wrap the estimator with
-    :class:`MultiviewWrapper`, hand it to the corresponding
-    ``sklearn.model_selection`` search class (``_inner_cv_cls``), and copy
-    the fitted attributes back with the ``estimator__`` prefix undone. That
-    shared plumbing lives here; each subclass's own ``fit`` only supplies
-    its search-specific constructor kwargs (``param_grid`` vs.
-    ``param_distributions``, ``n_iter``, ``random_state``, ...) and keeps
-    its own full docstring, since sklearn's own search classes likewise
-    don't share a public docstring via inheritance.
-    """
+    """Shared ``fit``: wrap the estimator, run ``_inner_cv_cls``, copy results back."""
 
     estimator: BaseEstimator
     _inner_cv_cls: ClassVar[type[BaseEstimator]]
@@ -293,59 +244,44 @@ class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
 
 
 class GridSearchCV(_BaseMultiviewSearchCV):
-    """Exhaustive grid search with cross-validation for multiview CCA models.
+    """Exhaustive grid search over a multiview estimator's parameters.
 
-    A thin multiview adapter around
-    :class:`sklearn.model_selection.GridSearchCV`: views are horizontally
-    stacked into one array via :class:`MultiviewWrapper`, and the actual
-    search (candidate generation, parallel fold evaluation, ``cv_results_``,
-    refitting, ...) is entirely sklearn's.
+    A multiview adapter for :class:`sklearn.model_selection.GridSearchCV`;
+    parameter names are unprefixed, and ``name__<view>`` searches one view's
+    value of a per-view parameter.
 
     Args:
-        estimator: A multiview CCA estimator (e.g.
-            :class:`~cca_zoo.linear.CCA`).
-        param_grid: Dictionary or list of dictionaries with parameter
-            names as keys and lists of parameter settings as values.
-        cv: Number of cross-validation folds or a cross-validation
-            splitter.  Default is 5.
-        scoring: Scoring strategy.  When ``None`` the estimator's
-            default :meth:`score` method is used.
-        n_jobs: Number of jobs to run in parallel. Default is ``None``
-            (sequential).
-        refit: Whether to refit the best estimator on the full dataset,
-            or, as in sklearn, a callable returning the index of the
-            candidate to refit given ``cv_results_`` (with the same
-            unprefixed parameter names as this object's ``cv_results_``).
-            Default is ``True``.
+        estimator: A multiview estimator.
+        param_grid: Dict, or list of dicts, of parameter values to try.
+        cv: Number of folds or a splitter. Default is 5.
+        scoring: Scoring strategy; ``None`` uses the estimator's ``score``.
+            Default is None.
+        n_jobs: Number of parallel jobs. Default is None.
+        refit: Whether to refit the best candidate on all data, or a callable
+            choosing it from ``cv_results_``. Default is True.
         verbose: Verbosity level. Default is 0.
-        pre_dispatch: Controls the number of jobs dispatched during
-            parallel execution, forwarded to sklearn's ``GridSearchCV``.
-        error_score: Value to assign to the score if fitting a candidate
-            raises an exception, forwarded to sklearn's ``GridSearchCV``.
-        return_train_score: If ``True``, ``cv_results_`` also includes
-            training scores.
+        pre_dispatch: Jobs dispatched during parallel execution. Default is
+            ``"2*n_jobs"``.
+        error_score: Score assigned when a fit fails. Default is ``np.nan``.
+        return_train_score: Whether to include training scores. Default is
+            False.
 
-    Examples:
+    Attributes:
+        cv_results_: Per-candidate results, as in sklearn.
+        best_estimator_: The refitted multiview estimator.
+        best_params_: Parameters of the best candidate.
+        best_score_: Mean cross-validated score of the best candidate.
+
+    Example:
         >>> import numpy as np
-        >>> from cca_zoo.linear import CCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import GridSearchCV
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> gs = GridSearchCV(
-        ...     CCA(), param_grid={"n_components": [1, 2]}, cv=2
-        ... )
-        >>> gs = gs.fit([X1, X2])
-
-        A per-view estimator parameter (e.g. :class:`~cca_zoo.linear.RidgeCCA`'s
-        ridge ``c``) can be searched independently per view with a
-        ``name__<view index>`` suffix in ``param_grid``:
-
-        >>> from cca_zoo.linear import RidgeCCA
-        >>> gs = GridSearchCV(
         ...     RidgeCCA(), param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]}, cv=2
-        ... )
-        >>> gs = gs.fit([X1, X2])
+        ... ).fit([X1, X2])
         >>> sorted(gs.best_params_.items())
         [('c__0', 0.0), ('c__1', 0.5)]
     """
@@ -383,17 +319,15 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         y: None = None,
         **fit_params: Any,
     ) -> GridSearchCV:
-        """Run grid search with cross-validation on multiview data.
+        """Run the search.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            **fit_params: Additional keyword arguments forwarded to the
-                estimator's ``fit`` method during each fold.
+            **fit_params: Forwarded to the estimator's ``fit``.
 
         Returns:
-            self: Fitted grid search object.
+            self.
         """
         inner_cv_kwargs = dict(
             param_grid=_wrap_param_space(self.param_grid),
@@ -410,44 +344,37 @@ class GridSearchCV(_BaseMultiviewSearchCV):
 
 
 class RandomizedSearchCV(_BaseMultiviewSearchCV):
-    """Randomized search with cross-validation for multiview CCA models.
+    """Randomized search over a multiview estimator's parameters.
 
-    Samples ``n_iter`` parameter settings from ``param_distributions``
-    instead of exhaustively trying every combination in a grid -- useful
-    when a hyperparameter (e.g. ``c``) is continuous, or when the grid is
-    too large to search exhaustively. A thin multiview adapter around
-    :class:`sklearn.model_selection.RandomizedSearchCV`, following the same
-    :class:`MultiviewWrapper` pattern as :class:`GridSearchCV`.
+    A multiview adapter for :class:`sklearn.model_selection.RandomizedSearchCV`,
+    with the same parameter naming as :class:`GridSearchCV`.
 
     Args:
-        estimator: A multiview CCA estimator (e.g.
-            :class:`~cca_zoo.linear.CCA`).
-        param_distributions: Dictionary (or list of dictionaries) with
-            parameter names as keys and either a list of values to sample
-            from, or a distribution (anything with a ``rvs`` method, e.g.
-            ``scipy.stats.loguniform``).
-        n_iter: Number of parameter settings sampled. Default is 10.
-        cv: Number of cross-validation folds or a cross-validation
-            splitter.  Default is 5.
-        scoring: Scoring strategy.  When ``None`` the estimator's
-            default :meth:`score` method is used.
-        n_jobs: Number of jobs to run in parallel. Default is ``None``
-            (sequential).
-        refit: Whether to refit the best estimator on the full dataset,
-            or, as in sklearn, a callable returning the index of the
-            candidate to refit given ``cv_results_`` (with the same
-            unprefixed parameter names as this object's ``cv_results_``).
-            Default is ``True``.
+        estimator: A multiview estimator.
+        param_distributions: Dict, or list of dicts, of value lists or
+            distributions with an ``rvs`` method.
+        n_iter: Number of candidates sampled. Default is 10.
+        cv: Number of folds or a splitter. Default is 5.
+        scoring: Scoring strategy; ``None`` uses the estimator's ``score``.
+            Default is None.
+        n_jobs: Number of parallel jobs. Default is None.
+        refit: Whether to refit the best candidate on all data, or a callable
+            choosing it from ``cv_results_``. Default is True.
         verbose: Verbosity level. Default is 0.
-        random_state: Controls the randomness of the parameter sampling.
-        pre_dispatch: Controls the number of jobs dispatched during
-            parallel execution, forwarded to sklearn's ``RandomizedSearchCV``.
-        error_score: Value to assign to the score if fitting a candidate
-            raises an exception, forwarded to sklearn's ``RandomizedSearchCV``.
-        return_train_score: If ``True``, ``cv_results_`` also includes
-            training scores.
+        random_state: Seed for the parameter sampling. Default is None.
+        pre_dispatch: Jobs dispatched during parallel execution. Default is
+            ``"2*n_jobs"``.
+        error_score: Score assigned when a fit fails. Default is ``np.nan``.
+        return_train_score: Whether to include training scores. Default is
+            False.
 
-    Examples:
+    Attributes:
+        cv_results_: Per-candidate results, as in sklearn.
+        best_estimator_: The refitted multiview estimator.
+        best_params_: Parameters of the best candidate.
+        best_score_: Mean cross-validated score of the best candidate.
+
+    Example:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import RidgeCCA
@@ -457,18 +384,6 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         >>> X2 = rng.standard_normal((50, 4))
         >>> rs = RandomizedSearchCV(
         ...     RidgeCCA(),
-        ...     param_distributions={"c": loguniform(1e-3, 1.0)},
-        ...     n_iter=5,
-        ...     cv=2,
-        ...     random_state=0,
-        ... )
-        >>> rs = rs.fit([X1, X2])
-
-        Per-view distributions use the same ``name__<view index>`` suffix
-        as :class:`GridSearchCV`:
-
-        >>> rs = RandomizedSearchCV(
-        ...     RidgeCCA(),
         ...     param_distributions={
         ...         "c__0": loguniform(1e-3, 1.0),
         ...         "c__1": loguniform(1e-3, 1.0),
@@ -476,9 +391,8 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         ...     n_iter=5,
         ...     cv=2,
         ...     random_state=0,
-        ... )
-        >>> rs = rs.fit([X1, X2])
-        >>> sorted(rs.best_params_.keys())
+        ... ).fit([X1, X2])
+        >>> sorted(rs.best_params_)
         ['c__0', 'c__1']
     """
 
@@ -519,17 +433,15 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         y: None = None,
         **fit_params: Any,
     ) -> RandomizedSearchCV:
-        """Run randomized search with cross-validation on multiview data.
+        """Run the search.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            **fit_params: Additional keyword arguments forwarded to the
-                estimator's ``fit`` method during each fold.
+            **fit_params: Forwarded to the estimator's ``fit``.
 
         Returns:
-            self: Fitted randomized search object.
+            self.
         """
         inner_cv_kwargs = dict(
             param_distributions=_wrap_param_space(self.param_distributions),
@@ -550,79 +462,50 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
 
 
 class HalvingGridSearchCV(_BaseMultiviewSearchCV):
-    """Successive-halving grid search with cross-validation for multiview CCA models.
+    """Successive-halving grid search over a multiview estimator's parameters.
 
-    Like :class:`GridSearchCV`, but candidates are evaluated on a growing
-    subset of the training samples across rounds: most candidates are
-    eliminated early on a small subset, and only the survivors are evaluated
-    on progressively larger subsets, which is usually much cheaper than an
-    exhaustive :class:`GridSearchCV` when the grid is large. A thin multiview
-    adapter around :class:`sklearn.model_selection.HalvingGridSearchCV`,
-    following the same :class:`MultiviewWrapper` pattern as
-    :class:`GridSearchCV`; the "resource" being grown across rounds is a row
-    count of the (already view-concatenated) training array, so the
-    successive-halving mechanics need no multiview-specific handling.
+    A multiview adapter for :class:`sklearn.model_selection.HalvingGridSearchCV`,
+    with the same parameter naming as :class:`GridSearchCV`.
 
     Args:
-        estimator: A multiview CCA estimator (e.g.
-            :class:`~cca_zoo.linear.CCA`).
-        param_grid: Dictionary or list of dictionaries with parameter
-            names as keys and lists of parameter settings as values.
-        factor: The proportion of candidates eliminated (and resources
-            multiplied by) at each round. Default is 3.
-        resource: The resource grown between rounds, forwarded to sklearn's
-            ``HalvingGridSearchCV``. Default is ``"n_samples"``.
-        max_resources: The maximum amount of resource a candidate is
-            allowed to use, forwarded to sklearn's ``HalvingGridSearchCV``.
-            Default is ``"auto"``.
-        min_resources: The minimum amount of resource a candidate is
-            allowed to use, forwarded to sklearn's ``HalvingGridSearchCV``.
-            Default is ``"exhaust"``.
-        aggressive_elimination: Whether to eliminate candidates at the same
-            rate even before there are enough resources to grow, forwarded
-            to sklearn's ``HalvingGridSearchCV``. Default is ``False``.
-        cv: Number of cross-validation folds or a cross-validation
-            splitter.  Default is 5.
-        scoring: Scoring strategy.  When ``None`` the estimator's
-            default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
-        error_score: Value to assign to the score if fitting a candidate
-            raises an exception, forwarded to sklearn's
-            ``HalvingGridSearchCV``.
-        return_train_score: If ``True``, ``cv_results_`` also includes
-            training scores. Default is ``True``, matching sklearn's
-            ``HalvingGridSearchCV``.
-        random_state: Controls the pseudo-random subsampling of the
-            training set that determines the candidates' resources at each
-            round.
-        n_jobs: Number of jobs to run in parallel. Default is ``None``
-            (sequential).
+        estimator: A multiview estimator.
+        param_grid: Dict, or list of dicts, of parameter values to try.
+        factor: Candidate reduction and resource growth per round. Default is 3.
+        resource: Resource grown between rounds. Default is ``"n_samples"``.
+        max_resources: Maximum resource per candidate. Default is ``"auto"``.
+        min_resources: Resource in the first round. Default is ``"exhaust"``.
+        aggressive_elimination: Whether to eliminate candidates before
+            resources can grow. Default is False.
+        cv: Number of folds or a splitter. Default is 5.
+        scoring: Scoring strategy; ``None`` uses the estimator's ``score``.
+            Default is None.
+        refit: Whether to refit the best candidate on all data. Default is True.
+        error_score: Score assigned when a fit fails. Default is ``np.nan``.
+        return_train_score: Whether to include training scores. Default is
+            True.
+        random_state: Seed for the per-round subsampling. Default is None.
+        n_jobs: Number of parallel jobs. Default is None.
         verbose: Verbosity level. Default is 0.
 
-    Examples:
+    Attributes:
+        cv_results_: Per-candidate results, as in sklearn.
+        best_estimator_: The refitted multiview estimator.
+        best_params_: Parameters of the best candidate.
+        best_score_: Mean cross-validated score of the best candidate.
+
+    Example:
         >>> import numpy as np
-        >>> from cca_zoo.linear import CCA
+        >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import HalvingGridSearchCV
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
         >>> hgs = HalvingGridSearchCV(
-        ...     CCA(), param_grid={"n_components": [1, 2]}, cv=2
-        ... )
-        >>> hgs = hgs.fit([X1, X2])
-
-        Per-view parameters use the same ``name__<view index>`` suffix as
-        :class:`GridSearchCV`:
-
-        >>> from cca_zoo.linear import RidgeCCA
-        >>> hgs = HalvingGridSearchCV(
         ...     RidgeCCA(),
         ...     param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]},
         ...     cv=2,
         ...     random_state=0,
-        ... )
-        >>> hgs = hgs.fit([X1, X2])
+        ... ).fit([X1, X2])
         >>> sorted(hgs.best_params_.items())
         [('c__0', 0.1), ('c__1', 0.0)]
     """
@@ -670,17 +553,15 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         y: None = None,
         **fit_params: Any,
     ) -> HalvingGridSearchCV:
-        """Run successive-halving grid search with cross-validation.
+        """Run the search.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            **fit_params: Additional keyword arguments forwarded to the
-                estimator's ``fit`` method during each fold.
+            **fit_params: Forwarded to the estimator's ``fit``.
 
         Returns:
-            self: Fitted search object.
+            self.
         """
         inner_cv_kwargs = dict(
             param_grid=_wrap_param_space(self.param_grid),
@@ -704,58 +585,41 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
 
 
 class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
-    """Successive-halving randomized search with cross-validation for multiview models.
+    """Successive-halving randomized search over a multiview estimator's parameters.
 
-    Combines :class:`RandomizedSearchCV`'s sampling of ``param_distributions``
-    with :class:`HalvingGridSearchCV`'s successive-halving elimination: most
-    sampled candidates are eliminated early on a small subset of the training
-    samples, and only the survivors are evaluated on progressively larger
-    subsets. A thin multiview adapter around
-    :class:`sklearn.model_selection.HalvingRandomSearchCV`, following the
-    same :class:`MultiviewWrapper` pattern as :class:`RandomizedSearchCV`.
+    A multiview adapter for
+    :class:`sklearn.model_selection.HalvingRandomSearchCV`, with the same
+    parameter naming as :class:`GridSearchCV`.
 
     Args:
-        estimator: A multiview CCA estimator (e.g.
-            :class:`~cca_zoo.linear.CCA`).
-        param_distributions: Dictionary (or list of dictionaries) with
-            parameter names as keys and either a list of values to sample
-            from, or a distribution (anything with a ``rvs`` method, e.g.
-            ``scipy.stats.loguniform``).
-        n_candidates: The number of candidate parameters to sample,
-            forwarded to sklearn's ``HalvingRandomSearchCV``. Default is
-            ``"exhaust"``.
-        factor: The proportion of candidates eliminated (and resources
-            multiplied by) at each round. Default is 3.
-        resource: The resource grown between rounds, forwarded to sklearn's
-            ``HalvingRandomSearchCV``. Default is ``"n_samples"``.
-        max_resources: The maximum amount of resource a candidate is
-            allowed to use, forwarded to sklearn's ``HalvingRandomSearchCV``.
-            Default is ``"auto"``.
-        min_resources: The minimum amount of resource a candidate is
-            allowed to use, forwarded to sklearn's ``HalvingRandomSearchCV``.
-            Default is ``"smallest"``.
-        aggressive_elimination: Whether to eliminate candidates at the same
-            rate even before there are enough resources to grow, forwarded
-            to sklearn's ``HalvingRandomSearchCV``. Default is ``False``.
-        cv: Number of cross-validation folds or a cross-validation
-            splitter.  Default is 5.
-        scoring: Scoring strategy.  When ``None`` the estimator's
-            default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
-        error_score: Value to assign to the score if fitting a candidate
-            raises an exception, forwarded to sklearn's
-            ``HalvingRandomSearchCV``.
-        return_train_score: If ``True``, ``cv_results_`` also includes
-            training scores. Default is ``True``, matching sklearn's
-            ``HalvingRandomSearchCV``.
-        random_state: Controls both the randomness of the parameter
-            sampling and the pseudo-random subsampling of the training set.
-        n_jobs: Number of jobs to run in parallel. Default is ``None``
-            (sequential).
+        estimator: A multiview estimator.
+        param_distributions: Dict, or list of dicts, of value lists or
+            distributions with an ``rvs`` method.
+        n_candidates: Number of candidates sampled. Default is ``"exhaust"``.
+        factor: Candidate reduction and resource growth per round. Default is 3.
+        resource: Resource grown between rounds. Default is ``"n_samples"``.
+        max_resources: Maximum resource per candidate. Default is ``"auto"``.
+        min_resources: Resource in the first round. Default is ``"smallest"``.
+        aggressive_elimination: Whether to eliminate candidates before
+            resources can grow. Default is False.
+        cv: Number of folds or a splitter. Default is 5.
+        scoring: Scoring strategy; ``None`` uses the estimator's ``score``.
+            Default is None.
+        refit: Whether to refit the best candidate on all data. Default is True.
+        error_score: Score assigned when a fit fails. Default is ``np.nan``.
+        return_train_score: Whether to include training scores. Default is
+            True.
+        random_state: Seed for the sampling and subsampling. Default is None.
+        n_jobs: Number of parallel jobs. Default is None.
         verbose: Verbosity level. Default is 0.
 
-    Examples:
+    Attributes:
+        cv_results_: Per-candidate results, as in sklearn.
+        best_estimator_: The refitted multiview estimator.
+        best_params_: Parameters of the best candidate.
+        best_score_: Mean cross-validated score of the best candidate.
+
+    Example:
         >>> import numpy as np
         >>> from scipy.stats import loguniform
         >>> from cca_zoo.linear import RidgeCCA
@@ -768,24 +632,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         ...     param_distributions={"c": loguniform(1e-3, 1.0)},
         ...     cv=2,
         ...     random_state=0,
-        ... )
-        >>> hrs = hrs.fit([X1, X2])
-
-        Per-view distributions use the same ``name__<view index>`` suffix
-        as :class:`RandomizedSearchCV`:
-
-        >>> hrs = HalvingRandomSearchCV(
-        ...     RidgeCCA(),
-        ...     param_distributions={
-        ...         "c__0": loguniform(1e-3, 1.0),
-        ...         "c__1": loguniform(1e-3, 1.0),
-        ...     },
-        ...     cv=2,
-        ...     random_state=0,
-        ... )
-        >>> hrs = hrs.fit([X1, X2])
-        >>> sorted(hrs.best_params_.keys())
-        ['c__0', 'c__1']
+        ... ).fit([X1, X2])
     """
 
     _inner_cv_cls = skms.HalvingRandomSearchCV
@@ -833,17 +680,15 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         y: None = None,
         **fit_params: Any,
     ) -> HalvingRandomSearchCV:
-        """Run successive-halving randomized search with cross-validation.
+        """Run the search.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            **fit_params: Additional keyword arguments forwarded to the
-                estimator's ``fit`` method during each fold.
+            **fit_params: Forwarded to the estimator's ``fit``.
 
         Returns:
-            self: Fitted search object.
+            self.
         """
         inner_cv_kwargs = dict(
             param_distributions=_wrap_param_space(self.param_distributions),

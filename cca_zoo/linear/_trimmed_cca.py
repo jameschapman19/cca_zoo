@@ -1,4 +1,4 @@
-r"""TrimmedCCA — robust multiview CCA via concentration steps."""
+"""Robust multiview CCA by concentration steps."""
 
 from __future__ import annotations
 
@@ -19,42 +19,21 @@ from cca_zoo.linear.gradient import CCAEY
 def _per_sample_terms(
     zs: list[np.ndarray], b: float, c: float, h: int
 ) -> tuple[np.ndarray, np.ndarray, float]:
-    r"""Per-sample decomposition of CCAEY(c)'s loss, restricted to a size-h subset.
+    r"""Per-sample terms of the one-component CCAEY loss on a size-``h`` subset.
 
-    For fixed weights (so fixed per-view projections ``zs`` and weight-Gram
-    scalar ``b``), the loss restricted to a kept subset $S$ of size $h$
-    decomposes as
-
-    $$
-    \mathcal{L}(S) = \sum_{s \in S} \sigma(s)
-        + K \Big(\sum_{s \in S} e(s)\Big)^2 + \text{const}
-    $$
-
-    -- every term additive over $S$ except the squared sum, the same
-    algebraic shape as a knapsack relaxation (see :func:`_select`). Holds
-    for any number of views $M$ (verified against a from-scratch
-    ``M``-view evaluation of ``CCAEY``'s real ``_objective``): with
-    $T(s) = \sum_i z_i(s)$ and $e(s) = \frac{1}{M} \sum_i z_i(s)^2$,
-    CCAEY's mean pairwise cross-covariance and mean auto-covariance are
-    themselves already additive over samples ($C = \frac{1}{M(h-1)}
-    \sum_s T(s)^2$, $V = \frac{1}{h-1} \sum_s e(s)$), and only $V$'s own
-    square in the penalty term produces the "square of a sum" structure
-    below. This does *not* generalise past $k=1$ latent dimension: with
-    $k > 1$, $V$ is a $k \times k$ matrix and $\operatorname{tr}(VV)$
-    becomes a genuine quadratic form over the selection (rank up to
-    $k(k+1)/2$, not the rank-1 "square of one linear functional" this
-    relies on), which is why :class:`TrimmedCCA` doesn't support
-    ``n_components > 1``.
+    For fixed weights the loss on a subset $S$ is
+    $\sum_{s \in S} \sigma(s) + K (\sum_{s \in S} e(s))^2$ plus a constant,
+    for any number of views. With more than one component the penalty is a
+    matrix quadratic form, so :class:`TrimmedCCA` is limited to one.
 
     Args:
-        zs: Per-view projections, each of shape (n,) (one per view).
-        b: Weight-Gram scalar (``weight_gram_mean``'s single entry).
-        c: Ridge blend in ``[0, 1]``, matching ``CCAEY``'s own ``c``.
-        h: Subset size the loss will be restricted to.
+        zs: Per-view projections, each of shape (n,).
+        b: The weight-Gram scalar.
+        c: Ridge blend in ``[0, 1]``.
+        h: Subset size.
 
     Returns:
-        Tuple ``(sigma, e, k_coef)``: ``sigma`` and ``e`` are arrays of
-        shape (n,), ``k_coef`` is the scalar $K$.
+        ``(sigma, e, K)``: two arrays of shape (n,) and a scalar.
     """
     m = len(zs)
     total: np.ndarray = np.sum(zs, axis=0)
@@ -69,32 +48,21 @@ def _per_sample_terms(
 def _select(
     zs: list[np.ndarray], b: float, c: float, h: int, n_bisect: int = 60
 ) -> np.ndarray:
-    r"""The h samples minimising CCAEY(c)'s loss, for the current weights.
+    r"""The ``h`` samples minimising the CCAEY loss for the current weights.
 
-    Solved via a Lagrangian relaxation of the "additive term + K * (additive
-    sum)^2" structure :func:`_per_sample_terms` exposes: for a multiplier
-    $\mu$, ranking samples by $\sigma(s) + \mu e(s)$ and keeping the best
-    $h$ gives the exact minimiser once $\mu$ is self-consistent
-    ($\mu = 2K \sum_{s \in S(\mu)} e(s)$). Since $\sum_{s \in S(\mu)} e(s)$
-    is non-increasing in $\mu$, bisection on this self-consistency
-    condition finds it reliably -- unlike naive fixed-point iteration,
-    which can cycle. Verified against brute-force combinatorial search:
-    exact in the large majority of trials, with a small bounded gap from
-    a ranking tie in the rest, closed operationally by the caller's own
-    safeguard (never accept a selection that doesn't actually improve the
-    objective). Entirely in terms of ``sigma``/``e``/``k_coef`` from
-    :func:`_per_sample_terms`, so this doesn't change with the number of
-    views.
+    Ranking by $\sigma(s) + \mu e(s)$ is exact once
+    $\mu = 2K \sum_{s \in S(\mu)} e(s)$; the sum is monotone in $\mu$, so
+    the multiplier is found by bisection.
 
     Args:
         zs: Per-view projections, each of shape (n,).
-        b: Weight-Gram scalar.
+        b: The weight-Gram scalar.
         c: Ridge blend in ``[0, 1]``.
         h: Number of samples to keep.
-        n_bisect: Bisection iterations for the multiplier search.
+        n_bisect: Bisection iterations.
 
     Returns:
-        Sorted integer array of the ``h`` kept sample indices.
+        Sorted indices of the kept samples.
     """
     sigma, e, k_coef = _per_sample_terms(zs, b, c, h)
 
@@ -130,12 +98,7 @@ def _refit(
     weights: list[np.ndarray],
     tol: float,
 ) -> list[np.ndarray]:
-    """Re-minimise CCAEY(c)'s exact loss on xs, warm-started at weights.
-
-    Monotone by construction: L-BFGS-B's line search never accepts a step
-    that increases the objective, and it starts exactly at the incoming
-    weights' own value.
-    """
+    """Re-minimise the CCAEY loss on ``xs`` by L-BFGS-B, starting from ``weights``."""
     shapes = [w.shape for w in weights]
     sizes = [w.size for w in weights]
 
@@ -163,127 +126,49 @@ def _refit(
 def _objective_value(
     model: CCAEY, xs: list[np.ndarray], weights: list[np.ndarray]
 ) -> float:
-    """CCAEY(c)'s exact loss at weights on xs."""
+    """The CCAEY loss at ``weights`` on ``xs``."""
     representations = [xv @ w for xv, w in zip(xs, weights)]
     return model._objective(xs, representations, weights)
 
 
 class TrimmedCCA(BaseModel):
-    r"""TrimmedCCA -- robust multiview CCA via concentration steps.
+    """Robust multiview CCA by concentration steps.
 
-    :class:`~cca_zoo.linear.RANSACCCA` searches for a clean subset by
-    drawing many small random candidates and keeping the best-scoring
-    one -- a good strategy while contamination stays well below its
-    search's own odds of ever drawing a clean-enough sample. As
-    contamination approaches the ~50% breakdown point, that search
-    degrades: a random small subset becomes close to a coin flip on
-    being usably clean, however many trials are tried. ``TrimmedCCA``
-    instead uses concentration steps in the style of Rousseeuw's Least
-    Trimmed Squares / Minimum Covariance Determinant: starting from a
-    large random subset of ``h`` rows (``h_frac`` of the data), it
-    alternates
-
-    1. **select**: rank every sample by its own contribution to
-       :class:`~cca_zoo.linear.gradient.CCAEY`'s exact loss (for the
-       *current* weights) and keep the best ``h`` -- solved via a
-       Lagrangian relaxation of the loss's own algebraic structure (see
-       :func:`_select`), not an absolute per-sample threshold like
-       ``RANSACCCA``'s;
-    2. **refit**: re-minimise ``CCAEY``'s exact loss restricted to the
-       kept ``h`` rows, warm-started at the current weights via
-       L-BFGS-B.
-
-    Each step only ever accepts a subset/weight pair that doesn't
-    increase the loss (refit is monotone by construction; a selection
-    step that fails to improve is rejected and the loop stops there) --
-    the classical C-step argument, applied to CCAEY's real objective
-    rather than a proxy score. Repeated over ``n_init`` random restarts
-    (this objective is non-convex, so a single start can land on a poor
-    local optimum), keeping the lowest-loss result.
-
-    Note:
-        A different classical way to get a high-breakdown robust CCA is to
-        plug the minimum covariance determinant (MCD) estimator into the
-        joint covariance matrix of both views and solve the ordinary CCA
-        eigenproblem on that robust estimate (Croux & Dehon, 2002; see also
-        the comparative study of Branco, Croux, Filzmoser & Oliveira, 2005).
-        ``TrimmedCCA`` differs from that plug-in approach: its concentration
-        steps minimise ``CCAEY``'s own loss directly on the kept subset
-        (see :func:`_select`, :func:`_refit`) rather than the covariance
-        matrix's determinant as an intermediate, general-purpose target,
-        so the trimming is targeted at what actually drives the CCA
-        objective rather than at multivariate location/scatter generally.
-        ``h_frac`` is not learned from the data -- like
-        :class:`sklearn.covariance.MinCovDet`'s ``support_fraction``, it
-        is a prior on how much of the training data you expect is
-        contaminated, set before fitting. Too high wastes some of a
-        fixed-size budget on good rows discarded unnecessarily when
-        contamination is actually low; too low forces contaminated rows
-        into every fit once true contamination exceeds ``1 - h_frac``.
-        It cannot be chosen by cross-validating a downstream metric,
-        since that would need labels for which rows are contaminated --
-        exactly what's unknown.
-
-        ``TrimmedCCA`` supports any number of views (2 or more) but only
-        ``n_components=1``. The selection rule's closed-form
-        derivation (see :func:`_per_sample_terms`) relies on CCAEY's
-        penalty term being the *square of a single linear functional* of
-        the selection -- true regardless of the number of views, but not
-        past one latent dimension: with $k > 1$ latent dimensions the
-        same penalty becomes a genuine matrix-valued quadratic form (rank
-        up to $k(k+1)/2$), which the same single-multiplier bisection
-        cannot solve. ``RANSACCCA`` (via :class:`~cca_zoo.linear.MCCA`)
-        supports any number of latent dimensions directly, and matches or
-        beats ``TrimmedCCA`` away from the ~50% breakdown regime -- reach
-        for ``TrimmedCCA`` specifically when contamination is expected to
-        be heavy and ``h_frac`` can be set close to the true clean
-        fraction.
+    As in least trimmed squares, alternates between keeping the ``h`` rows
+    with the lowest :class:`~cca_zoo.linear.gradient.CCAEY` loss and
+    refitting on them. Neither step increases the loss. The best of
+    ``n_init`` random starts is kept. Suited to heavy contamination when
+    the clean fraction is roughly known. Supports one latent dimension.
 
     Args:
-        n_components: Must be 1 (the only value currently
-            supported; see the ``Note`` above).
-        center: Whether to subtract column means. Default True.
-        c: Ridge blend in ``[0, 1]``, same semantics as
-            :class:`~cca_zoo.linear.gradient.CCAEY`'s own ``c``. Default
-            0.1 (the unregularised ``c=0`` can be poorly conditioned once
-            a concentration step's ``h``-sized subset doesn't outnumber
-            the combined feature count by a healthy margin; see
-            ``CCAEY``'s own note on this).
-        h_frac: Fraction of rows kept every concentration step, in
-            ``(0, 1]``. Default 0.75.
-        n_init: Random restarts; the lowest-loss result is kept.
-            Default 10.
-        max_iter: Maximum concentration steps per restart. Default 30.
-        tol: Convergence tolerance for each refit's L-BFGS-B call, passed
-            as ``ftol`` (see ``CCAEY``'s own docstring for why this
-            matters). Default 1e-8.
-        random_state: Seed for the random restarts.
+        n_components: Number of latent dimensions; must be 1. Default is 1.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``, as in ``CCAEY``. Default is 0.1.
+        h_frac: Fraction of rows kept, in ``(0, 1]``; a prior on the clean
+            fraction. Default is 0.75.
+        n_init: Random restarts. Default is 10.
+        max_iter: Maximum concentration steps per restart. Default is 30.
+        tol: L-BFGS-B ``ftol`` for each refit. Default is 1e-8.
+        random_state: Seed for the restarts. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, 1).
+        inlier_mask_: Boolean mask of the kept training rows.
 
     References:
         Rousseeuw, P. J., & Van Driessen, K. (1999). A fast algorithm for
         the minimum covariance determinant estimator. Technometrics,
         41(3), 212-223.
 
-        Croux, C., & Dehon, C. (2002). Analyse canonique basee sur des
-        estimateurs robustes de la matrice de covariance. Revue de
-        Statistique Appliquee, 50(2), 5-26.
-
-        Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
-        Robust canonical correlations: A comparative study. Computational
-        Statistics, 20(2), 203-229.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import TrimmedCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 8))
         >>> X2 = rng.standard_normal((200, 6))
         >>> model = TrimmedCCA(h_frac=0.7, random_state=0).fit([X1, X2])
-        >>> inliers = model.inlier_mask_  # boolean array over the training rows
-
-        More than two views are supported directly:
-
-        >>> X3 = rng.standard_normal((200, 5))
-        >>> model = TrimmedCCA(h_frac=0.7, random_state=0).fit([X1, X2, X3])
+        >>> int(model.inlier_mask_.sum())
+        140
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -315,19 +200,17 @@ class TrimmedCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TrimmedCCA:
-        """Fit TrimmedCCA by concentration steps on CCAEY's exact loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
 
         Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If ``n_components`` isn't 1 (see the class's
-                ``Note``).
+            ValueError: If ``n_components`` is not 1.
         """
         views_ = self._setup_fit(views)
         if self.n_components != 1:

@@ -1,4 +1,4 @@
-r"""ManifoldCCA — transductive multiview CCA over a shared manifold operator."""
+"""Multiview CCA constrained by per-view graph operators."""
 
 from __future__ import annotations
 
@@ -33,53 +33,28 @@ _NYSTROM_MU_FLOOR = 0.05
 
 
 def _centering_matrix(n: int) -> np.ndarray:
-    r"""The (scaled) sample-covariance operator of the identity 'feature map'.
-
-    $\frac{1}{n-1}\bigl(I_n - \tfrac{1}{n}\mathbf{1}\mathbf{1}^\top\bigr)$ --
-    if each training point's "feature vector" were literally its own
-    one-hot indicator (so the projection *is* the per-sample embedding,
-    with nothing left to learn but which n-vector it should be), this is
-    that identity feature map's own covariance, i.e. exactly what
-    :class:`~cca_zoo.linear.MCCA`'s ``_build_A`` would compute from it.
-    """
+    """Covariance operator ``(I - 11'/n) / (n - 1)`` of per-sample embeddings."""
     return (np.eye(n) - np.ones((n, n)) / n) / (n - 1)
 
 
 def _smooth_basis(
     operator: np.ndarray, n_components: int, eps: float
 ) -> tuple[np.ndarray, np.ndarray]:
-    r"""The ``n_components`` eigenvectors of ``operator`` with the smallest eigenvalues.
+    """The ``n_components`` eigenvectors of ``operator`` with the smallest eigenvalues.
 
-    Every method :class:`ManifoldCCA` is built on --
-    :class:`~sklearn.manifold.SpectralEmbedding`,
-    :class:`~sklearn.manifold.LocallyLinearEmbedding` -- keeps only a
-    handful of components, never all $n-1$: on genuine low-dimensional
-    manifold data there's a spectral *gap* between a few small
-    ("smooth"/"structure") eigenvalues and a bulk of larger ("noise")
-    ones, and truncating to the small side is where the denoising
-    actually happens. Solving the *full* untruncated operator (as an
-    earlier version of this module did) hands each view $n-1$ genuine
-    degrees of freedom to search for a matching direction against the
-    other view -- with a reward that (see :func:`_centering_matrix`)
-    doesn't know anything about either view's actual content, that much
-    freedom is enough to fabricate spurious cross-view correlation out of
-    pure noise, the classic small-$n$-large-effective-dimension CCA
-    failure mode every ridge-regularised method elsewhere in this library
-    exists to avoid -- except a ridge blend toward the identity doesn't
-    fix it here, since the identity is already full rank. A hard
-    truncation is what's actually needed, matching every other spectral
-    method's own convention.
+    Truncating to the smoothest eigenvectors is what regularises the fit, as
+    in :class:`~sklearn.manifold.SpectralEmbedding`; the full operator has
+    enough freedom to fit correlation to noise.
 
     Args:
-        operator: Symmetric operator, shape (n-1, n-1) (already projected
-            onto the constant vector's orthogonal complement).
-        n_components: Number of smallest-eigenvalue eigenvectors to keep.
-        eps: Floor applied to each kept eigenvalue individually.
+        operator: Symmetric operator on the complement of the constant
+            vector, shape (n-1, n-1).
+        n_components: Number of eigenvectors to keep.
+        eps: Floor on each kept eigenvalue.
 
     Returns:
-        Tuple ``(basis, eigenvalues)``: ``basis`` has shape
-        ``(n-1, n_components)`` with orthonormal columns; ``eigenvalues``
-        has shape ``(n_components,)``.
+        ``(basis, eigenvalues)`` of shapes (n-1, n_components) and
+        (n_components,).
     """
     eigenvalues, eigenvectors = np.linalg.eigh(operator)
     k = min(n_components, operator.shape[0])
@@ -89,26 +64,11 @@ def _smooth_basis(
 
 
 def _orthonormal_complement_of_ones(n: int) -> np.ndarray:
-    r"""An (n, n-1) orthonormal basis of the constant vector's orthogonal complement.
+    """Orthonormal basis, shape (n, n-1), of the complement of the constant vector.
 
-    Every operator :class:`ManifoldCCA` plugs in as a within-view
-    constraint -- the graph Laplacian, the LLE reconstruction operator --
-    has the constant vector $\mathbf{1}$ in its exact (Laplacian) or
-    near-exact (LLE) null space: a uniform shift carries zero graph
-    energy under either. :func:`_centering_matrix` (the shared
-    between-view reward) also annihilates $\mathbf{1}$ exactly. Left in,
-    $\mathbf{1}$ is therefore a near-simultaneous null direction of
-    *both* sides of the generalised eigenproblem -- the classical source
-    of spurious blow-up in a generalised ``eigh(A, B)`` solve (that
-    direction's "eigenvalue" is a 0/0 ratio, and floating-point noise in
-    the numerator and denominator can amplify it into something that
-    dwarfs every genuine eigenvalue, silently stealing the requested
-    top-``k`` slots with numerical junk rather than real structure).
-    Projecting the whole problem onto this complement before solving
-    (see :meth:`ManifoldCCA.fit`) removes the shared degeneracy outright,
-    matching :class:`~sklearn.manifold.SpectralEmbedding`'s own
-    ``drop_first=True`` default -- :class:`~sklearn.manifold.LocallyLinearEmbedding`
-    never returns the trivial constant solution either.
+    The constant vector is a null direction of both the operators and the
+    centring reward, so it is projected out before the eigensolve, as
+    ``SpectralEmbedding(drop_first=True)`` does.
     """
     return np.asarray(null_space(np.ones((1, n))))
 
@@ -116,18 +76,10 @@ def _orthonormal_complement_of_ones(n: int) -> np.ndarray:
 def _laplacian_affinity(
     v: np.ndarray, n_neighbors: int, affinity: str, gamma: float | None
 ) -> tuple[np.ndarray, float | None]:
-    r"""Training affinity matrix $W$ and resolved RBF ``gamma``.
+    """Training affinity matrix ``W`` and the resolved RBF ``gamma``.
 
-    Reuses :class:`sklearn.manifold.SpectralEmbedding` purely for its own
-    (well-tested) affinity-graph construction -- the k-NN search,
-    symmetrisation and (for ``affinity="rbf"``) heat-kernel weighting --
-    rather than reimplementing it. Returned separately from the Laplacian
-    itself (see :func:`_normalised_laplacian`) since $W$'s row sums (the
-    degree matrix) are also exactly what :meth:`ManifoldCCA.transform`
-    needs to extend a fitted eigenvector to a new point (the classical
-    Nystrom formula, e.g. Bengio et al. 2003) -- information the
-    normalised Laplacian $I - D^{-1/2}WD^{-1/2}$ alone no longer carries
-    separately.
+    Built by :class:`~sklearn.manifold.SpectralEmbedding`; its row sums are
+    needed again for the Nystrom extension.
     """
     se = SpectralEmbedding(
         n_components=1, n_neighbors=n_neighbors, affinity=affinity, gamma=gamma
@@ -160,18 +112,10 @@ def _laplacian_new_point_affinity(
     n_neighbors: int,
     nn: NearestNeighbors | None,
 ) -> np.ndarray:
-    r"""New-to-training affinity, built by the same rule as the training graph.
+    """New-to-training affinities, by the rule that built the training graph.
 
-    For ``affinity="rbf"`` this is exact -- the identical dense RBF kernel
-    evaluation :func:`_laplacian_affinity` used for training, just off the
-    diagonal block. For ``affinity="nearest_neighbors"`` it's the standard
-    Nystrom simplification (also how
-    :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform` handles its
-    own out-of-sample case): a new point's *own* one-directional
-    connectivity to its ``n_neighbors`` nearest training points, rather than
-    attempting to retroactively symmetrise against training points that
-    might now also consider the new point a neighbour -- doing that
-    properly would mean rebuilding the whole training graph per query point.
+    For nearest-neighbour graphs each new point connects to its
+    ``n_neighbors`` nearest training points, without resymmetrising.
     """
     if affinity == "rbf":
         return np.asarray(rbf_kernel(v_new, v_train, gamma=gamma))
@@ -183,28 +127,17 @@ def _laplacian_new_point_affinity(
 def _barycenter_weights(
     query: np.ndarray, reference: np.ndarray, indices: np.ndarray, reg: float
 ) -> np.ndarray:
-    r"""Barycentric (sum-to-one) reconstruction weights of each query point.
-
-    ``weights[a, :]`` reconstructs ``query[a]`` as the best linear
-    combination of ``reference[indices[a]]`` -- Roweis & Saul (2000)'s
-    original construction. Used both to build the training LLE operator
-    (``query = reference = v``, each point reconstructed from its own
-    neighbours) and, unchanged, to extend a new point at
-    :meth:`ManifoldCCA.transform` time (``query`` = new data,
-    ``reference`` = training data) -- exactly how
-    :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform` reuses its
-    own training-time weight computation for new points too.
+    """Sum-to-one weights reconstructing each query point from its neighbours.
 
     Args:
         query: Points to reconstruct, shape (n_query, n_features).
         reference: Points to reconstruct from, shape (n_reference, n_features).
-        indices: Neighbour indices into ``reference`` for each query point,
-            shape (n_query, n_neighbors).
-        reg: Regularisation added to each point's local reconstruction Gram
-            matrix, relative to its trace.
+        indices: Neighbour indices into ``reference``, shape (n_query,
+            n_neighbors).
+        reg: Regularisation of each local Gram matrix, relative to its trace.
 
     Returns:
-        Array of shape (n_query, n_neighbors), each row summing to 1.
+        Weights of shape (n_query, n_neighbors).
     """
     n_query, n_neighbors = indices.shape
     weights = np.empty((n_query, n_neighbors))
@@ -218,15 +151,7 @@ def _barycenter_weights(
 
 
 def _lle_operator(v: np.ndarray, n_neighbors: int, reg: float) -> np.ndarray:
-    r"""LLE operator $M = (I - W)^\top (I - W)$ from local reconstruction weights.
-
-    ``W[a, :]`` reconstructs point ``a`` as the best (sum-to-one) linear
-    combination of its ``n_neighbors`` nearest neighbours (see
-    :func:`_barycenter_weights`), hand-implemented here (rather than reused
-    from :class:`sklearn.manifold.LocallyLinearEmbedding`, which doesn't
-    expose ``W``/``M`` as public API) so the raw operator is available for
-    the joint eigenproblem below.
-    """
+    """LLE operator ``(I - W)'(I - W)`` from barycentric reconstruction weights."""
     n = v.shape[0]
     nn = NearestNeighbors(n_neighbors=n_neighbors + 1).fit(v)
     indices = nn.kneighbors(v, return_distance=False)[:, 1:]
@@ -253,194 +178,58 @@ class _LaplacianViewState:
 
 
 class ManifoldCCA(BaseModel):
-    r"""ManifoldCCA -- transductive multiview CCA over a shared manifold operator.
+    r"""Multiview CCA with a graph-operator constraint per view.
 
-    Every other multiview method in this library maximises cross-view
-    covariance subject to a within-view *covariance* constraint
-    (:class:`~cca_zoo.linear.MCCA`'s ridge-blended sample covariance,
-    :class:`~cca_zoo.linear.GraphicalLassoCCA`'s sparse-precision
-    covariance, :class:`~cca_zoo.nonparametric.KCCA`'s regularised kernel
-    Gram matrix). Spectral manifold-learning methods
-    (:class:`sklearn.manifold.SpectralEmbedding`,
-    :class:`sklearn.manifold.LocallyLinearEmbedding`) instead constrain a
-    single view's embedding against a *graph operator* $M$ built from that
-    view's own local neighbourhood structure -- the graph Laplacian
-    ($M = D - W$, small $\operatorname{tr}(Y^\top M Y)$ means neighbouring
-    points map to nearby embeddings) or the LLE reconstruction operator
-    ($M = (I-W)^\top(I-W)$, small $\operatorname{tr}(Y^\top M Y)$ means each
-    point's embedding is well reconstructed from its neighbours'). Both are
-    themselves generalised eigenproblems of exactly the same
-    "maximise-subject-to-a-quadratic-constraint" shape as
-    :class:`~cca_zoo.linear.MCCA` -- just with $M$ replacing a covariance
-    matrix, and with no covariance available at all in the usual sense,
-    since there's no feature map: the "weight" *is* the per-training-point
-    embedding.
-
-    ``ManifoldCCA`` solves the resulting **joint, multiview** version:
+    Maximises cross-view covariance of the training embeddings subject to each
+    view's spectral-embedding constraint, a graph Laplacian or LLE operator
+    ``M_i`` built from that view's neighbourhoods:
 
     $$
     \max_{Z_1, \dots, Z_M} \sum_{i \neq j} \operatorname{Cov}(Z_i, Z_j)
-    \quad \text{subject to} \quad Z_i^\top M_i Z_i = I \; \forall i
+    \quad \text{subject to} \quad Z_i^\top M_i Z_i = I.
     $$
 
-    where $Z_i \in \mathbb{R}^{n \times k}$ is view $i$'s embedding of the
-    *training* points and $M_i$ is that view's own graph operator --
-    the same joint-eigenproblem construction :class:`~cca_zoo.linear.MCCA`
-    and :class:`~cca_zoo.nonparametric.KCCA` use, but with each view's
-    "feature map" being the identity (so the projection weight found by the
-    solver *is* $Z_i$ directly -- see :func:`_centering_matrix`) and its
-    within-view block $M_i$ instead of a covariance.
-
-    Solved after projecting both sides onto $\mathbf{1}^\perp$ (see
-    :func:`_orthonormal_complement_of_ones`): every $M_i$ has the constant
-    vector in its (near-)null space, as does the reward, so leaving it in
-    would put a spurious, numerically unstable 0/0-type direction at the
-    top of the spectrum -- the same reason
-    :class:`~sklearn.manifold.SpectralEmbedding` always discards its own
-    trivial constant solution. One consequence worth checking directly: if
-    two views are given *identical* data, $A$ (via the shared reward)
-    restricted to $\mathbf{1}^\perp$ is proportional to the identity, so
-    the joint problem's solution for that view is exactly the ordinary
-    Rayleigh-quotient minimiser of $M_i$ alone -- i.e. it reduces exactly
-    to plain single-view spectral embedding of that view, which is the
-    right sanity check for "is this actually the natural multiview
-    generalisation" (verified directly against
-    :class:`~sklearn.manifold.SpectralEmbedding`'s own affinity
-    construction in the tests).
-
-    Since $Z_i$ is only ever defined at the training points (there is no
-    feature map to apply to new data), out-of-sample projection reuses each
-    method's own established extension rather than a generic auxiliary
-    model bolted on afterward:
-
-    - ``method="lle"``: a new point's barycentric reconstruction weights
-      (see :func:`_barycenter_weights`) against its ``n_neighbors`` nearest
-      *training* points, applied directly to those training points' rows of
-      the fitted $Z_i$ -- exactly
-      :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform`'s own
-      mechanism, reusing the identical weight computation training used.
-      Valid because that formula is linear in the training embedding: with
-      $Z_i = Y_i B_i$ ($Y_i$ the per-view smooth basis, $B_i$ the joint
-      solve's combination -- see :meth:`fit`), applying new-point weights to
-      $Y_i$ first and then $B_i$, or to $Z_i = Y_i B_i$ directly, are the
-      same computation.
-    - ``method="laplacian"``: the classical Nystrom extension (Bengio et
-      al. 2003) of each kept eigenvector individually -- $y_k(x) =
-      \tfrac{1}{\mu_k}\sum_j \tilde{W}(x, x_j)\, y_k(x_j)$, $\tilde W$ the
-      degree-normalised new-to-training affinity (built by the same rule as
-      the training graph, see :func:`_laplacian_new_point_affinity`) and
-      $\mu_k = 1 - \lambda_k$ -- then the *same* $B_i$ combination used at
-      training time. Unlike the LLE case, this can't collapse to a single
-      "apply weights to $Z_i$" step, since each eigenvector has its own
-      $\mu_k$ rescaling *before* $B_i$ mixes them.
-
-    Both are exact consequences of what :meth:`fit` actually solved, not a
-    separately-fit approximation of it.
-
-    Note:
-        Unlike :class:`~sklearn.manifold.LocallyLinearEmbedding`,
-        Hessian-LLE (``method="hessian"``) and LTSA
-        (``method="ltsa"``) are not implemented here -- both need a local
-        Hessian/tangent-space estimate per point (local PCA plus a
-        polynomial basis, then a null-space projection) that's
-        substantially more involved to get right than the graph Laplacian
-        or LLE's own reconstruction weights, and are left for a future
-        extension rather than shipped undertested. Isomap-flavoured
-        (geodesic-distance) regularisation is achievable today via
-        :class:`~cca_zoo.nonparametric.KCCA` with a precomputed geodesic
-        Gram matrix in place of a standard kernel, so isn't duplicated here.
-
-        There is no feature-space weight matrix: the fitted training
-        embedding is ``embedding_[i]``, shape ``(n_train_samples, k)``, as
-        in :class:`~sklearn.manifold.LocallyLinearEmbedding`.
-        ``inverse_transform`` and ``predict`` work through the
-        out-of-sample extension, like every model's.
-
-        ``method`` itself is not a per-view parameter, unlike every other
-        constructor argument: mixing ``"laplacian"`` and ``"lle"`` across
-        views is not mathematically ruled out (the joint eigenproblem in
-        :meth:`fit` only ever consumes each view's own basis/eigenvalues,
-        regardless of which operator produced them), but ``transform``'s
-        out-of-sample extension dispatches on ``method`` once for every
-        view at once, and would need its own per-view branch and
-        per-view-typed fitted state to support a genuine mix -- a
-        larger, separate change from exposing this class's already
-        per-view-independent operator hyperparameters.
-
-        Solves an $(nM) \times (nM)$ dense generalised eigenproblem
-        ($n$ = training samples, $M$ = number of views), the same cost
-        profile as :class:`~cca_zoo.nonparametric.KCCA` -- intended for
-        moderate training-set sizes, not the very large-$n$ regime.
-
-    References:
-        Roweis, S. T., & Saul, L. K. (2000). Nonlinear dimensionality
-        reduction by locally linear embedding. Science, 290(5500), 2323-2326.
-
-        Belkin, M., & Niyogi, P. (2003). Laplacian eigenmaps for
-        dimensionality reduction and data representation. Neural
-        Computation, 15(6), 1373-1396.
+    With identical views it reduces to :class:`~sklearn.manifold.SpectralEmbedding`.
+    New points are embedded with each method's standard out-of-sample extension:
+    LLE barycentric weights for ``method="lle"``, the Nystrom extension for
+    ``method="laplacian"``. Fitting solves a dense ``(n M) x (n M)``
+    eigenproblem, so it suits moderate sample sizes.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default
-            True.
-        method: ``"laplacian"`` (graph Laplacian, matching
-            :class:`~sklearn.manifold.SpectralEmbedding`) or ``"lle"``
-            (locally linear embedding operator), the same for every view.
-            Default ``"laplacian"``.
-        n_neighbors: Number of neighbours used to build each view's graph.
-            Either a single value applied to every view or a list of
-            per-view values. Default 10.
-        affinity: ``"nearest_neighbors"`` or ``"rbf"``, passed to
-            :class:`~sklearn.manifold.SpectralEmbedding` when
-            ``method="laplacian"``. Ignored for ``method="lle"``. Either a
-            single value applied to every view or a list of per-view
-            values. Default ``"nearest_neighbors"``.
-        gamma: RBF kernel coefficient(s), used only when
-            ``method="laplacian"`` and ``affinity="rbf"``. Either a single
-            float (or ``None``) applied to every view or a list of
-            per-view values. Default ``None`` (sklearn's own
-            ``1 / n_features`` default).
-        lle_reg: Regularisation added to each point's local reconstruction
-            Gram matrix, used only when ``method="lle"``. Either a single
-            float applied to every view or a list of per-view floats.
-            Default 1e-3.
-        n_operator_components: Number of each view's own smallest-eigenvalue
-            operator components kept before the joint eigenproblem is
-            solved (see :func:`_smooth_basis`) -- effectively this class's
-            regularisation strength, the same role ``c`` plays elsewhere
-            in this library, just the opposite direction: smaller keeps
-            fewer, "smoother" candidate directions per view (more
-            regularised, more denoised, but liable to discard real
-            structure if set too small); the untruncated limit
-            (``n_operator_components = n_samples - 1``) hands each view as
-            many free directions as there are training points, which --
-            like *any* unregularised multivariate CCA at that
-            dimensionality-to-sample-size ratio -- fabricates spurious
-            cross-view correlation out of pure noise (see
-            ``tests/nonparametric/test_manifold_cca.py``'s comparison
-            against plain unregularised ``MCCA`` at the same nominal
-            dimensionality). Either a single value (or ``None``) applied to
-            every view or a list of per-view values. Default ``None``:
-            ``max(4 * n_components, 10)``, clipped to
-            ``n_samples - 1``, independently per view.
-        eps: Floor applied to each kept operator eigenvalue (see
-            :func:`_smooth_basis`) to ensure positive definiteness. Default
-            1e-6.
+        center: Whether to subtract column means before fitting. Default is True.
+        method: ``"laplacian"`` or ``"lle"``, for every view. Default is
+            ``"laplacian"``.
+        n_neighbors: Neighbours in each view's graph. Per-view. Default is 10.
+        affinity: ``"nearest_neighbors"`` or ``"rbf"``, for ``method="laplacian"``.
+            Per-view. Default is ``"nearest_neighbors"``.
+        gamma: RBF kernel coefficient for ``affinity="rbf"``; ``None`` uses
+            ``1 / n_features``. Per-view. Default is None.
+        lle_reg: Regularisation of each local reconstruction for
+            ``method="lle"``. Per-view. Default is 1e-3.
+        n_operator_components: Smoothest operator eigenvectors kept per view
+            before the joint solve; fewer is stronger regularisation. ``None``
+            uses ``max(4 * n_components, 10)``, clipped to ``n_samples - 1``.
+            Per-view. Default is None.
+        eps: Floor on the kept operator eigenvalues. Default is 1e-6.
 
-    Examples:
+    Attributes:
+        embedding_: Training embedding of each view, shape (n_samples, n_components).
+
+    References:
+        Roweis, S. T., & Saul, L. K. (2000). Nonlinear dimensionality reduction
+        by locally linear embedding. Science, 290(5500), 2323-2326.
+
+        Belkin, M., & Niyogi, P. (2003). Laplacian eigenmaps for dimensionality
+        reduction and data representation. Neural Computation, 15(6), 1373-1396.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.nonparametric import ManifoldCCA
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((60, 8))
-        >>> X2 = rng.standard_normal((60, 6))
-        >>> model = ManifoldCCA(method="laplacian", n_neighbors=8).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
-
-        A different neighbourhood size and regularisation strength per view:
-
-        >>> model = ManifoldCCA(
-        ...     method="laplacian", n_neighbors=[8, 12], n_operator_components=[10, 15]
-        ... ).fit([X1, X2])
+        >>> X1, X2 = rng.standard_normal((60, 8)), rng.standard_normal((60, 6))
+        >>> model = ManifoldCCA(n_neighbors=8).fit([X1, X2])
+        >>> Z1, Z2 = model.transform([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -487,18 +276,14 @@ class ManifoldCCA(BaseModel):
         return min(max(4 * self.n_components, 10), n - 1)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ManifoldCCA:
-        """Fit ManifoldCCA by a joint generalised eigenproblem over per-view graphs.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_ = self._setup_fit(views)
         n = self.n_samples_
@@ -587,27 +372,6 @@ class ManifoldCCA(BaseModel):
             self._laplacian_state_ = None
             self._lle_state_ = lle_nn
         return self
-
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project new views via each method's own out-of-sample extension.
-
-        ``method="lle"`` reuses :func:`_barycenter_weights` against each new
-        point's nearest training points (exactly
-        :meth:`~sklearn.manifold.LocallyLinearEmbedding.transform`'s own
-        mechanism); ``method="laplacian"`` uses the classical Nystrom
-        extension of each kept eigenvector (Bengio et al. 2003) followed by
-        the same combination :meth:`fit` used. See the class docstring.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List of arrays, each of shape (n_samples, n_components).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        return super().transform(views)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         v_train = self._views_fit_[view]

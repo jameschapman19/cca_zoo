@@ -1,4 +1,4 @@
-r"""ProjectionPursuitCCA -- robust multiview CCA via projection pursuit."""
+"""Robust multiview CCA by projection pursuit."""
 
 from __future__ import annotations
 
@@ -22,38 +22,18 @@ IndexFn = Callable[[np.ndarray, np.ndarray], float]
 
 
 def _angles_to_unit_vector(theta: np.ndarray, p: int) -> np.ndarray:
-    r"""Hyperspherical-angle parametrisation of a unit vector in $\R^p$.
+    r"""Unit vector in $\mathbb{R}^p$ from $p - 1$ unconstrained angles.
 
-    Recovers a $p$-dimensional unit-norm vector from $p-1$ unconstrained
-    angles, so a projection direction can be searched over with an ordinary
-    unconstrained optimiser rather than one that has to respect a norm
-    constraint. Follows the recursive construction of Branco, Croux,
-    Filzmoser & Oliveira (2005) (their Section 2, worked in reverse from
-    polar to Cartesian coordinates):
-
-    $$
-    a_{(2)} = (\cos\theta_1, \sin\theta_1), \qquad
-    a_{(j)} = (a_{(j-1)} \sin\theta_{j-1},\ \cos\theta_{j-1})
-    \quad (2 < j \le p).
-    $$
-
-    Unlike the cited paper, which restricts each angle's range to make the
-    vector unique (up to a global sign), the ranges here are left
-    unconstrained: :func:`sin`/:func:`cos` are already periodic, so an
-    unconstrained optimiser can reach every direction on the sphere without
-    needing the restriction, at the cost of the parametrisation no longer
-    being one-to-one (harmless for a search that only cares about the
-    optimum it finds, not the coordinates that got it there).
+    The hyperspherical parametrisation of Branco et al. (2005), with the
+    angles left unrestricted so an unconstrained optimiser reaches every
+    direction.
 
     Args:
-        theta: Angles, shape ``(p - 1,)``.
-        p: Target dimensionality. ``p == 1`` returns ``[1.0]`` directly
-            (no angle needed -- a 1-dimensional unit vector has no freedom
-            beyond an overall sign, which the *other* view's direction can
-            already absorb for a single pair).
+        theta: Angles, shape (p - 1,).
+        p: Dimension.
 
     Returns:
-        Unit-norm vector, shape ``(p,)``.
+        Unit vector, shape (p,).
     """
     if p == 1:
         return np.ones(1)
@@ -67,26 +47,14 @@ def _angles_to_unit_vector(theta: np.ndarray, p: int) -> np.ndarray:
 
 
 def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
-    r"""Spearman rank correlation between two projected univariate scores.
-
-    The projection index behind ``projection_index="spearman"``: the
-    correlation between the *ranks* of ``u`` and ``v`` rather than their raw
-    values, so it does not rely on any symmetry or moment condition the way
-    Pearson correlation does, and is insensitive to any outlier's exact
-    magnitude -- only its rank matters. This is ``PP-SPM`` in Branco, Croux,
-    Filzmoser & Oliveira (2005), who find it the strongest of the projection
-    indices they compare, with good efficiency in both the presence and
-    absence of contamination; Alfons, Croux & Filzmoser (2017, *Robust
-    maximum association estimators*) study its efficiency and breakdown
-    behaviour more formally and implement it in the R package ``ccaPP``.
+    """Spearman rank correlation of two projected scores (``PP-SPM``).
 
     Args:
-        u: Projected scores for one view, shape ``(n,)``.
-        v: Projected scores for another view, shape ``(n,)``.
+        u: Scores of one view, shape (n,).
+        v: Scores of another view, shape (n,).
 
     Returns:
-        Spearman's rho, in ``[-1, 1]`` (``0.0`` if either score is constant,
-        where rank correlation is undefined).
+        Spearman's rho, or 0 if either score is constant.
     """
     # Pearson correlation of the average ranks, as spearmanr computes it
     # without its per-call wrapper overhead (most of a fit's time).
@@ -99,28 +67,19 @@ def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
 def mcd_projection_index(
     u: np.ndarray, v: np.ndarray, support_fraction: float, random_state: int | None
 ) -> float:
-    r"""Correlation derived from a bivariate minimum covariance determinant fit.
+    """Correlation from a bivariate minimum covariance determinant fit (``PP-MCD``).
 
-    The projection index behind ``projection_index="mcd"``: fit the MCD
-    estimator (:class:`~sklearn.covariance.MinCovDet`) to the 2-dimensional
-    ``(u, v)`` scatter and read the correlation off its robust covariance
-    estimate, rather than the ordinary (non-robust) sample covariance. This
-    is ``PP-MCD`` in Branco, Croux, Filzmoser & Oliveira (2005); their own
-    conclusion, echoed by Alfons, Croux & Filzmoser (2017), is that it is a
-    reasonable, faster-to-compute alternative to ``PP-SPM`` when computation
-    time matters more than squeezing out the last bit of efficiency.
+    Faster than :func:`spearman_projection_index` on large data, and somewhat
+    less efficient.
 
     Args:
-        u: Projected scores for one view, shape ``(n,)``.
-        v: Projected scores for another view, shape ``(n,)``.
-        support_fraction: Passed straight through to
-            :class:`~sklearn.covariance.MinCovDet`.
-        random_state: Passed straight through to
-            :class:`~sklearn.covariance.MinCovDet`.
+        u: Scores of one view, shape (n,).
+        v: Scores of another view, shape (n,).
+        support_fraction: Passed to :class:`~sklearn.covariance.MinCovDet`.
+        random_state: Passed to :class:`~sklearn.covariance.MinCovDet`.
 
     Returns:
-        The MCD-based correlation coefficient, in ``[-1, 1]`` (``0.0`` if
-        the fit is degenerate, e.g. a near-zero robust variance).
+        The robust correlation, or 0 if the fit is degenerate.
     """
     z = np.column_stack([u, v])
     try:
@@ -136,94 +95,37 @@ def mcd_projection_index(
 
 
 class ProjectionPursuitCCA(BaseModel):
-    r"""ProjectionPursuitCCA -- robust multiview CCA via projection pursuit.
+    r"""Robust multiview CCA by projection pursuit.
 
-    Every other estimator in :mod:`cca_zoo.linear` -- robust or not -- is
-    built from a cross- or auto-*covariance* statistic of the projected
-    views, computed once the projection directions are (implicitly or
-    explicitly) fixed. Projection pursuit inverts that: it never forms a
-    covariance matrix at all, instead searching *directly* over candidate
-    projection directions for the pair that maximises a robust bivariate
-    correlation measure (the *projection index*) between the resulting
-    univariate scores, following the classical projection-pursuit paradigm
-    of Huber (1985) as carried over to CCA specifically by Branco, Croux,
-    Filzmoser & Oliveira (2005) and put on firmer statistical footing
-    (efficiency, breakdown point, and a wider family of projection indices)
-    by Alfons, Croux & Filzmoser (2017). Reference implementation: the R
-    package `ccaPP <https://cran.r-project.org/package=ccaPP>`_ (Alfons,
-    Croux & Filzmoser, 2016, *Austrian Journal of Statistics*).
-
-    For two views this reduces to their exact problem: find unit vectors
-    $\mathbf{a}, \mathbf{b}$ maximising $\operatorname{PI}(X\mathbf{a},
-    Y\mathbf{b})$ for a robust correlation measure $\operatorname{PI}$.
-    ``ProjectionPursuitCCA`` generalises this to $M \geq 2$ views by
-    maximising the *average* projection index over every pair of views
-    (the same generalisation :class:`~cca_zoo.linear.RANSACCCA`'s
-    consensus score and :class:`~cca_zoo.linear.MCCA`'s sum-of-pairwise
-    objective both make):
+    Searches directly for unit directions maximising a robust correlation,
+    the projection index PI, averaged over pairs of views:
 
     $$
-    \max_{\|\mathbf{a}_1\| = \dots = \|\mathbf{a}_M\| = 1}
-    \frac{1}{\binom{M}{2}} \sum_{i < j}
-    \operatorname{PI}(X_i \mathbf{a}_i, X_j \mathbf{a}_j).
+    \max_{\|a_1\| = \dots = \|a_M\| = 1}
+    \frac{1}{\binom{M}{2}} \sum_{i < j} \operatorname{PI}(X_i a_i, X_j a_j).
     $$
 
-    Two projection indices are available: ``"spearman"`` (default, Spearman
-    rank correlation -- see :func:`spearman_projection_index`) and ``"mcd"``
-    (a minimum-covariance-determinant-based correlation -- see
-    :func:`mcd_projection_index`).
-
-    Fit by direct numerical search: each unit vector is parametrised by
-    $p_i - 1$ unconstrained angles (:func:`_angles_to_unit_vector`), and
-    the (generally non-smooth -- a rank correlation changes discontinuously
-    wherever two projected scores swap rank order) objective above is
-    maximised over the stacked angle vector by Powell's method
-    (derivative-free, unlike the L-BFGS-B used elsewhere in this package,
-    since the objective's gradient is undefined almost everywhere) from
-    ``n_init`` random starting points, keeping the best. Later latent
-    dimensions are fit the same way on views deflated by the previously
-    found directions (:func:`~cca_zoo._utils._linalg.deflate`, the same
-    Gram-Schmidt convention :mod:`cca_zoo.sparse`'s ALS-based methods use).
-
-    Note:
-        Unlike :class:`~cca_zoo.linear.HuberCCA` (leverage-based) and
-        :class:`~cca_zoo.linear.RANSACCCA`/:class:`~cca_zoo.linear.TrimmedCCA`
-        (both relational, via a per-sample loss or agreement score),
-        projection pursuit does not single out individual bad rows at all
-        -- its robustness comes entirely from the projection index itself
-        being insensitive to a handful of extreme values, whatever kind of
-        contamination produced them. There is accordingly no
-        ``inlier_mask_`` to inspect after fitting.
-
-        The random-restart search is not guaranteed to find the global
-        optimum (the objective is non-convex and, for ``"spearman"``,
-        genuinely discontinuous), and its cost scales with ``n_init``
-        times the cost of one projection-index evaluation times
-        ``n_components``; ``"mcd"`` is markedly more expensive per
-        evaluation than ``"spearman"`` since it re-fits a robust covariance
-        estimator at every candidate direction.
+    Each direction is parametrised by angles and the objective, which is not
+    smooth, is maximised by Powell's method from ``n_init`` random starts.
+    Later dimensions are fitted on deflated views. Robustness comes from the
+    index, so no rows are flagged as outliers.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
-        projection_index: ``"spearman"`` (default) or ``"mcd"`` -- which
-            robust bivariate correlation measure to maximise; see
-            :func:`spearman_projection_index` and
-            :func:`mcd_projection_index`.
-        mcd_support_fraction: Passed to :class:`~sklearn.covariance.MinCovDet`
-            when ``projection_index="mcd"``; ignored otherwise. Default 0.75.
-        n_init: Random restarts of the direction search per latent
-            dimension; the best-scoring result is kept. Default 10.
-        max_iter: Maximum Powell iterations per restart. Default 200.
-        tol: Convergence tolerance for Powell's method (``xtol``/``ftol``).
-            Default 1e-6.
-        random_state: Seed for the random restarts (and for ``"mcd"``'s own
-            random subsampling).
+        center: Whether to centre each view. Default is True.
+        projection_index: ``"spearman"`` or ``"mcd"``. Default is
+            ``"spearman"``.
+        mcd_support_fraction: ``MinCovDet`` support fraction for
+            ``projection_index="mcd"``. Default is 0.75.
+        n_init: Random restarts per dimension. Default is 10.
+        max_iter: Maximum Powell iterations per restart. Default is 200.
+        tol: Powell ``xtol`` and ``ftol``. Default is 1e-6.
+        random_state: Seed for the restarts. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
     References:
-        Huber, P. J. (1985). Projection pursuit. The Annals of Statistics,
-        13(2), 435-475.
-
         Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
         Robust canonical correlations: A comparative study. Computational
         Statistics, 20(2), 203-229.
@@ -232,17 +134,13 @@ class ProjectionPursuitCCA(BaseModel):
         association estimators. Journal of the American Statistical
         Association, 112(517), 436-445.
 
-        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
-        association between data sets: The R package ccaPP. Austrian
-        Journal of Statistics, 45(1), 71-79.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import ProjectionPursuitCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 6))
         >>> X2 = rng.standard_normal((200, 5))
-        >>> model = ProjectionPursuitCCA(n_components=1, random_state=0)
-        >>> model = model.fit([X1, X2])
+        >>> model = ProjectionPursuitCCA(random_state=0).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -288,17 +186,7 @@ class ProjectionPursuitCCA(BaseModel):
         index_fn: IndexFn,
         rng: np.random.Generator,
     ) -> list[np.ndarray]:
-        """Search for one unit-norm direction per view maximising the index.
-
-        Args:
-            views: Current (deflated) view arrays.
-            pairs: Every ``(i, j)`` pair of view indices, ``i < j``.
-            index_fn: Projection index, ``(u, v) -> float``.
-            rng: Random generator for the restarts.
-
-        Returns:
-            One unit-norm direction per view, matching ``views``' order.
-        """
+        """One unit direction per view maximising the mean pairwise index."""
         ps = [v.shape[1] for v in views]
         sizes = [max(p - 1, 0) for p in ps]
         offsets = np.cumsum([0] + sizes)
@@ -339,18 +227,14 @@ class ProjectionPursuitCCA(BaseModel):
         return unpack(best_theta)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ProjectionPursuitCCA:
-        """Fit ProjectionPursuitCCA by direct search over projection directions.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
