@@ -5,7 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo._utils._ey import ey_cross_covariance, ey_grad_z, ey_loss
+from cca_zoo._utils._ey import (
+    cheap_orthonormal_projection_weights,
+    ey_cross_covariance,
+    ey_grad_z,
+    ey_loss,
+    ridge_basis_ey_closed_form,
+    ridge_basis_ey_trust_krylov,
+)
 
 
 def _numerical_grad_z(
@@ -85,3 +92,35 @@ def test_ey_loss_perfectly_correlated_views() -> None:
     result = ey_loss([z, z])
     # C == V here (both views identical), so objective = -2*tr(V) + tr(V@V).
     assert result["objective"] < 0.0
+
+
+@pytest.mark.parametrize("k", [1, 2, 3])
+def test_ridge_basis_ey_closed_form_matches_iterative_optimum(k: int) -> None:
+    """The eigenproblem solution attains the trust-krylov optimum, with per-view ridge.
+
+    Three views of unequal width, ridge 0 on one of them, and k up to the
+    narrowest view's width.
+    """
+    rng = np.random.default_rng(0)
+    n = 200
+    z = rng.standard_normal((n, 2))
+    bases = [
+        z @ rng.standard_normal((2, d)) + rng.standard_normal((n, d)) for d in (6, 3, 4)
+    ]
+    bases = [b - b.mean(axis=0) for b in bases]
+    ridge = [0.1, 2.0, 0.0]
+
+    def objective(coefs: list[np.ndarray]) -> float:
+        loss = ey_loss([b @ c for b, c in zip(bases, coefs)])["objective"]
+        return loss + 0.5 * sum(r * float(np.sum(c**2)) for r, c in zip(ridge, coefs))
+
+    closed = ridge_basis_ey_closed_form(bases, k, ridge)
+    iterative = ridge_basis_ey_trust_krylov(
+        bases,
+        cheap_orthonormal_projection_weights(bases, k, None, rng),
+        ridge,
+        1000,
+        1e-12,
+    )
+    assert [c.shape for c in closed] == [(b.shape[1], k) for b in bases]
+    np.testing.assert_allclose(objective(closed), objective(iterative), rtol=1e-10)

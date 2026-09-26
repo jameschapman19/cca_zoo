@@ -17,10 +17,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   quantile knot) that absorbs the most of the current EY gradient, then refits every
   view's coefficients jointly — so knots go only where cross-view signal needs them, and
   `max_degree >= 2` admits within-view interactions that an additive model cannot
-  represent. Pruning is left to `cca_zoo.model_selection` (GCV has no EY-loss
-  counterpart): a pass capped at `max_terms=m` is exactly the first `m` terms of a longer
-  one, so searching `max_terms` with `refit=one_standard_error("max_terms")` compares
-  the same nested sequence as `earth`'s `pmethod="cv"`. Selected terms are
+  represent. As in `earth`, a backward pass (`n_terms`) then deletes, one at a time, the
+  term whose removal raises the refit training EY loss least; the size is chosen by
+  searching `n_terms` with `refit=one_standard_error("n_terms")`, `earth`'s
+  `pmethod="cv"` (its default, GCV, has no EY-loss counterpart). Every refit is the
+  closed-form optimum of a generalized eigenproblem, so each backward step scores every
+  candidate exactly with one batched eigendecomposition. Selected terms are
   inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto
@@ -35,6 +37,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   standard error is of each split's paired difference from the best candidate, so splits
   that are uniformly harder do not widen it. The search classes' `refit` now accepts such
   a callable (sklearn already did; only the type hint was narrower).
+
+- `cca_zoo._utils._ey.ridge_basis_ey_gep` / `ridge_basis_ey_closed_form`: the
+  ridge-penalised EY fit on fixed bases is the generalized eigenproblem
+  `(A - R/4) W = B W (WᵀBW)`, solved in closed form at its global optimum (loss
+  `-Σ μ²` over the top-k eigenvalues), used by `MARSCCA` for every refit.
 
 ### Changed
 

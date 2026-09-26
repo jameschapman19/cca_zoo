@@ -15,7 +15,8 @@ from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_grad_z,
-    ridge_basis_ey_trust_krylov,
+    ridge_basis_ey_closed_form,
+    ridge_basis_ey_gep,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
 
@@ -316,6 +317,40 @@ class _HingeScorer:
         )
 
 
+def _backward_eliminate(
+    bases: list[np.ndarray], k: int, ridge: list[float], n_terms: int
+) -> list[np.ndarray]:
+    r"""MARS backward pass on the EY loss: which basis columns survive to ``n_terms``.
+
+    Repeatedly deletes the column, from whichever view, whose removal leaves
+    the lowest refit ridge-EY training loss, never a view's last column.
+    The refit loss of deleting column $c$ is $-\sum \mu^2$ over the $k$
+    largest positive eigenvalues of :func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`
+    restricted to the remaining columns, so every candidate is scored at
+    once: the candidates' reduced matrices are stacked, reduced to standard
+    form through a batched Cholesky factor of the right-hand side, and
+    handed to one batched ``eigvalsh``.
+
+    Returns:
+        One boolean mask per view over its columns, True for survivors.
+    """
+    lhs, rhs, view = ridge_basis_ey_gep(bases, ridge)
+    active = np.ones(len(view), dtype=bool)
+    while active.sum() > n_terms:
+        idx = np.flatnonzero(active)
+        counts = np.bincount(view[idx], minlength=len(bases))
+        removable = np.flatnonzero(counts[view[idx]] > 1)
+        remaining = np.array([np.delete(idx, c) for c in removable])
+        rows, cols = remaining[:, :, None], remaining[:, None, :]
+        chol = np.linalg.cholesky(rhs[rows, cols])
+        half = np.linalg.solve(chol, lhs[rows, cols])
+        standard = np.linalg.solve(chol, np.swapaxes(half, 1, 2))
+        mu = np.linalg.eigvalsh(standard)[:, -k:]
+        loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
+        active[idx[removable[np.argmin(loss)]]] = False
+    return [active[view == i] for i in range(len(bases))]
+
+
 class _MarsEncoder:
     """Per-view MARS encoder: a centred basis of products of hinge functions.
 
@@ -369,10 +404,10 @@ class MARSCCA(BaseModel):
     (:meth:`_HingeScorer.best_pair`; classical MARS's residual-sum-of-squares
     reduction, with the residual replaced by the EY loss's negative
     gradient), adds the best pair to each view in turn, then refits every
-    view's coefficients jointly on the enlarged bases by the same exact
-    trust-region Newton-CG solve GAMCCA uses
-    (:func:`~cca_zoo._utils._ey.ridge_basis_ey_trust_krylov`), warm-started
-    from a least-squares projection of the previous embeddings. Knots are
+    view's coefficients jointly on the enlarged bases. On a fixed basis the
+    ridge-EY fit is a generalized eigenproblem
+    (:func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`), so each refit is its
+    exact global optimum in closed form, not an iterative solve. Knots are
     therefore placed only where the cross-view signal needs them, and with
     ``max_degree >= 2`` a term can represent a genuine within-view
     interaction (e.g. $x_1 x_2$) that GAMCCA's additive structure cannot.
@@ -383,22 +418,29 @@ class MARSCCA(BaseModel):
     (:func:`~cca_zoo._utils._ey.cheap_orthonormal_projection_weights`),
     which the first refit replaces entirely.
 
-    The forward pass deliberately overshoots, and classical MARS prunes it
-    back with a backward pass scored by generalised cross-validation. GCV is
-    a squared-error criterion with no EY-loss counterpart, so MARSCCA
-    leaves pruning to the package's own model selection: a forward pass
-    capped at ``max_terms=m`` is exactly the first rounds of a longer one,
-    so a search over ``max_terms`` compares the same nested sequence
-    ``earth``'s cross-validated pruning (``pmethod="cv"``) does, scored by
-    held-out canonical correlation. Pair it with
-    :func:`~cca_zoo.model_selection.one_standard_error` to take the smallest
-    basis within one standard error of the best rather than the noisy
-    maximum::
+    The forward pass deliberately overshoots, so, as in classical MARS, a
+    backward pass prunes it: starting from every term the forward pass
+    added, it repeatedly deletes the term (from whichever view) whose
+    removal raises the refit training EY loss least, down to ``n_terms``
+    terms in total. Because every refit is a closed-form eigenproblem, each
+    deletion is exact — every candidate's refit loss is computed, all at
+    once, from one batched eigenvalue decomposition. Unlike the forward
+    sequence, the backward sequence can drop a stepping-stone term (say a
+    lone hinge in $x_1$) once the interaction it led to has taken over its
+    job.
+
+    ``earth`` then picks the size by generalised cross-validation, a
+    squared-error criterion with no EY-loss counterpart; its alternative,
+    choosing the size along the backward sequence by cross-validation
+    (``pmethod="cv"``), carries over exactly as a search over ``n_terms``.
+    Pair it with :func:`~cca_zoo.model_selection.one_standard_error` to
+    take the smallest model within one standard error of the best rather
+    than the noisy maximum::
 
         GridSearchCV(
-            MARSCCA(max_degree=2),
-            {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
-            refit=one_standard_error("max_terms"),
+            MARSCCA(max_degree=2, max_terms=40),
+            {"n_terms": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+            refit=one_standard_error("n_terms"),
         )
 
     References:
@@ -430,10 +472,9 @@ class MARSCCA(BaseModel):
         alpha: Ridge penalty strength applied to every basis coefficient.
             Either a single float or a list of per-view floats. Default is
             0.1.
-        max_iter: Maximum number of outer Newton iterations in each joint
-            ``"trust-krylov"`` refit. Default is 100.
-        tol: Gradient-norm convergence tolerance for each joint refit.
-            Default is 1e-6.
+        n_terms: Total number of terms, across all views, to keep after
+            the backward pass (every view keeps at least one). None keeps
+            every term the forward pass adds. Default is None.
         random_state: Seed for the initial linear warm start.
 
     Examples:
@@ -457,8 +498,7 @@ class MARSCCA(BaseModel):
         "max_degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
-        "max_iter": [Interval(Integral, 1, None, closed="left")],
-        "tol": [Interval(Real, 0, None, closed="neither")],
+        "n_terms": [Interval(Integral, 1, None, closed="left"), None],
     }
 
     def __init__(
@@ -469,8 +509,7 @@ class MARSCCA(BaseModel):
         max_degree: int | list[int] = 1,
         n_candidate_knots: int = 20,
         alpha: float | list[float] = 0.1,
-        max_iter: int = 100,
-        tol: float = 1e-6,
+        n_terms: int | None = None,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -478,8 +517,7 @@ class MARSCCA(BaseModel):
         self.max_degree = max_degree
         self.n_candidate_knots = n_candidate_knots
         self.alpha = alpha
-        self.max_iter = max_iter
-        self.tol = tol
+        self.n_terms = n_terms
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
@@ -532,16 +570,23 @@ class MARSCCA(BaseModel):
                 growing[i] = len(terms[i]) < max_terms_[i]
 
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
-            coefficients = ridge_basis_ey_trust_krylov(
-                bases,
-                [
-                    np.linalg.lstsq(basis, rep, rcond=None)[0]
-                    for basis, rep in zip(bases, representations)
-                ],
-                alpha_,
-                self.max_iter,
-                self.tol,
-            )
+            coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
+            representations = [b @ c for b, c in zip(bases, coefficients)]
+
+        if self.n_terms is not None and self.n_terms < sum(map(len, terms)):
+            if self.n_terms < m:
+                raise ValueError(
+                    f"n_terms={self.n_terms} is fewer than the number of views "
+                    f"({m}); every view keeps at least one term."
+                )
+            keep = _backward_eliminate(bases, k, alpha_, self.n_terms)
+            terms = [
+                [t for t, kept in zip(ts, mask) if kept]
+                for ts, mask in zip(terms, keep)
+            ]
+            raw_bases = [raw[:, mask] for raw, mask in zip(raw_bases, keep)]
+            bases = [raw - raw.mean(axis=0) for raw in raw_bases]
+            coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
 
         self.encoders_: list[_MarsEncoder] = [

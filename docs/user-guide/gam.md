@@ -118,8 +118,9 @@ constant) as parent, any feature not already in that parent, any of `n_candidate
 quantile knots — by how much of the current EY gradient the pair can absorb once orthogonalised
 against the current basis. That is classical MARS's residual-sum-of-squares criterion with the
 residual replaced by the EY loss's negative gradient. The best pair is added to each view in
-turn, then every view's coefficients are refit jointly by the same trust-region Newton-CG solve
-`GAMCCA` uses. Knots therefore land only where the cross-view signal needs them.
+turn, then every view's coefficients are refit jointly. On a fixed basis the ridge-EY fit is a
+generalized eigenproblem — the one ridge-regularised MCCA solves — so each refit is its exact
+global optimum in closed form. Knots therefore land only where the cross-view signal needs them.
 
 With `max_degree=1` (the default, as in R's `earth`) the encoder is additive, like `GAMCCA` but
 with adaptive knots. With `max_degree=2` a term can represent a within-view interaction such as
@@ -139,29 +140,35 @@ raw feature units.
 
 ### Pruning
 
-The forward pass deliberately overshoots, and R's `earth` prunes it back with a backward pass
-scored by GCV — a squared-error quantity with no EY-loss counterpart. `MARSCCA` leaves pruning to
-the package's model selection instead: a forward pass capped at `max_terms=m` is exactly the
-first `m` terms of a longer one, so a search over `max_terms` compares the same nested sequence
-`earth`'s cross-validated pruning (`pmethod="cv"`) does, scored by held-out canonical
-correlation. Refit with [`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error)
-to take the smallest basis within one standard error of the best rather than the noisy
-maximum, which on pure noise keeps dozens of terms:
+The forward pass deliberately overshoots, so, as in R's `earth`, a backward pass prunes it: from
+every term the forward pass added, it repeatedly deletes the term (from whichever view) whose
+removal raises the refit training EY loss least, down to `n_terms` terms in total. Every refit
+being a closed-form eigenproblem, each deletion is exact, and every candidate is scored at once
+by one batched eigenvalue decomposition. Unlike truncating the forward sequence, the backward
+pass can drop a stepping-stone term — a lone hinge in $x_1$, say — once the interaction it led
+to has taken over its job.
+
+`earth` then picks the size by GCV, a squared-error quantity with no EY-loss counterpart. Its
+alternative, choosing the size along the backward sequence by cross-validation
+(`pmethod="cv"`), carries over exactly as a search over `n_terms`. Refit with
+[`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error) to take
+the smallest model within one standard error of the best rather than the noisy maximum, which
+on pure noise keeps dozens of terms:
 
 ```python
 from cca_zoo.model_selection import GridSearchCV, one_standard_error
 
 gs = GridSearchCV(
-    MARSCCA(max_degree=2),
-    {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
-    refit=one_standard_error("max_terms"),
+    MARSCCA(max_degree=2, max_terms=40),
+    {"n_terms": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+    refit=one_standard_error("n_terms"),
 ).fit([X1, X2])
 ```
 
 | Parameter | Description |
 |---|---|
-| `max_terms` | Maximum basis functions per view (each forward step adds at most two). Scalar or per-view list; the parameter to search when pruning. |
+| `max_terms` | Maximum basis functions per view in the forward pass (each step adds at most two). Scalar or per-view list. |
+| `n_terms` | Total terms, across views, kept by the backward pass (each view keeps at least one); `None` keeps the whole forward pass. The parameter to search when pruning. |
 | `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
 | `n_candidate_knots` | Candidate knots per feature, at interior quantiles of the training values. |
 | `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |
-| `max_iter`, `tol` | Iteration cap and gradient-norm tolerance for each joint refit. |

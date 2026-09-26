@@ -32,6 +32,7 @@ References:
 from __future__ import annotations
 
 import numpy as np
+import scipy.linalg
 from scipy.optimize import minimize
 
 
@@ -1073,3 +1074,72 @@ def ridge_basis_ey_trust_krylov(
         options={"maxiter": max_iter, "gtol": tol},
     )
     return _unflatten(result.x, dims, k)
+
+
+def ridge_basis_ey_gep(
+    bases: list[np.ndarray], ridge: list[float]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    r"""The generalized eigenproblem whose solution minimises the ridge-EY loss.
+
+    For fixed column-centred bases $\Phi_i$ and coefficients stacked as
+    $W = [B_1; \dots; B_M]$, the ridge-penalised EY loss is
+
+    $$
+    -2\operatorname{tr}(W^\top A W) + \operatorname{tr}\big((W^\top B W)^2\big)
+        + \tfrac12 \operatorname{tr}(W^\top R W),
+    $$
+
+    with $A = \Phi^\top\Phi / (M(n-1))$ over the concatenated bases (every
+    cross- and auto-covariance block), $B$ its block diagonal (each view's
+    own auto-covariance), and $R = \operatorname{blockdiag}(\lambda_i I)$.
+    Its stationarity condition $(A - R/4)\,W = B W (W^\top B W)$ is solved by
+    the generalized eigenvectors $(A - R/4)\,U = B U \operatorname{diag}(\mu)$,
+    $U^\top B U = I$, scaled as $W = U\operatorname{diag}(\sqrt{\mu})$, where
+    the loss equals $-\sum \mu^2$: the global minimum over $k$ components
+    takes the $k$ largest positive eigenvalues (a component whose eigenvalue
+    is not positive is zero). The fixed-basis ridge-EY fit is therefore a
+    closed-form eigenproblem, the same one ridge-regularised MCCA solves.
+
+    Args:
+        bases: Column-centred per-view design matrices, each (n, d_i), with
+            full column rank (so ``B`` is positive definite).
+        ridge: Ridge penalty strength, one per view.
+
+    Returns:
+        ``(A - R/4, B, view)``: the two sides of the eigenproblem over the
+        stacked coefficients, and the view index of each stacked column.
+    """
+    m = len(bases)
+    n = bases[0].shape[0]
+    stacked = np.hstack(bases)
+    view = np.repeat(np.arange(m), [basis.shape[1] for basis in bases])
+    a = stacked.T @ stacked / (m * (n - 1))
+    b = np.where(view[:, None] == view[None, :], a, 0.0)
+    return a - np.diag(np.asarray(ridge, dtype=float)[view]) / 4, b, view
+
+
+def ridge_basis_ey_closed_form(
+    bases: list[np.ndarray], k: int, ridge: list[float]
+) -> list[np.ndarray]:
+    """Globally optimal ridge-EY coefficients on fixed bases.
+
+    Solves :func:`ridge_basis_ey_gep` for its ``k`` largest eigenvalues.
+
+    Args:
+        bases: Column-centred per-view design matrices of full column rank.
+        k: Number of latent dimensions.
+        ridge: Ridge penalty strength, one per view.
+
+    Returns:
+        Per-view coefficients, ``coefficients[i]`` of shape
+        ``(bases[i].shape[1], k)``; components beyond the number of positive
+        eigenvalues are zero.
+    """
+    lhs, rhs, view = ridge_basis_ey_gep(bases, ridge)
+    size = lhs.shape[0]
+    top = max(size - k, 0)
+    mu, u = scipy.linalg.eigh(lhs, rhs, subset_by_index=(top, size - 1))
+    mu, u = mu[::-1], u[:, ::-1]
+    w = np.zeros((size, k))
+    w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
+    return [w[view == i] for i in range(len(bases))]

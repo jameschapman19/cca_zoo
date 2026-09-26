@@ -6,8 +6,9 @@ import numpy as np
 import pytest
 from sklearn.exceptions import NotFittedError
 
+from cca_zoo._utils._ey import ey_loss, ridge_basis_ey_closed_form
 from cca_zoo.gam import GAMCCA, MARSCCA
-from cca_zoo.gam._marscca import _evaluate_terms, _HingeScorer
+from cca_zoo.gam._marscca import _backward_eliminate, _evaluate_terms, _HingeScorer
 
 # get_params/set_params roundtrip behaviour is exercised generically for
 # every model in the package (including MARSCCA) by tests/test_sklearn_compat.py.
@@ -300,8 +301,77 @@ def test_smaller_budget_is_a_prefix_of_a_larger_one(
             assert s_enc.terms_ == f_enc.terms_[:m]
 
 
+# ---------------------------------------------------------------------------
+# Backward pass
+# ---------------------------------------------------------------------------
+
+
+def test_backward_step_matches_brute_force_refits() -> None:
+    """Each backward step deletes the column whose explicit refit loss is lowest."""
+    rng = np.random.default_rng(0)
+    n, k = 200, 2
+    z = rng.standard_normal((n, 2))
+    bases = [
+        z @ rng.standard_normal((2, d)) + rng.standard_normal((n, d)) for d in (5, 4)
+    ]
+    bases = [b - b.mean(axis=0) for b in bases]
+    ridge = [0.1, 0.3]
+
+    def refit_loss(reduced: list[np.ndarray]) -> float:
+        coefs = ridge_basis_ey_closed_form(reduced, k, ridge)
+        loss = ey_loss([b @ c for b, c in zip(reduced, coefs)])["objective"]
+        return loss + 0.5 * sum(r * float(np.sum(c**2)) for r, c in zip(ridge, coefs))
+
+    losses = {
+        (i, c): refit_loss(
+            [np.delete(b, c, axis=1) if j == i else b for j, b in enumerate(bases)]
+        )
+        for i in range(2)
+        for c in range(bases[i].shape[1])
+    }
+    keep = _backward_eliminate(bases, k, ridge, n_terms=8)
+    removed = [
+        (i, int(c)) for i, mask in enumerate(keep) for c in np.flatnonzero(~mask)
+    ]
+    assert removed == [min(losses, key=losses.__getitem__)]
+
+
+def test_backward_pass_keeps_n_terms_as_subset(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """n_terms total survive, every view keeps one, all from the forward pass."""
+    full = MARSCCA(max_degree=2, max_terms=10).fit(correlated_views)
+    for n_terms in (2, 5, 13):
+        pruned = MARSCCA(max_degree=2, max_terms=10, n_terms=n_terms).fit(
+            correlated_views
+        )
+        assert sum(len(e.terms_) for e in pruned.encoders_) == n_terms
+        for p_enc, f_enc in zip(pruned.encoders_, full.encoders_):
+            assert len(p_enc.terms_) >= 1
+            assert set(p_enc.terms_) <= set(f_enc.terms_)
+
+
+def test_backward_pass_noop_when_n_terms_not_smaller(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """n_terms at or above the forward pass's size leaves the model unchanged."""
+    full = MARSCCA(max_terms=6).fit(correlated_views)
+    same = MARSCCA(max_terms=6, n_terms=100).fit(correlated_views)
+    for a, b in zip(full.encoders_, same.encoders_):
+        assert a.terms_ == b.terms_
+        np.testing.assert_allclose(a.coef_, b.coef_)
+
+
+def test_n_terms_below_number_of_views_raises(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """Every view must keep a term, so n_terms below n_views is an error."""
+    with pytest.raises(ValueError, match="n_terms"):
+        MARSCCA(max_terms=6, n_terms=1).fit(correlated_views)
+
+
 def test_one_standard_error_search_prunes_pure_noise() -> None:
-    """GridSearchCV + one_standard_error keeps a small basis on independent views.
+    """GridSearchCV over n_terms + one_standard_error keeps a small model on noise.
 
     Unpruned, 40 terms per view overfit pure noise into a large training
     correlation; the searched model stays small and near zero.
@@ -312,10 +382,10 @@ def test_one_standard_error_search_prunes_pure_noise() -> None:
     views = [rng.standard_normal((300, 10)), rng.standard_normal((300, 5))]
     full = MARSCCA(max_degree=2, max_terms=40).fit(views)
     search = GridSearchCV(
-        MARSCCA(max_degree=2),
-        {"max_terms": [2, 4, 8, 16, 24, 40]},
+        MARSCCA(max_degree=2, max_terms=40),
+        {"n_terms": [2, 4, 8, 16, 32, 80]},
         cv=5,
-        refit=one_standard_error("max_terms"),
+        refit=one_standard_error("n_terms"),
     ).fit(views)
-    assert search.best_params_["max_terms"] <= 8
+    assert search.best_params_["n_terms"] <= 8
     assert search.score(views) < full.score(views)[0] - 0.3
