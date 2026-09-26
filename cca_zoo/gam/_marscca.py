@@ -13,6 +13,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
+    _jacobi_scaled,
     cheap_orthonormal_projection_weights,
     ey_grad_z,
     ridge_basis_ey_closed_form,
@@ -247,7 +248,17 @@ class _HingeScorer:
             & (raw_bb > _DEGENERATE_TOL * scale)
             & (bb > _DEGENERATE_TOL * raw_bb)
         )
-        ok_pair = ok_a & ok_b & (aa * bb - ab**2 > _DEGENERATE_TOL * aa * bb)
+        # The pair must be non-degenerate as a whole, to the same standard as a
+        # single hinge: its orthogonalised Gram matrix's smallest eigenvalue,
+        # det / trace to first order, relative to the raw hinge norms. Judging
+        # the two residuals only against each other lets two nearly-in-span
+        # hinges that are also nearly parallel compound into a singular basis.
+        det = aa * bb - ab**2
+        ok_pair = (
+            ok_a
+            & ok_b
+            & (det > _DEGENERATE_TOL * (aa + bb) * np.maximum(raw_aa, raw_bb))
+        )
         return ok_a, ok_b, ok_pair, aa, bb, ab
 
     def best_pair(
@@ -334,7 +345,7 @@ def _backward_eliminate(
     Returns:
         One boolean mask per view over its columns, True for survivors.
     """
-    lhs, rhs, view = ridge_basis_ey_gep(bases, ridge)
+    lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     active = np.ones(len(view), dtype=bool)
     while active.sum() > n_terms:
         idx = np.flatnonzero(active)

@@ -1077,7 +1077,7 @@ def ridge_basis_ey_trust_krylov(
 
 
 def ridge_basis_ey_gep(
-    bases: list[np.ndarray], ridge: list[float]
+    bases: list[np.ndarray], ridge: list[float] | list[np.ndarray]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     r"""The generalized eigenproblem whose solution minimises the ridge-EY loss.
 
@@ -1103,7 +1103,8 @@ def ridge_basis_ey_gep(
     Args:
         bases: Column-centred per-view design matrices, each (n, d_i), with
             full column rank (so ``B`` is positive definite).
-        ridge: Ridge penalty strength, one per view.
+        ridge: Ridge penalty strength, one per view: a scalar, or one value
+            per column of that view.
 
     Returns:
         ``(A - R/4, B, view)``: the two sides of the eigenproblem over the
@@ -1115,7 +1116,39 @@ def ridge_basis_ey_gep(
     view = np.repeat(np.arange(m), [basis.shape[1] for basis in bases])
     a = stacked.T @ stacked / (m * (n - 1))
     b = np.where(view[:, None] == view[None, :], a, 0.0)
-    return a - np.diag(np.asarray(ridge, dtype=float)[view]) / 4, b, view
+    penalty = np.concatenate(
+        [
+            np.broadcast_to(np.asarray(r), basis.shape[1])
+            for r, basis in zip(ridge, bases)
+        ]
+    )
+    return a - np.diag(penalty) / 4, b, view
+
+
+def _jacobi_scale(bases: list[np.ndarray]) -> np.ndarray:
+    """Per-column scale giving every stacked basis column unit norm."""
+    scale: np.ndarray = 1.0 / np.linalg.norm(np.hstack(bases), axis=0)
+    return scale
+
+
+def _jacobi_scaled(
+    bases: list[np.ndarray], ridge: list[float]
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Bases with unit-norm columns, and the ridge that keeps the problem unchanged.
+
+    Rescaling columns by ``s`` rescales their coefficients by ``1/s``, so the
+    same fit needs the per-coefficient ridge ``lambda * s**2``: returned as
+    one diagonal per view (the eigenproblem is invariant; only its
+    conditioning improves, which the Cholesky factorisation of ``B``
+    needs when column norms span orders of magnitude).
+    """
+    scale = _jacobi_scale(bases)
+    split = np.cumsum([b.shape[1] for b in bases])[:-1]
+    per_view = np.split(scale, split)
+    return (
+        [b * sv for b, sv in zip(bases, per_view)],
+        [r * sv**2 for r, sv in zip(ridge, per_view)],
+    )
 
 
 def ridge_basis_ey_closed_form(
@@ -1135,11 +1168,11 @@ def ridge_basis_ey_closed_form(
         ``(bases[i].shape[1], k)``; components beyond the number of positive
         eigenvalues are zero.
     """
-    lhs, rhs, view = ridge_basis_ey_gep(bases, ridge)
+    lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     size = lhs.shape[0]
     top = max(size - k, 0)
     mu, u = scipy.linalg.eigh(lhs, rhs, subset_by_index=(top, size - 1))
-    mu, u = mu[::-1], u[:, ::-1]
+    mu, u = mu[::-1], u[:, ::-1] * _jacobi_scale(bases)[:, None]
     w = np.zeros((size, k))
     w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
     return [w[view == i] for i in range(len(bases))]

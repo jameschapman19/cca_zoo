@@ -201,6 +201,33 @@ def test_identically_zero_hinges_are_degenerate() -> None:
     assert ok_a[zero, 1, 1].all()
 
 
+def test_basis_stays_well_conditioned_with_near_duplicate_features() -> None:
+    """Near-duplicate features must not let a nearly-in-span pair through.
+
+    View 2 is five noisy copies of one signal, so candidate hinges are
+    often almost in the current span *and* almost parallel to each other.
+    Judged only against each other, two such hinges once passed as a pair
+    and made the basis singular (condition number ~1e16), which the
+    closed-form refit's Cholesky factorisation then rejected.
+    """
+    from sklearn.model_selection import KFold
+
+    rng = np.random.default_rng(1)
+    n = 600
+    a, b, _, _ = rng.standard_normal((4, n))
+    data = [
+        np.column_stack([a, b, rng.standard_normal((n, 8))])[:300],
+        np.column_stack([a * b + 0.5 * rng.standard_normal(n) for _ in range(5)])[:300],
+    ]
+    train, _ = next(KFold(5, shuffle=True, random_state=1).split(data[0]))
+    views = [X[train] for X in data]
+    model = MARSCCA(max_degree=2, max_terms=40, random_state=1).fit(views)
+    for X, enc in zip(views, model.encoders_):
+        basis = _evaluate_terms(X - X.mean(axis=0), enc.terms_)
+        basis -= basis.mean(axis=0)
+        assert np.linalg.cond(basis / np.linalg.norm(basis, axis=0)) < 1e8
+
+
 def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
     """basis_functions reports raw-unit knots, one string per term."""
     views = [v + 10.0 for v in two_views_small]
