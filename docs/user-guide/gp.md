@@ -61,7 +61,7 @@ from cca_zoo.gp import GaussianProcessCCA
 
 model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # GaussianProcessCCA also supports more than two views
 model3 = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2, X3])

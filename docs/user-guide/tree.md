@@ -58,7 +58,7 @@ from cca_zoo.tree import XGBoostCCA
 
 model = XGBoostCCA(latent_dimensions=2, n_estimators=200, max_depth=5).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # XGBoostCCA also supports more than two views
 model3 = XGBoostCCA(latent_dimensions=2, n_estimators=200).fit([X1, X2, X3])

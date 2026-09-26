@@ -26,8 +26,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
   one linear constraint, so each backward step scores every candidate exactly from one
   eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
-  terms are inspectable via `model.basis_functions(view)`, and
-  `model.variable_importance()` is `earth`'s `evimp` (`nsubsets` and loss criteria).
+  terms are inspectable via `model.basis_functions(view)`, and its
+  `feature_importances_` is `earth`'s `evimp` (the loss criterion).
   Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
   `minspan`, `endspan`), so an `earth` user can read a call directly. The one default
   that differs is `minspan`: `minspan=0` is Friedman's spacing exactly, as in `earth`,
@@ -39,6 +39,17 @@ project adheres to [Semantic Versioning](https://semver.org/).
   gradient is projected off the basis once per step, so no candidate column is ever
   formed and memory stays O(n_samples * n_features) regardless of `nk` or
   `degree`.
+
+- `feature_importances_` on every model: one non-negative array per view, summing to 1,
+  computed on access as for sklearn's tree models. Each family uses its own literature's
+  importance — a linear model's `Var(x_j) * sum_k w_jk**2`, `GAMCCA` each smooth's variance,
+  `MARSCCA` `earth`'s `evimp`, the tree models their total split gain — and models with no
+  such decomposition (kernel, Gaussian-process, manifold) the mean squared change in a
+  view's latent scores when a feature is permuted, which for a linear or additive model is
+  exactly twice its variance share.
+
+- `ProbabilisticCCA`, `VariationalBayesCCA` and `GFA` gain `posterior_mean(views)`, the
+  posterior mean of the shared latent given every view or, with `None` entries, any subset.
 
 - `GridSearchCV` and `RandomizedSearchCV` accept a callable `refit`, as sklearn's do, and
   hand it `cv_results_` with the same unprefixed parameter names as their own
@@ -75,6 +86,44 @@ project adheres to [Semantic Versioning](https://semver.org/).
   replaced is removed. Each has a Gram-level counterpart (`penalised_gram_ey_gep`,
   `penalised_gram_ey_closed_form`) for callers that form the Gram themselves, as
   `GAMCCA` does from its sparse basis.
+
+- **Breaking:** `score` returns one float, the mean canonical correlation, as sklearn's
+  contract for `score` requires; it was an array of per-dimension correlations. Those
+  come from `cca_zoo.metrics`:
+  `average_pairwise_correlations(pairwise_correlations(model.transform(views)))`.
+- **Breaking:** the probabilistic models' `transform` returns one projection `x_i @ W_i`
+  per view, like every other model, instead of a single-element list holding the joint
+  posterior mean (now `posterior_mean`). Their special-cased `score`, correlation and
+  loading methods are gone, since the shared ones now apply.
+- `transform`, `predict` and `inverse_transform` all go through one per-view encoder,
+  `BaseModel._transform_view`: a linear model's projection onto `weights_`, overridden
+  by each nonlinear model. `predict` estimates the shared latent from the observed views
+  through it (the posterior mean, for the probabilistic models).
+- `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
+  use, rather than `weights_`, which elsewhere means weight matrices.
+
+### Deprecated
+
+- The `weights` property: use the `weights_` attribute.
+- `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings` as
+  model methods: the functions of the same names in `cca_zoo.metrics` take a model's
+  `transform` output.
+- `cca_zoo.model_selection.procrustes_rotation`: it is
+  `scipy.linalg.orthogonal_procrustes`, which the permutation test now calls directly.
+- `ManifoldCCA.weights_`: use `embedding_`.
+
+### Fixed
+
+- `predict` and `inverse_transform` projected with `weights_` directly, so they raised or
+  returned the wrong shape for every nonlinear model (`GAMCCA`, `MARSCCA`,
+  `GaussianProcessCCA`, the kernel, manifold and tree models); they now use each model's
+  own encoder.
+- `predict` and `inverse_transform` cached their reconstruction loadings on first use and
+  never invalidated them, so after refitting on new data they silently used the old
+  data's; they are now computed on demand.
+- `KCCA`, `KGCCA` and `KTCCA` formed test kernels from uncentred inputs against centred
+  training data, so `transform` of data far from the origin collapsed (an RBF kernel to
+  zero); inputs are now centred as in `fit`.
 
 ### Performance
 

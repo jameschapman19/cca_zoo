@@ -36,7 +36,7 @@ from cca_zoo.gam import GAMCCA
 
 model = GAMCCA(latent_dimensions=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # mgcv-style controls, per view where useful
 model = GAMCCA(k=[10, 30], m=(2, 1), sp=[0.1, 1.0]).fit([X1, X2])

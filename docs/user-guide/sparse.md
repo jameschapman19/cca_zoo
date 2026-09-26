@@ -113,7 +113,7 @@ from cca_zoo.sparse import ElasticNetCCA
 
 model = ElasticNetCCA(latent_dimensions=2, alpha=0.1, l1_ratio=0.5).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # ElasticNetCCA also supports more than two views
 model3 = ElasticNetCCA(latent_dimensions=2, alpha=0.1).fit([X1, X2, X3])

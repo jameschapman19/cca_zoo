@@ -159,7 +159,10 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
     does not learn the non-monotone one at all, so there would be nothing
     for its importance to find.
     """
-    cls = next(c for c in _MODEL_CLASSES if c.__name__ == name)
+    classes = {c.__name__: c for c in _MODEL_CLASSES}
+    if name not in classes:
+        pytest.skip(f"{name}'s optional dependency is not installed")
+    cls = classes[name]
     kwargs = {"kernel": "rbf"} if name == "KCCA" else {}
     model = cls(latent_dimensions=1, **kwargs)
     if "random_state" in model.get_params():
