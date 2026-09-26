@@ -26,6 +26,7 @@ allocation, multimetric support, ...) is reused rather than reimplemented.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any, ClassVar, cast
 
 import numpy as np
@@ -195,6 +196,70 @@ def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
     return unwrapped
 
 
+def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
+    r"""``refit`` rule: the simplest candidate within one standard error of the best.
+
+    The one-standard-error rule of ``rpart`` and ``glmnet``'s ``lambda.1se``,
+    as a callable for any search class's ``refit`` argument (sklearn calls it
+    with ``cv_results_`` and refits the candidate whose index it returns).
+    The best candidate has the highest mean test score; every candidate
+    whose mean falls short of it by no more than one standard error is
+    eligible, and the one with the smallest value of ``param`` wins. Taking
+    the bare maximum instead is biased towards complex models whenever
+    scores are noisy, since the largest of many noisy estimates sits high.
+
+    The standard error is that of each candidate's *paired* per-split
+    difference from the best candidate,
+    $\operatorname{sd}_s(\text{score}_{s,c} - \text{score}_{s,\text{best}}) /
+    \sqrt{n_\text{splits}}$, not of its raw per-split scores: a split that
+    is simply harder (or on which a greedy model settles on a worse path)
+    shifts every candidate alike, and that shared offset would otherwise
+    inflate the error and pick far too simple a model.
+
+    Args:
+        param: Name of the searched parameter that orders candidates by
+            complexity, smaller being simpler (e.g. ``"max_terms"``), as it
+            appears in ``param_grid`` (per-view names like ``"c__0"`` work
+            too).
+
+    Returns:
+        A callable mapping ``cv_results_`` to the index of the chosen
+        candidate. It works on the search classes in this module and on
+        :mod:`sklearn.model_selection`'s own.
+
+    Examples:
+        >>> import numpy as np
+        >>> from cca_zoo.gam import MARSCCA
+        >>> from cca_zoo.model_selection import GridSearchCV, one_standard_error
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((100, 5))
+        >>> X2 = rng.standard_normal((100, 5))
+        >>> gs = GridSearchCV(
+        ...     MARSCCA(),
+        ...     {"max_terms": [2, 4, 8]},
+        ...     cv=3,
+        ...     refit=one_standard_error("max_terms"),
+        ... ).fit([X1, X2])
+        >>> gs.best_params_["max_terms"] in (2, 4, 8)
+        True
+    """
+
+    def rule(cv_results: dict[str, Any]) -> int:
+        results = _unwrap_cv_results(cv_results)
+        n_splits = sum(
+            re.fullmatch(r"split\d+_test_score", key) is not None for key in results
+        )
+        scores = np.array([results[f"split{s}_test_score"] for s in range(n_splits)])
+        best = int(np.argmin(results["rank_test_score"]))
+        diff = scores - scores[:, [best]]
+        se = diff.std(axis=0, ddof=1) / np.sqrt(n_splits)
+        eligible = np.flatnonzero(diff.mean(axis=0) + se >= 0)
+        values = results[f"param_{param}"]
+        return int(min(eligible, key=lambda c: values[c]))
+
+    return rule
+
+
 def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
     """Copy every fitted (trailing-underscore) attribute from ``inner``.
 
@@ -221,7 +286,7 @@ def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
 class _MultiviewSearchMixin:
     """Shared ``transform``/``score`` for the wrapped multiview search classes."""
 
-    refit: bool
+    refit: bool | str | Callable[[dict[str, Any]], int]
     _inner_cv: BaseEstimator
     best_estimator_: BaseEstimator
 
@@ -303,8 +368,10 @@ class GridSearchCV(_BaseMultiviewSearchCV):
             default :meth:`score` method is used.
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
+        refit: Whether to refit the best estimator on the full dataset,
+            or a callable choosing which candidate to refit from
+            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+            ``True``.
         verbose: Verbosity level. Default is 0.
         pre_dispatch: Controls the number of jobs dispatched during
             parallel execution, forwarded to sklearn's ``GridSearchCV``.
@@ -348,7 +415,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         cv: int | Any = 5,
         scoring: str | None = None,
         n_jobs: int | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         verbose: int = 0,
         pre_dispatch: str | int = "2*n_jobs",
         error_score: float = np.nan,
@@ -421,8 +488,10 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
             default :meth:`score` method is used.
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
+        refit: Whether to refit the best estimator on the full dataset,
+            or a callable choosing which candidate to refit from
+            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+            ``True``.
         verbose: Verbosity level. Default is 0.
         random_state: Controls the randomness of the parameter sampling.
         pre_dispatch: Controls the number of jobs dispatched during
@@ -478,7 +547,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         cv: int | Any = 5,
         scoring: str | None = None,
         n_jobs: int | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         verbose: int = 0,
         random_state: int | Any = None,
         pre_dispatch: str | int = "2*n_jobs",
@@ -570,8 +639,10 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
             splitter.  Default is 5.
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
+        refit: Whether to refit the best estimator on the full dataset,
+            or a callable choosing which candidate to refit from
+            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+            ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
             ``HalvingGridSearchCV``.
@@ -626,7 +697,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         aggressive_elimination: bool = False,
         cv: int | Any = 5,
         scoring: str | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         error_score: float = np.nan,
         return_train_score: bool = True,
         random_state: int | Any = None,
@@ -726,8 +797,10 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
             splitter.  Default is 5.
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset.
-            Default is ``True``.
+        refit: Whether to refit the best estimator on the full dataset,
+            or a callable choosing which candidate to refit from
+            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+            ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
             ``HalvingRandomSearchCV``.
@@ -788,7 +861,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         aggressive_elimination: bool = False,
         cv: int | Any = 5,
         scoring: str | None = None,
-        refit: bool = True,
+        refit: bool | str | Callable[[dict[str, Any]], int] = True,
         error_score: float = np.nan,
         return_train_score: bool = True,
         random_state: int | Any = None,

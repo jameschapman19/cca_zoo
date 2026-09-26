@@ -139,27 +139,29 @@ raw feature units.
 
 ### Pruning
 
-The forward pass deliberately overshoots, so the model is pruned back, as in R's `earth`. Its
-default pruning criterion, GCV, is a squared-error quantity with no EY-loss counterpart, so
-`MARSCCA` uses `earth`'s cross-validated pruning (`pmethod="cv"`) instead. Every forward-pass
-round ends in a joint refit, so each round is a complete candidate model: each of `cv` folds
-(default 5) runs its own forward pass and records its held-out canonical correlation after every
-round, and the fitted model is the full-data forward pass stopped at the chosen round. The
-pruned models are prefixes of the forward sequence, which is what makes every size free to
-score.
+The forward pass deliberately overshoots, and R's `earth` prunes it back with a backward pass
+scored by GCV — a squared-error quantity with no EY-loss counterpart. `MARSCCA` leaves pruning to
+the package's model selection instead: a forward pass capped at `max_terms=m` is exactly the
+first `m` terms of a longer one, so a search over `max_terms` compares the same nested sequence
+`earth`'s cross-validated pruning (`pmethod="cv"`) does, scored by held-out canonical
+correlation. Refit with [`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error)
+to take the smallest basis within one standard error of the best rather than the noisy
+maximum, which on pure noise keeps dozens of terms:
 
-The chosen round is the earliest one within one standard error of the best, the rule `rpart`
-and `glmnet` use, with the standard error taken over each fold's *paired* difference from its
-own best round. The bare maximum of a noisy curve lands late (on pure noise it keeps dozens of
-terms), and greedy forward passes on different folds can settle on better or worse paths, which
-would inflate an unpaired error enough to stop far too early. Per-fold scores are kept in
-`cv_scores_` and the kept size in `n_rounds_`; `cv=None` skips pruning.
+```python
+from cca_zoo.model_selection import GridSearchCV, one_standard_error
+
+gs = GridSearchCV(
+    MARSCCA(max_degree=2),
+    {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
+    refit=one_standard_error("max_terms"),
+).fit([X1, X2])
+```
 
 | Parameter | Description |
 |---|---|
-| `max_terms` | Maximum basis functions per view before pruning (each forward step adds at most two). Scalar or per-view list. |
+| `max_terms` | Maximum basis functions per view (each forward step adds at most two). Scalar or per-view list; the parameter to search when pruning. |
 | `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
 | `n_candidate_knots` | Candidate knots per feature, at interior quantiles of the training values. |
 | `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |
 | `max_iter`, `tol` | Iteration cap and gradient-norm tolerance for each joint refit. |
-| `cv` | Folds for cross-validated pruning (default 5); `None` keeps the whole forward pass. Fit time is roughly `cv + 1` forward passes. |

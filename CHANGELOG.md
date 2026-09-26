@@ -17,10 +17,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   quantile knot) that absorbs the most of the current EY gradient, then refits every
   view's coefficients jointly — so knots go only where cross-view signal needs them, and
   `max_degree >= 2` admits within-view interactions that an additive model cannot
-  represent. The forward pass is then pruned by cross-validation (`earth`'s
-  `pmethod="cv"`; GCV has no EY-loss counterpart): each fold scores held-out canonical
-  correlation after every round for free, and the fitted model is the earliest round
-  within one paired standard error of the best (`cv`, default 5). Selected terms are
+  represent. Pruning is left to `cca_zoo.model_selection` (GCV has no EY-loss
+  counterpart): a pass capped at `max_terms=m` is exactly the first `m` terms of a longer
+  one, so searching `max_terms` with `refit=one_standard_error("max_terms")` compares
+  the same nested sequence as `earth`'s `pmethod="cv"`. Selected terms are
   inspectable via `model.basis_functions(view)`. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto
@@ -28,6 +28,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   gradient is projected off the basis once per step, so no candidate column is ever
   formed and memory stays O(n_samples * n_features) regardless of `max_terms` or
   `max_degree`.
+
+- `cca_zoo.model_selection.one_standard_error(param)`: a `refit` rule for every search
+  class (and sklearn's own) that refits the candidate with the smallest `param` whose mean
+  CV score is within one standard error of the best, instead of the noisy maximum. The
+  standard error is of each split's paired difference from the best candidate, so splits
+  that are uniformly harder do not widen it. The search classes' `refit` now accepts such
+  a callable (sklearn already did; only the type hint was narrower).
 
 ### Changed
 

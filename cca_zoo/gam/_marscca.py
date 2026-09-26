@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from numbers import Integral, Real
-from typing import Any, ClassVar, NamedTuple
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy import sparse
-from sklearn.model_selection import KFold
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -19,7 +18,6 @@ from cca_zoo._utils._ey import (
     ridge_basis_ey_trust_krylov,
 )
 from cca_zoo._utils._validation import perview_parameter, validate_views
-from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
 
 # A hinge factor (feature, knot, sign) is max(0, sign * (x[feature] - knot)).
 _Factor = tuple[int, float, int]
@@ -321,9 +319,8 @@ class _HingeScorer:
 class _MarsEncoder:
     """Per-view MARS encoder: a centred basis of products of hinge functions.
 
-    A snapshot of one view after a forward-pass round: the terms selected so
-    far, the training means of their raw columns, and their fitted
-    coefficients.
+    Holds the terms selected by :class:`MARSCCA`'s forward pass, the
+    training means of their raw columns, and their fitted coefficients.
     """
 
     def __init__(
@@ -349,13 +346,6 @@ class _MarsEncoder:
             _evaluate_terms(X, self.terms_) - self.basis_mean_
         ) @ self.coef_
         return result
-
-
-class _Round(NamedTuple):
-    """One forward-pass round: the model after its refit, and its held-out score."""
-
-    encoders: list[_MarsEncoder]
-    validation_score: float
 
 
 class MARSCCA(BaseModel):
@@ -393,30 +383,23 @@ class MARSCCA(BaseModel):
     (:func:`~cca_zoo._utils._ey.cheap_orthonormal_projection_weights`),
     which the first refit replaces entirely.
 
-    The forward pass deliberately overshoots, so, as in classical MARS, the
-    model is then pruned back. ``earth``'s default prunes by generalised
-    cross-validation, a squared-error criterion with no EY-loss
-    counterpart; MARSCCA instead uses ``earth``'s cross-validated pruning
-    (``pmethod="cv"``), which carries over exactly. Every forward-pass round
-    ends in a joint refit, so each round is a complete candidate model. Each
-    of ``cv`` folds runs its own forward pass and records its held-out
-    canonical correlation after every round at no extra cost. The size is
-    the earliest round not worse than the best round (highest mean score) by
-    more than one standard error, the one-standard-error rule of ``rpart``
-    and ``glmnet``'s ``lambda.1se``: the curve over rounds is noisy, and its
-    bare maximum systematically lands late — on pure noise, a couple of
-    standard errors above zero at a model with dozens of terms. The standard
-    error is that of each round's *paired* difference from the best round
-    across folds, because greedy forward passes on different folds can
-    settle on better or worse paths, and that fold-level offset would
-    otherwise inflate the unpaired error enough to stop far too early. The
-    model is the full-data forward pass as it stood after that round. The criterion
-    is correlation — the scale-free analogue of ``earth``'s held-out
-    $R^2$ — rather than the held-out EY loss itself, whose value also
-    rewards embeddings whose held-out variance happens to sit near one: on
-    pure noise it favours the largest model. Unlike ``earth``'s
-    backward pass, the pruned models are prefixes of the forward sequence,
-    which is what makes every size free to evaluate.
+    The forward pass deliberately overshoots, and classical MARS prunes it
+    back with a backward pass scored by generalised cross-validation. GCV is
+    a squared-error criterion with no EY-loss counterpart, so MARSCCA
+    leaves pruning to the package's own model selection: a forward pass
+    capped at ``max_terms=m`` is exactly the first rounds of a longer one,
+    so a search over ``max_terms`` compares the same nested sequence
+    ``earth``'s cross-validated pruning (``pmethod="cv"``) does, scored by
+    held-out canonical correlation. Pair it with
+    :func:`~cca_zoo.model_selection.one_standard_error` to take the smallest
+    basis within one standard error of the best rather than the noisy
+    maximum::
+
+        GridSearchCV(
+            MARSCCA(max_degree=2),
+            {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
+            refit=one_standard_error("max_terms"),
+        )
 
     References:
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
@@ -451,18 +434,7 @@ class MARSCCA(BaseModel):
             ``"trust-krylov"`` refit. Default is 100.
         tol: Gradient-norm convergence tolerance for each joint refit.
             Default is 1e-6.
-        cv: Number of cross-validation folds used to prune the forward
-            pass (see above). None skips pruning and keeps every term the
-            forward pass adds, up to ``max_terms``. Default is 5.
-        random_state: Seed for the initial linear warm start and the
-            cross-validation fold assignment.
-
-    Attributes:
-        cv_scores_: Held-out canonical correlation (summed over latent
-            dimensions, as :meth:`score` reports it) of each fold after
-            each forward-pass round, shape (cv, n_rounds); None when ``cv``
-            is None.
-        n_rounds_: Number of forward-pass rounds kept in the fitted model.
+        random_state: Seed for the initial linear warm start.
 
     Examples:
         >>> import numpy as np
@@ -487,7 +459,6 @@ class MARSCCA(BaseModel):
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
-        "cv": [Interval(Integral, 2, None, closed="left"), None],
     }
 
     def __init__(
@@ -500,7 +471,6 @@ class MARSCCA(BaseModel):
         alpha: float | list[float] = 0.1,
         max_iter: int = 100,
         tol: float = 1e-6,
-        cv: int | None = 5,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
@@ -510,7 +480,6 @@ class MARSCCA(BaseModel):
         self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
-        self.cv = cv
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
@@ -528,67 +497,20 @@ class MARSCCA(BaseModel):
             ValueError: If views have inconsistent numbers of samples.
         """
         views_ = self._setup_fit(views)
-        if self.cv is None:
-            rounds = self._forward_pass(views_)
-            best = len(rounds) - 1
-            self.cv_scores_: np.ndarray | None = None
-        else:
-            folds = KFold(self.cv, shuffle=True, random_state=self.random_state)
-            fold_scores = [
-                [
-                    r.validation_score
-                    for r in self._forward_pass(
-                        [X[train] for X in views_], [X[test] for X in views_]
-                    )
-                ]
-                for train, test in folds.split(views_[0])
-            ]
-            rounds = self._forward_pass(views_)
-            # A fold whose forward pass stopped early keeps its final model.
-            n_rounds = max(len(rounds), *(len(f) for f in fold_scores))
-            self.cv_scores_ = np.array(
-                [f + [f[-1]] * (n_rounds - len(f)) for f in fold_scores]
-            )
-            top = int(np.argmax(self.cv_scores_.mean(axis=0)))
-            # Paired against the best round within each fold, so a fold whose
-            # forward pass settles on a worse path adds no spread.
-            diff = self.cv_scores_ - self.cv_scores_[:, [top]]
-            se = diff.std(axis=0, ddof=1) / np.sqrt(self.cv)
-            within = np.flatnonzero(diff.mean(axis=0) + se >= 0)
-            best = min(int(within[0]), len(rounds) - 1)
-
-        self.n_rounds_: int = best + 1
-        self.encoders_: list[_MarsEncoder] = rounds[best].encoders
-        return self
-
-    def _forward_pass(
-        self, views: list[np.ndarray], validation: list[np.ndarray] | None = None
-    ) -> list[_Round]:
-        """Greedy forward pass; one fitted model per round (add a pair, refit).
-
-        Args:
-            views: Centred training views.
-            validation: Optional held-out views, scored after every round.
-
-        Returns:
-            One :class:`_Round` per round, in order; each holds the complete
-            encoders as they stood after that round's refit.
-        """
         k = self.latent_dimensions
-        m = len(views)
+        m = self.n_views_
         max_terms_ = perview_parameter("max_terms", self.max_terms, 20, m)
         max_degree_ = perview_parameter("max_degree", self.max_degree, 1, m)
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
-        scorers = [_HingeScorer(X, self.n_candidate_knots) for X in views]
+        scorers = [_HingeScorer(X, self.n_candidate_knots) for X in views_]
 
         rng = np.random.default_rng(self.random_state)
-        warm_start = cheap_orthonormal_projection_weights(views, k, None, rng)
-        representations = [X @ w for X, w in zip(views, warm_start)]
-        terms: list[list[_Term]] = [[] for _ in views]
-        raw_bases = [np.zeros((X.shape[0], 0)) for X in views]
-        parent_terms: list[list[_Term]] = [[()] for _ in views]
+        warm_start = cheap_orthonormal_projection_weights(views_, k, None, rng)
+        representations = [X @ w for X, w in zip(views_, warm_start)]
+        terms: list[list[_Term]] = [[] for _ in views_]
+        raw_bases = [np.zeros((X.shape[0], 0)) for X in views_]
+        parent_terms: list[list[_Term]] = [[()] for _ in views_]
         growing = [True] * m
-        rounds: list[_Round] = []
 
         while any(growing):
             grads = ey_grad_z(representations)
@@ -621,25 +543,14 @@ class MARSCCA(BaseModel):
                 self.tol,
             )
             representations = [b @ c for b, c in zip(bases, coefficients)]
-            encoders = [
-                _MarsEncoder(list(t), raw.mean(axis=0), coef, rep)
-                for t, raw, coef, rep in zip(
-                    terms, raw_bases, coefficients, representations
-                )
-            ]
-            score = (
-                float(
-                    average_pairwise_correlations(
-                        pairwise_correlations(
-                            [enc.predict_new(X) for enc, X in zip(encoders, validation)]
-                        )
-                    ).sum()
-                )
-                if validation is not None
-                else np.nan
+
+        self.encoders_: list[_MarsEncoder] = [
+            _MarsEncoder(t, raw.mean(axis=0), coef, rep)
+            for t, raw, coef, rep in zip(
+                terms, raw_bases, coefficients, representations
             )
-            rounds.append(_Round(encoders, score))
-        return rounds
+        ]
+        return self
 
     @staticmethod
     def _add_best_pair(

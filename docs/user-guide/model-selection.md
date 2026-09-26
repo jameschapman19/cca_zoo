@@ -81,6 +81,28 @@ print(gs.best_score_)
 best = gs.best_estimator_
 ```
 
+### Preferring simpler models: `one_standard_error`
+
+By default the refitted candidate is the one with the highest mean CV score. When scores are
+noisy that maximum is biased towards complex candidates, since the largest of many noisy
+estimates sits high. `one_standard_error(param)` is a `refit` rule that instead takes the
+candidate with the smallest `param` whose mean score is within one standard error of the best
+(the rule `rpart` and `glmnet`'s `lambda.1se` use):
+
+```python
+from cca_zoo.gam import MARSCCA
+from cca_zoo.model_selection import GridSearchCV, one_standard_error
+
+gs = GridSearchCV(
+    MARSCCA(max_degree=2),
+    {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
+    refit=one_standard_error("max_terms"),
+).fit([X1, X2])
+```
+
+The standard error is taken over each split's *paired* difference from the best candidate, so a
+split that is simply harder, lowering every candidate alike, does not widen it.
+
 ---
 
 ## RandomizedSearchCV

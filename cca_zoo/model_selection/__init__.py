@@ -8,6 +8,7 @@ from cca_zoo.model_selection._search import (
     HalvingRandomSearchCV,
     MultiviewWrapper,
     RandomizedSearchCV,
+    one_standard_error,
 )
 from cca_zoo.model_selection._significance import (
     PermutationTestResult,
@@ -21,6 +22,7 @@ __all__ = [
     "HalvingRandomSearchCV",
     "MultiviewWrapper",
     "RandomizedSearchCV",
+    "one_standard_error",
     "PermutationTestResult",
     "permutation_test_significance",
     "procrustes_rotation",

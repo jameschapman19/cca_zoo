@@ -14,6 +14,8 @@ Cross-validated hyperparameter search and significance testing for multiview mod
 
 ::: cca_zoo.model_selection.MultiviewWrapper
 
+::: cca_zoo.model_selection.one_standard_error
+
 ::: cca_zoo.model_selection.permutation_test_significance
 
 ::: cca_zoo.model_selection.PermutationTestResult
