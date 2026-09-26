@@ -83,22 +83,16 @@ faster default.
 
 ## Feature importance
 
-None of the three classes has linear weight matrices, so `model.weights` raises
-`NotImplementedError`. Use the fitted `boosters_` attribute instead — a `list[list[Booster]]`
-indexed `[view][component]`:
+`feature_importances_` is each view's total split gain, summed over its components' boosters
+and normalised to sum to 1, the same convention as sklearn's gradient-boosting models:
 
 ```python
 model = XGBoostCCA(latent_dimensions=2).fit([X1, X2])
-
-# Split-gain feature importance for view 1, canonical component 0
-importance = model.boosters_[0][0].get_score(importance_type="gain")
-
-# Equivalent for LightGBMCCA
-# importance = model.boosters_[0][0].feature_importance(importance_type="gain")
-
-# Equivalent for CatBoostCCA
-# importance = model.boosters_[0][0].get_feature_importance()
+imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
 ```
+
+The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed
+`[view][component]`, for per-component importances or any other backend-specific inspection.
 
 ---
 

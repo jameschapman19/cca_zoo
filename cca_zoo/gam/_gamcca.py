@@ -376,6 +376,18 @@ class GAMCCA(BaseModel):
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return self.encoders_[view].predict_new(centred)
 
+    def _feature_importances(self) -> list[np.ndarray]:
+        """Variance of each feature's smooth over the training data."""
+        return [
+            np.array(
+                [
+                    enc.feature_term(j, train[:, j]).var(axis=0).sum()
+                    for j in range(train.shape[1])
+                ]
+            )
+            for enc, train in zip(self.encoders_, self._views_fit_)
+        ]
+
     def shape_function(self, view: int, feature: int, x: ArrayLike) -> np.ndarray:
         r"""Evaluate one feature's fitted additive term $s_j(x_j)$.
 

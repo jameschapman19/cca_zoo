@@ -556,11 +556,10 @@ def test_nprune_below_number_of_views_raises(
         MARSCCA(nk=6, nprune=1).fit(correlated_views)
 
 
-def test_variable_importance_ranks_the_interaction_features() -> None:
+def test_feature_importances_rank_the_interaction_features() -> None:
     """evimp-style importance puts the two interacting features first in view 1.
 
-    ``loss`` peaks at exactly 100 across views and gives unused features 0;
-    ``nsubsets`` never exceeds the number of nested subsets.
+    Features no selected term uses get exactly zero.
     """
     rng = np.random.default_rng(0)
     n = 400
@@ -570,25 +569,12 @@ def test_variable_importance_ranks_the_interaction_features() -> None:
         np.column_stack([a * b + 0.3 * rng.standard_normal(n) for _ in range(3)]),
     ]
     model = MARSCCA(degree=2, nk=16, nprune=10).fit(views)
-    loss = model.variable_importance("loss")
-    nsubsets = model.variable_importance("nsubsets")
-    assert [imp.shape for imp in loss] == [(8,), (3,)]
-    assert max(float(imp.max()) for imp in loss) == pytest.approx(100.0)
-    assert set(np.argsort(loss[0])[-2:]) == {0, 1}
-    n_subsets = 10 - 2 + 1  # fitted size down to one term per view
-    for imp_loss, imp_count, enc, X in zip(loss, nsubsets, model.encoders_, views):
+    importances = model.feature_importances_
+    assert [imp.shape for imp in importances] == [(8,), (3,)]
+    assert set(np.argsort(importances[0])[-2:]) == {0, 1}
+    for imp, enc, X in zip(importances, model.encoders_, views):
+        np.testing.assert_allclose(imp.sum(), 1.0)
         used = {f for term in enc.terms_ for f, _, _ in term}
-        assert imp_count.max() <= n_subsets
         for f in range(X.shape[1]):
             if f not in used:
-                assert imp_count[f] == 0
-                assert imp_loss[f] == 0
-
-
-def test_variable_importance_rejects_unknown_criterion(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """Only earth's two criteria are accepted."""
-    model = MARSCCA(nk=4).fit(correlated_views)
-    with pytest.raises(ValueError, match="criterion"):
-        model.variable_importance("gcv")
+                assert imp[f] == 0

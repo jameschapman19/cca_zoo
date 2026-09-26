@@ -103,10 +103,71 @@ def test_score_is_a_float(cls: type[BaseModel]) -> None:
 
 @pytest.mark.parametrize("cls", _MODEL_CLASSES, ids=_IDS)
 def test_feature_importances(cls: type[BaseModel]) -> None:
-    """One non-negative array per view, each summing to one."""
+    """One non-negative array per view, each summing to one.
+
+    A view whose embedding uses no feature at all (a sparse model can zero
+    one out) gets all zeros instead, as sklearn's tree models do.
+    """
     views = _views(0)
     importances = _fit(cls, views).feature_importances_
     assert [imp.shape for imp in importances] == [(v.shape[1],) for v in views]
     for imp in importances:
         assert np.all(imp >= 0)
-        np.testing.assert_allclose(imp.sum(), 1.0)
+        assert imp.sum() == pytest.approx(1.0) or not imp.any()
+
+
+def test_linear_importance_matches_the_permutation_definition() -> None:
+    """Var(x_j) * sum_k w_jk^2 is half the mean squared permutation change."""
+    from cca_zoo.linear import CCA
+
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((20000, 1))
+    views = [
+        z @ rng.standard_normal((1, p)) + rng.standard_normal((20000, p))
+        for p in (4, 3)
+    ]
+    model = CCA(latent_dimensions=2).fit(views)
+    closed_form = model._feature_importances()
+    permuted = model._permutation_importances()
+    for exact, estimate in zip(closed_form, permuted):
+        np.testing.assert_allclose(estimate, 2 * exact, rtol=0.05)
+
+
+def _signal_in_first_feature(n: int, monotone: bool) -> list[np.ndarray]:
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal(n)
+    first = z if monotone else np.sin(2 * z)
+    return [
+        np.column_stack(
+            [first + 0.2 * rng.standard_normal(n)]
+            + [rng.standard_normal(n) for _ in range(3)]
+        ),
+        np.column_stack(
+            [z + 0.2 * rng.standard_normal(n)]
+            + [rng.standard_normal(n) for _ in range(3)]
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "name", ["rCCA", "GAMCCA", "MARSCCA", "XGBoostCCA", "KCCA", "GaussianProcessCCA"]
+)
+def test_importance_finds_the_signal_feature(name: str) -> None:
+    """Each importance family ranks the one informative feature first.
+
+    XGBoostCCA gets a monotone signal and more samples: at its defaults it
+    does not learn the non-monotone one at all, so there would be nothing
+    for its importance to find.
+    """
+    cls = next(c for c in _MODEL_CLASSES if c.__name__ == name)
+    kwargs = {"kernel": "rbf"} if name == "KCCA" else {}
+    model = cls(latent_dimensions=1, **kwargs)
+    if "random_state" in model.get_params():
+        model.set_params(random_state=0)
+    views = (
+        _signal_in_first_feature(1000, monotone=True)
+        if name == "XGBoostCCA"
+        else _signal_in_first_feature(300, monotone=False)
+    )
+    importances = model.fit(views).feature_importances_
+    assert [int(np.argmax(imp)) for imp in importances] == [0, 0]

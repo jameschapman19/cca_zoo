@@ -83,9 +83,10 @@ all (a standard GP fact: posterior variance only involves the kernel, the noise 
 design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
 level, and inducing points as the mean fit.
 
-`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to `GAMCCA`'s
-`shape_function` (the kernel is not additive across features), so `model.weights` raises
-`NotImplementedError`.
+`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to
+`GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_`
+is therefore permutation-based: the mean squared change in each view's latent scores when a
+feature's training values are shuffled, normalised to sum to 1 per view.
 
 ---
 

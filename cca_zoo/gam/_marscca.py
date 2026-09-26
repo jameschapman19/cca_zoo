@@ -737,7 +737,7 @@ class MARSCCA(BaseModel):
     once, from one batched eigenvalue decomposition. Unlike the forward
     sequence, the backward sequence can drop a stepping-stone term (say a
     lone hinge in $x_1$) once the interaction it led to has taken over its
-    job. The same nested sequence underlies :meth:`variable_importance`.
+    job. The same nested sequence underlies :attr:`feature_importances_`.
 
     ``earth`` then picks the size by generalised cross-validation, a
     squared-error criterion with no EY-loss counterpart; its alternative,
@@ -1037,36 +1037,16 @@ class MARSCCA(BaseModel):
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return self.encoders_[view].predict_new(centred)
 
-    def variable_importance(self, criterion: str = "loss") -> list[np.ndarray]:
-        """Per-feature importance from the backward pass, as ``earth``'s ``evimp``.
+    def _feature_importances(self) -> list[np.ndarray]:
+        """``earth``'s ``evimp`` with its residual-sum-of-squares criterion.
 
         The backward pass yields nested subsets of terms, from the fitted
-        model down to one term per view. ``"nsubsets"`` counts, for each
-        feature, the subsets containing a term that uses it. ``"loss"``
-        credits every subset's decrease in refit EY training loss over the
-        next smaller subset (the smallest's over the empty model, whose loss
-        is zero) to each feature it uses, summed, and scaled so the most
-        important feature across all views scores 100 — ``evimp``'s ``rss``
-        criterion with the EY loss in place of the residual sum of squares.
-
-        Args:
-            criterion: ``"loss"`` or ``"nsubsets"``.
-
-        Returns:
-            One array per view, shape (n_features_i,).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If ``criterion`` is neither ``"loss"`` nor
-                ``"nsubsets"``.
+        model down to one term per view. Every subset's decrease in refit EY
+        training loss over the next smaller subset (the smallest's over the
+        empty model, whose loss is zero) is credited to each feature it
+        uses, and summed: ``evimp``'s ``rss`` criterion with the EY loss in
+        place of the residual sum of squares.
         """
-        check_is_fitted(self)
-        if criterion not in ("loss", "nsubsets"):
-            raise ValueError(
-                f"criterion must be 'loss' or 'nsubsets', got {criterion!r}."
-            )
-        # Subsets from the fitted model (after n_removed_ deletions) down to
-        # the smallest; each is its predecessor minus one deleted term.
         members: list[set[tuple[int, _Term]]] = [
             {(i, t) for i, enc in enumerate(self.encoders_) for t in enc.terms_}
         ]
@@ -1075,13 +1055,9 @@ class MARSCCA(BaseModel):
         losses = list(self.backward_loss_[self.n_removed_ :]) + [0.0]
         importance = [np.zeros(p) for p in self.n_features_in_]
         for s, subset in enumerate(members):
-            weight = 1.0 if criterion == "nsubsets" else losses[s + 1] - losses[s]
             used = {(view, f) for view, term in subset for f, _, _ in term}
             for view, feature in used:
-                importance[view][feature] += weight
-        if criterion == "loss":
-            top = max(float(imp.max()) for imp in importance)
-            importance = [100 * imp / top for imp in importance]
+                importance[view][feature] += losses[s + 1] - losses[s]
         return importance
 
     def basis_functions(self, view: int) -> list[str]:

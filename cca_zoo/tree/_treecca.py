@@ -383,8 +383,19 @@ class TreeCCA(BaseModel, ABC):
         """
 
     @abstractmethod
-    def _importance_example(self) -> str:
-        """One-line usage example for per-component feature importance."""
+    def _booster_gain(self, booster: Any, n_features: int) -> np.ndarray:
+        """Total split gain per feature of one fitted booster, shape (n_features,)."""
+
+    def _feature_importances(self) -> list[np.ndarray]:
+        """Total split gain over each view's boosters (one per component).
+
+        The random orthogonal projection boosting starts from is not
+        learned, so only the boosters' splits count.
+        """
+        return [
+            np.sum([self._booster_gain(b, p) for b in boosters], axis=0)
+            for boosters, p in zip(self.boosters_, self.n_features_in_)
+        ]
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TreeCCA:
         """Fit the model.
@@ -521,8 +532,9 @@ class XGBoostCCA(TreeCCA):
             [b.predict(dmatrix, output_margin=True) for b in boosters]
         )
 
-    def _importance_example(self) -> str:
-        return 'model.boosters_[view][component].get_score(importance_type="gain")'
+    def _booster_gain(self, booster: Any, n_features: int) -> np.ndarray:
+        gain = booster.get_score(importance_type="total_gain")
+        return np.array([gain.get(f"f{j}", 0.0) for j in range(n_features)])
 
 
 class LightGBMCCA(TreeCCA):
@@ -593,11 +605,8 @@ class LightGBMCCA(TreeCCA):
     def _predict_boosters(self, boosters: list[Any], X: np.ndarray) -> np.ndarray:
         return np.column_stack([b.predict(X, raw_score=True) for b in boosters])
 
-    def _importance_example(self) -> str:
-        return (
-            "model.boosters_[view][component]"
-            '.feature_importance(importance_type="gain")'
-        )
+    def _booster_gain(self, booster: Any, n_features: int) -> np.ndarray:
+        return np.asarray(booster.feature_importance(importance_type="gain"), float)
 
 
 class CatBoostCCA(TreeCCA):
@@ -692,5 +701,7 @@ class CatBoostCCA(TreeCCA):
             ]
         )
 
-    def _importance_example(self) -> str:
-        return "model.boosters_[view][component].get_feature_importance()"
+    def _booster_gain(self, booster: Any, n_features: int) -> np.ndarray:
+        if booster is None:
+            return np.zeros(n_features)
+        return np.asarray(booster.get_feature_importance(), float)

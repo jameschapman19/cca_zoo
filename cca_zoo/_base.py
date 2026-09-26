@@ -150,6 +150,60 @@ class BaseModel(BaseEstimator, ABC):
         scores: np.ndarray = centred @ self.weights_[view]
         return scores
 
+    @property
+    def feature_importances_(self) -> list[np.ndarray]:
+        """Each feature's share of its view's embedding: one array per view.
+
+        Non-negative and summing to 1 within each view (all zeros for a view
+        whose embedding uses no feature), like sklearn's tree models, and
+        computed on first access as theirs is. Each model family uses the
+        importance its own literature uses: a linear model's feature
+        ``j`` contributes ``Var(x_j) * sum_k w_jk**2`` to the variance of
+        its view's embedding; :class:`~cca_zoo.gam.GAMCCA` uses each
+        smooth's variance, :class:`~cca_zoo.gam.MARSCCA` ``earth``'s
+        ``evimp``, and the tree models their split gain. Models with no
+        such decomposition (kernel, Gaussian-process and manifold models)
+        use the mean squared change in the view's latent scores when the
+        feature's training values are permuted, which for a linear or
+        additive model is exactly twice its variance share.
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+        """
+        check_is_fitted(self)
+        importances = []
+        for raw in self._feature_importances():
+            raw = np.maximum(raw, 0.0)
+            total = raw.sum()
+            importances.append(raw / total if total > 0 else raw)
+        return importances
+
+    def _feature_importances(self) -> list[np.ndarray]:
+        """Unnormalised per-view importances; see :attr:`feature_importances_`."""
+        if type(self)._transform_view is BaseModel._transform_view:
+            return [
+                train.var(axis=0) * np.sum(w**2, axis=1)
+                for train, w in zip(self._views_fit_, self.weights_)
+            ]
+        return self._permutation_importances()
+
+    def _permutation_importances(self) -> list[np.ndarray]:
+        """Mean squared change in each view's scores when a feature is permuted."""
+        rng = np.random.default_rng(0)
+        importances = []
+        for i, train in enumerate(self._views_fit_):
+            scores = self._transform_view(i, train)
+            order = rng.permutation(len(train))
+            changes = np.empty(train.shape[1])
+            for j in range(train.shape[1]):
+                permuted = train.copy()
+                permuted[:, j] = train[order, j]
+                changes[j] = np.mean(
+                    np.sum((self._transform_view(i, permuted) - scores) ** 2, axis=1)
+                )
+            importances.append(changes)
+        return importances
+
     def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
         """Estimate of the shared latent score from whichever views are observed.
 

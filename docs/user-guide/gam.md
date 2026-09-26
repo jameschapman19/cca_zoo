@@ -58,8 +58,9 @@ a [custom refit rule](model-selection.md#custom-refit-rules) that picks the larg
 
 ### Inspecting fitted smooths
 
-`GAMCCA` has no linear weight matrices, so `model.weights` raises `NotImplementedError`.
-`shape_function` evaluates one feature's fitted smooth — `plot.gam`'s partial effect:
+`GAMCCA` has no linear weight matrices. `feature_importances_` is each smooth's variance over the
+training data (normalised to sum to 1 per view), and `shape_function` evaluates one feature's
+fitted smooth, `plot.gam`'s partial effect:
 
 ```python
 import numpy as np
@@ -153,13 +154,13 @@ trades them for a smaller model.
 
 ### Variable importance
 
-`model.variable_importance(criterion)` is `earth`'s `evimp`, computed over the backward pass's
-nested subsets from the fitted model down: `"nsubsets"` counts the subsets that use each
-feature, and `"loss"` credits each subset's decrease in EY loss over the next smaller one to
-every feature it uses, scaled so the most important feature across views scores 100.
+`feature_importances_` is `earth`'s `evimp` with its `rss` criterion, computed over the backward
+pass's nested subsets from the fitted model down: each subset's decrease in EY loss over the next
+smaller one is credited to every feature it uses. As for every model in the package, it is one
+array per view, normalised to sum to 1 (where `evimp` scales the largest to 100):
 
 ```python
-importance = model.variable_importance("loss")  # one array per view
+imp1, imp2 = model.feature_importances_
 ```
 
 Parameters share `earth`'s names and defaults wherever `earth` has one. `earth` counts an
