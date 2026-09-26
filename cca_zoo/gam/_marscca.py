@@ -19,6 +19,7 @@ from cca_zoo._utils._ey import (
     _jacobi_scaled,
     cheap_orthonormal_projection_weights,
     ey_grad_z,
+    ey_loss,
     ridge_basis_ey_closed_form,
     ridge_basis_ey_gep,
     ridge_basis_ey_min_loss,
@@ -532,10 +533,10 @@ def _constrained_top_eigenvalues(lam: np.ndarray, z: np.ndarray, k: int) -> np.n
     return np.where(exists, 0.5 * (lo + hi), -np.inf)
 
 
-def _backward_eliminate(
-    bases: list[np.ndarray], k: int, ridge: list[float], n_terms: int
-) -> list[np.ndarray]:
-    r"""MARS backward pass on the EY loss: which basis columns survive to ``n_terms``.
+def _backward_path(
+    bases: list[np.ndarray], k: int, ridge: list[float]
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""MARS backward pass on the EY loss, from every column down to one per view.
 
     Repeatedly deletes the column, from whichever view, whose removal leaves
     the lowest refit ridge-EY training loss, never a view's last column.
@@ -551,24 +552,36 @@ def _backward_eliminate(
     least-squares backward pass.
 
     Returns:
-        One boolean mask per view over its columns, True for survivors.
+        ``(removed, loss)``: stacked column indices in the order deleted,
+        and the refit loss of every nested subset from the full model
+        (``loss[0]``) down to one column per view (``loss[-1]``), so
+        ``loss[s]`` is the loss after ``s`` deletions.
     """
     lhs, rhs, view = ridge_basis_ey_gep(*_jacobi_scaled(bases, ridge))
     active = np.ones(len(view), dtype=bool)
+    removed: list[int] = []
+    losses: list[float] = []
     with threadpool_limits(limits=1):
-        while active.sum() > n_terms:
+        while True:
             idx = np.flatnonzero(active)
             lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
+            if not losses:
+                losses.append(-float(np.sum(np.maximum(lam[-k:], 0.0) ** 2)))
             counts = np.bincount(view[idx], minlength=len(bases))
             removable = np.flatnonzero(counts[view[idx]] > 1)
+            if len(removable) == 0:
+                break
             # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
             # the removal direction already in eigen-coordinates.
             z = vecs[removable]
             z /= np.linalg.norm(z, axis=1, keepdims=True)
             mu = _constrained_top_eigenvalues(lam, z, k)
             loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
-            active[idx[removable[np.argmin(loss)]]] = False
-    return [active[view == i] for i in range(len(bases))]
+            best = int(np.argmin(loss))
+            removed.append(int(idx[removable[best]]))
+            losses.append(float(loss[best]))
+            active[removed[-1]] = False
+    return np.array(removed, dtype=int), np.array(losses)
 
 
 def _exact_loss(
@@ -669,7 +682,7 @@ class MARSCCA(BaseModel):
     once, from one batched eigenvalue decomposition. Unlike the forward
     sequence, the backward sequence can drop a stepping-stone term (say a
     lone hinge in $x_1$) once the interaction it led to has taken over its
-    job.
+    job. The same nested sequence underlies :meth:`variable_importance`.
 
     ``earth`` then picks the size by generalised cross-validation, a
     squared-error criterion with no EY-loss counterpart; its alternative,
@@ -710,6 +723,11 @@ class MARSCCA(BaseModel):
             ``minspan`` and ``endspan`` and are thinned evenly to this many;
             raise it to consider every allowed point, as ``earth`` does.
             Per-step cost grows linearly in it. Default is 20.
+        thresh: Forward-pass stopping threshold, as ``earth``'s: the pass
+            stops once a round lowers the refit training EY loss by less than
+            ``thresh`` times its magnitude (the EY analogue of an R-squared
+            gain below ``thresh``). 0 always grows to ``max_terms``. Default
+            is 0.001.
         minspan: Minimum number of the parent's support points between
             knots. None uses Friedman's (1991) rule, as ``earth`` does by
             default. Default is None.
@@ -750,6 +768,7 @@ class MARSCCA(BaseModel):
         "max_degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
         "n_rescore": [Interval(Integral, 1, None, closed="left")],
+        "thresh": [Interval(Real, 0, None, closed="left")],
         "minspan": [Interval(Integral, 1, None, closed="left"), None],
         "endspan": [Interval(Integral, 0, None, closed="left"), None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
@@ -764,6 +783,7 @@ class MARSCCA(BaseModel):
         max_degree: int | list[int] = 1,
         n_candidate_knots: int = 20,
         n_rescore: int = 10,
+        thresh: float = 0.001,
         minspan: int | None = None,
         endspan: int | None = None,
         alpha: float | list[float] = 0.1,
@@ -775,6 +795,7 @@ class MARSCCA(BaseModel):
         self.max_degree = max_degree
         self.n_candidate_knots = n_candidate_knots
         self.n_rescore = n_rescore
+        self.thresh = thresh
         self.minspan = minspan
         self.endspan = endspan
         self.alpha = alpha
@@ -813,6 +834,7 @@ class MARSCCA(BaseModel):
         raw_bases = [np.zeros((X.shape[0], 0)) for X in views_]
         parent_terms: list[list[_Term]] = [[()] for _ in views_]
         growing = [True] * m
+        previous_loss = None
 
         while any(growing):
             grads = ey_grad_z(representations)
@@ -838,14 +860,36 @@ class MARSCCA(BaseModel):
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
             coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
+            # earth's thresh: stop once a round's terms barely lower the loss.
+            loss = ey_loss(representations)["objective"] + 0.5 * sum(
+                a * float(np.sum(c**2)) for a, c in zip(alpha_, coefficients)
+            )
+            if previous_loss is not None and previous_loss - loss < self.thresh * abs(
+                loss
+            ):
+                break
+            previous_loss = loss
 
-        if self.n_terms is not None and self.n_terms < sum(map(len, terms)):
-            if self.n_terms < m:
-                raise ValueError(
-                    f"n_terms={self.n_terms} is fewer than the number of views "
-                    f"({m}); every view keeps at least one term."
-                )
-            keep = _backward_eliminate(bases, k, alpha_, self.n_terms)
+        if self.n_terms is not None and self.n_terms < m:
+            raise ValueError(
+                f"n_terms={self.n_terms} is fewer than the number of views "
+                f"({m}); every view keeps at least one term."
+            )
+        removed, path_loss = _backward_path(bases, k, alpha_)
+        view_of = np.repeat(np.arange(m), [len(t) for t in terms])
+        column_of = np.concatenate([np.arange(len(t)) for t in terms])
+        self.backward_path_: list[tuple[int, _Term]] = [
+            (int(view_of[c]), terms[view_of[c]][column_of[c]]) for c in removed
+        ]
+        self.backward_loss_: np.ndarray = path_loss
+        n_total = len(view_of)
+        n_removed = 0 if self.n_terms is None else max(n_total - self.n_terms, 0)
+        if n_removed:
+            gone = set(removed[:n_removed].tolist())
+            keep = [
+                np.array([c not in gone for c in np.flatnonzero(view_of == i)])
+                for i in range(m)
+            ]
             terms = [
                 [t for t, kept in zip(ts, mask) if kept]
                 for ts, mask in zip(terms, keep)
@@ -854,6 +898,7 @@ class MARSCCA(BaseModel):
             bases = [raw - raw.mean(axis=0) for raw in raw_bases]
             coefficients = ridge_basis_ey_closed_form(bases, k, alpha_)
             representations = [b @ c for b, c in zip(bases, coefficients)]
+        self.n_removed_: int = n_removed
 
         self.encoders_: list[_MarsEncoder] = [
             _MarsEncoder(t, raw.mean(axis=0), coef, rep)
@@ -937,6 +982,53 @@ class MARSCCA(BaseModel):
         validated = validate_views(views)
         centred = [v - m for v, m in zip(validated, self.means_)]
         return [enc.predict_new(v) for v, enc in zip(centred, self.encoders_)]
+
+    def variable_importance(self, criterion: str = "loss") -> list[np.ndarray]:
+        """Per-feature importance from the backward pass, as ``earth``'s ``evimp``.
+
+        The backward pass yields nested subsets of terms, from the fitted
+        model down to one term per view. ``"nsubsets"`` counts, for each
+        feature, the subsets containing a term that uses it. ``"loss"``
+        credits every subset's decrease in refit EY training loss over the
+        next smaller subset (the smallest's over the empty model, whose loss
+        is zero) to each feature it uses, summed, and scaled so the most
+        important feature across all views scores 100 — ``evimp``'s ``rss``
+        criterion with the EY loss in place of the residual sum of squares.
+
+        Args:
+            criterion: ``"loss"`` or ``"nsubsets"``.
+
+        Returns:
+            One array per view, shape (n_features_i,).
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            ValueError: If ``criterion`` is neither ``"loss"`` nor
+                ``"nsubsets"``.
+        """
+        check_is_fitted(self)
+        if criterion not in ("loss", "nsubsets"):
+            raise ValueError(
+                f"criterion must be 'loss' or 'nsubsets', got {criterion!r}."
+            )
+        # Subsets from the fitted model (after n_removed_ deletions) down to
+        # the smallest; each is its predecessor minus one deleted term.
+        members: list[set[tuple[int, _Term]]] = [
+            {(i, t) for i, enc in enumerate(self.encoders_) for t in enc.terms_}
+        ]
+        for view, term in self.backward_path_[self.n_removed_ :]:
+            members.append(members[-1] - {(view, term)})
+        losses = list(self.backward_loss_[self.n_removed_ :]) + [0.0]
+        importance = [np.zeros(p) for p in self.n_features_in_]
+        for s, subset in enumerate(members):
+            weight = 1.0 if criterion == "nsubsets" else losses[s + 1] - losses[s]
+            used = {(view, f) for view, term in subset for f, _, _ in term}
+            for view, feature in used:
+                importance[view][feature] += weight
+        if criterion == "loss":
+            top = max(float(imp.max()) for imp in importance)
+            importance = [100 * imp / top for imp in importance]
+        return importance
 
     def basis_functions(self, view: int) -> list[str]:
         """Human-readable form of one view's selected basis functions.

@@ -9,7 +9,7 @@ from sklearn.exceptions import NotFittedError
 from cca_zoo._utils._ey import ey_loss, ridge_basis_ey_closed_form
 from cca_zoo.gam import GAMCCA, MARSCCA
 from cca_zoo.gam._marscca import (
-    _backward_eliminate,
+    _backward_path,
     _constrained_top_eigenvalues,
     _evaluate_terms,
     _HingeScorer,
@@ -81,9 +81,21 @@ def test_max_terms_respected(
 
 def test_per_view_max_terms(correlated_views: list[np.ndarray]) -> None:
     """A per-view max_terms list gives each view its own budget."""
-    model = MARSCCA(max_terms=[4, 12]).fit(correlated_views)
+    model = MARSCCA(max_terms=[4, 12], thresh=0.0).fit(correlated_views)
     assert len(model.encoders_[0].terms_) == 4
     assert len(model.encoders_[1].terms_) == 12
+
+
+def test_thresh_stops_forward_pass_early(correlated_views: list[np.ndarray]) -> None:
+    """A round that barely lowers the loss ends the forward pass (earth's thresh).
+
+    thresh=0 always grows to max_terms; a huge thresh stops after the
+    second round, the first whose improvement can be measured.
+    """
+    grown = MARSCCA(max_terms=30, thresh=0.0).fit(correlated_views)
+    stopped = MARSCCA(max_terms=30, thresh=1e6).fit(correlated_views)
+    assert [len(e.terms_) for e in grown.encoders_] == [30, 30]
+    assert [len(e.terms_) for e in stopped.encoders_] == [4, 4]
 
 
 def test_per_view_max_terms_wrong_length_raises(
@@ -404,7 +416,11 @@ def test_constrained_top_eigenvalues_match_direct_compression(
 
 
 def test_backward_step_matches_brute_force_refits() -> None:
-    """Each backward step deletes the column whose explicit refit loss is lowest."""
+    """Every backward step deletes the column whose explicit refit loss is lowest.
+
+    Checks the whole path down to one column per view: each deletion and the
+    loss recorded after it against refitting every remaining candidate.
+    """
     rng = np.random.default_rng(0)
     n, k = 200, 2
     z = rng.standard_normal((n, 2))
@@ -419,18 +435,33 @@ def test_backward_step_matches_brute_force_refits() -> None:
         loss = ey_loss([b @ c for b, c in zip(reduced, coefs)])["objective"]
         return loss + 0.5 * sum(r * float(np.sum(c**2)) for r, c in zip(ridge, coefs))
 
-    losses = {
-        (i, c): refit_loss(
-            [np.delete(b, c, axis=1) if j == i else b for j, b in enumerate(bases)]
-        )
-        for i in range(2)
-        for c in range(bases[i].shape[1])
-    }
-    keep = _backward_eliminate(bases, k, ridge, n_terms=8)
-    removed = [
-        (i, int(c)) for i, mask in enumerate(keep) for c in np.flatnonzero(~mask)
-    ]
-    assert removed == [min(losses, key=losses.__getitem__)]
+    removed, path_loss = _backward_path(bases, k, ridge)
+    stacked_view = np.repeat([0, 1], [5, 4])
+    stacked_col = np.concatenate([np.arange(5), np.arange(4)])
+    active = [np.ones(5, dtype=bool), np.ones(4, dtype=bool)]
+    assert len(removed) == 9 - 2  # down to one column per view
+    np.testing.assert_allclose(path_loss[0], refit_loss(bases), rtol=1e-9)
+    for step, column in enumerate(removed):
+        current = [b[:, a] for b, a in zip(bases, active)]
+        candidates = {
+            (i, c): refit_loss(
+                [
+                    np.delete(b, c, axis=1) if j == i else b
+                    for j, b in enumerate(current)
+                ]
+            )
+            for i in range(2)
+            if current[i].shape[1] > 1
+            for c in range(current[i].shape[1])
+        }
+        best = min(candidates, key=candidates.__getitem__)
+        i = int(stacked_view[column])
+        assert (
+            i,
+            int(np.flatnonzero(active[i]).tolist().index(stacked_col[column])),
+        ) == best
+        np.testing.assert_allclose(path_loss[step + 1], candidates[best], rtol=1e-9)
+        active[i][stacked_col[column]] = False
 
 
 def test_backward_pass_keeps_n_terms_as_subset(
@@ -465,6 +496,44 @@ def test_n_terms_below_number_of_views_raises(
     """Every view must keep a term, so n_terms below n_views is an error."""
     with pytest.raises(ValueError, match="n_terms"):
         MARSCCA(max_terms=6, n_terms=1).fit(correlated_views)
+
+
+def test_variable_importance_ranks_the_interaction_features() -> None:
+    """evimp-style importance puts the two interacting features first in view 1.
+
+    ``loss`` peaks at exactly 100 across views and gives unused features 0;
+    ``nsubsets`` never exceeds the number of nested subsets.
+    """
+    rng = np.random.default_rng(0)
+    n = 400
+    a, b = rng.standard_normal((2, n))
+    views = [
+        np.column_stack([a, b, rng.standard_normal((n, 6))]),
+        np.column_stack([a * b + 0.3 * rng.standard_normal(n) for _ in range(3)]),
+    ]
+    model = MARSCCA(max_degree=2, max_terms=16, n_terms=10).fit(views)
+    loss = model.variable_importance("loss")
+    nsubsets = model.variable_importance("nsubsets")
+    assert [imp.shape for imp in loss] == [(8,), (3,)]
+    assert max(float(imp.max()) for imp in loss) == pytest.approx(100.0)
+    assert set(np.argsort(loss[0])[-2:]) == {0, 1}
+    n_subsets = 10 - 2 + 1  # fitted size down to one term per view
+    for imp_loss, imp_count, enc, X in zip(loss, nsubsets, model.encoders_, views):
+        used = {f for term in enc.terms_ for f, _, _ in term}
+        assert imp_count.max() <= n_subsets
+        for f in range(X.shape[1]):
+            if f not in used:
+                assert imp_count[f] == 0
+                assert imp_loss[f] == 0
+
+
+def test_variable_importance_rejects_unknown_criterion(
+    correlated_views: list[np.ndarray],
+) -> None:
+    """Only earth's two criteria are accepted."""
+    model = MARSCCA(max_terms=4).fit(correlated_views)
+    with pytest.raises(ValueError, match="criterion"):
+        model.variable_importance("gcv")
 
 
 def test_one_standard_error_search_prunes_pure_noise() -> None:
