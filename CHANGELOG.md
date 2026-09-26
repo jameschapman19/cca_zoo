@@ -5,16 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [3.4.0] - Unreleased
+## [4.0.0] - Unreleased
 
-This release settles the public API: every model follows one scikit-learn-style contract
-(`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_`), and every
-deprecated alias accumulated through 3.x is removed rather than carried forward. Some of
-these changes break code written against 3.3; the table below gives each replacement.
+A major release that settles the public API: every model follows one scikit-learn-style
+contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_`),
+and every deprecated alias accumulated through 3.x is removed rather than carried forward.
+The table below gives each replacement.
 
-### Migrating from 3.3
+### Migrating from 3.x
 
-| 3.3 | 3.4 |
+| 3.x | 4.0 |
 |---|---|
 | `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
 | `model.weights` | `model.weights_` |
