@@ -44,7 +44,9 @@ class BaseDeep(pl.LightningModule):
         learning_rate: float = 1e-3,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=["encoders", "decoders", "objective"])
+        self.save_hyperparameters(
+            ignore=["encoder", "encoders", "decoders", "objective"]
+        )
         self.encoders = nn.ModuleList(encoders)
         self.n_components = n_components
         self.learning_rate = learning_rate

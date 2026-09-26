@@ -10,24 +10,24 @@ from cca_zoo.deep._dccae import _reconstruction_loss
 
 
 class DVCCA(BaseDeep):
-    r"""Deep variational CCA: a shared latent variable decoded to every view.
+    r"""Deep variational CCA: a latent inferred from one view generates all of them.
 
-    Each view's encoder gives a Gaussian posterior
-    $\mathcal{N}(\mu_i, \sigma_i^2)$; these are combined with the
-    $\mathcal{N}(0, I)$ prior by a product of experts, which with one view is
-    the original DVCCA posterior. Training minimises the negative ELBO
+    With prior $z \sim \mathcal{N}(0, I)$, decoders $p(x_i \mid z)$ for every
+    view and an encoder $q(z \mid x_1) = \mathcal{N}(\mu, \sigma^2)$ of the
+    first view, training minimises the negative ELBO
 
     $$
     \mathcal{L} = \sum_i \operatorname{MSE}(x_i, \text{decoder}_i(z))
-        + \mathrm{KL}(q(z \mid x_1, \dots, x_M) \,\|\, \mathcal{N}(0, I)).
+        + \mathrm{KL}(q(z \mid x_1) \,\|\, \mathcal{N}(0, I)).
     $$
 
-    Each view's encoding is its own posterior mean $\mu_i$.
+    Unlike the other deep models there is one encoding, so ``trainer.predict``
+    returns a single array, the posterior mean $\mu$, with no linear CCA.
 
     Args:
         n_components: Latent dimension.
-        encoders: One module per view with ``2 * n_components`` outputs, the
-            mean then the log-variance.
+        encoder: Module mapping the first view to ``2 * n_components`` outputs,
+            the mean then the log-variance.
         decoders: One module per view mapping the latent back to that view.
         learning_rate: Adam learning rate. Default is 1e-3.
 
@@ -35,52 +35,46 @@ class DVCCA(BaseDeep):
         Wang, W., Yan, X., Lee, H., & Livescu, K. (2016). Deep variational
         canonical correlation analysis. arXiv:1610.03454.
 
-        Wu, M., & Goodman, N. (2018). Multimodal generative models for
-        scalable weakly-supervised learning. NeurIPS.
-
     Examples:
         >>> import torch.nn as nn
         >>> from cca_zoo.deep import DVCCA
         >>> model = DVCCA(
         ...     n_components=4,
-        ...     encoders=[nn.Linear(10, 8), nn.Linear(10, 8)],
-        ...     decoders=[nn.Linear(4, 10), nn.Linear(4, 10)],
+        ...     encoder=nn.Linear(10, 8),
+        ...     decoders=[nn.Linear(4, 10), nn.Linear(4, 6)],
         ... )
     """
 
     def __init__(
         self,
         n_components: int,
-        encoders: list[nn.Module],
+        encoder: nn.Module,
         decoders: list[nn.Module],
         learning_rate: float = 1e-3,
     ) -> None:
         super().__init__(
             n_components=n_components,
-            encoders=encoders,
+            encoders=[encoder],
             learning_rate=learning_rate,
         )
         self.decoders = nn.ModuleList(decoders)
 
-    def _posteriors(
+    def _posterior(
         self, views: list[torch.Tensor]
-    ) -> list[tuple[torch.Tensor, torch.Tensor]]:
-        """``(mu, log_var)`` of each view's posterior."""
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Mean and log-variance of ``q(z | x_1)``."""
         k = self.n_components
-        posteriors = []
-        for enc, v in zip(self.encoders, views):
-            out = enc(v)
-            if out.shape[1] != 2 * k:
-                raise ValueError(
-                    f"A DVCCA encoder returned {out.shape[1]} outputs; it needs "
-                    f"2 * n_components = {2 * k}."
-                )
-            posteriors.append((out[:, :k], out[:, k:]))
-        return posteriors
+        out = self.encoders[0](views[0])
+        if out.shape[1] != 2 * k:
+            raise ValueError(
+                f"The DVCCA encoder returned {out.shape[1]} outputs; it needs "
+                f"2 * n_components = {2 * k}."
+            )
+        return out[:, :k], out[:, k:]
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Each view's posterior mean, shape (batch_size, n_components)."""
-        return [mu for mu, _ in self._posteriors(views)]
+        """The posterior mean from the first view, as a one-element list."""
+        return [self._posterior(views)[0]]
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The negative ELBO of a batch and its terms.
@@ -92,16 +86,19 @@ class DVCCA(BaseDeep):
             ``{"objective", "reconstruction", "kl"}``.
         """
         views = batch["views"]
-        posteriors = self._posteriors(views)
-        means = torch.stack([m for m, _ in posteriors])
-        precisions = torch.stack([torch.exp(-log_var) for _, log_var in posteriors])
-        var = 1.0 / (1.0 + precisions.sum(dim=0))
-        mu = (means * precisions).sum(dim=0) * var
-        z = mu + torch.randn_like(mu) * var.sqrt()
+        mu, log_var = self._posterior(views)
+        z = mu + torch.randn_like(mu) * torch.exp(0.5 * log_var)
         reconstruction = _reconstruction_loss(views, [dec(z) for dec in self.decoders])
-        kl = 0.5 * torch.sum(var + mu.pow(2) - 1.0 - var.log()) / mu.shape[0]
+        kl = -0.5 * torch.sum(1.0 + log_var - mu.pow(2) - log_var.exp()) / mu.shape[0]
         return {
             "objective": reconstruction + kl,
             "reconstruction": reconstruction,
             "kl": kl,
         }
+
+    def predict_step(self, batch: Batch, batch_idx: int) -> list[torch.Tensor]:
+        """The posterior mean of a batch, as a one-element list."""
+        return self(batch["views"])
+
+    def on_train_end(self) -> None:
+        """Nothing to fit: the posterior mean is the output."""

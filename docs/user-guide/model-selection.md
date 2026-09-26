@@ -145,25 +145,39 @@ print("Best c:", rs.best_params_["c"])
 
 ---
 
-## Using sklearn tools directly
+## Cross-validation
 
-`GridSearchCV` and `RandomizedSearchCV` cover the common case, but they don't need to be
-the only way in: `MultiviewWrapper` is the same adapter they use internally, and it's
-public, so any other sklearn model-selection tool — `HalvingGridSearchCV`,
-`cross_val_score`, `cross_validate`, `learning_curve`, `Pipeline`, ... — works with it too.
+`cross_val_score`, `cross_validate`, `learning_curve` and `validation_curve` are sklearn's
+functions taking a list of views; every other argument is passed to sklearn.
+`validation_curve` accepts per-view names such as `"c__0"`.
+
+```python
+from cca_zoo.linear import CCA, RidgeCCA
+from cca_zoo.model_selection import cross_val_score, cross_validate, validation_curve
+
+scores = cross_val_score(CCA(n_components=2), [X1, X2], cv=5)
+results = cross_validate(CCA(n_components=2), [X1, X2], cv=5, return_train_score=True)
+train, test = validation_curve(RidgeCCA(), [X1, X2], "c__0", [0.0, 0.1, 1.0], cv=5)
+```
+
+### Other sklearn tools
+
+These functions and the search classes wrap the estimator in `MultiviewWrapper`, which
+stacks the views into one array and splits them back. Use it directly for any other sklearn
+tool, such as a `Pipeline` step:
 
 ```python
 import numpy as np
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_val_score as sk_cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from cca_zoo.model_selection import MultiviewWrapper
-from cca_zoo.linear import CCA
 
-views = [X1, X2]
-n_features_per_view = [v.shape[1] for v in views]
-wrapper = MultiviewWrapper(CCA(n_components=2), n_features_per_view=n_features_per_view)
-
-results = cross_validate(wrapper, np.hstack(views), cv=5, return_train_score=True)
-print(results["test_score"])
+wrapper = MultiviewWrapper(
+    CCA(n_components=2), n_features_per_view=[X1.shape[1], X2.shape[1]]
+)
+pipeline = make_pipeline(StandardScaler(), wrapper)  # scaling refitted within each fold
+scores = sk_cross_val_score(pipeline, np.hstack([X1, X2]), cv=5)
 ```
 
 ---
@@ -212,9 +226,8 @@ print("Best score: ", gs.best_score_)
 - For sparse CCA methods, tune `tau` or `alpha` just like any other hyperparameter.
 - When the grid is large, prefer `RandomizedSearchCV`, or a coarse-to-fine `GridSearchCV`:
   search a coarse grid first, then refine around the best value.
-- `MultiviewWrapper` composes with any sklearn model-selection tool, not just the two
-  classes above — reach for it directly when you need `HalvingGridSearchCV`,
-  `cross_val_score`, or a `Pipeline` step.
+- `MultiviewWrapper` composes with any sklearn model-selection tool, so reach for it
+  directly when nothing here wraps the tool you need.
 
 ---
 

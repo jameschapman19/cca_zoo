@@ -138,6 +138,15 @@ class MultiviewWrapper(BaseEstimator):
         return np.hstack(transformed)
 
 
+def _wrap(
+    estimator: BaseEstimator, views: list[ArrayLike]
+) -> tuple[MultiviewWrapper, np.ndarray]:
+    """``estimator`` wrapped for sklearn, and the views stacked into one array."""
+    arrays = [np.asarray(v) for v in views]
+    wrapper = MultiviewWrapper(estimator, [a.shape[1] for a in arrays])
+    return wrapper, np.hstack(arrays)
+
+
 def _wrap_param_space(
     param_space: dict[str, list[Any]] | list[dict[str, list[Any]]],
 ) -> dict[str, list[Any]] | list[dict[str, list[Any]]]:
@@ -230,15 +239,11 @@ class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
         inner_cv_kwargs: dict[str, Any],
         **fit_params: Any,
     ) -> _BaseMultiviewSearchCV:
-        arrays = [np.asarray(v) for v in views]
-        wrapped_estimator = MultiviewWrapper(
-            estimator=self.estimator,
-            n_features_per_view=[a.shape[1] for a in arrays],
-        )
+        wrapped_estimator, X = _wrap(self.estimator, views)
         self._inner_cv = self._inner_cv_cls(
             estimator=wrapped_estimator, **inner_cv_kwargs
         )
-        self._inner_cv.fit(np.hstack(arrays), y, **fit_params)
+        self._inner_cv.fit(X, y, **fit_params)
         _copy_fitted_attrs(self, self._inner_cv)
         return self
 

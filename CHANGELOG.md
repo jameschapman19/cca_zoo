@@ -52,10 +52,15 @@ The table below gives each replacement.
 | deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
 | deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
 | deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
+| `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
 
 ### Added
 
+- `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `learning_curve` and
+  `validation_curve`: sklearn's functions taking a list of views, so multiview models are
+  cross-validated as sklearn models are, without stacking views or building a
+  `MultiviewWrapper` by hand. `validation_curve` takes per-view names such as `"c__0"`.
 - `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
   regression spline (Friedman, 1991) as the per-view encoder, trained on the same
   Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
@@ -188,10 +193,10 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
-- `DVCCA` combined its views by adding their means and log-variances, which is not a
-  posterior. The views' Gaussian posteriors are now combined with the prior by a product
-  of experts, which with one view is the original model, and each view's encoding is its
-  own posterior mean. It previously returned a single array, so its `score` raised.
+- **Breaking:** `DVCCA` now follows Wang et al. (2016): the posterior $q(z \mid x_1)$ is
+  inferred from the first view alone, by a single `encoder`, and every view is decoded
+  from $z$. It took one encoder per view and added their means and log-variances, which
+  is neither the published model nor a valid posterior.
 - `DCCANOI`'s whitening layer returned unwhitened encodings in eval mode, so its
   validation loss compared raw encodings; it now whitens by the running covariance, as
   batch normalisation uses its running statistics.

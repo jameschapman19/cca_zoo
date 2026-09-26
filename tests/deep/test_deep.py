@@ -89,7 +89,10 @@ MODELS: dict[str, Callable[[], BaseDeep]] = {
     "VICReg": lambda: VICReg(K, _encoders()),
     "DCCAE": lambda: DCCAE(K, _encoders(), [nn.Linear(K, p) for p in P]),
     "SplitAE": lambda: SplitAE(K, _encoders(), [nn.Linear(2 * K, p) for p in P]),
-    "DVCCA": lambda: DVCCA(K, _encoders(2 * K), [nn.Linear(K, p) for p in P]),
+}
+TRAINABLE: dict[str, Callable[[], BaseDeep]] = {
+    **MODELS,
+    "DVCCA": lambda: DVCCA(K, nn.Linear(P[0], 2 * K), [nn.Linear(K, p) for p in P]),
 }
 
 
@@ -107,10 +110,10 @@ def test_predict_returns_canonical_variates(name: str) -> None:
     assert corrs[0] >= corrs[1]
 
 
-@pytest.mark.parametrize("name", MODELS)
+@pytest.mark.parametrize("name", TRAINABLE)
 def test_validation_loss_is_the_training_loss(name: str) -> None:
     """Every loss term is logged for validation, reconstruction included."""
-    model = MODELS[name]()
+    model = TRAINABLE[name]()
     trainer = _trainer(max_epochs=1)
     trainer.fit(model, _loader(_views()), _loader(_views(seed=1)))
     terms = model.loss({"views": [torch.as_tensor(v) for v in _views()]})
@@ -135,13 +138,17 @@ def test_fit_cca_enables_prediction_without_training() -> None:
 @pytest.mark.parametrize("name", ["DCCA", "DVCCA", "DCCAE"])
 def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
     """Hyperparameters and the fitted projection are restored from a checkpoint."""
-    model = MODELS[name]()
+    model = TRAINABLE[name]()
     trainer = _trainer()
     trainer.fit(model, _loader(_views()))
     path = tmp_path / "model.ckpt"
     trainer.save_checkpoint(path)
-    fresh = MODELS[name]()
-    modules = {"encoders": list(fresh.encoders)}
+    fresh = TRAINABLE[name]()
+    modules: dict[str, object] = (
+        {"encoder": fresh.encoders[0]}
+        if name == "DVCCA"
+        else {"encoders": list(fresh.encoders)}
+    )
     if hasattr(fresh, "decoders"):
         modules["decoders"] = list(fresh.decoders)
     restored = type(model).load_from_checkpoint(path, **modules)
@@ -205,10 +212,20 @@ def test_encoder_width_must_match_n_components() -> None:
 
 
 def test_dvcca_encoder_width_must_be_twice_n_components() -> None:
-    """DVCCA encoders output a mean and a log-variance."""
-    model = DVCCA(K, _encoders(), [nn.Linear(K, p) for p in P])
+    """The DVCCA encoder outputs a mean and a log-variance."""
+    model = DVCCA(K, nn.Linear(P[0], K), [nn.Linear(K, p) for p in P])
     with pytest.raises(ValueError, match="2 \\* n_components"):
         model([torch.randn(4, p) for p in P])
+
+
+def test_dvcca_predicts_the_first_views_posterior_mean() -> None:
+    """DVCCA encodes the first view alone and predicts its posterior mean."""
+    model = DVCCA(K, nn.Linear(P[0], 2 * K), [nn.Linear(K, p) for p in P])
+    views = _views()
+    _trainer().fit(model, _loader(views))
+    (mean,) = _predict(model, _loader(views))
+    expected = model.encoders[0](torch.as_tensor(views[0]))[:, :K]
+    np.testing.assert_allclose(mean, expected.detach().numpy(), atol=1e-6)
 
 
 def test_dcca_ey_uses_independent_views() -> None:

@@ -92,7 +92,7 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `VICReg` | 2 | Variance, invariance and covariance terms (Bardes et al., 2022) |
 | `DCCAE` | 2, or any with a multiview `objective` | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
 | `SplitAE` | any | Every view reconstructed from all encodings |
-| `DVCCA` | any | Variational: shared latent decoded to every view (Wang et al., 2016) |
+| `DVCCA` | any | Variational: a latent inferred from the first view generates every view (Wang et al., 2016) |
 
 Two-view models raise on other numbers of encoders rather than ignoring views.
 
@@ -113,10 +113,10 @@ model = DCCA(n_components=4, encoders=[e1, e2, e3], objective=MCCALoss())
 ```
 
 The autoencoder models also take decoders. `DCCAE` decodes each view from its own
-encoding, `SplitAE` from the concatenation of all encodings (decoder input
-`n_views * n_components`), and `DVCCA` from the shared latent. `DVCCA`'s encoders output
-`2 * n_components` values, a mean and a log-variance; the views' posteriors are combined
-by a product of experts, and each view's encoding is its posterior mean.
+encoding and `SplitAE` from the concatenation of all encodings (decoder input
+`n_views * n_components`). `DVCCA` has a single `encoder`, of the first view, which
+outputs `2 * n_components` values, a mean and a log-variance; every view is decoded from
+the latent. Its prediction is one array, the posterior mean, with no linear CCA.
 
 ```python
 from cca_zoo.deep import DCCAE
