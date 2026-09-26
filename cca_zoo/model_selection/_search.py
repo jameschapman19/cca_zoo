@@ -218,7 +218,7 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
 
     Args:
         param: Name of the searched parameter that orders candidates by
-            complexity, smaller being simpler (e.g. ``"max_terms"``), as it
+            complexity, smaller being simpler (e.g. ``"nprune"``), as it
             appears in ``param_grid`` (per-view names like ``"c__0"`` work
             too).
 
@@ -236,11 +236,11 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
         >>> X2 = rng.standard_normal((100, 5))
         >>> gs = GridSearchCV(
         ...     MARSCCA(),
-        ...     {"max_terms": [2, 4, 8]},
+        ...     {"nprune": [2, 4, 8]},
         ...     cv=3,
-        ...     refit=one_standard_error("max_terms"),
+        ...     refit=one_standard_error("nprune"),
         ... ).fit([X1, X2])
-        >>> gs.best_params_["max_terms"] in (2, 4, 8)
+        >>> gs.best_params_["nprune"] in (2, 4, 8)
         True
     """
 

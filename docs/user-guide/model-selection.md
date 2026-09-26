@@ -94,9 +94,9 @@ from cca_zoo.gam import MARSCCA
 from cca_zoo.model_selection import GridSearchCV, one_standard_error
 
 gs = GridSearchCV(
-    MARSCCA(max_degree=2),
-    {"max_terms": [2, 4, 8, 12, 16, 24, 32]},
-    refit=one_standard_error("max_terms"),
+    MARSCCA(degree=2, nk=40),
+    {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+    refit=one_standard_error("nprune"),
 ).fit([X1, X2])
 ```
 

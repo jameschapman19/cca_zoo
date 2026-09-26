@@ -15,25 +15,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `MARSCCA` grows each view's basis greedily as classical MARS does — every forward step
   adds the reflected hinge pair (any existing term as parent, any feature, any knot
   `earth`'s `minspan`/`endspan` rules allow within the parent's support) that absorbs the
-  most of the current EY gradient, with the top `n_rescore` re-ranked by their exact refit
+  most of the current EY gradient, with the top ten re-ranked by their exact refit
   loss (`earth`'s criterion), then refits every view's coefficients jointly, stopping
   early by `earth`'s `thresh` rule — so knots go only where cross-view signal needs them, and
-  `max_degree >= 2` admits within-view interactions that an additive model cannot
-  represent. As in `earth`, a backward pass (`n_terms`) then deletes, one at a time, the
+  `degree >= 2` admits within-view interactions that an additive model cannot
+  represent. As in `earth`, a backward pass (`nprune`) then deletes, one at a time, the
   term whose removal raises the refit training EY loss least; the size is chosen by
-  searching `n_terms` with `refit=one_standard_error("n_terms")`, `earth`'s
+  searching `nprune` with `refit=one_standard_error("nprune")`, `earth`'s
   `pmethod="cv"` (its default, GCV, has no EY-loss counterpart). Every refit is the
   closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
   one linear constraint, so each backward step scores every candidate exactly from one
   eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
   terms are inspectable via `model.basis_functions(view)`, and
-  `model.variable_importance()` is `earth`'s `evimp` (`nsubsets` and loss criteria). Candidate scoring uses Friedman's
+  `model.variable_importance()` is `earth`'s `evimp` (`nsubsets` and loss criteria).
+  Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
+  `minspan`, `endspan`), so an `earth` user can read a call directly. Candidate scoring uses Friedman's
   suffix-sum fast update, evaluated for every parent, feature and knot at once by
   sparse block-membership matrices built once per fit. Each candidate's projection onto
   the (incrementally orthonormalised) basis is cached as three running scalars and the
   gradient is projected off the basis once per step, so no candidate column is ever
-  formed and memory stays O(n_samples * n_features) regardless of `max_terms` or
-  `max_degree`.
+  formed and memory stays O(n_samples * n_features) regardless of `nk` or
+  `degree`.
 
 - `cca_zoo.model_selection.one_standard_error(param)`: a `refit` rule for every search
   class (and sklearn's own) that refits the candidate with the smallest `param` whose mean

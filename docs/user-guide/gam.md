@@ -111,30 +111,31 @@ score. Summing every feature's `shape_function` at the training values reproduce
 
 `MARSCCA` swaps `GAMCCA`'s fixed B-spline basis for a multivariate adaptive regression spline
 (Friedman, 1991): each view's encoder is a linear combination of basis functions, each a product
-of up to `max_degree` hinges $\max(0, \pm(x_j - t))$, and the basis is *grown* rather than fixed.
+of up to `degree` hinges $\max(0, \pm(x_j - t))$, and the basis is *grown* rather than fixed.
 
 Every forward step scores each candidate reflected hinge pair — any existing term (or the
 constant) as parent, any feature not already in that parent, any knot `earth`'s `minspan` and
 `endspan` rules allow within the parent's support — by how much of the current EY gradient the
 pair can absorb once orthogonalised against the current basis: classical MARS's
 residual-sum-of-squares criterion with the residual replaced by the EY loss's negative gradient.
-The best `n_rescore` of those are then re-ranked by their exact loss after a refit, the
-criterion `earth` applies to every candidate. The best pair is added to each view in
+The best ten of those are then re-ranked by their exact loss after a refit, the criterion
+`earth` applies to every candidate (scoring all of them exactly would take an eigenproblem
+each). The best pair is added to each view in
 turn, then every view's coefficients are refit jointly. On a fixed basis the ridge-EY fit is a
 generalized eigenproblem — the one ridge-regularised MCCA solves — so each refit is its exact
 global optimum in closed form. Knots therefore land only where the cross-view signal needs them.
 
-With `max_degree=1` (the default, as in R's `earth`) the encoder is additive, like `GAMCCA` but
-with adaptive knots. With `max_degree=2` a term can represent a within-view interaction such as
+With `degree=1` (the default, as in R's `earth`) the encoder is additive, like `GAMCCA` but
+with adaptive knots. With `degree=2` a term can represent a within-view interaction such as
 $x_1 x_2$ — exactly the case the note above says `GAMCCA` cannot handle — while staying
 inspectable term by term.
 
 ```python
 from cca_zoo.gam import MARSCCA
 
-model = MARSCCA(latent_dimensions=1, max_degree=2, max_terms=20).fit([X1, X2])
+model = MARSCCA(latent_dimensions=1, degree=2, nk=20).fit([X1, X2])
 terms = model.basis_functions(0)  # e.g. ['h(x1 - 0.41)', 'h(0.41 - x1)', ...]
-coefs = model.encoders_[0].coef_  # (n_terms, latent_dimensions), row m ↔ terms[m]
+coefs = model.encoders_[0].coef_  # (len(terms), latent_dimensions), row m ↔ terms[m]
 ```
 
 Products appear as e.g. `'h(x1 - 0.41) * h(x0 + 0.2)'`, with `h(u) = max(0, u)` and knots in the
@@ -144,7 +145,7 @@ raw feature units.
 
 The forward pass deliberately overshoots, so, as in R's `earth`, a backward pass prunes it: from
 every term the forward pass added, it repeatedly deletes the term (from whichever view) whose
-removal raises the refit training EY loss least, down to `n_terms` terms in total. Every refit
+removal raises the refit training EY loss least, down to `nprune` terms in total. Every refit
 being a closed-form eigenproblem, each deletion is exact: removing a term restricts that
 eigenproblem by one linear constraint, so every candidate's new eigenvalues follow from one
 eigendecomposition per step, the eigenvalue analogue of `earth`'s least-squares downdates.
@@ -155,7 +156,7 @@ fraction `thresh` (default 0.001).
 
 `earth` then picks the size by GCV, a squared-error quantity with no EY-loss counterpart. Its
 alternative, choosing the size along the backward sequence by cross-validation
-(`pmethod="cv"`), carries over exactly as a search over `n_terms`. Refit with
+(`pmethod="cv"`), carries over exactly as a search over `nprune`. Refit with
 [`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error) to take
 the smallest model within one standard error of the best rather than the noisy maximum, which
 on pure noise keeps dozens of terms:
@@ -164,9 +165,9 @@ on pure noise keeps dozens of terms:
 from cca_zoo.model_selection import GridSearchCV, one_standard_error
 
 gs = GridSearchCV(
-    MARSCCA(max_degree=2, max_terms=40),
-    {"n_terms": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
-    refit=one_standard_error("n_terms"),
+    MARSCCA(degree=2, nk=40),
+    {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+    refit=one_standard_error("nprune"),
 ).fit([X1, X2])
 ```
 
@@ -181,13 +182,15 @@ every feature it uses, scaled so the most important feature across views scores 
 importance = model.variable_importance("loss")  # one array per view
 ```
 
-| Parameter | Description |
-|---|---|
-| `max_terms` | Maximum basis functions per view in the forward pass (each step adds at most two). Scalar or per-view list. |
-| `n_terms` | Total terms, across views, kept by the backward pass (each view keeps at least one); `None` keeps the whole forward pass. The parameter to search when pruning. |
-| `max_degree` | Maximum hinge factors per basis function: 1 is additive, 2 allows pairwise interactions. Scalar or per-view list. |
-| `n_candidate_knots` | Maximum candidate knots per feature and parent term, thinned evenly from the points `minspan`/`endspan` allow. Raise it to consider every allowed point, as `earth` does. |
-| `minspan`, `endspan` | `earth`'s knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms). `None` uses Friedman's (1991) formulas, `earth`'s default. |
-| `n_rescore` | Forward candidates, ranked by how much EY gradient they absorb, re-ranked by their exact refit loss — `earth`'s criterion. `1` uses the gradient ranking alone. |
-| `thresh` | Forward-pass stopping threshold (`earth`'s): stop once a round lowers the loss by less than `thresh` times its magnitude. `0` always grows to `max_terms`. |
-| `alpha` | Ridge penalty on every basis coefficient. Scalar or per-view list. |
+Parameters share `earth`'s names and defaults wherever `earth` has one. `earth` counts an
+intercept in `nk` and `nprune`; views here are centred, so neither counts one.
+
+| Parameter | `earth` | Description |
+|---|---|---|
+| `degree` | `degree` | Maximum hinge factors per term: 1 is additive (default), 2 allows pairwise interactions. Scalar or per-view list. |
+| `nk` | `nk` | Maximum terms per view in the forward pass. Default `min(200, max(20, 2 * n_features))`, `earth`'s less its intercept. Scalar or per-view list. |
+| `nprune` | `nprune` | Total terms, across views, kept by the backward pass. `None` keeps the whole forward pass, since `earth`'s default of choosing it by GCV has no EY counterpart — search it by cross-validation instead. |
+| `thresh` | `thresh` | Forward-pass stopping threshold (default 0.001): stop once a round lowers the loss by less than `thresh` times its magnitude. |
+| `minspan`, `endspan` | `minspan`, `endspan` | Knot rules within each parent's support: at least `minspan` points between knots, none within `endspan` points of either end (doubled for interaction terms, as `Adjust.endspan=2`). `None` uses Friedman's formulas, `earth`'s default. |
+| `alpha` | — | Ridge penalty on every basis coefficient (CCA needs it; the EY fit is otherwise unregularised). Scalar or per-view list. |
+| `n_candidate_knots` | — | Cap on candidate knots per feature and parent (default 20), thinned evenly from those `minspan`/`endspan` allow; `earth` considers them all, so raise it to match. |

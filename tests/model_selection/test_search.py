@@ -543,9 +543,9 @@ def _cv_results(param: str, values: list[int], scores: np.ndarray) -> dict[str, 
 def test_one_standard_error_prefers_simpler_candidate_within_noise() -> None:
     """A simpler candidate indistinguishable from the best is chosen over it."""
     scores = np.array([[0.50, 0.53], [0.54, 0.52], [0.52, 0.53]])
-    results = _cv_results("max_terms", [4, 16], scores)
+    results = _cv_results("nprune", [4, 16], scores)
     assert int(np.argmax(results["mean_test_score"])) == 1
-    assert one_standard_error("max_terms")(results) == 0
+    assert one_standard_error("nprune")(results) == 0
 
 
 def test_one_standard_error_uses_paired_differences() -> None:
@@ -558,15 +558,15 @@ def test_one_standard_error_uses_paired_differences() -> None:
     """
     offsets = np.array([[0.0], [-0.5], [0.5]])
     scores = offsets + np.array([[0.50, 0.51]])
-    results = _cv_results("max_terms", [4, 16], scores)
-    assert one_standard_error("max_terms")(results) == 1
+    results = _cv_results("nprune", [4, 16], scores)
+    assert one_standard_error("nprune")(results) == 1
 
 
 def test_one_standard_error_ignores_candidate_order() -> None:
     """The simplest eligible candidate wins wherever it sits in the grid."""
     scores = np.array([[0.53, 0.50, 0.40], [0.52, 0.54, 0.41], [0.53, 0.52, 0.39]])
-    results = _cv_results("max_terms", [16, 4, 2], scores)
-    assert one_standard_error("max_terms")(results) == 1
+    results = _cv_results("nprune", [16, 4, 2], scores)
+    assert one_standard_error("nprune")(results) == 1
 
 
 def test_one_standard_error_as_refit_in_grid_search(

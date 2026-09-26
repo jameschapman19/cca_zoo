@@ -35,6 +35,11 @@ _Term = tuple[_Factor, ...]
 # its norm is computed from), or already in the span of the current basis
 # (relative to its own norm).
 _DEGENERATE_TOL = 1e-8
+# Forward-pass candidates, ranked by how much EY gradient they absorb, whose
+# exact refit loss (earth's criterion, which it applies to every candidate)
+# decides which is added. Scoring all of them exactly would take one
+# eigenproblem each.
+_N_RESCORE = 10
 # Bisection steps for the backward pass's constrained eigenvalues: each
 # halves an interlacing bracket, so 60 reach machine precision.
 _BISECTION_STEPS = 60
@@ -52,6 +57,11 @@ def _evaluate_terms(X: np.ndarray, terms: list[_Term]) -> np.ndarray:
         for feature, knot, sign in term:
             basis[:, col] *= np.maximum(0.0, sign * (X[:, feature] - knot))
     return basis
+
+
+def _default_nk(n_features: int) -> int:
+    """``earth``'s default ``nk``, less the intercept a centred view does not have."""
+    return min(200, max(20, 2 * n_features))
 
 
 def _knot_spans(n_support: int, n_features: int) -> tuple[int, int]:
@@ -334,7 +344,7 @@ class _HingeScorer:
         Args:
             columns: New raw (uncentred) basis columns, shape (n_samples, c).
             parent_allowed: One entry per column: None if it cannot parent
-                further terms (``max_degree`` reached), else the features it
+                further terms (``degree`` reached), else the features it
                 may be multiplied by, shape (n_features,).
         """
         new_q: list[np.ndarray] = []
@@ -644,7 +654,7 @@ class MARSCCA(BaseModel):
     Learns one nonlinear encoder per view — a multivariate adaptive
     regression spline (MARS; Friedman, 1991), $f_i(x) = \sum_m b_{im}(x)
     B_{im}$, a linear combination of basis functions each of which is a
-    product of up to ``max_degree`` hinges $\max(0, \pm(x_j - t))$ — that
+    product of up to ``degree`` hinges $\max(0, \pm(x_j - t))$ — that
     jointly minimise the ridge-penalised Eckart-Young (EY) objective (see
     :mod:`cca_zoo._utils._ey`, shared with :class:`~cca_zoo.gam.GAMCCA`,
     :class:`~cca_zoo.tree.TreeCCA`, and the linear ``*EY`` models).
@@ -664,7 +674,7 @@ class MARSCCA(BaseModel):
     (:func:`~cca_zoo._utils._ey.ridge_basis_ey_gep`), so each refit is its
     exact global optimum in closed form, not an iterative solve. Knots are
     therefore placed only where the cross-view signal needs them, and with
-    ``max_degree >= 2`` a term can represent a genuine within-view
+    ``degree >= 2`` a term can represent a genuine within-view
     interaction (e.g. $x_1 x_2$) that GAMCCA's additive structure cannot.
 
     The EY loss's all-zero embedding is a stationary point, so there is no
@@ -676,7 +686,7 @@ class MARSCCA(BaseModel):
     The forward pass deliberately overshoots, so, as in classical MARS, a
     backward pass prunes it: starting from every term the forward pass
     added, it repeatedly deletes the term (from whichever view) whose
-    removal raises the refit training EY loss least, down to ``n_terms``
+    removal raises the refit training EY loss least, down to ``nprune``
     terms in total. Because every refit is a closed-form eigenproblem, each
     deletion is exact — every candidate's refit loss is computed, all at
     once, from one batched eigenvalue decomposition. Unlike the forward
@@ -687,15 +697,15 @@ class MARSCCA(BaseModel):
     ``earth`` then picks the size by generalised cross-validation, a
     squared-error criterion with no EY-loss counterpart; its alternative,
     choosing the size along the backward sequence by cross-validation
-    (``pmethod="cv"``), carries over exactly as a search over ``n_terms``.
+    (``pmethod="cv"``), carries over exactly as a search over ``nprune``.
     Pair it with :func:`~cca_zoo.model_selection.one_standard_error` to
     take the smallest model within one standard error of the best rather
     than the noisy maximum::
 
         GridSearchCV(
-            MARSCCA(max_degree=2, max_terms=40),
-            {"n_terms": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
-            refit=one_standard_error("n_terms"),
+            MARSCCA(degree=2, nk=40),
+            {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
+            refit=one_standard_error("nprune"),
         )
 
     References:
@@ -711,13 +721,16 @@ class MARSCCA(BaseModel):
             number of features in any view. Default is 1.
         center: Whether to subtract per-view column means before fitting.
             Default is True.
-        max_terms: Maximum number of basis functions per view (each forward
-            step adds at most two). Either a single value applied to every
-            view or a list of per-view values. Default is 20.
-        max_degree: Maximum number of hinge factors in a single basis
-            function — 1 gives an additive model, 2 allows pairwise
-            interactions, and so on. Either a single value or a list of
-            per-view values. Default is 1.
+        degree: Maximum number of hinge factors in a basis function, as
+            ``earth``'s ``degree``: 1 gives an additive model, 2 allows
+            pairwise interactions, and so on. Either a single value or a
+            list of per-view values. Default is 1.
+        nk: Maximum number of terms per view in the forward pass, as
+            ``earth``'s ``nk`` (each step adds at most two). ``earth`` counts
+            its intercept; views here are centred, so there is none, and
+            the default is ``earth``'s ``min(200, max(20, 2 * n_features))``
+            without it. Either a single value or a list of per-view values.
+            Default is None.
         n_candidate_knots: Maximum number of candidate knots per feature and
             parent. Knots sit at the parent's support points allowed by
             ``minspan`` and ``endspan`` and are thinned evenly to this many;
@@ -726,7 +739,7 @@ class MARSCCA(BaseModel):
         thresh: Forward-pass stopping threshold, as ``earth``'s: the pass
             stops once a round lowers the refit training EY loss by less than
             ``thresh`` times its magnitude (the EY analogue of an R-squared
-            gain below ``thresh``). 0 always grows to ``max_terms``. Default
+            gain below ``thresh``). 0 always grows to ``nk``. Default
             is 0.001.
         minspan: Minimum number of the parent's support points between
             knots. None uses Friedman's (1991) rule, as ``earth`` does by
@@ -735,16 +748,16 @@ class MARSCCA(BaseModel):
             feature's range that may not carry a knot, doubled for
             interaction terms as ``earth``'s ``Adjust.endspan=2`` does. None
             uses Friedman's rule. Default is None.
-        n_rescore: Number of forward-pass candidates, ranked by how much EY
-            gradient they absorb, re-ranked by their exact refit loss — the
-            criterion classical MARS applies to every candidate. 1 uses the
-            gradient ranking alone. Default is 10.
         alpha: Ridge penalty strength applied to every basis coefficient.
             Either a single float or a list of per-view floats. Default is
             0.1.
-        n_terms: Total number of terms, across all views, to keep after
-            the backward pass (every view keeps at least one). None keeps
-            every term the forward pass adds. Default is None.
+        nprune: Total number of terms, across all views, kept by the
+            backward pass, as ``earth``'s ``nprune`` (again without
+            intercepts; every view keeps at least one term). ``earth``
+            chooses the size by GCV when this is unset; GCV has no EY
+            counterpart, so None keeps every term the forward pass adds —
+            choose it by cross-validation instead (see above). Default is
+            None.
         random_state: Seed for the initial linear warm start.
 
     Examples:
@@ -757,49 +770,46 @@ class MARSCCA(BaseModel):
 
         Pairwise interactions, with a larger basis for the second view:
 
-        >>> model = MARSCCA(max_degree=2, max_terms=[10, 20]).fit([X1, X2])
+        >>> model = MARSCCA(degree=2, nk=[10, 20]).fit([X1, X2])
         >>> len(model.basis_functions(0)) <= 10
         True
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "max_terms": [Interval(Integral, 1, None, closed="left"), "array-like"],
-        "max_degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
+        "degree": [Interval(Integral, 1, None, closed="left"), "array-like"],
+        "nk": [Interval(Integral, 1, None, closed="left"), "array-like", None],
         "n_candidate_knots": [Interval(Integral, 1, None, closed="left")],
-        "n_rescore": [Interval(Integral, 1, None, closed="left")],
         "thresh": [Interval(Real, 0, None, closed="left")],
         "minspan": [Interval(Integral, 1, None, closed="left"), None],
         "endspan": [Interval(Integral, 0, None, closed="left"), None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
-        "n_terms": [Interval(Integral, 1, None, closed="left"), None],
+        "nprune": [Interval(Integral, 1, None, closed="left"), None],
     }
 
     def __init__(
         self,
         latent_dimensions: int = 1,
         center: bool = True,
-        max_terms: int | list[int] = 20,
-        max_degree: int | list[int] = 1,
+        degree: int | list[int] = 1,
+        nk: int | list[int] | None = None,
         n_candidate_knots: int = 20,
-        n_rescore: int = 10,
         thresh: float = 0.001,
         minspan: int | None = None,
         endspan: int | None = None,
         alpha: float | list[float] = 0.1,
-        n_terms: int | None = None,
+        nprune: int | None = None,
         random_state: int = 0,
     ) -> None:
         super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.max_terms = max_terms
-        self.max_degree = max_degree
+        self.degree = degree
+        self.nk = nk
         self.n_candidate_knots = n_candidate_knots
-        self.n_rescore = n_rescore
         self.thresh = thresh
         self.minspan = minspan
         self.endspan = endspan
         self.alpha = alpha
-        self.n_terms = n_terms
+        self.nprune = nprune
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
@@ -819,8 +829,12 @@ class MARSCCA(BaseModel):
         views_ = self._setup_fit(views)
         k = self.latent_dimensions
         m = self.n_views_
-        max_terms_ = perview_parameter("max_terms", self.max_terms, 20, m)
-        max_degree_ = perview_parameter("max_degree", self.max_degree, 1, m)
+        max_degree_ = perview_parameter("degree", self.degree, 1, m)
+        max_terms_ = (
+            [_default_nk(X.shape[1]) for X in views_]
+            if self.nk is None
+            else perview_parameter("nk", self.nk, 0, m)
+        )
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
         scorers = [
             _HingeScorer(X, self.n_candidate_knots, self.minspan, self.endspan)
@@ -848,7 +862,6 @@ class MARSCCA(BaseModel):
                     grads[i],
                     max_degree_[i],
                     max_terms_[i],
-                    self.n_rescore,
                     _exact_loss(raw_bases, i, k, alpha_),
                 )
                 if added is None:
@@ -870,9 +883,9 @@ class MARSCCA(BaseModel):
                 break
             previous_loss = loss
 
-        if self.n_terms is not None and self.n_terms < m:
+        if self.nprune is not None and self.nprune < m:
             raise ValueError(
-                f"n_terms={self.n_terms} is fewer than the number of views "
+                f"nprune={self.nprune} is fewer than the number of views "
                 f"({m}); every view keeps at least one term."
             )
         removed, path_loss = _backward_path(bases, k, alpha_)
@@ -883,7 +896,7 @@ class MARSCCA(BaseModel):
         ]
         self.backward_loss_: np.ndarray = path_loss
         n_total = len(view_of)
-        n_removed = 0 if self.n_terms is None else max(n_total - self.n_terms, 0)
+        n_removed = 0 if self.nprune is None else max(n_total - self.nprune, 0)
         if n_removed:
             gone = set(removed[:n_removed].tolist())
             keep = [
@@ -916,12 +929,11 @@ class MARSCCA(BaseModel):
         grad: np.ndarray,
         max_degree: int,
         max_terms: int,
-        n_rescore: int,
         exact_loss: Callable[[np.ndarray], float] | None,
     ) -> np.ndarray | None:
         """Append the best hinge pair to ``terms``.
 
-        The ``n_rescore`` candidates absorbing the most EY gradient are
+        The :data:`_N_RESCORE` candidates absorbing the most EY gradient are
         re-ranked by ``exact_loss`` — the refit ridge-EY loss with the
         candidate's columns added — when it is given; otherwise the gradient
         score alone decides. ``parent_terms`` lists the terms ``scorer``
@@ -932,7 +944,7 @@ class MARSCCA(BaseModel):
             The new raw basis column(s), shape (n_samples, 1 or 2), or None
             if no candidate is non-degenerate.
         """
-        candidates = scorer.best_pairs(grad, n_rescore if exact_loss else 1)
+        candidates = scorer.best_pairs(grad, _N_RESCORE if exact_loss else 1)
         if not candidates:
             return None
         options = []
