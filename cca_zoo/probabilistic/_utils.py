@@ -165,7 +165,7 @@ def align_posterior_rotation(
 
 
 class PosteriorMeanTransformMixin:
-    """Shared ``transform`` for models storing posterior samples of ``log_psi_i``.
+    """Posterior inference of the shared latent, for models with ``log_psi_i`` samples.
 
     Requires the including class to set, after fitting: ``n_views_``,
     ``means_``, ``weights_`` (posterior mean loadings), and
@@ -179,138 +179,65 @@ class PosteriorMeanTransformMixin:
     weights_: list[np.ndarray]
     posterior_samples_: dict[str, Any]
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Return the posterior mean of the shared latent variable z.
-
-        Note:
-            Unlike every other model in ``cca_zoo`` (one array per view),
-            this returns a **single-element** list: this is a fully
-            generative joint model with one shared latent variable rather
-            than a per-view projection, so there is only one array to
-            return.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List with exactly one numpy array of shape
-            (n_samples, latent_dimensions) containing the posterior mean of
-            the shared latent variable z for each observation.
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        from sklearn.utils.validation import check_is_fitted
-
-        from cca_zoo._utils._validation import validate_views
-
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centered = [v - m for v, m in zip(validated, self.means_)]
-
-        psi = [
+    def _noise_variances(self) -> list[np.ndarray]:
+        """Posterior-mean per-feature noise variance of each view."""
+        return [
             np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
             for i in range(self.n_views_)
         ]
-        return [posterior_mean_latent(centered, self.weights_, psi)]
 
-    def _per_view_projections(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project each view through its own posterior-mean loadings.
+    def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
+        """Posterior mean of z given only the observed views.
 
-        ``transform`` returns a single shared latent array (there is one
-        joint z, not one per view), which is what a caller wants for
-        prediction but can't be compared *across* views the way every other
-        model's per-view canonical variates can. Pairwise correlation needs
-        a distinct representation per view, so this uses each view's own
-        ``v_i @ W_i`` projection instead — analogous to every other model in
-        the package, and to what ``transform`` would give without the
-        cross-view precision weighting.
+        The linear-Gaussian posterior simply omits an unobserved view's
+        terms, so this is exact for any subset of views.
         """
-        from cca_zoo._utils._validation import validate_views
+        psi = self._noise_variances()
+        views = list(observed)
+        return posterior_mean_latent(
+            [observed[i] for i in views],
+            [self.weights_[i] for i in views],
+            [psi[i] for i in views],
+        )
 
-        validated = validate_views(views)
-        centered = [v - m for v, m in zip(validated, self.means_)]
-        return [v @ w for v, w in zip(centered, self.weights_)]
+    def posterior_mean(self, views: list[ArrayLike | None]) -> np.ndarray:
+        """Posterior mean of the shared latent variable z.
 
-    def pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Compute the full pairwise correlation matrix per latent dimension.
-
-        Uses each view's own posterior-mean projection (see
-        :meth:`_per_view_projections`), not the shared-z ``transform``
-        output, since the latter has no per-view distinction to correlate.
+        Every view's evidence is combined, weighted by its noise precision,
+        into one estimate of z; unlike :meth:`transform` (each view's own
+        projection ``x_i @ W_i``, comparable across views as for every
+        model in ``cca_zoo``), this is the model's own inference of the
+        shared latent. Pass ``None`` for an unobserved view: the posterior
+        then conditions on the others alone.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: List of length ``n_views_``; each an array of shape
+                (n_samples, n_features_i) or ``None``.
 
         Returns:
-            Array of shape ``(n_views, n_views, latent_dimensions)`` where
-            entry ``[i, j, d]`` is the Pearson correlation between view i's
-            and view j's own projection onto the d-th latent dimension.
+            Array of shape (n_samples, latent_dimensions).
+
+        Raises:
+            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            ValueError: If ``views`` has the wrong length or every entry is
+                ``None``.
         """
         from sklearn.utils.validation import check_is_fitted
 
-        from cca_zoo.metrics._correlation import (
-            pairwise_correlations as _pairwise_correlations,
-        )
-
         check_is_fitted(self)
-        per_view = self._per_view_projections(views)
-        return _pairwise_correlations(per_view)
-
-    def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Return the mean off-diagonal pairwise correlation per dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            off-diagonal pairwise correlation for each canonical dimension.
-        """
-        from cca_zoo.metrics._correlation import (
-            average_pairwise_correlations as _average_pairwise_correlations,
-        )
-
-        corrs = self.pairwise_correlations(views)
-        return _average_pairwise_correlations(corrs)
-
-    def score(self, views: list[ArrayLike], y: None = None) -> np.ndarray:
-        """Return average pairwise canonical correlations for each dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-            y: Ignored.
-
-        Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            pairwise correlation for each canonical dimension.
-        """
-        return self.average_pairwise_correlations(views)
-
-    def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Compute canonical factor loadings for each view.
-
-        Uses each view's own posterior-mean projection (see
-        :meth:`_per_view_projections`), not the shared-z ``transform``
-        output: the latter is a single array, so zipping it against every
-        view (as :meth:`~cca_zoo._base.BaseModel.get_factor_loadings` does)
-        would silently pair it with only the first view.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List of arrays, each of shape (n_features_i, latent_dimensions),
-            where entry ``[j, d]`` is the correlation between feature j of
-            view i and view i's own projection onto the d-th latent
-            dimension.
-        """
-        from cca_zoo._utils._validation import validate_views
-        from cca_zoo.metrics._correlation import factor_loadings as _factor_loadings
-
-        validated = validate_views(views)
-        per_view = self._per_view_projections(views)
-        return _factor_loadings(validated, per_view)
+        if len(views) != self.n_views_:
+            raise ValueError(
+                f"Expected {self.n_views_} views (pass None for an "
+                f"unobserved view), got {len(views)}."
+            )
+        observed = {
+            i: np.asarray(v, dtype=float) - self.means_[i]
+            for i, v in enumerate(views)
+            if v is not None
+        }
+        if not observed:
+            raise ValueError("At least one view must be observed.")
+        return self._shared_latent(observed)
 
     def log_likelihood(self, views: list[ArrayLike]) -> float:
         """Mean per-sample log-likelihood under the fitted generative model.
@@ -342,8 +269,4 @@ class PosteriorMeanTransformMixin:
         check_is_fitted(self)
         validated = validate_views(views)
         centered = [v - m for v, m in zip(validated, self.means_)]
-        psi = [
-            np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
-            for i in range(self.n_views_)
-        ]
-        return marginal_log_likelihood(centered, self.weights_, psi)
+        return marginal_log_likelihood(centered, self.weights_, self._noise_variances())

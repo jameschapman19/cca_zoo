@@ -599,24 +599,3 @@ def test_variable_importance_rejects_unknown_criterion(
     model = MARSCCA(nk=4).fit(correlated_views)
     with pytest.raises(ValueError, match="criterion"):
         model.variable_importance("gcv")
-
-
-def test_one_standard_error_search_prunes_pure_noise() -> None:
-    """GridSearchCV over nprune + one_standard_error keeps a small model on noise.
-
-    Unpruned, 40 terms per view overfit pure noise into a large training
-    correlation; the searched model stays small and near zero.
-    """
-    from cca_zoo.model_selection import GridSearchCV, one_standard_error
-
-    rng = np.random.default_rng(0)
-    views = [rng.standard_normal((300, 10)), rng.standard_normal((300, 5))]
-    full = MARSCCA(degree=2, nk=40).fit(views)
-    search = GridSearchCV(
-        MARSCCA(degree=2, nk=40),
-        {"nprune": [2, 4, 8, 20, 80]},
-        cv=5,
-        refit=one_standard_error("nprune"),
-    ).fit(views)
-    assert search.best_params_["nprune"] <= 8
-    assert search.score(views) < full.score(views)[0] - 0.3

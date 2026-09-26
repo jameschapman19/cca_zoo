@@ -6,7 +6,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import block_diag
 from sklearn.metrics import pairwise_kernels
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
@@ -116,36 +115,19 @@ class KCCA(BaseModel):
         self._kp: list[dict[str, object]] = kp_
         return self
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Transform new views using the fitted kernel dual variables.
-
-        Args:
-            views: List of arrays, each (n_samples_test, n_features_i).
-
-        Returns:
-            List of arrays, each (n_samples_test, latent_dimensions).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-        """
-        check_is_fitted(self)
-        from cca_zoo._utils._validation import validate_views
-
-        validated = validate_views(views)
-        result = []
-        for i, v in enumerate(validated):
-            K_test = pairwise_kernels(
-                self.train_views_[i],
-                Y=v,
-                metric=self._kernel[i],
-                gamma=self._gamma[i],
-                degree=self._degree[i],
-                coef0=self._coef0[i],
-                filter_params=True,
-                **(self._kp[i] if self._kp[i] else {}),
-            )
-            result.append(K_test.T @ self.weights_[i])
-        return result
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        kernel = pairwise_kernels(
+            centred,
+            self.train_views_[view],
+            metric=self._kernel[view],
+            gamma=self._gamma[view],
+            degree=self._degree[view],
+            coef0=self._coef0[view],
+            filter_params=True,
+            **(self._kp[view] if self._kp[view] else {}),
+        )
+        scores: np.ndarray = kernel @ self.weights_[view]
+        return scores
 
     def _compute_kernels(
         self,

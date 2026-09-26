@@ -16,7 +16,7 @@ from cca_zoo._utils._ey import (
     random_orthogonal_embedding,
     rescale_grads_to_target_std,
 )
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._validation import perview_parameter
 
 try:
     import lightgbm as lgb
@@ -462,28 +462,11 @@ class TreeCCA(BaseModel, ABC):
         self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
         return self
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project views into the latent space using the fitted boosters.
-
-        Args:
-            views: List of arrays, each (n_samples, n_features_i), matching
-                the number of views passed to ``fit``.
-
-        Returns:
-            List of arrays, each (n_samples, latent_dimensions).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If fewer than 2 views are provided.
-        """
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centred = [v - m for v, m in zip(validated, self.means_)]
-        result = []
-        for v, boosters, projection in zip(centred, self.boosters_, self._projections_):
-            bm = v @ projection
-            result.append(bm + self._predict_boosters(boosters, v))
-        return result
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        boosted: np.ndarray = centred @ self._projections_[
+            view
+        ] + self._predict_boosters(self.boosters_[view], centred)
+        return boosted
 
     @property
     def weights(self) -> list[np.ndarray]:

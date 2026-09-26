@@ -19,7 +19,7 @@ from cca_zoo._utils._ey import (
     full_rank_reparametrisation,
     penalised_gram_ey_closed_form,
 )
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._validation import perview_parameter
 
 # Rows of the sparse basis densified at a time to form its Gram with BLAS:
 # ~8x faster than a sparse-sparse product (whose output is dense anyway,
@@ -201,15 +201,9 @@ class GAMCCA(BaseModel):
 
     ``mgcv`` estimates each smoothing parameter by GCV or REML; both are
     likelihood/residual criteria with no EY-loss counterpart, so ``sp`` is
-    chosen by cross-validation instead, with
-    :func:`~cca_zoo.model_selection.one_standard_error` taking the smoothest
-    model within one standard error of the best::
+    chosen by cross-validation instead::
 
-        GridSearchCV(
-            GAMCCA(),
-            {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-            refit=one_standard_error("sp", larger_is_simpler=True),
-        )
+        GridSearchCV(GAMCCA(), {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]})
 
     Because each latent component decomposes exactly into one additive term
     per input feature, the fitted shape of any feature's contribution is
@@ -379,24 +373,8 @@ class GAMCCA(BaseModel):
         self.encoders_: list[_GamEncoder] = encoders
         return self
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project views into the latent space using the fitted encoders.
-
-        Args:
-            views: List of arrays, each (n_samples, n_features_i), matching
-                the number of views passed to ``fit``.
-
-        Returns:
-            List of arrays, each (n_samples, latent_dimensions).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If fewer than 2 views are provided.
-        """
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centred = [v - m for v, m in zip(validated, self.means_)]
-        return [enc.predict_new(v) for v, enc in zip(centred, self.encoders_)]
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        return self.encoders_[view].predict_new(centred)
 
     def shape_function(self, view: int, feature: int, x: ArrayLike) -> np.ndarray:
         r"""Evaluate one feature's fitted additive term $s_j(x_j)$.

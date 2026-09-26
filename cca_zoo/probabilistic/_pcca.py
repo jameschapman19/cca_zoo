@@ -28,9 +28,10 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
     $$
 
     MCMC sampling is performed with the No-U-Turn Sampler (NUTS) from
-    numpyro.  After fitting, :meth:`transform` returns the posterior
-    mean of z conditioned on the observed views (computed analytically
-    using the posterior mean formula for linear Gaussian models).
+    numpyro.  After fitting, :meth:`posterior_mean` returns the posterior
+    mean of z conditioned on whichever views are observed (computed
+    analytically using the posterior mean formula for linear Gaussian
+    models); :meth:`transform` returns each view's own projection.
 
     This model has an exact rotational symmetry ($z \to zR$, $W_i \to W_i R$
     for any orthogonal $R$ shared across views leaves the likelihood

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from numbers import Integral, Real
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -417,18 +417,21 @@ class GaussianProcessCCA(BaseModel):
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
             ValueError: If fewer than 2 views are provided.
         """
+        if not return_std:
+            return super().transform(views)
         check_is_fitted(self)
-        validated = validate_views(views)
+        validated = validate_views(views, min_views=self.n_views_)
         centred = [v - m for v, m in zip(validated, self.means_)]
-        if return_std:
-            means = []
-            stds = []
-            for v, enc in zip(centred, self.encoders_):
-                mean, std = enc.predict_new(v, return_std=True)
-                means.append(mean)
-                stds.append(std)
-            return means, stds
-        return [enc.predict_new(v) for v, enc in zip(centred, self.encoders_)]
+        means = []
+        stds = []
+        for v, enc in zip(centred, self.encoders_):
+            mean, std = enc.predict_new(v, return_std=True)
+            means.append(mean)
+            stds.append(std)
+        return means, stds
+
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        return cast(np.ndarray, self.encoders_[view].predict_new(centred))
 
     @property
     def weights(self) -> list[np.ndarray]:

@@ -1,14 +1,10 @@
 """Regression tests for scoring/loadings shared by every probabilistic model.
 
-``ProbabilisticCCA`` and ``VariationalBayesCCA`` both return a *single*
-shared-latent array from ``transform`` (there is one joint z, not one
-per-view canonical variate). ``BaseModel``'s default ``score`` /
-``pairwise_correlations`` / ``get_factor_loadings`` assume one array per
-view and silently misbehave when only one is returned:
-``average_pairwise_correlations`` degenerates a 2-view problem to a 1x1
-self-comparison (0/0 -> nan), and ``get_factor_loadings`` zips the single
-array against every view, silently truncating to just the first one. Both
-are fixed by ``cca_zoo.probabilistic._utils.PosteriorMeanTransformMixin``.
+``ProbabilisticCCA`` and ``VariationalBayesCCA`` return one projection per
+view from ``transform``, like every model, so ``BaseModel``'s scoring and
+loadings apply unchanged. These tests guard the failure modes an earlier
+single-array ``transform`` had: a 2-view problem degenerating to a 1x1
+self-comparison (0/0 -> nan), and loadings silently truncated to one view.
 All tests are marked slow and require numpyro + jax.
 """
 

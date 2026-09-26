@@ -15,12 +15,11 @@ from sklearn.manifold import SpectralEmbedding
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils._param_validation import Interval, StrOptions
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
 from cca_zoo._utils._param_constraints import POSITIVE_EPS
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._validation import perview_parameter
 
 #: Floor for the Laplacian Nystrom extension's 1/mu rescaling (mu = 1 -
 #: eigenvalue), independent of the class's own (much smaller) ``eps``: that
@@ -609,45 +608,29 @@ class ManifoldCCA(BaseModel):
         Raises:
             sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
         """
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centred = [v - m for v, m in zip(validated, self.means_)]
+        return super().transform(views)
 
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        v_train = self._views_fit_[view]
+        n_neighbors = self._n_neighbors_[view]
         if self.method == "lle":
             assert self._lle_state_ is not None
-            result = []
-            for v_new, v_train, nn, z, nn_i, lle_reg_i in zip(
-                centred,
-                self._views_fit_,
-                self._lle_state_,
-                self.weights_,
-                self._n_neighbors_,
-                self._lle_reg_,
-            ):
-                indices = nn.kneighbors(v_new, n_neighbors=nn_i, return_distance=False)
-                weights = _barycenter_weights(v_new, v_train, indices, lle_reg_i)
-                result.append(np.einsum("qn,qnk->qk", weights, z[indices]))
-            return result
-
-        assert self._laplacian_state_ is not None
-        result = []
-        for v_new, v_train, state, aff_i, nn_i in zip(
-            centred,
-            self._views_fit_,
-            self._laplacian_state_,
-            self._affinity_,
-            self._n_neighbors_,
-        ):
-            W_new = _laplacian_new_point_affinity(
-                v_new,
-                v_train,
-                aff_i,
-                state.gamma,
-                nn_i,
-                state.nn,
+            indices = self._lle_state_[view].kneighbors(
+                centred, n_neighbors=n_neighbors, return_distance=False
             )
-            degrees_new = np.maximum(W_new.sum(axis=1), 1e-12)
-            K_tilde = W_new / np.sqrt(np.outer(degrees_new, state.degrees))
-            extended = (K_tilde @ state.full_basis) / state.mu
-            result.append(extended @ state.block)
-        return result
+            weights = _barycenter_weights(
+                centred, v_train, indices, self._lle_reg_[view]
+            )
+            embedded: np.ndarray = np.einsum(
+                "qn,qnk->qk", weights, self.weights_[view][indices]
+            )
+            return embedded
+        assert self._laplacian_state_ is not None
+        state = self._laplacian_state_[view]
+        W_new = _laplacian_new_point_affinity(
+            centred, v_train, self._affinity_[view], state.gamma, n_neighbors, state.nn
+        )
+        degrees_new = np.maximum(W_new.sum(axis=1), 1e-12)
+        K_tilde = W_new / np.sqrt(np.outer(degrees_new, state.degrees))
+        extended: np.ndarray = (K_tilde @ state.full_basis) / state.mu @ state.block
+        return extended

@@ -163,10 +163,12 @@ $$
 $$
 
 ```python
-z = model.transform(
-    [X1, X2]
-)  # list with one array of shape (n_samples, latent_dimensions)
+z = model.posterior_mean([X1, X2])  # shape (n_samples, latent_dimensions)
+z_from_x1 = model.posterior_mean([X1, None])  # conditioning on view 1 alone
 ```
+
+`transform` returns each view's own projection $X_i W_i$, one array per view as for every model
+in `cca_zoo`, so correlations, `score` and `predict` work as they do elsewhere.
 
 ---
 
@@ -257,8 +259,8 @@ vb_model = VariationalBayesCCA(
 vb_model.fit(views)
 print("ARD relevance per dimension:", vb_model.ard_relevance_)
 
-z = vb_model.transform(views)
-print("Latent shape:", z[0].shape)  # (100, 4)
+z = vb_model.posterior_mean(views)
+print("Latent shape:", z.shape)  # (100, 4)
 ```
 
 ---

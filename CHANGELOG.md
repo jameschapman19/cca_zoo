@@ -21,8 +21,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `degree >= 2` admits within-view interactions that an additive model cannot
   represent. As in `earth`, a backward pass (`nprune`) then deletes, one at a time, the
   term whose removal raises the refit training EY loss least; the size is chosen by
-  searching `nprune` with `refit=one_standard_error("nprune")`, `earth`'s
-  `pmethod="cv"` (its default, GCV, has no EY-loss counterpart). Every refit is the
+  searching `nprune` with `GridSearchCV`, `earth`'s `pmethod="cv"` (its default, GCV, has
+  no EY-loss counterpart). Every refit is the
   closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
   one linear constraint, so each backward step scores every candidate exactly from one
   eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
@@ -40,15 +40,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
   formed and memory stays O(n_samples * n_features) regardless of `nk` or
   `degree`.
 
-- `cca_zoo.model_selection.one_standard_error(param, larger_is_simpler=False)`: a `refit` rule for every search
-  class (and sklearn's own) that refits the candidate with the smallest `param` whose mean
-  CV score is within one standard error of the best, instead of the noisy maximum. The
-  standard error is of each split's paired difference from the best candidate, so splits
-  that are uniformly harder do not widen it; with a single split it reduces to the best
-  mean. `GridSearchCV` and `RandomizedSearchCV` accept it as `refit` (sklearn already
-  did; only the type hint was narrower). The successive-halving searches pick their final
-  candidate themselves and never call a callable `refit`, so they now reject one with a
-  `TypeError` instead of silently ignoring it.
+- `GridSearchCV` and `RandomizedSearchCV` accept a callable `refit`, as sklearn's do, and
+  hand it `cv_results_` with the same unprefixed parameter names as their own
+  `cv_results_`. The model-selection guide shows the one-standard-error rule written this way.
 
 - `cca_zoo._utils._ey.penalised_basis_ey_gep` / `penalised_basis_ey_closed_form`: the
   ridge-penalised EY fit on fixed bases is the generalized eigenproblem
@@ -73,9 +67,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   everything after its Gram is $d \times d$: a fit with 100 features and 5000 samples
   takes about half a second. Held-out
   correlation over quadratic, sine, absolute-value and linear relationships rises from
-  0.51 to 0.61 on average. `sp` is chosen by cross-validation with
-  `one_standard_error("sp", larger_is_simpler=True)`, since `mgcv`'s GCV/REML have no
-  EY-loss counterpart.
+  0.51 to 0.61 on average. `sp` is chosen by cross-validation, since `mgcv`'s GCV/REML
+  have no EY-loss counterpart.
 - `cca_zoo._utils._ey`: the ridge-only fixed-basis solver becomes
   `penalised_basis_ey_closed_form` / `penalised_basis_ey_gep` / `penalised_basis_ey_min_loss`,
   taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it

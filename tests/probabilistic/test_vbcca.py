@@ -91,14 +91,15 @@ def test_vbcca_losses_decrease(vbcca_class: type) -> None:
 
 @pytest.mark.slow
 def test_vbcca_transform_output_shapes(vbcca_class: type) -> None:
-    """VariationalBayesCCA.transform returns a single-element list, right shape."""
+    """One transform array per view; posterior_mean gives the joint latent."""
     n, k = 20, 2
     views = _make_small_views(n=n)
     model = vbcca_class(latent_dimensions=k, num_steps=20, random_state=0).fit(views)
     result = model.transform(views)
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert result[0].shape == (n, k)
+    assert len(result) == len(views)
+    assert all(r.shape == (n, k) for r in result)
+    assert model.posterior_mean(views).shape == (n, k)
+    assert model.posterior_mean([views[0], None]).shape == (n, k)
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +183,7 @@ def test_vbcca_recovers_true_latent_factor(vbcca_class: type) -> None:
 
     views, z_true = _make_low_rank_views(n=150, true_k=2, seed=0)
     model = vbcca_class(latent_dimensions=2, num_steps=2000, random_state=0).fit(views)
-    z_hat = model.transform(views)[0]
+    z_hat = model.posterior_mean(views)
 
     recovery = CCA(latent_dimensions=2).fit([z_true, z_hat]).score([z_true, z_hat])
     assert np.all(recovery > 0.8), f"Expected near-total recovery, got {recovery}"

@@ -23,7 +23,7 @@ from cca_zoo._utils._ey import (
     penalised_basis_ey_gep,
     penalised_basis_ey_min_loss,
 )
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._validation import perview_parameter
 
 # A hinge factor (feature, knot, sign) is max(0, sign * (x[feature] - knot)).
 _Factor = tuple[int, float, int]
@@ -742,15 +742,10 @@ class MARSCCA(BaseModel):
     ``earth`` then picks the size by generalised cross-validation, a
     squared-error criterion with no EY-loss counterpart; its alternative,
     choosing the size along the backward sequence by cross-validation
-    (``pmethod="cv"``), carries over exactly as a search over ``nprune``.
-    Pair it with :func:`~cca_zoo.model_selection.one_standard_error` to
-    take the smallest model within one standard error of the best rather
-    than the noisy maximum::
+    (``pmethod="cv"``), carries over exactly as a search over ``nprune``::
 
         GridSearchCV(
-            MARSCCA(degree=2, nk=40),
-            {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
-            refit=one_standard_error("nprune"),
+            MARSCCA(degree=2, nk=40), {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]}
         )
 
     Note:
@@ -1039,24 +1034,8 @@ class MARSCCA(BaseModel):
         terms += new_terms
         return columns
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project views into the latent space using the fitted encoders.
-
-        Args:
-            views: List of arrays, each (n_samples, n_features_i), matching
-                the number of views passed to ``fit``.
-
-        Returns:
-            List of arrays, each (n_samples, latent_dimensions).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
-            ValueError: If fewer than 2 views are provided.
-        """
-        check_is_fitted(self)
-        validated = validate_views(views)
-        centred = [v - m for v, m in zip(validated, self.means_)]
-        return [enc.predict_new(v) for v, enc in zip(centred, self.encoders_)]
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        return self.encoders_[view].predict_new(centred)
 
     def variable_importance(self, criterion: str = "loss") -> list[np.ndarray]:
         """Per-feature importance from the backward pass, as ``earth``'s ``evimp``.

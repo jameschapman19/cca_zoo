@@ -16,7 +16,6 @@ from cca_zoo.model_selection import (
     HalvingRandomSearchCV,
     MultiviewWrapper,
     RandomizedSearchCV,
-    one_standard_error,
 )
 
 # ---------------------------------------------------------------------------
@@ -524,92 +523,22 @@ def test_halving_per_view_grid_searches_cartesian_product(
 
 
 # ---------------------------------------------------------------------------
-# one_standard_error refit rule
+# callable refit
 # ---------------------------------------------------------------------------
 
 
-def _cv_results(param: str, values: list[int], scores: np.ndarray) -> dict[str, Any]:
-    """Minimal cv_results_ for ``values``, scores shaped (splits, candidates)."""
-    mean = scores.mean(axis=0)
-    results = {
-        f"param_{param}": np.array(values, dtype=object),
-        "mean_test_score": mean,
-        "rank_test_score": (-mean).argsort().argsort() + 1,
-    }
-    results.update({f"split{s}_test_score": row for s, row in enumerate(scores)})
-    return results
-
-
-def test_one_standard_error_prefers_simpler_candidate_within_noise() -> None:
-    """A simpler candidate indistinguishable from the best is chosen over it."""
-    scores = np.array([[0.50, 0.53], [0.54, 0.52], [0.52, 0.53]])
-    results = _cv_results("nprune", [4, 16], scores)
-    assert int(np.argmax(results["mean_test_score"])) == 1
-    assert one_standard_error("nprune")(results) == 0
-
-
-def test_one_standard_error_uses_paired_differences() -> None:
-    """A consistent small deficit on every split rules a candidate out.
-
-    Both candidates share large per-split offsets; the simpler one is
-    worse by exactly 0.01 on every split. Unpaired, the offsets' spread
-    would put it within one standard error; paired, the difference has
-    zero spread and it is excluded.
-    """
-    offsets = np.array([[0.0], [-0.5], [0.5]])
-    scores = offsets + np.array([[0.50, 0.51]])
-    results = _cv_results("nprune", [4, 16], scores)
-    assert one_standard_error("nprune")(results) == 1
-
-
-def test_one_standard_error_ignores_candidate_order() -> None:
-    """The simplest eligible candidate wins wherever it sits in the grid."""
-    scores = np.array([[0.53, 0.50, 0.40], [0.52, 0.54, 0.41], [0.53, 0.52, 0.39]])
-    results = _cv_results("nprune", [16, 4, 2], scores)
-    assert one_standard_error("nprune")(results) == 1
-
-
-def test_one_standard_error_as_refit_in_grid_search(
+def test_callable_refit_sees_unprefixed_cv_results(
     two_views: list[np.ndarray],
 ) -> None:
-    """Works as GridSearchCV's refit: best_params_ is an eligible, simplest value."""
+    """A refit callable gets the same parameter names as ``cv_results_``."""
+    seen: list[set[str]] = []
+
+    def smallest_c(cv_results: dict[str, Any]) -> int:
+        seen.append(set(cv_results))
+        return int(np.argmin(cv_results["param_c"]))
+
     gs = GridSearchCV(
-        rCCA(),
-        param_grid={"c": [0.0, 0.5, 0.9]},
-        cv=3,
-        refit=one_standard_error("c"),
+        rCCA(), param_grid={"c": [0.5, 0.0, 0.9]}, cv=3, refit=smallest_c
     ).fit(two_views)
-    assert gs.best_params_["c"] in (0.0, 0.5, 0.9)
-    assert gs.best_index_ == one_standard_error("c")(gs.cv_results_)
-    assert len(gs.transform(two_views)) == 2
-
-
-def test_one_standard_error_single_split_is_plain_best() -> None:
-    """With one split there is no standard error: the best mean wins, no crash."""
-    scores = np.array([[0.50, 0.53, 0.40]])
-    results = _cv_results("nprune", [4, 16, 2], scores)
-    assert one_standard_error("nprune")(results) == 1
-
-
-@pytest.mark.parametrize("search_cls", [HalvingGridSearchCV, HalvingRandomSearchCV])
-def test_halving_search_rejects_callable_refit(
-    two_views: list[np.ndarray], search_cls: type
-) -> None:
-    """Successive halving never calls a callable refit: refused, not ignored."""
-    space = {"c": [0.0, 0.5, 0.9]}
-    kwargs = (
-        {"param_grid": space}
-        if search_cls is HalvingGridSearchCV
-        else {"param_distributions": space}
-    )
-    search = search_cls(rCCA(), **kwargs, cv=2, refit=one_standard_error("c"))
-    with pytest.raises(TypeError, match="never call a callable"):
-        search.fit(two_views)
-
-
-def test_one_standard_error_larger_is_simpler() -> None:
-    """For a penalty, the largest eligible value is the simplest candidate."""
-    scores = np.array([[0.50, 0.53, 0.40], [0.54, 0.52, 0.41], [0.52, 0.53, 0.39]])
-    results = _cv_results("sp", [0.01, 1.0, 100.0], scores)
-    assert one_standard_error("sp")(results) == 0
-    assert one_standard_error("sp", larger_is_simpler=True)(results) == 1
+    assert "param_c" in seen[0]
+    assert gs.best_params_["c"] == 0.0

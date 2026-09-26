@@ -301,3 +301,21 @@ def test_kcca_regularisation_reduces_correlation(
         .score(correlated_views)
     )
     assert s_low[0] >= s_high[0] - 1e-6
+
+
+@pytest.mark.parametrize("ModelClass", ALL_KERNEL_MODELS)
+def test_transform_centres_like_fit(ModelClass: type) -> None:
+    """Transforming the training data reproduces the fit-time kernel scores.
+
+    The kernel is formed against the centred training views, so new data
+    must be centred the same way; data far from the origin makes an
+    uncentred transform collapse an RBF kernel to zero.
+    """
+    from sklearn.metrics import pairwise_kernels
+
+    rng = np.random.default_rng(0)
+    views = [5.0 + rng.standard_normal((40, 3)) for _ in range(2)]
+    model = _make_kernel_model(ModelClass, kernel="rbf").fit(views)
+    for i, scores in enumerate(model.transform(views)):
+        kernel = pairwise_kernels(model.train_views_[i], metric="rbf")
+        np.testing.assert_allclose(scores, kernel @ model.weights_[i], atol=1e-10)

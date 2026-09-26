@@ -97,9 +97,9 @@ def test_gfa_transform_output_shapes() -> None:
         views
     )
     result = model.transform(views)
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert result[0].shape == (n, model.n_components_)
+    assert len(result) == len(views)
+    assert all(r.shape == (n, model.n_components_) for r in result)
+    assert model.posterior_mean(views).shape == (n, model.n_components_)
 
 
 def test_gfa_score_is_finite() -> None:
@@ -190,7 +190,7 @@ def test_gfa_center_false() -> None:
     model = GFA(latent_dimensions=1, center=False, max_iter=200, random_state=0)
     model.fit(views)
     result = model.transform(views)
-    assert len(result) == 1
+    assert len(result) == len(views)
 
 
 # ---------------------------------------------------------------------------

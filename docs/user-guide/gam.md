@@ -45,20 +45,16 @@ model = GAMCCA(k=[10, 30], m=(2, 1), sp=[0.1, 1.0]).fit([X1, X2])
 ### Choosing the smoothing parameter
 
 `mgcv` estimates each `sp` by GCV or REML, both likelihood or residual criteria with no EY-loss
-counterpart, so here `sp` is chosen by cross-validation. Refit with
-[`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error), telling it
-that a larger `sp` is the simpler model, to take the smoothest fit within one standard error of
-the best:
+counterpart, so here `sp` is chosen by cross-validation:
 
 ```python
-from cca_zoo.model_selection import GridSearchCV, one_standard_error
+from cca_zoo.model_selection import GridSearchCV
 
-gs = GridSearchCV(
-    GAMCCA(),
-    {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-    refit=one_standard_error("sp", larger_is_simpler=True),
-).fit([X1, X2])
+gs = GridSearchCV(GAMCCA(), {"sp": [1e-3, 1e-2, 1e-1, 1, 10, 100]}).fit([X1, X2])
 ```
+
+To prefer the smoothest fit whose score is statistically indistinguishable from the best, pass
+a [custom refit rule](model-selection.md#custom-refit-rules) that picks the largest `sp`.
 
 ### Inspecting fitted smooths
 
@@ -140,20 +136,20 @@ fraction `thresh` (default 0.001).
 
 `earth` then picks the size by GCV, a squared-error quantity with no EY-loss counterpart. Its
 alternative, choosing the size along the backward sequence by cross-validation
-(`pmethod="cv"`), carries over exactly as a search over `nprune`. Refit with
-[`one_standard_error`](model-selection.md#preferring-simpler-models-one_standard_error) to take
-the smallest model within one standard error of the best rather than the noisy maximum, which
-on pure noise keeps dozens of terms:
+(`pmethod="cv"`), which carries over exactly as a search over `nprune` and, like `earth`, takes
+the best mean score:
 
 ```python
-from cca_zoo.model_selection import GridSearchCV, one_standard_error
+from cca_zoo.model_selection import GridSearchCV
 
 gs = GridSearchCV(
-    MARSCCA(degree=2, nk=40),
-    {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
-    refit=one_standard_error("nprune"),
+    MARSCCA(degree=2, nk=40), {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]}
 ).fit([X1, X2])
 ```
+
+Without GCV's per-knot penalty the best mean can keep a few noise terms; a
+[custom refit rule](model-selection.md#custom-refit-rules) such as the one-standard-error rule
+trades them for a smaller model.
 
 ### Variable importance
 

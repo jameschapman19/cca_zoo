@@ -196,94 +196,11 @@ def _unwrap_cv_results(cv_results: dict[str, Any]) -> dict[str, Any]:
     return unwrapped
 
 
-def one_standard_error(
-    param: str, larger_is_simpler: bool = False
-) -> Callable[[dict[str, Any]], int]:
-    r"""``refit`` rule: the simplest candidate within one standard error of the best.
-
-    The one-standard-error rule of ``rpart`` and ``glmnet``'s ``lambda.1se``,
-    as a callable for any search class's ``refit`` argument (sklearn calls it
-    with ``cv_results_`` and refits the candidate whose index it returns).
-    The best candidate has the highest mean test score; every candidate
-    whose mean falls short of it by no more than one standard error is
-    eligible, and the simplest of them by ``param`` wins — the smallest
-    value, or the largest with ``larger_is_simpler`` (a penalty such as
-    :class:`~cca_zoo.gam.GAMCCA`'s ``sp``). Taking
-    the bare maximum instead is biased towards complex models whenever
-    scores are noisy, since the largest of many noisy estimates sits high.
-
-    The standard error is that of each candidate's *paired* per-split
-    difference from the best candidate,
-    $\operatorname{sd}_s(\text{score}_{s,c} - \text{score}_{s,\text{best}}) /
-    \sqrt{n_\text{splits}}$, not of its raw per-split scores: a split that
-    is simply harder (or on which a greedy model settles on a worse path)
-    shifts every candidate alike, and that shared offset would otherwise
-    inflate the error and pick far too simple a model.
-
-    Args:
-        param: Name of the searched parameter that orders candidates by
-            complexity, smaller being simpler (e.g. ``"nprune"``), as it
-            appears in ``param_grid`` (per-view names like ``"c__0"`` work
-            too).
-        larger_is_simpler: Whether larger values of ``param`` are simpler
-            (a smoothing or ridge penalty) rather than smaller ones (a
-            number of terms). Default is False.
-
-    Returns:
-        A callable mapping ``cv_results_`` to the index of the chosen
-        candidate, for :class:`GridSearchCV` and :class:`RandomizedSearchCV`
-        (and :mod:`sklearn.model_selection`'s own). The successive-halving
-        searches pick their final candidate themselves and never call
-        ``refit``, so they reject it. With a single split there is no
-        standard error to estimate, and the rule reduces to the best mean.
-
-    Examples:
-        >>> import numpy as np
-        >>> from cca_zoo.gam import MARSCCA
-        >>> from cca_zoo.model_selection import GridSearchCV, one_standard_error
-        >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((100, 5))
-        >>> X2 = rng.standard_normal((100, 5))
-        >>> gs = GridSearchCV(
-        ...     MARSCCA(),
-        ...     {"nprune": [2, 4, 8]},
-        ...     cv=3,
-        ...     refit=one_standard_error("nprune"),
-        ... ).fit([X1, X2])
-        >>> gs.best_params_["nprune"] in (2, 4, 8)
-        True
-    """
-
-    def rule(cv_results: dict[str, Any]) -> int:
-        results = _unwrap_cv_results(cv_results)
-        n_splits = sum(
-            re.fullmatch(r"split\d+_test_score", key) is not None for key in results
-        )
-        scores = np.array([results[f"split{s}_test_score"] for s in range(n_splits)])
-        best = int(np.argmin(results["rank_test_score"]))
-        diff = scores - scores[:, [best]]
-        # One split has no spread to estimate: the rule is then plain argmax.
-        se = (
-            diff.std(axis=0, ddof=1) / np.sqrt(n_splits)
-            if n_splits > 1
-            else np.zeros(diff.shape[1])
-        )
-        eligible = np.flatnonzero(diff.mean(axis=0) + se >= 0)
-        values = results[f"param_{param}"]
-        simplest = max if larger_is_simpler else min
-        return int(simplest(eligible, key=lambda c: values[c]))
-
-    return rule
-
-
-def _reject_callable_refit(refit: Any) -> None:
-    """Successive halving never calls a callable ``refit``: fail, don't ignore it."""
-    if callable(refit):
-        raise TypeError(
-            "Successive-halving searches choose their final candidate "
-            "themselves and never call a callable `refit` (such as "
-            "one_standard_error); use GridSearchCV or RandomizedSearchCV."
-        )
+def _unwrapped_refit(refit: Any) -> Any:
+    """Hand a callable ``refit`` the unprefixed ``cv_results_`` users see."""
+    if not callable(refit):
+        return refit
+    return lambda cv_results: refit(_unwrap_cv_results(cv_results))
 
 
 def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
@@ -395,9 +312,10 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
         refit: Whether to refit the best estimator on the full dataset,
-            or a callable choosing which candidate to refit from
-            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
-            ``True``.
+            or, as in sklearn, a callable returning the index of the
+            candidate to refit given ``cv_results_`` (with the same
+            unprefixed parameter names as this object's ``cv_results_``).
+            Default is ``True``.
         verbose: Verbosity level. Default is 0.
         pre_dispatch: Controls the number of jobs dispatched during
             parallel execution, forwarded to sklearn's ``GridSearchCV``.
@@ -481,7 +399,7 @@ class GridSearchCV(_BaseMultiviewSearchCV):
             cv=self.cv,
             scoring=self.scoring,
             n_jobs=self.n_jobs,
-            refit=self.refit,
+            refit=_unwrapped_refit(self.refit),
             verbose=self.verbose,
             pre_dispatch=self.pre_dispatch,
             error_score=self.error_score,
@@ -515,9 +433,10 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         n_jobs: Number of jobs to run in parallel. Default is ``None``
             (sequential).
         refit: Whether to refit the best estimator on the full dataset,
-            or a callable choosing which candidate to refit from
-            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
-            ``True``.
+            or, as in sklearn, a callable returning the index of the
+            candidate to refit given ``cv_results_`` (with the same
+            unprefixed parameter names as this object's ``cv_results_``).
+            Default is ``True``.
         verbose: Verbosity level. Default is 0.
         random_state: Controls the randomness of the parameter sampling.
         pre_dispatch: Controls the number of jobs dispatched during
@@ -617,7 +536,7 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
             cv=self.cv,
             scoring=self.scoring,
             n_jobs=self.n_jobs,
-            refit=self.refit,
+            refit=_unwrapped_refit(self.refit),
             verbose=self.verbose,
             random_state=self.random_state,
             pre_dispatch=self.pre_dispatch,
@@ -666,9 +585,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
         refit: Whether to refit the best estimator on the full dataset.
-            Unlike :class:`GridSearchCV`, not a callable: successive halving
-            picks its final candidate itself and would ignore it. Default is
-            ``True``.
+            Default is ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
             ``HalvingGridSearchCV``.
@@ -764,7 +681,6 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         Returns:
             self: Fitted search object.
         """
-        _reject_callable_refit(self.refit)
         inner_cv_kwargs = dict(
             param_grid=_wrap_param_space(self.param_grid),
             factor=self.factor,
@@ -825,9 +741,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
         refit: Whether to refit the best estimator on the full dataset.
-            Unlike :class:`GridSearchCV`, not a callable: successive halving
-            picks its final candidate itself and would ignore it. Default is
-            ``True``.
+            Default is ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
             ``HalvingRandomSearchCV``.
@@ -930,7 +844,6 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         Returns:
             self: Fitted search object.
         """
-        _reject_callable_refit(self.refit)
         inner_cv_kwargs = dict(
             param_distributions=_wrap_param_space(self.param_distributions),
             n_candidates=self.n_candidates,
