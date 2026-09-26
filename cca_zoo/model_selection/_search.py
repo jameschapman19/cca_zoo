@@ -224,8 +224,11 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
 
     Returns:
         A callable mapping ``cv_results_`` to the index of the chosen
-        candidate. It works on the search classes in this module and on
-        :mod:`sklearn.model_selection`'s own.
+        candidate, for :class:`GridSearchCV` and :class:`RandomizedSearchCV`
+        (and :mod:`sklearn.model_selection`'s own). The successive-halving
+        searches pick their final candidate themselves and never call
+        ``refit``, so they reject it. With a single split there is no
+        standard error to estimate, and the rule reduces to the best mean.
 
     Examples:
         >>> import numpy as np
@@ -252,12 +255,27 @@ def one_standard_error(param: str) -> Callable[[dict[str, Any]], int]:
         scores = np.array([results[f"split{s}_test_score"] for s in range(n_splits)])
         best = int(np.argmin(results["rank_test_score"]))
         diff = scores - scores[:, [best]]
-        se = diff.std(axis=0, ddof=1) / np.sqrt(n_splits)
+        # One split has no spread to estimate: the rule is then plain argmax.
+        se = (
+            diff.std(axis=0, ddof=1) / np.sqrt(n_splits)
+            if n_splits > 1
+            else np.zeros(diff.shape[1])
+        )
         eligible = np.flatnonzero(diff.mean(axis=0) + se >= 0)
         values = results[f"param_{param}"]
         return int(min(eligible, key=lambda c: values[c]))
 
     return rule
+
+
+def _reject_callable_refit(refit: Any) -> None:
+    """Successive halving never calls a callable ``refit``: fail, don't ignore it."""
+    if callable(refit):
+        raise TypeError(
+            "Successive-halving searches choose their final candidate "
+            "themselves and never call a callable `refit` (such as "
+            "one_standard_error); use GridSearchCV or RandomizedSearchCV."
+        )
 
 
 def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
@@ -639,9 +657,9 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
             splitter.  Default is 5.
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset,
-            or a callable choosing which candidate to refit from
-            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+        refit: Whether to refit the best estimator on the full dataset.
+            Unlike :class:`GridSearchCV`, not a callable: successive halving
+            picks its final candidate itself and would ignore it. Default is
             ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
@@ -697,7 +715,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         aggressive_elimination: bool = False,
         cv: int | Any = 5,
         scoring: str | None = None,
-        refit: bool | str | Callable[[dict[str, Any]], int] = True,
+        refit: bool = True,
         error_score: float = np.nan,
         return_train_score: bool = True,
         random_state: int | Any = None,
@@ -738,6 +756,7 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         Returns:
             self: Fitted search object.
         """
+        _reject_callable_refit(self.refit)
         inner_cv_kwargs = dict(
             param_grid=_wrap_param_space(self.param_grid),
             factor=self.factor,
@@ -797,9 +816,9 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
             splitter.  Default is 5.
         scoring: Scoring strategy.  When ``None`` the estimator's
             default :meth:`score` method is used.
-        refit: Whether to refit the best estimator on the full dataset,
-            or a callable choosing which candidate to refit from
-            ``cv_results_`` (e.g. :func:`one_standard_error`). Default is
+        refit: Whether to refit the best estimator on the full dataset.
+            Unlike :class:`GridSearchCV`, not a callable: successive halving
+            picks its final candidate itself and would ignore it. Default is
             ``True``.
         error_score: Value to assign to the score if fitting a candidate
             raises an exception, forwarded to sklearn's
@@ -861,7 +880,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         aggressive_elimination: bool = False,
         cv: int | Any = 5,
         scoring: str | None = None,
-        refit: bool | str | Callable[[dict[str, Any]], int] = True,
+        refit: bool = True,
         error_score: float = np.nan,
         return_train_score: bool = True,
         random_state: int | Any = None,
@@ -903,6 +922,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         Returns:
             self: Fitted search object.
         """
+        _reject_callable_refit(self.refit)
         inner_cv_kwargs = dict(
             param_distributions=_wrap_param_space(self.param_distributions),
             n_candidates=self.n_candidates,

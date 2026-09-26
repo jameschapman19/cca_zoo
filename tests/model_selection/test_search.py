@@ -582,3 +582,26 @@ def test_one_standard_error_as_refit_in_grid_search(
     assert gs.best_params_["c"] in (0.0, 0.5, 0.9)
     assert gs.best_index_ == one_standard_error("c")(gs.cv_results_)
     assert len(gs.transform(two_views)) == 2
+
+
+def test_one_standard_error_single_split_is_plain_best() -> None:
+    """With one split there is no standard error: the best mean wins, no crash."""
+    scores = np.array([[0.50, 0.53, 0.40]])
+    results = _cv_results("nprune", [4, 16, 2], scores)
+    assert one_standard_error("nprune")(results) == 1
+
+
+@pytest.mark.parametrize("search_cls", [HalvingGridSearchCV, HalvingRandomSearchCV])
+def test_halving_search_rejects_callable_refit(
+    two_views: list[np.ndarray], search_cls: type
+) -> None:
+    """Successive halving never calls a callable refit: refused, not ignored."""
+    space = {"c": [0.0, 0.5, 0.9]}
+    kwargs = (
+        {"param_grid": space}
+        if search_cls is HalvingGridSearchCV
+        else {"param_distributions": space}
+    )
+    search = search_cls(rCCA(), **kwargs, cv=2, refit=one_standard_error("c"))
+    with pytest.raises(TypeError, match="never call a callable"):
+        search.fit(two_views)

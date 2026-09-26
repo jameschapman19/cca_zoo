@@ -44,8 +44,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   class (and sklearn's own) that refits the candidate with the smallest `param` whose mean
   CV score is within one standard error of the best, instead of the noisy maximum. The
   standard error is of each split's paired difference from the best candidate, so splits
-  that are uniformly harder do not widen it. The search classes' `refit` now accepts such
-  a callable (sklearn already did; only the type hint was narrower).
+  that are uniformly harder do not widen it; with a single split it reduces to the best
+  mean. `GridSearchCV` and `RandomizedSearchCV` accept it as `refit` (sklearn already
+  did; only the type hint was narrower). The successive-halving searches pick their final
+  candidate themselves and never call a callable `refit`, so they now reject one with a
+  `TypeError` instead of silently ignoring it.
 
 - `cca_zoo._utils._ey.ridge_basis_ey_gep` / `ridge_basis_ey_closed_form`: the
   ridge-penalised EY fit on fixed bases is the generalized eigenproblem
