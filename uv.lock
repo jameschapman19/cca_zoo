@@ -427,7 +427,6 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "tensorly" },
-    { name = "threadpoolctl" },
 ]
 
 [package.optional-dependencies]
@@ -507,7 +506,6 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.6" },
     { name = "scipy", specifier = ">=1.11" },
     { name = "tensorly", specifier = ">=0.8" },
-    { name = "threadpoolctl", specifier = ">=3.1" },
     { name = "torch", marker = "extra == 'all'", specifier = ">=2.1" },
     { name = "torch", marker = "extra == 'deep'", specifier = ">=2.1" },
     { name = "xgboost", marker = "extra == 'all'", specifier = ">=2.0" },

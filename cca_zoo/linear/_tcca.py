@@ -8,11 +8,11 @@ from typing import Any, ClassVar
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
-from scipy.linalg import sqrtm
 from sklearn.utils._param_validation import Interval
 from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -96,17 +96,7 @@ class TCCA(BaseModel):
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
         whitened, cov_invsqrt = self._whiten_views(views_, c_)
 
-        # Build cross-moment tensor via sequential outer products
-        M: np.ndarray | None = None
-        for i, wv in enumerate(whitened):
-            if M is None:
-                M = wv
-            else:
-                for _ in range(len(M.shape) - 1):
-                    wv = np.expand_dims(wv, 1)
-                M = np.expand_dims(M, -1) @ wv
-        assert M is not None
-        M = np.mean(M, 0)
+        M = cross_moment_tensor(whitened)
 
         tl.set_backend("numpy")
         parafac_result = parafac(
@@ -138,10 +128,7 @@ class TCCA(BaseModel):
         cov_invsqrt = []
         for i, v in enumerate(views):
             cov = (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
-            min_eig = np.linalg.eigvalsh(cov).min()
-            if min_eig < self.eps:
-                cov += (self.eps - min_eig) * np.eye(cov.shape[0])
-            invsqrt = np.linalg.inv(sqrtm(cov).real)
+            invsqrt = psd_inverse_sqrt(cov, self.eps)
             whitened.append(v @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

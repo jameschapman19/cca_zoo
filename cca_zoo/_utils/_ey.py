@@ -32,12 +32,10 @@ References:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from contextlib import AbstractContextManager, nullcontext
 
 import numpy as np
 import scipy.linalg
 from scipy.sparse.linalg import LinearOperator
-from threadpoolctl import threadpool_limits
 
 
 def ey_cross_covariance(
@@ -995,19 +993,6 @@ def _jacobi_scaled(
     )
 
 
-# Below this many unknowns an eigenproblem runs single-threaded: BLAS threads
-# cannot help and, whenever CPUs are shared (a parallel grid search, another
-# process), oversubscribe them — 80x80 generalized eigh measured 5-150 ms
-# with four threads under load against ~1 ms with one. Larger problems, such
-# as GAMCCA's (thousands of unknowns), keep their threads.
-_SINGLE_THREAD_BELOW = 256
-
-
-def _threads_for(size: int) -> AbstractContextManager[object]:
-    """One BLAS thread for a small problem, the default for a large one."""
-    return threadpool_limits(limits=1) if size < _SINGLE_THREAD_BELOW else nullcontext()
-
-
 def _jacobi(
     lhs: np.ndarray, rhs: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -1027,10 +1012,9 @@ def _top_eigenpairs(
     """Top ``k`` eigenpairs of ``(lhs, rhs)``, largest first."""
     size = lhs.shape[0]
     lhs_s, rhs_s, scale = _jacobi(lhs, rhs)
-    with _threads_for(size):
-        mu, u = scipy.linalg.eigh(
-            lhs_s, rhs_s, subset_by_index=(max(size - k, 0), size - 1)
-        )
+    mu, u = scipy.linalg.eigh(
+        lhs_s, rhs_s, subset_by_index=(max(size - k, 0), size - 1)
+    )
     return mu[::-1], u[:, ::-1] * scale[:, None]
 
 
@@ -1038,13 +1022,12 @@ def _top_eigenvalues(lhs: np.ndarray, rhs: np.ndarray, k: int) -> np.ndarray:
     """Top ``k`` eigenvalues of ``(lhs, rhs)``, largest first."""
     size = lhs.shape[0]
     lhs_s, rhs_s, _ = _jacobi(lhs, rhs)
-    with _threads_for(size):
-        mu = scipy.linalg.eigh(
-            lhs_s,
-            rhs_s,
-            eigvals_only=True,
-            subset_by_index=(max(size - k, 0), size - 1),
-        )
+    mu = scipy.linalg.eigh(
+        lhs_s,
+        rhs_s,
+        eigvals_only=True,
+        subset_by_index=(max(size - k, 0), size - 1),
+    )
     result: np.ndarray = mu[::-1]
     return result
 

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from cca_zoo._utils._linalg import deflate, gevp, soft_threshold, svd_whiten
+from cca_zoo._utils._linalg import (
+    cross_moment_tensor,
+    deflate,
+    gevp,
+    psd_inverse_sqrt,
+    soft_threshold,
+    svd_whiten,
+)
 
 # ---------------------------------------------------------------------------
 # svd_whiten
@@ -302,3 +309,51 @@ class TestDeflate:
         [x_d] = deflate([x], [w])
         # norm_sq will be 0, so no deflation applied
         np.testing.assert_array_equal(x_d, x)
+
+
+# ---------------------------------------------------------------------------
+# psd_inverse_sqrt / cross_moment_tensor
+# ---------------------------------------------------------------------------
+
+
+class TestPsdInverseSqrt:
+    """Tests for psd_inverse_sqrt."""
+
+    def test_inverts_the_square_root(self) -> None:
+        """W C W = I for a well-conditioned positive-definite C."""
+        rng = np.random.default_rng(0)
+        a = rng.standard_normal((50, 8))
+        cov = a.T @ a / 49
+        w = psd_inverse_sqrt(cov, 1e-6)
+        np.testing.assert_allclose(w @ cov @ w, np.eye(8), atol=1e-10)
+        np.testing.assert_allclose(w, w.T)
+
+    def test_singular_input_is_shifted_to_the_floor(self) -> None:
+        """A singular matrix is lifted so its smallest eigenvalue is the floor."""
+        rng = np.random.default_rng(1)
+        a = rng.standard_normal((3, 6))
+        cov = a.T @ a
+        shift = 1e-3 - np.linalg.eigvalsh(cov)[0]
+        w = psd_inverse_sqrt(cov, 1e-3)
+        lifted = cov + shift * np.eye(6)
+        np.testing.assert_allclose(w @ lifted @ w, np.eye(6), atol=1e-8)
+
+
+class TestCrossMomentTensor:
+    """Tests for cross_moment_tensor."""
+
+    def test_two_views_is_the_cross_covariance(self) -> None:
+        """For two views the tensor is X1' X2 / n."""
+        rng = np.random.default_rng(0)
+        x1, x2 = rng.standard_normal((40, 3)), rng.standard_normal((40, 5))
+        np.testing.assert_allclose(cross_moment_tensor([x1, x2]), x1.T @ x2 / 40)
+
+    def test_three_views_match_the_explicit_mean_of_outer_products(self) -> None:
+        """Every entry is the sample mean of the product of one column per view."""
+        rng = np.random.default_rng(1)
+        views = [rng.standard_normal((30, p)) for p in (2, 3, 4)]
+        expected = np.mean(
+            [np.multiply.outer(np.multiply.outer(a, b), c) for a, b, c in zip(*views)],
+            axis=0,
+        )
+        np.testing.assert_allclose(cross_moment_tensor(views), expected)

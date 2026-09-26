@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import string
+
 import numpy as np
 import scipy.linalg
 
@@ -66,6 +68,48 @@ def svd_whiten(
     return X_white, W
 
 
+def psd_inverse_sqrt(matrix: np.ndarray, floor: float) -> np.ndarray:
+    """Inverse square root of a symmetric matrix, lifted to be positive definite.
+
+    If the smallest eigenvalue is below ``floor`` the whole spectrum is
+    shifted up by the difference (``matrix + shift * I``), so the result
+    stays finite for singular or indefinite input. One ``eigh``; a general
+    ``inv(sqrtm(matrix))`` costs several times more and returns a complex
+    result for a symmetric input.
+
+    Args:
+        matrix: Symmetric matrix of shape (p, p).
+        floor: Smallest eigenvalue allowed before the shift.
+
+    Returns:
+        Symmetric matrix of shape (p, p).
+    """
+    eigenvalues, vectors = np.linalg.eigh(matrix)
+    eigenvalues = eigenvalues + max(0.0, floor - eigenvalues[0])
+    result: np.ndarray = (vectors / np.sqrt(eigenvalues)) @ vectors.T
+    return result
+
+
+def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:
+    """Sample mean of the outer products of each sample's rows across views.
+
+    ``M[a, b, ...] = mean_s views[0][s, a] * views[1][s, b] * ...``, shape
+    ``(p_0, p_1, ...)``: for two views, ``views[0].T @ views[1] / n``. The
+    contraction runs pairwise through BLAS, so the sample axis is never
+    materialised alongside the full tensor.
+
+    Args:
+        views: Arrays of shape (n_samples, p_i).
+
+    Returns:
+        Array of shape ``(p_0, ..., p_{m-1})``.
+    """
+    axes = string.ascii_letters[1 : len(views) + 1]
+    subscripts = ",".join("a" + axis for axis in axes) + "->" + axes
+    moment: np.ndarray = np.einsum(subscripts, *views, optimize=True) / len(views[0])
+    return moment
+
+
 def gevp(
     A: np.ndarray,
     B: np.ndarray | None,
@@ -88,12 +132,7 @@ def gevp(
     """
     p = A.shape[0]
     k_clamped = min(k, p)
-    if B is None:
-        eigvals, eigvecs = scipy.linalg.eigh(A, subset_by_index=[p - k_clamped, p - 1])
-    else:
-        eigvals, eigvecs = scipy.linalg.eigh(
-            A, B, subset_by_index=[p - k_clamped, p - 1]
-        )
+    eigvals, eigvecs = scipy.linalg.eigh(A, B, subset_by_index=[p - k_clamped, p - 1])
     idx = np.argsort(eigvals)[::-1]
     return eigvals[idx].real, eigvecs[:, idx].real
 

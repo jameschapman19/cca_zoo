@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
-from scipy.linalg import sqrtm
 from sklearn.metrics import pairwise_kernels
 from sklearn.utils.validation import check_is_fitted
 from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -115,17 +115,7 @@ class KTCCA(BaseModel):
         ]
         whitened, self._cov_invsqrt = self._whiten_kernels(kernels, c_)
 
-        # Build cross-moment tensor
-        M: np.ndarray | None = None
-        for i, wk in enumerate(whitened):
-            if M is None:
-                M = wk
-            else:
-                for _ in range(len(M.shape) - 1):
-                    wk = np.expand_dims(wk, 1)
-                M = np.expand_dims(M, -1) @ wk
-        assert M is not None
-        M = np.mean(M, 0)
+        M = cross_moment_tensor(whitened)
 
         tl.set_backend("numpy")
         parafac_result = parafac(
@@ -188,10 +178,7 @@ class KTCCA(BaseModel):
         cov_invsqrt = []
         for i, K in enumerate(kernels):
             cov = (1.0 - c[i]) * K @ K + c[i] * K
-            min_eig = np.linalg.eigvalsh(cov).min()
-            if min_eig < self.eps:
-                cov += (self.eps - min_eig) * np.eye(cov.shape[0])
-            invsqrt = np.linalg.inv(sqrtm(cov).real)
+            invsqrt = psd_inverse_sqrt(cov, self.eps)
             whitened.append(K @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

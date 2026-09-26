@@ -10,7 +10,7 @@ from typing import Any, ClassVar
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import minimize
-from scipy.stats import spearmanr
+from scipy.stats import rankdata
 from sklearn.covariance import MinCovDet
 from sklearn.utils._param_validation import Interval, StrOptions
 
@@ -57,10 +57,13 @@ def _angles_to_unit_vector(theta: np.ndarray, p: int) -> np.ndarray:
     """
     if p == 1:
         return np.ones(1)
-    a = np.array([np.cos(theta[0]), np.sin(theta[0])])
-    for j in range(1, p - 1):
-        a = np.concatenate([a * np.sin(theta[j]), [np.cos(theta[j])]])
-    return a
+    # Unrolled, entry k >= 2 is cos(theta_{k-1}) times the product of every
+    # later angle's sine, and the first two entries share the product of
+    # them all: suffix products of the sines.
+    suffix = np.append(np.cumprod(np.sin(theta[:0:-1]))[::-1], 1.0)
+    head = np.concatenate([[np.cos(theta[0]), np.sin(theta[0])], np.cos(theta[1:])])
+    result: np.ndarray = head * np.concatenate([suffix[:1], suffix])
+    return result
 
 
 def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
@@ -85,8 +88,12 @@ def spearman_projection_index(u: np.ndarray, v: np.ndarray) -> float:
         Spearman's rho, in ``[-1, 1]`` (``0.0`` if either score is constant,
         where rank correlation is undefined).
     """
-    rho, _ = spearmanr(u, v)
-    return 0.0 if np.isnan(rho) else float(rho)
+    # Pearson correlation of the average ranks, as spearmanr computes it
+    # without its per-call wrapper overhead (most of a fit's time).
+    ranks_u = rankdata(u) - (len(u) + 1) / 2
+    ranks_v = rankdata(v) - (len(v) + 1) / 2
+    scale = np.sqrt((ranks_u @ ranks_u) * (ranks_v @ ranks_v))
+    return 0.0 if scale == 0 else float(ranks_u @ ranks_v / scale)
 
 
 def mcd_projection_index(

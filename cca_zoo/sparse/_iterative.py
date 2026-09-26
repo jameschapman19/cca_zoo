@@ -1030,8 +1030,21 @@ def _sar_bic_lasso(
         Coefficient vector at the BIC-selected $\lambda$, shape
         (n_features,).
     """
-    n = x.shape[0]
-    _, coefs, _ = lasso_path(x, y, alphas=n_lambda, tol=tol)
+    n, p = x.shape
+    # SAR runs ~1000 paths per fit, so skip sklearn's per-call input
+    # validation (most of each call's time), passing the Gram exactly when
+    # precompute="auto" would build it (n > p).
+    x = np.asfortranarray(x, dtype=float)
+    y = np.ascontiguousarray(y, dtype=float)
+    _, coefs, _ = lasso_path(
+        x,
+        y,
+        alphas=n_lambda,
+        tol=tol,
+        precompute=x.T @ x if n > p else False,
+        Xy=x.T @ y if n > p else None,
+        check_input=False,
+    )
     residuals = y[:, None] - x @ coefs
     rss = np.maximum((residuals**2).sum(axis=0), 1e-12)
     nnz = (np.abs(coefs) > 1e-12).sum(axis=0)

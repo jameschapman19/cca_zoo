@@ -81,9 +81,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
   taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it
   replaced is removed. Each has a Gram-level counterpart (`penalised_gram_ey_gep`,
   `penalised_gram_ey_closed_form`) for callers that form the Gram themselves, as
-  `GAMCCA` does from its sparse basis. Problems under 256 unknowns run their eigensolve
-  on one BLAS thread (`threadpoolctl`, now a dependency): at that size threads only
-  oversubscribe under load.
+  `GAMCCA` does from its sparse basis.
+
+### Performance
+
+Same results (to rounding, or up to a rotation inside a degenerate eigenspace), less time:
+
+- `KTCCA` and `TCCA` form the cross-moment tensor by one BLAS contraction
+  (`cca_zoo._utils._linalg.cross_moment_tensor`) instead of materialising every
+  sample's outer product before averaging — for two kernel views an n x n x n
+  intermediate (8 GB at n = 1000) for what is `W1ᵀW2 / n` — and whiten with one
+  symmetric `eigh` (`psd_inverse_sqrt`) instead of `inv(sqrtm(·))`. `KTCCA` at n = 1000
+  drops from 49 s to under 1 s; `TCCA` about 19x.
+- `GCCA` takes its shared latent space from the thin SVD of the stacked whitened views
+  rather than an eigendecomposition of the n x n matrix they span: O(n p²) instead of
+  O(n³), 17x at n = 4000.
+- `SAR` passes its lasso paths the Gram matrix and skips sklearn's per-call input
+  validation (the documented fast path, used exactly where `precompute="auto"` would
+  build the Gram): 1.7x, identical coefficients.
+- `ProjectionPursuitCCA`'s Spearman index ranks with `scipy.stats.rankdata` directly
+  instead of through `spearmanr`'s per-call overhead, and its angle parametrisation is
+  one cumulative product: 1.8x.
 
 ## [3.3.0] - 2026-09-22
 

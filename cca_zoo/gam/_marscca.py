@@ -12,7 +12,6 @@ from numpy.typing import ArrayLike
 from scipy import sparse
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
-from threadpoolctl import threadpool_limits
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
@@ -616,26 +615,25 @@ def _backward_path(
     active = np.ones(len(view), dtype=bool)
     removed: list[int] = []
     losses: list[float] = []
-    with threadpool_limits(limits=1):
-        while True:
-            idx = np.flatnonzero(active)
-            lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
-            if not losses:
-                losses.append(-float(np.sum(np.maximum(lam[-k:], 0.0) ** 2)))
-            counts = np.bincount(view[idx], minlength=len(bases))
-            removable = np.flatnonzero(counts[view[idx]] > 1)
-            if len(removable) == 0:
-                break
-            # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
-            # the removal direction already in eigen-coordinates.
-            z = vecs[removable]
-            z /= np.linalg.norm(z, axis=1, keepdims=True)
-            mu = _constrained_top_eigenvalues(lam, z, k)
-            loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
-            best = int(np.argmin(loss))
-            removed.append(int(idx[removable[best]]))
-            losses.append(float(loss[best]))
-            active[removed[-1]] = False
+    while True:
+        idx = np.flatnonzero(active)
+        lam, vecs = scipy.linalg.eigh(lhs[np.ix_(idx, idx)], rhs[np.ix_(idx, idx)])
+        if not losses:
+            losses.append(-float(np.sum(np.maximum(lam[-k:], 0.0) ** 2)))
+        counts = np.bincount(view[idx], minlength=len(bases))
+        removable = np.flatnonzero(counts[view[idx]] > 1)
+        if len(removable) == 0:
+            break
+        # The generalized eigenvectors are L^-T U, so row c is U^T L^-1 e_c:
+        # the removal direction already in eigen-coordinates.
+        z = vecs[removable]
+        z /= np.linalg.norm(z, axis=1, keepdims=True)
+        mu = _constrained_top_eigenvalues(lam, z, k)
+        loss = -np.sum(np.maximum(mu, 0.0) ** 2, axis=1)
+        best = int(np.argmin(loss))
+        removed.append(int(idx[removable[best]]))
+        losses.append(float(loss[best]))
+        active[removed[-1]] = False
     return np.array(removed, dtype=int), np.array(losses)
 
 
@@ -1024,8 +1022,7 @@ class MARSCCA(BaseModel):
             ]
             options.append((new, _evaluate_terms(scorer.X, new)))
         if exact_loss is not None and len(options) > 1:
-            with threadpool_limits(limits=1):
-                new_terms, columns = min(options, key=lambda o: exact_loss(o[1]))
+            new_terms, columns = min(options, key=lambda o: exact_loss(o[1]))
         else:
             new_terms, columns = options[0]
 
