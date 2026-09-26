@@ -1,4 +1,4 @@
-"""VariationalBayesCCA — Bayesian CCA with ARD via variational inference (numpyro)."""
+"""Variational Bayesian CCA with automatic relevance determination."""
 
 from __future__ import annotations
 
@@ -20,70 +20,51 @@ _ARD_B0 = 1e-3
 class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
     r"""Variational Bayesian CCA with automatic relevance determination.
 
-    Fits the same probabilistic CCA generative model as
-    :class:`~cca_zoo.probabilistic.ProbabilisticCCA`, extended with a
-    hierarchical automatic relevance determination (ARD) prior over the
-    columns of the loading matrices, shared across views:
+    The probabilistic CCA model with an ARD prior shared across views:
 
     $$
     \begin{aligned}
-    \alpha_k &\sim \mathrm{Gamma}(a_0, b_0), & k &= 1, \dots, K \\
-    W_i[:, k] &\sim \mathcal{N}(0,\ \alpha_k^{-1} I), & i &= 1, \dots, V \\
-    z &\sim \mathcal{N}(0, I_K) \\
-    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i,\ \Psi_i)
+    \alpha_k &\sim \mathrm{Gamma}(a_0, b_0), &
+    W_i[:, k] &\sim \mathcal{N}(0, \alpha_k^{-1} I), \\
+    z &\sim \mathcal{N}(0, I), &
+    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i, \Psi_i).
     \end{aligned}
     $$
 
-    Because $\alpha_k$ is shared across every view's $k$-th loading column,
-    a latent dimension is only retained if *some* view finds it useful;
-    dimensions unsupported by the data are shrunk towards zero in every view
-    simultaneously. The posterior mean of $\alpha_k$ (exposed as
-    ``ard_relevance_``) is therefore a direct, per-dimension usefulness
-    score: large values indicate a dimension that has been shrunk away and
-    can be dropped, giving automatic latent-dimensionality selection instead
-    of a `GridSearchCV` sweep over `n_components`.
-
-    Inference uses mean-field stochastic variational inference (SVI) via
-    numpyro, rather than the closed-form conjugate coordinate-ascent updates
-    derived in Wang (2007) for this model: SVI reuses the exact same
-    ``numpyro`` generative-model machinery as
-    :class:`~cca_zoo.probabilistic.ProbabilisticCCA`, and (unlike a
-    hand-derived conjugate solver) extends unmodified to non-conjugate
-    variants of the model. It is a substantially cheaper alternative to that
-    class's full NUTS MCMC, at the cost of the mean-field independence
-    assumption between latent variables.
-
-    The ``weights_`` attribute is set to the variational posterior mean of
-    each $W_i$ matrix so that :class:`~cca_zoo._base.BaseModel`'s scoring
-    utilities work without modification.
-
-    References:
-        Bach, F. R. & Jordan, M. I. "A probabilistic interpretation of
-        canonical correlation analysis." (2005).
-        Wang, C. "Variational Bayesian approach to canonical correlation
-        analysis." IEEE Transactions on Neural Networks 18.3 (2007).
+    Dimensions no view supports are shrunk away, so set ``n_components``
+    generously and read ``ard_relevance_``. Inference is mean-field SVI in
+    numpyro, cheaper than :class:`ProbabilisticCCA`'s NUTS. Requires the
+    ``probabilistic`` extra.
 
     Args:
-        n_components: Dimensionality of the latent space. Default is 1.
-            Because of the ARD prior, this should be set generously (an
-            upper bound on the number of shared factors you expect); use
-            ``ard_relevance_`` after fitting to see how many were retained.
-        center: Whether to center each view before fitting. Default is True.
-        max_iter: Number of SVI gradient steps. Default is 2000.
+        n_components: Upper bound on the number of latent dimensions.
+            Default is 1.
+        center: Whether to centre each view. Default is True.
+        max_iter: SVI steps. Default is 2000.
         learning_rate: Adam learning rate for SVI. Default is 1e-2.
-        n_posterior_samples: Number of samples drawn from the fitted
-            variational posterior to populate ``posterior_samples_``.
-            Default is 1000.
+        n_posterior_samples: Draws from the fitted posterior. Default is 1000.
         random_state: Seed for the JAX PRNG. Default is None.
 
-    Examples:
+    Attributes:
+        weights_: Posterior mean loadings of each view, shape
+            (n_features_i, n_components).
+        ard_relevance_: Posterior mean ARD precision of each dimension;
+            large means shrunk away.
+        posterior_samples_: Posterior draws keyed by site name.
+        losses_: SVI loss at each step.
+
+    References:
+        Wang, C. (2007). Variational Bayesian approach to canonical
+        correlation analysis. IEEE Transactions on Neural Networks, 18(3),
+        905-910.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.probabilistic import VariationalBayesCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
-        >>> model = VariationalBayesCCA(
-        ...     n_components=2, max_iter=50
-        ... ).fit([X1, X2])
+        >>> model = VariationalBayesCCA(n_components=2, max_iter=50).fit([X1, X2])
     """
 
     def __init__(
@@ -106,11 +87,7 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
     # ------------------------------------------------------------------
 
     def _model(self, views: list[np.ndarray]) -> None:
-        """Numpyro generative model for ARD variational Bayesian CCA.
-
-        Args:
-            views: List of centered arrays, each (n_samples, n_features_i).
-        """
+        """Numpyro generative model on centred views."""
         import jax.numpy as jnp
         import numpyro
         import numpyro.distributions as dist
@@ -163,19 +140,14 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
     # ------------------------------------------------------------------
 
     def fit(self, views: list[ArrayLike], y: None = None) -> VariationalBayesCCA:
-        """Run mean-field SVI to infer an approximate posterior.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
-            y: Ignored.  Present for scikit-learn API compatibility.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         import jax
         import numpyro.optim as optim

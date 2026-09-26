@@ -1,4 +1,4 @@
-"""GRCCA — Group Regularised Canonical Correlation Analysis."""
+"""Group-regularised CCA."""
 
 from __future__ import annotations
 
@@ -14,47 +14,37 @@ from cca_zoo.linear._mcca import MCCA
 
 
 class GRCCA(MCCA):
-    r"""Group Regularised Canonical Correlation Analysis.
+    """MCCA with ridge penalties that shrink features towards their group means.
 
-    Extends :class:`MCCA` with structured ridge regularisation that shrinks
-    within-group feature weights toward a shared group-level effect. Each
-    view's features are partitioned into groups via ``feature_groups``; the
-    per-view ``c`` parameter controls shrinkage of within-group deviations
-    and ``mu`` controls the weighting of the group-level effect.
+    Each view is augmented with its group-mean features, solved as
+    :class:`MCCA`, and the weights collapsed back to the original
+    features. ``c`` shrinks within-group deviations and ``mu`` the
+    group effects; ``c=0`` ignores the groups.
 
-    Each view is internally augmented with group-mean features before
-    solving the generalised eigenvalue problem, then the resulting weights
-    are algebraically collapsed back to the original feature space, so
-    ``transform`` operates directly on the un-augmented views.
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        c: Within-group shrinkage in ``[0, 1]``. Per-view. Default is 0.
+        mu: Group-effect penalty. Per-view. Default is 0.
+        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        feature_groups_: Group label of each feature, per view.
 
     References:
         Tuzhilina, E., Tozzi, L., & Hastie, T. (2021). Canonical correlation
         analysis in high dimensions with structured regularization.
-        *Statistical Modelling*.
+        Statistical Modelling.
 
-    Args:
-        n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) controlling within-group
-            shrinkage. Either a scalar applied to all views or a per-view
-            list, each in ``[0, 1]``. ``c=0`` disables grouping for that
-            view (falls back to plain MCCA behaviour). Default is 0.
-        mu: Regularisation parameter(s) controlling the group-level effect
-            scale. Either a scalar or a per-view list. Default is 0.
-        eps: Small constant added to the eigenvalues of B to ensure
-            positive definiteness. Default is 1e-6.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import GRCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> groups1 = rng.integers(0, 3, size=10)
-        >>> groups2 = rng.integers(0, 3, size=8)
-        >>> model = GRCCA(n_components=2, c=0.5).fit(
-        ...     [X1, X2], feature_groups=[groups1, groups2]
-        ... )
-        >>> scores = model.transform([X1, X2])
+        >>> groups = [rng.integers(0, 3, size=10), rng.integers(0, 3, size=8)]
+        >>> model = GRCCA(n_components=2, c=0.5).fit([X1, X2], feature_groups=groups)
     """
 
     def __init__(
@@ -80,19 +70,17 @@ class GRCCA(MCCA):
         y: None = None,
         feature_groups: list[np.ndarray] | None = None,
     ) -> GRCCA:
-        """Fit the GRCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            feature_groups: List of integer group-label arrays, one per
-                view, each of shape (n_features_i,). Required for
-                meaningful grouping whenever the corresponding per-view
-                ``c`` is nonzero; defaults to a single group per view
-                (equivalent to plain MCCA) if omitted.
+            feature_groups: Integer group label of each feature, shape
+                (n_features_i,) per view; None puts each view in one group.
+                Default is None.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
         views_ = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
@@ -164,15 +152,11 @@ class GRCCA(MCCA):
     def _group_mean(
         arr: np.ndarray, group: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Compute the per-group mean along the column axis of ``arr``.
-
-        Args:
-            arr: Array of shape (n_rows, n_features).
-            group: Integer group label for each column, shape (n_features,).
+        """Per-group column means of ``arr`` and the grouping.
 
         Returns:
-            Tuple ``(ids, unique_inverse, unique_counts, group_means)``
-            where ``group_means`` has shape (n_rows, n_groups).
+            ``(ids, inverse, counts, means)``, with ``means`` of shape
+            (n_rows, n_groups).
         """
         ids, unique_inverse, unique_counts = np.unique(
             group, return_inverse=True, return_counts=True

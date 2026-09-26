@@ -64,11 +64,11 @@ class BaseModel(BaseEstimator, ABC):
         """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
 
     # ------------------------------------------------------------------

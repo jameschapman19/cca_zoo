@@ -1,4 +1,4 @@
-"""Permutation-based significance testing for multiview CCA models."""
+"""Permutation tests for multiview models."""
 
 from __future__ import annotations
 
@@ -23,21 +23,14 @@ class PermutationTestResult:
     """Result of :func:`permutation_test_significance`.
 
     Attributes:
-        correlations: Observed per-dimension average pairwise canonical
-            correlations, shape (k,).
-        null_correlations: Per-dimension correlations from each
-            permutation, shape (n_permutations, k).
-        p_values: Per-dimension permutation p-value for the canonical
-            correlations, shape (k,).
-        loadings: Observed factor loadings, one array of shape
-            (n_features_i, k) per view (see
-            :func:`cca_zoo.metrics.factor_loadings`).
-        null_loadings: Permuted factor loadings, realigned to
-            ``loadings`` via :func:`scipy.linalg.orthogonal_procrustes`, one array of
-            shape (n_permutations, n_features_i, k) per view.
-        loading_p_values: Per-feature, per-dimension permutation p-value
-            for the factor loadings, one array of shape (n_features_i, k)
-            per view.
+        correlations: Observed canonical correlation per dimension, shape (k,).
+        null_correlations: Permuted correlations, shape (n_permutations, k).
+        p_values: P-value per dimension, shape (k,).
+        loadings: Observed factor loadings, shape (n_features_i, k) per view.
+        null_loadings: Permuted loadings aligned to ``loadings``, shape
+            (n_permutations, n_features_i, k) per view.
+        loading_p_values: P-value per feature and dimension, shape
+            (n_features_i, k) per view.
     """
 
     correlations: np.ndarray
@@ -64,51 +57,28 @@ def permutation_test_significance(
     random_state: int | np.random.Generator | None = None,
     n_jobs: int | None = None,
 ) -> PermutationTestResult:
-    """Permutation test for canonical correlation and feature-loading significance.
+    """Permutation test of the canonical correlations and factor loadings.
 
-    Fits a clone of ``estimator`` on ``views``, then repeatedly refits a
-    fresh clone on data where every view except the first has had its rows
-    *independently* shuffled -- destroying the true cross-view
-    correspondence while preserving each view's own covariance structure --
-    to build a null distribution.
-
-    Canonical-correlation significance (``p_values``) compares each
-    dimension's observed correlation directly to its permuted
-    counterparts: since both the observed and permuted fits rank
-    dimensions by correlation strength, the d-th dimension of a permuted
-    fit is already the right null comparison for the d-th observed
-    dimension, with no realignment needed.
-
-    Feature-loading significance (``loading_p_values``) is subtler: a
-    permuted refit is not guaranteed to recover canonical variates in the
-    same order or with the same sign as the observed fit, since
-    permutation can induce an arbitrary rotation or reflection of
-    near-tied dimensions (Xia et al., 2018, *Nat. Commun.*; McIntosh &
-    Lobaugh, 2004, *NeuroImage*). Each permutation's loadings are
-    therefore realigned to the observed loadings via
-    :func:`scipy.linalg.orthogonal_procrustes` (fit jointly across all views' stacked
-    loadings, since the rotation ambiguity is shared across views) before
-    being compared feature-by-feature and dimension-by-dimension.
+    Refits ``estimator`` on data with the rows of every view but the first
+    shuffled independently, which keeps each view's covariance and breaks
+    their correspondence. Each permuted fit's loadings are aligned to the
+    observed ones by orthogonal Procrustes over all views before comparison,
+    since permuted fits can rotate or reflect near-tied dimensions.
 
     Args:
-        estimator: An unfitted multiview CCA/PLS estimator implementing
-            the :class:`~cca_zoo._base.BaseModel` interface.
-        views: List of arrays, each of shape (n_samples, n_features_i).
-        n_permutations: Number of permutations to draw. Default 1000.
-        random_state: Seed or ``numpy.random.Generator`` for reproducible
-            permutations.
-        n_jobs: Number of permutations to fit in parallel (forwarded to
-            :class:`joblib.Parallel` via ``sklearn.utils.parallel``).
-            Default ``None`` (sequential).
+        estimator: An unfitted multiview estimator.
+        views: Arrays of shape (n_samples, n_features_i), one per view.
+        n_permutations: Number of permutations. Default is 1000.
+        random_state: Seed for the permutations. Default is None.
+        n_jobs: Number of parallel jobs. Default is None.
 
     Returns:
-        PermutationTestResult with the observed and null statistics.
+        The observed and null statistics.
 
     Raises:
-        ValueError: If fewer than 2 views are provided, or
-            ``n_permutations`` is not positive.
+        ValueError: If ``n_permutations`` is not positive.
 
-    Examples:
+    Example:
         >>> import numpy as np
         >>> from cca_zoo.linear import CCA
         >>> from cca_zoo.model_selection import permutation_test_significance
@@ -117,10 +87,10 @@ def permutation_test_significance(
         >>> X1 = z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((40, 5))
         >>> X2 = z @ rng.standard_normal((1, 4)) + 0.1 * rng.standard_normal((40, 4))
         >>> result = permutation_test_significance(
-        ...     CCA(n_components=1), [X1, X2], n_permutations=49, random_state=0
+        ...     CCA(), [X1, X2], n_permutations=49, random_state=0
         ... )
-        >>> result.p_values.shape
-        (1,)
+        >>> float(result.p_values[0])
+        0.02
     """
     arrays = validate_views(views)
     if n_permutations < 1:

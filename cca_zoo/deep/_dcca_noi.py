@@ -92,8 +92,6 @@ class DCCANOI(DCCA):
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         rho: Exponential moving average momentum for the batch whitening
             layers. Must be in [0, 1]. Default is 0.1.
-        objective: Ignored; the NOI loss is fixed. Accepted for API
-            compatibility.
         learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Regularisation for the whitening layers. Default is 1e-6.
@@ -114,7 +112,6 @@ class DCCANOI(DCCA):
         n_components: int,
         encoders: list[nn.Module],
         rho: float = 0.1,
-        objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
@@ -124,7 +121,6 @@ class DCCANOI(DCCA):
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=objective,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,

@@ -31,7 +31,6 @@ class DVCCA(BaseDeep):
         decoders: One module per view mapping the latent back to that view.
         learning_rate: Adam learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Numerical stability constant. Default is 1e-6.
 
     References:
         Wang, W., Yan, X., Lee, H., & Livescu, K. (2016). Deep variational
@@ -54,14 +53,12 @@ class DVCCA(BaseDeep):
         decoders: list[nn.Module],
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
-            eps=eps,
         )
         self.decoders = nn.ModuleList(decoders)
 

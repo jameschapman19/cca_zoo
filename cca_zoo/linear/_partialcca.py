@@ -1,4 +1,4 @@
-"""PartialCCA — CCA adjusted for confounding variables."""
+"""Partial CCA."""
 
 from __future__ import annotations
 
@@ -12,41 +12,41 @@ from cca_zoo.linear._mcca import MCCA
 
 
 class PartialCCA(MCCA):
-    r"""Partial Canonical Correlation Analysis.
-
-    Extends CCA to account for confounding variables ``partials`` that may
-    drive the correlation between views. Each view is first deconfounded by
-    regressing out ``partials`` via least squares, and (ridge-regularised)
-    CCA is then applied to the residuals, subject to the additional
-    constraint that canonical weights are orthogonal to the confounds:
+    r"""CCA of the views after regressing out confounds.
 
     $$
-    \begin{aligned}
-    w_{opt} = \underset{w}{\mathrm{argmax}}\ w_1^\top X_1^\top X_2 w_2 \\
-    \text{subject to } w_i^\top X_i^\top X_i w_i = 1, \quad w_i^\top X_i^\top Z = 0
-    \end{aligned}
+    \max_{w} w_1^\top X_1^\top X_2 w_2
+    \quad \text{subject to} \quad
+    w_i^\top X_i^\top X_i w_i = 1, \quad w_i^\top X_i^\top Z = 0,
     $$
 
-    References:
-        Rao, B. R. (1969). Partial canonical correlations. *Trabajos de
-        Estadistica y de Investigacion Operativa*, 20(2-3), 211-219.
+    for confounds $Z$ (``partials``), solved as ridge CCA of the
+    residuals of each view regressed on $Z$.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) applied to the deconfounded
-            views. Either a scalar or a per-view list. Default is 0.
-        eps: Small constant added to the eigenvalues of B to ensure
-            positive definiteness. Default is 1e-6.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        confound_betas_: Regression of each view on the confounds, shape
+            (n_confounds, n_features_i).
+
+    References:
+        Rao, B. R. (1969). Partial canonical correlations. Trabajos de
+        Estadistica y de Investigacion Operativa, 20(2-3), 211-219.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import PartialCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> Z = rng.standard_normal((50, 3))
         >>> model = PartialCCA(n_components=2).fit([X1, X2], partials=Z)
-        >>> scores = model.transform([X1, X2], partials=Z)
+        >>> Z1, Z2 = model.transform([X1, X2], partials=Z)
     """
 
     def __init__(
@@ -70,19 +70,18 @@ class PartialCCA(MCCA):
         y: None = None,
         partials: ArrayLike | None = None,
     ) -> PartialCCA:
-        """Fit the Partial CCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            partials: Confound array of shape (n_samples, n_confounds) to
-                regress out of each view before fitting CCA. Required.
+            partials: Confounds, shape (n_samples, n_confounds).
 
         Returns:
-            self: Fitted estimator.
+            self.
 
         Raises:
-            ValueError: If ``partials`` is not provided.
+            ValueError: If ``partials`` is not given.
         """
         if partials is None:
             raise ValueError("PartialCCA requires `partials` to be provided to fit().")
@@ -107,17 +106,15 @@ class PartialCCA(MCCA):
         views: list[ArrayLike],
         partials: ArrayLike | None = None,
     ) -> list[np.ndarray]:
-        """Project views into the latent space, optionally removing confounds.
+        """Project views into the latent space, regressing out confounds if given.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
-            partials: Confound array matching the one used at fit time. If
-                omitted, no deconfounding is applied (falls back to a plain
-                linear projection), which keeps ``score``/``fit_transform``
-                usable without threading ``partials`` through every call.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            partials: Confounds, shape (n_samples, n_confounds); None projects
+                the views unadjusted. Default is None.
 
         Returns:
-            List of arrays, each (n_samples, n_components).
+            One array of shape (n_samples, n_components) per view.
         """
         check_is_fitted(self)
         if partials is None:
@@ -136,16 +133,15 @@ class PartialCCA(MCCA):
         y: None = None,
         partials: ArrayLike | None = None,
     ) -> list[np.ndarray]:
-        """Fit and then transform the training data.
+        """Fit, then transform the training views.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            partials: Confound array, passed through to both ``fit`` and
-                ``transform``.
+            partials: Confounds, shape (n_samples, n_confounds).
 
         Returns:
-            List of arrays, each (n_samples, n_components).
+            One array of shape (n_samples, n_components) per view.
         """
         return self.fit(views, y=y, partials=partials).transform(
             views, partials=partials

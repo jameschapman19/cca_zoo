@@ -111,7 +111,7 @@ class CCAR3(BaseModel):
         """Fit the model.
 
         Args:
-            views: Two arrays of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:

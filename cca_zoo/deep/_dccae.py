@@ -81,8 +81,8 @@ class DCCAE(BaseDeep):
             encoders=encoders,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
-            eps=eps,
         )
+        self.eps = eps
         self.lam = lam
         self.decoders = nn.ModuleList(decoders)
         self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective

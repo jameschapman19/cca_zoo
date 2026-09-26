@@ -26,7 +26,6 @@ class BaseDeep(pl.LightningModule):
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         learning_rate: Learning rate for the Adam optimiser. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Small constant for numerical stability. Default is 1e-6.
     """
 
     def __init__(
@@ -35,13 +34,11 @@ class BaseDeep(pl.LightningModule):
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__()
         self.n_components = n_components
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
-        self.eps = eps
         self.encoders = nn.ModuleList(encoders)
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:

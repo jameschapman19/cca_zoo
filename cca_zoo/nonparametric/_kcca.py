@@ -1,4 +1,4 @@
-"""KCCA — Kernel Canonical Correlation Analysis."""
+"""Kernel CCA."""
 
 from __future__ import annotations
 
@@ -13,48 +13,43 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class KCCA(BaseModel):
-    r"""Kernel Canonical Correlation Analysis.
+    r"""Kernel CCA for two or more views.
 
-    Extends MCCA to nonlinear relationships by mapping each view into a
-    reproducing kernel Hilbert space via a kernel function $k_i$.  The
-    dual variables (kernel coefficients) $\boldsymbol{\alpha}_i$ are
-    found by solving the kernelised generalised eigenvalue problem:
-
-    $$
-    A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
-    $$
-
-    where:
-
-    * $A$ is the between-kernel cross-covariance block matrix.
-    * $B = \mathrm{block\_diag}\bigl(
-          c_i K_i + (1 - c_i) K_i^2
-      \bigr)$ is the regularised within-kernel matrix.
-
-    References:
-        Hardoon, D. R., Szedmak, S., & Shawe-Taylor, J. (2004). Canonical
-        correlation analysis: An overview with application to learning methods.
-        *Neural Computation*, 16(12), 2639–2664.
+    Solves MCCA's eigenproblem in the dual, $A \alpha = \lambda B \alpha$,
+    with $A$ the between-view blocks $K_i K_j$ and
+    $B = \operatorname{blockdiag}(c_i K_i + (1 - c_i) K_i^2)$.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Regularisation parameter(s) in ``[0, 1]``. Default is 0.1.
-        kernel: Kernel name(s) or callable(s) passed to
-            :func:`sklearn.metrics.pairwise_kernels`. Default is ``"linear"``.
-        gamma: Gamma parameter(s) for the RBF/polynomial kernel.
-        degree: Degree parameter(s) for the polynomial kernel.
-        coef0: coef0 parameter(s) for the polynomial/sigmoid kernel.
-        kernel_params: Extra per-view keyword arguments for the kernel.
-        eps: Regularisation floor for the B matrix. Default is 1e-3.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.1.
+        kernel: Kernel name or callable for
+            :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
+            ``"linear"``.
+        gamma: Kernel coefficient for RBF, polynomial and sigmoid kernels.
+            Per-view. Default is None.
+        degree: Polynomial kernel degree. Per-view. Default is 1.
+        coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
+        kernel_params: Extra kernel keyword arguments. Per-view. Default is
+            None.
+        eps: Floor added to ``B``. Default is 1e-3.
 
-    Examples:
+    Attributes:
+        weights_: Dual coefficients of each view, shape (n_samples,
+            n_components).
+
+    References:
+        Hardoon, D. R., Szedmak, S., & Shawe-Taylor, J. (2004). Canonical
+        correlation analysis: An overview with application to learning
+        methods. Neural Computation, 16(12), 2639-2664.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.nonparametric import KCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((30, 5))
         >>> X2 = rng.standard_normal((30, 5))
-        >>> model = KCCA(n_components=2, c=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
+        >>> model = KCCA(n_components=2, kernel="rbf", c=0.1).fit([X1, X2])
     """
 
     def __init__(
@@ -79,18 +74,14 @@ class KCCA(BaseModel):
         self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> KCCA:
-        """Fit the KCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.1, self.n_views_)
@@ -138,19 +129,7 @@ class KCCA(BaseModel):
         coef0: list[float],
         kp: list[dict[str, object]],
     ) -> list[np.ndarray]:
-        """Compute training kernel matrices.
-
-        Args:
-            views: Training view arrays.
-            kernel: Per-view kernel names.
-            gamma: Per-view gamma values.
-            degree: Per-view degree values.
-            coef0: Per-view coef0 values.
-            kp: Per-view extra kernel parameters.
-
-        Returns:
-            List of kernel matrices, each (n_samples, n_samples).
-        """
+        """Training kernel matrix of each view, shape (n_samples, n_samples)."""
         return [
             pairwise_kernels(
                 v,
@@ -165,29 +144,14 @@ class KCCA(BaseModel):
         ]
 
     def _build_A(self, kernels: list[np.ndarray]) -> np.ndarray:
-        """Build the between-kernel covariance block matrix.
-
-        Args:
-            kernels: List of kernel matrices.
-
-        Returns:
-            Block covariance matrix.
-        """
+        """Between-view kernel block matrix."""
         all_k = np.hstack(kernels)
         A = np.cov(all_k, rowvar=False)
         A -= block_diag(*[np.cov(k, rowvar=False) for k in kernels])
         return A / len(kernels)
 
     def _build_B(self, kernels: list[np.ndarray], c: list[float]) -> np.ndarray:
-        """Build the regularised within-kernel block matrix.
-
-        Args:
-            kernels: List of kernel matrices.
-            c: Per-view regularisation parameters.
-
-        Returns:
-            Block-diagonal positive-definite matrix.
-        """
+        """Block-diagonal regularised within-view kernel matrix."""
         blocks = [
             c[i] * kernels[i] + (1.0 - c[i]) * kernels[i] @ kernels[i]
             for i in range(len(kernels))

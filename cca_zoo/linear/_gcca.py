@@ -1,4 +1,4 @@
-"""GCCA — Generalised Canonical Correlation Analysis."""
+"""Generalized CCA."""
 
 from __future__ import annotations
 
@@ -14,50 +14,41 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class GCCA(BaseModel):
-    r"""Generalised Canonical Correlation Analysis.
-
-    Finds linear projections of multiple (>=2) views that maximise their
-    joint correlation with a shared auxiliary latent vector:
+    r"""Generalized CCA: views correlated with a shared latent variable.
 
     $$
-    \begin{aligned}
-    \max_{\mathbf{w}_i, T} \sum_{i=1}^M \mathbf{w}_i^\top X_i^\top T \\
-    \text{subject to } T^\top T = I
-    \end{aligned}
+    \max_{w_i, T} \sum_i \mu_i w_i^\top X_i^\top T
+    \quad \text{subject to} \quad T^\top T = I.
     $$
 
-    The solution is obtained by constructing the weighted projection matrix:
-
-    $$
-    Q = \sum_{i=1}^M \mu_i X_i
-        \bigl((1-c_i) X_i^\top X_i + c_i I\bigr)^{-1} X_i^\top
-    $$
-
-    and computing its top-k eigenvectors $V$, then recovering the
-    per-view weights as $\mathbf{w}_i = X_i^+ V$. $Q = H H^\top$ for the
-    stacked whitened views $H$, so $V$ comes from $H$'s thin SVD without
-    forming the $n \times n$ matrix.
-
-    References:
-        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
-        canonical correlation analysis. *Psychometrika*, 76(2), 257–284.
+    $T$ holds the top eigenvectors of
+    $\sum_i \mu_i X_i ((1 - c_i) X_i^\top X_i + c_i I)^{-1} X_i^\top$,
+    found from the SVD of the stacked whitened views, and
+    $w_i = X_i^+ T$.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
-        view_weights: Per-view weights $\mu_i$ in the GCCA objective.
-            Default is equal weights (1 for all views).
-        eps: Regularisation floor for within-view matrices.  Default is 1e-6.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        view_weights: Weight $\mu_i$ of each view; None weights them
+            equally. Default is None.
+        eps: Floor on the within-view eigenvalues. Default is 1e-6.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
+        canonical correlation analysis. Psychometrika, 76(2), 257-284.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import GCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
         >>> model = GCCA(n_components=2).fit([X1, X2, X3])
-        >>> scores = model.transform([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -80,18 +71,14 @@ class GCCA(BaseModel):
         self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GCCA:
-        """Fit the GCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         c_ = perview_parameter("c", self.c, 0.0, self.n_views_)

@@ -68,8 +68,8 @@ class DCCA(BaseDeep):
             encoders=encoders,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
-            eps=eps,
         )
+        self.eps = eps
         self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective
 
     def loss(

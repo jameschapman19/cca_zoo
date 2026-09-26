@@ -1,4 +1,4 @@
-"""ProbabilisticCCA — Bayesian CCA via NUTS MCMC (numpyro)."""
+"""Probabilistic CCA by NUTS."""
 
 from __future__ import annotations
 
@@ -16,54 +16,36 @@ from cca_zoo.probabilistic._utils import (
 
 
 class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
-    r"""Probabilistic Canonical Correlation Analysis via NUTS MCMC.
-
-    Fits a Bayesian latent variable model with the following generative
-    process for $V$ views:
+    r"""Probabilistic CCA with posterior sampling by NUTS.
 
     $$
-    \begin{aligned}
-    z &\sim \mathcal{N}(0, I) \\
-    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i,\ \Psi_i), \quad i = 1, \dots, V
-    \end{aligned}
+    z \sim \mathcal{N}(0, I), \qquad
+    x_i \mid z \sim \mathcal{N}(W_i z + \mu_i, \Psi_i).
     $$
 
-    MCMC sampling is performed with the No-U-Turn Sampler (NUTS) from
-    numpyro.  After fitting, :meth:`posterior_mean` returns the posterior
-    mean of z conditioned on whichever views are observed (computed
-    analytically using the posterior mean formula for linear Gaussian
-    models); :meth:`transform` returns each view's own projection.
-
-    This model has an exact rotational symmetry ($z \to zR$, $W_i \to W_i R$
-    for any orthogonal $R$ shared across views leaves the likelihood
-    unchanged), and different NUTS draws can settle on different rotations
-    along that ridge of equal density. Averaging *un-aligned* draws for a
-    point estimate is then biased toward zero (draws along different
-    rotations partially cancel), so ``fit`` aligns every draw's loadings
-    (and correspondingly, that draw's $z$) to a common reference via
-    generalized Procrustes analysis (see
-    :func:`~cca_zoo.probabilistic._utils.align_posterior_rotation`) before
-    computing ``weights_`` or storing ``posterior_samples_``.
-
-    The ``weights_`` attribute is set to the (rotation-aligned) posterior
-    mean of each W_i matrix so that :class:`~cca_zoo._base.BaseModel`'s
-    scoring utilities work without modification.
-
-    References:
-        Bach, F. R. & Jordan, M. I. "A probabilistic interpretation of
-        canonical correlation analysis." (2005).
-        Wang, C. "Variational Bayesian approach to canonical correlation
-        analysis." IEEE Transactions on Neural Networks 18.3 (2007).
+    The likelihood is invariant to a shared rotation of the loadings, so the
+    draws are aligned by generalized Procrustes before averaging. Requires
+    the ``probabilistic`` extra.
 
     Args:
-        n_components: Dimensionality of the latent space. Default is 1.
-        center: Whether to center each view before fitting. Default is True.
-        n_warmup: Number of NUTS warm-up (burn-in) steps. Default is 500.
-        n_posterior_samples: Number of NUTS posterior samples to draw. Default is 1000.
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        n_warmup: NUTS warm-up steps. Default is 500.
+        n_posterior_samples: NUTS draws. Default is 1000.
         random_state: Seed for the JAX PRNG. Default is None.
 
-    Examples:
+    Attributes:
+        weights_: Posterior mean loadings of each view, shape
+            (n_features_i, n_components).
+        posterior_samples_: Aligned posterior draws keyed by site name.
+
+    References:
+        Bach, F. R., & Jordan, M. I. (2005). A probabilistic interpretation
+        of canonical correlation analysis. Technical Report 688, UC Berkeley.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.probabilistic import ProbabilisticCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
@@ -90,11 +72,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
     # ------------------------------------------------------------------
 
     def _model(self, views: list[np.ndarray]) -> None:
-        """Numpyro generative model for probabilistic CCA.
-
-        Args:
-            views: List of centered arrays, each (n_samples, n_features_i).
-        """
+        """Numpyro generative model on centred views."""
         import jax.numpy as jnp
         import numpyro
         import numpyro.distributions as dist
@@ -137,19 +115,14 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
     # ------------------------------------------------------------------
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ProbabilisticCCA:
-        """Run NUTS MCMC to infer posterior over model parameters and latents.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
-            y: Ignored.  Present for scikit-learn API compatibility.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         import jax
         from numpyro.infer import MCMC, NUTS

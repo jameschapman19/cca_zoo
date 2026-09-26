@@ -1,4 +1,4 @@
-"""PLSEY — full-batch Eckart-Young PLS (c=1 special case of CCAEY)."""
+"""Eckart-Young PLS."""
 
 from __future__ import annotations
 
@@ -10,49 +10,35 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
 class PLSEY(CCAEY):
-    r"""Eckart-Young PLS for 2 or more views.
+    """Multiview PLS by minimising the Eckart-Young loss.
 
-    This is equivalent to :class:`~cca_zoo.linear.gradient.CCAEY` with
-    ``c=1``: the reward excludes the $i = j$ terms that ``CCAEY``'s
-    ($c=0$) reward includes, and the penalty is purely
-    $\operatorname{tr}(BB)$ on the weight Gram matrix $B$, which
-    drives the weights towards (approximate) orthonormality at the optimum
-    on its own — no manifold projection step, and no upfront whitening.
+    :class:`~cca_zoo.linear.gradient.CCAEY` with ``c=1``, fitted by
+    full-batch L-BFGS-B without forming a covariance matrix, so suited to
+    wide data. See :class:`~cca_zoo.linear.gradient.StochasticCCAEY` for
+    mini-batches.
 
-    Suitable for high-dimensional data where forming the full ($p \times p$)
-    cross-covariance matrix is too expensive. Fit by full-batch L-BFGS-B
-    using the loss's exact analytic gradient; for mini-batch training on
-    datasets too large for a full-batch gradient evaluation, see
-    :class:`~cca_zoo.linear.gradient.StochasticCCAEY` (``c=1``).
+    Args:
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        max_iter: Maximum L-BFGS-B iterations. Default is 1000.
+        tol: L-BFGS-B ``ftol``. Default is 1e-8.
+        random_state: Seed for the initial weights. Default is None.
 
-    Initial weights have exactly orthonormal columns (unit-norm, mutually
-    orthogonal) before any optimisation step, matching the shape of this
-    loss's own penalty on $B$ — unlike :class:`~cca_zoo.linear.gradient.CCAEY`'s
-    own data-informed default, which instead orthonormalises the initial
-    *projections* (see :func:`cca_zoo._utils._ey.random_orthonormal_weights`
-    vs. :func:`cca_zoo._utils._ey.cheap_orthonormal_projection_weights`).
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
         arXiv:2310.01012.
 
-    Args:
-        n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        max_iter: Maximum number of L-BFGS-B iterations. Default is 1000.
-        tol: Convergence tolerance, passed to L-BFGS-B as ``ftol``. Default
-            is 1e-8 (see :class:`~cca_zoo.linear.gradient.CCAEY`'s docstring
-            for why a loose ``ftol`` risks silent premature convergence).
-        random_state: Seed for reproducibility.
-
-    Examples:
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import PLSEY
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 500))
         >>> X2 = rng.standard_normal((200, 400))
-        >>> model = PLSEY(n_components=4, random_state=0)
-        >>> model = model.fit([X1, X2])
+        >>> model = PLSEY(n_components=4, random_state=0).fit([X1, X2])
     """
 
     def __init__(
@@ -73,28 +59,19 @@ class PLSEY(CCAEY):
         )
 
     def fit(self, views: list[ArrayLike], y: None = None) -> PLSEY:
-        """Fit PLSEY by full-batch L-BFGS-B on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         return super().fit(views, y)
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Plain orthonormal-weight initial weights (see class docstring).
-
-        Overrides :class:`~cca_zoo.linear.gradient.CCAEY`'s data-informed
-        default, since this loss's own penalty targets weight-space
-        orthonormality rather than projection-space decorrelation.
-        """
+        """Random orthonormal weights, matching the penalty on the weight Gram."""
         return random_orthonormal_weights(views, self.n_components, rng)

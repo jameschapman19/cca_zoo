@@ -57,11 +57,11 @@ class _BaseIterative(BaseModel):
         """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -222,11 +222,11 @@ class PMDCCA(_BaseIterative):
         """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
         # Store processed tau for use in _update_weight
         self._tau: list[float] = []  # set in super().fit via _setup_fit
@@ -838,11 +838,11 @@ class SAR(_BaseIterative):
         """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)

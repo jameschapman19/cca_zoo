@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import torch
+import torch.nn as nn
 
 from cca_zoo.deep._dcca import DCCA
 
@@ -66,11 +67,8 @@ class DCCAEY(DCCA):
     Args:
         n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
-        objective: Ignored; the EY objective is fixed for this class.
-            Accepted for API compatibility but overridden internally.
         learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation for numerical stability. Default is 1e-6.
 
     Examples:
         >>> import torch
@@ -79,6 +77,20 @@ class DCCAEY(DCCA):
         >>> enc2 = nn.Linear(8, 4)
         >>> model = DCCAEY(n_components=4, encoders=[enc1, enc2])
     """
+
+    def __init__(
+        self,
+        n_components: int,
+        encoders: list[nn.Module],
+        learning_rate: float = 1e-3,
+        max_epochs: int = 100,
+    ) -> None:
+        super().__init__(
+            n_components=n_components,
+            encoders=encoders,
+            learning_rate=learning_rate,
+            max_epochs=max_epochs,
+        )
 
     def loss(
         self,

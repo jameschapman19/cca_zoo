@@ -1,4 +1,4 @@
-"""Regularised CCA (RidgeCCA) — canonical ridge via SVD for exactly two views."""
+"""Ridge-regularised CCA."""
 
 from __future__ import annotations
 
@@ -14,42 +14,36 @@ from cca_zoo._utils._validation import perview_parameter
 
 
 class RidgeCCA(BaseModel):
-    r"""Regularised Canonical Correlation Analysis (canonical ridge).
-
-    Finds the pair of linear projections of two views that maximise their
-    correlation subject to regularised within-view variance constraints:
+    r"""Ridge-regularised CCA of two views (canonical ridge).
 
     $$
-    \begin{aligned}
-    \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2 \\
-    \text{subject to } \mathbf{w}_i^\top
-        \bigl((1 - c_i) X_i^\top X_i + c_i I\bigr) \mathbf{w}_i = 1
-    \end{aligned}
+    \max_{w_1, w_2} w_1^\top X_1^\top X_2 w_2
+    \quad \text{subject to} \quad
+    w_i^\top \bigl((1 - c_i) X_i^\top X_i + c_i I\bigr) w_i = 1,
     $$
 
-    The solution is found by whitening each view with its regularised
-    covariance matrix and computing the SVD of the resulting cross-covariance.
-
-    :class:`CCA` (``c=0``) and :class:`PLS` (``c=1``) are special cases.
-
-    References:
-        Vinod, H. D. (1976). Canonical ridge and econometrics of joint
-        production. *Journal of Econometrics*, 4(2), 147–166.
+    solved by whitening each view and taking the SVD of the cross-covariance.
+    ``c=0`` is :class:`CCA` and ``c=1`` is :class:`PLS`.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) in ``[0, 1]``.  A single float
-            is applied to both views; a list ``[c1, c2]`` applies per-view
-            regularisation.  Default is 0 (standard CCA).
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Vinod, H. D. (1976). Canonical ridge and econometrics of joint
+        production. Journal of Econometrics, 4(2), 147-166.
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.linear import RidgeCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = RidgeCCA(n_components=2, c=0.1).fit([X1, X2])
-        >>> scores = model.transform([X1, X2])
+        >>> model = RidgeCCA(n_components=2, c=[0.1, 0.5]).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -67,18 +61,17 @@ class RidgeCCA(BaseModel):
         self.c = c
 
     def fit(self, views: list[ArrayLike], y: None = None) -> RidgeCCA:
-        """Fit the RidgeCCA model.
+        """Fit the model.
 
         Args:
-            views: List of exactly two arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
+            self.
 
         Raises:
-            ValueError: If the number of views is not exactly 2.
-            ValueError: If views have inconsistent numbers of samples.
+            ValueError: If there are not exactly two views.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         if self.n_views_ != 2:

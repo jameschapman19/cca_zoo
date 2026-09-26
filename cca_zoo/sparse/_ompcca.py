@@ -98,8 +98,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             self.
 
         Raises:
-            ValueError: If ``n_nonzero_coefs`` has the wrong length or is not
-                positive.
+            ValueError: If ``n_nonzero_coefs`` has the wrong length or is not positive.
         """
         views_ = self._setup_fit(views)
         n_nonzero_coefs = self._resolve_n_nonzero_coefs(self.n_features_in_)

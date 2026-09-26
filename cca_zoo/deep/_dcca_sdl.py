@@ -49,11 +49,8 @@ class DCCASDL(DCCA):
         n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         lam: Weight of the SDL decorrelation penalty. Default is 0.5.
-        objective: Ignored; the SDL loss is fixed. Accepted for API
-            compatibility.
         learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation for numerical stability. Default is 1e-6.
 
     Examples:
         >>> import torch
@@ -68,18 +65,14 @@ class DCCASDL(DCCA):
         n_components: int,
         encoders: list[nn.Module],
         lam: float = 0.5,
-        objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=objective,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
-            eps=eps,
         )
         self.lam = lam
         self.bns = nn.ModuleList(

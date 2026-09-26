@@ -1,4 +1,4 @@
-"""StochasticCCAEY — mini-batch momentum SGD on the EY loss."""
+"""Eckart-Young CCA by mini-batch stochastic gradient descent."""
 
 from __future__ import annotations
 
@@ -15,37 +15,32 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
 class StochasticCCAEY(CCAEY):
-    r"""Eckart-Young CCA fit by mini-batch momentum SGD, for large-scale data.
+    """Multiview CCA by mini-batch momentum SGD on the Eckart-Young loss.
 
-    Identical objective to :class:`~cca_zoo.linear.gradient.CCAEY` (same
-    ``c`` ridge blend towards :class:`~cca_zoo.linear.gradient.PLSEY`, same
-    analytic gradient) but fit the way
-    :class:`~sklearn.linear_model.SGDRegressor` fits a linear model: each
-    epoch, the data is shuffled once and split into ``batch_size`` chunks
-    (:func:`sklearn.utils.gen_batches`), taking one momentum gradient step
-    per chunk. Use this instead of :class:`~cca_zoo.linear.gradient.CCAEY`
-    when the full dataset does not fit comfortably in memory or a full-batch
-    gradient evaluation is too slow to repeat every iteration.
+    The loss of :class:`~cca_zoo.linear.gradient.CCAEY`, minimised as
+    :class:`~sklearn.linear_model.SGDRegressor` does: each epoch shuffles the
+    data and takes one momentum step per mini-batch. For data too large for
+    full-batch gradients.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default True.
-        c: Ridge blend in ``[0, 1]`` between ``CCAEY`` (0) and ``PLSEY``
-            (1). Default is 0; see :class:`~cca_zoo.linear.gradient.CCAEY`'s
-            docstring for the numerical-stability note on high-dimensional
-            data.
-        learning_rate: Gradient step size. Default is 1e-2.
-        momentum: Momentum coefficient in ``[0, 1)``. Default is 0.9.
-        batch_size: Mini-batch size. ``None`` uses the full dataset (one
-            gradient step per epoch).
-        max_iter: Number of epochs (full passes over the shuffled data).
-            Default is 1000.
-        tol: Convergence tolerance on the full-dataset objective's change
-            between consecutive epochs. Default is 1e-6.
-        random_state: Seed for reproducibility.
+        center: Whether to centre each view. Default is True.
+        c: Ridge blend in ``[0, 1]``, as in ``CCAEY``. Default is 0.
+        learning_rate: Step size. Default is 1e-2.
+        momentum: Momentum in ``[0, 1)``. Default is 0.9.
+        batch_size: Mini-batch size; None uses all samples. Default is None.
+        max_iter: Number of epochs. Default is 1000.
+        tol: Tolerance on the change in the full-data loss between epochs.
+            Default is 1e-6.
+        random_state: Seed for the shuffling and initial weights. Default is
+            None.
 
-    Examples:
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    Example:
         >>> import numpy as np
+        >>> from cca_zoo.stochastic import StochasticCCAEY
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((5000, 200))
         >>> X2 = rng.standard_normal((5000, 150))
@@ -85,18 +80,14 @@ class StochasticCCAEY(CCAEY):
         self.batch_size = batch_size
 
     def fit(self, views: list[ArrayLike], y: None = None) -> StochasticCCAEY:
-        """Fit by mini-batch momentum SGD on the EY loss.
+        """Fit the model.
 
         Args:
-            views: List of 2 or more arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -106,13 +97,7 @@ class StochasticCCAEY(CCAEY):
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Cheap, data-informed initial weights, on one mini-batch.
-
-        As :meth:`~cca_zoo.linear.gradient.CCAEY._initial_weights`, but
-        projected on a single ``batch_size`` mini-batch rather than the
-        full dataset, since a full-batch pass is exactly what this class
-        exists to avoid.
-        """
+        """As ``CCAEY``'s, but on one mini-batch."""
         return cheap_orthonormal_projection_weights(
             views, self.n_components, self.batch_size, rng
         )
@@ -120,15 +105,7 @@ class StochasticCCAEY(CCAEY):
     def _fit_sgd(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Run mini-batch momentum SGD to fit weight matrices.
-
-        Args:
-            views: List of arrays to fit on.
-            rng: Random generator used for shuffling and initialisation.
-
-        Returns:
-            List of fitted weight matrices, one per view.
-        """
+        """Weights from mini-batch momentum SGD."""
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
         weights = self._initial_weights(views, rng)

@@ -34,8 +34,6 @@ class DGCCA(DCCA):
     Args:
         n_components: Dimensionality of the shared latent space.
         encoders: List of :class:`torch.nn.Module` objects, one per view.
-        objective: Ignored; the GCCA loss is always used. Accepted for
-            API compatibility.
         learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
         eps: Ridge regularisation for within-view whitening. Default is 1e-6.
@@ -52,22 +50,18 @@ class DGCCA(DCCA):
         self,
         n_components: int,
         encoders: list[nn.Module],
-        objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
         eps: float = 1e-6,
     ) -> None:
-        # Pass objective=None so DCCA creates CCALoss, but we override it
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=None,
+            objective=GCCALoss(eps=eps),
             learning_rate=learning_rate,
             max_epochs=max_epochs,
             eps=eps,
         )
-        # Override with GCCALoss regardless of what was passed
-        self.objective = GCCALoss(eps=eps)
 
     def loss(
         self,

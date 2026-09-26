@@ -159,6 +159,10 @@ Removed outright, with no deprecation period; the table above gives each replace
   `SCCA_Span`, `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `ElasticCCA`; the
   `cca_zoo.linear` re-exports of the sparse and stochastic models; `CCA_EY`, `MCCAEY`,
   `MCCA_EY`, `PLS_EY`; `GPCCA`; `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL`.
+- The `objective` argument of the deep models whose loss is fixed (`DCCAEY`, `DCCANOI`,
+  `DCCASDL`, `DMCCA`, `DGCCA`, `DTCCA`, `BarlowTwins`, `VICReg`), which was accepted and
+  ignored; and `eps` where nothing used it (`DCCAEY`, `DCCASDL`, `BarlowTwins`, `VICReg`,
+  `SplitAE`, `DVCCA`).
 
 ### Fixed
 

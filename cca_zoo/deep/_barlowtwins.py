@@ -32,11 +32,8 @@ class BarlowTwins(DCCA):
         encoders: List of :class:`torch.nn.Module` objects, one per view.
         lam: Weight for the off-diagonal redundancy penalty.
             Default is 5e-3.
-        objective: Ignored; the Barlow Twins loss is fixed. Accepted for
-            API compatibility.
         learning_rate: Learning rate. Default is 1e-3.
         max_epochs: Maximum training epochs. Default is 100.
-        eps: Unused. Present for API compatibility. Default is 1e-6.
 
     Examples:
         >>> import torch
@@ -51,18 +48,14 @@ class BarlowTwins(DCCA):
         n_components: int,
         encoders: list[nn.Module],
         lam: float = 5e-3,
-        objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
         max_epochs: int = 100,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=objective,
             learning_rate=learning_rate,
             max_epochs=max_epochs,
-            eps=eps,
         )
         self.lam = lam
         self.bns = nn.ModuleList(
