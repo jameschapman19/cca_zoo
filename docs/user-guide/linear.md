@@ -37,16 +37,16 @@ print(model.score([X1, X2]))  # mean canonical correlation
 **When to use:** CCA breaks down when $n < p$ (more features than samples). RidgeCCA adds a ridge
 penalty to stabilise the covariance matrices.
 
-The parameter `c` controls the regularisation strength:
+The parameter `shrinkage` controls the regularisation strength:
 
-- `c=0` → equivalent to `CCA`
-- `c=1` → equivalent to `PLS`
+- `shrinkage=0` → equivalent to `CCA`
+- `shrinkage=1` → equivalent to `PLS`
 - `0 < c < 1` → interpolates between the two
 
 ```python
 from cca_zoo.linear import RidgeCCA
 
-model = RidgeCCA(n_components=2, c=0.1).fit([X1, X2])
+model = RidgeCCA(n_components=2, shrinkage=0.1).fit([X1, X2])
 ```
 
 ### PLS — Partial Least Squares
@@ -54,7 +54,7 @@ model = RidgeCCA(n_components=2, c=0.1).fit([X1, X2])
 **When to use:** When you want to maximise *covariance* rather than *correlation*. PLS is
 more robust to noise and does not require invertible covariance matrices.
 
-PLS is a special case of RidgeCCA with `c=1`:
+PLS is a special case of RidgeCCA with `shrinkage=1`:
 
 $$
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
@@ -89,7 +89,7 @@ where $A$ contains the cross-view covariances and $B$ the regularised within-vie
 ```python
 from cca_zoo.linear import MCCA
 
-model = MCCA(n_components=2, c=0.1).fit([X1, X2, X3])
+model = MCCA(n_components=2, shrinkage=0.1).fit([X1, X2, X3])
 ```
 
 ### GCCA — Generalised CCA
@@ -110,7 +110,7 @@ the shared projection.
 ```python
 from cca_zoo.linear import GCCA
 
-model = GCCA(n_components=2, c=0.01).fit([X1, X2, X3])
+model = GCCA(n_components=2, shrinkage=0.01).fit([X1, X2, X3])
 ```
 
 ### TCCA — Tensor CCA
@@ -128,7 +128,7 @@ $$
 ```python
 from cca_zoo.linear import TCCA
 
-model = TCCA(n_components=2, c=0.01, random_state=0).fit([X1, X2, X3])
+model = TCCA(n_components=2, shrinkage=0.01, random_state=0).fit([X1, X2, X3])
 ```
 
 ---
@@ -145,17 +145,17 @@ directions on its own.
 | Class | Description |
 |---|---|
 | `PLSEY` | Eckart-Young PLS objective, full-batch L-BFGS-B |
-| `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `c` |
+| `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `shrinkage` |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, full-batch L-BFGS-B |
 
 For datasets too large to fit comfortably in memory, see
 [`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md), which fits the same
 objective as `CCAEY` with mini-batch momentum SGD instead.
 
-`CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
-`PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Optimising the raw, unregularised
-(`c=0`) objective can be poorly conditioned when the number of samples doesn't outnumber the
-number of features by a healthy margin; if you see `nan` weights, increase `c` (0.1-0.3 is
+`CCAEY`'s `shrinkage` parameter (default `0`) blends its loss towards `PLSEY`'s (`shrinkage=1`) — in fact
+`PLSEY` is implemented as `CCAEY` with `shrinkage` fixed at `1`. Optimising the raw, unregularised
+(`shrinkage=0`) objective can be poorly conditioned when the number of samples doesn't outnumber the
+number of features by a healthy margin; if you see `nan` weights, increase `shrinkage` (0.1-0.3 is
 usually enough).
 
 ```python
@@ -174,7 +174,7 @@ forming those statistics — the same bounded-influence mechanism
 `sklearn.linear_model.HuberRegressor` uses against outliers, applied to the EY loss's own
 statistics. Every sample still contributes *something* (smooth downweighting, never exactly
 zero). Fit by the same full-batch L-BFGS-B as `CCAEY`, so it shares that class's `nan`-on
-ill-conditioned-data caveat above; it has no ridge-blend `c` of its own. The `delta` parameter
+ill-conditioned-data caveat above; it has no ridge-blend `shrinkage` of its own. The `delta` parameter
 sets the cutoff as a multiple of the dataset's own median sample leverage (self-calibrating, so
 it doesn't need re-tuning per `n_components`); values below 1 downweight the majority of the
 data and are not recommended.
@@ -212,7 +212,7 @@ inliers = model.inlier_mask_  # boolean array over the training rows
 ```
 
 `min_samples` (a fraction or an absolute count) trades off two things: smaller subsets are more
-likely to be drawn free of contamination, but need `c` (a small ridge, default `0.1`) to stay
+likely to be drawn free of contamination, but need `shrinkage` (a small ridge, default `0.1`) to stay
 numerically well-posed. `residual_threshold` defaults to `0` — the natural zero point of the
 per-sample agreement score under no real relationship — rather than anything estimated from the
 data. Like `MCCA`, this isn't convex, and the random subset draws add their own instability on top:
@@ -313,7 +313,7 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 | Scenario | Recommended |
 |---|---|
 | $n \gg p$, two views | `CCA` |
-| $n < p$ or ill-conditioned | `RidgeCCA` (tune `c`) |
+| $n < p$ or ill-conditioned | `RidgeCCA` (tune `shrinkage`) |
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |

@@ -161,7 +161,7 @@ print(model.score(views))
 from cca_zoo.linear import RidgeCCA
 
 # c controls the ridge penalty (0 = CCA, 1 = PLS)
-model = RidgeCCA(n_components=2, c=0.1).fit(train_views)
+model = RidgeCCA(n_components=2, shrinkage=0.1).fit(train_views)
 ```
 
 ### Kernel CCA
@@ -169,7 +169,7 @@ model = RidgeCCA(n_components=2, c=0.1).fit(train_views)
 ```python
 from cca_zoo.nonparametric import KCCA
 
-model = KCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit(train_views)
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit(train_views)
 z1, z2 = model.transform(test_views)
 ```
 
@@ -181,7 +181,7 @@ CCA-Zoo's `GridSearchCV` wraps sklearn's grid search with a multiview interface:
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
-param_grid = {"c": [0.01, 0.1, 1.0], "gamma": [0.01, 0.1]}
+param_grid = {"shrinkage": [0.01, 0.1, 1.0], "gamma": [0.01, 0.1]}
 gs = GridSearchCV(KCCA(n_components=2, kernel="rbf"), param_grid, cv=5)
 gs.fit(train_views)
 print("Best params:", gs.best_params_)

@@ -71,7 +71,13 @@ def _held_out(model: BaseModel, train: list, test: list) -> float:
             0.05,
             0.2,
         ),
-        (RANSACCCA(min_samples=100, random_state=0), MCCA(c=0.1), "sign", 0.4, 0.3),
+        (
+            RANSACCCA(min_samples=100, random_state=0),
+            MCCA(shrinkage=0.1),
+            "sign",
+            0.4,
+            0.3,
+        ),
         (
             RANSACCCA(random_state=0),
             HuberCCA(max_iter=1500, random_state=0),
@@ -80,22 +86,24 @@ def _held_out(model: BaseModel, train: list, test: list) -> float:
             0.3,
         ),
         (
-            TrimmedCCA(c=0.1, h_frac=0.55, n_init=40, max_iter=30, random_state=0),
-            RANSACCCA(c=0.1, random_state=0),
+            TrimmedCCA(
+                shrinkage=0.1, h_frac=0.55, n_init=40, max_iter=30, random_state=0
+            ),
+            RANSACCCA(shrinkage=0.1, random_state=0),
             "sign",
             0.47,
             0.15,
         ),
         (
             ProjectionPursuitCCA(n_init=5, random_state=0),
-            MCCA(c=0.1),
+            MCCA(shrinkage=0.1),
             "outlier",
             0.2,
             0.2,
         ),
         (
             ProjectionPursuitCCA(projection_index="mcd", n_init=5, random_state=0),
-            MCCA(c=0.1),
+            MCCA(shrinkage=0.1),
             "outlier",
             0.2,
             0.2,

@@ -56,7 +56,7 @@ class RANSACCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge for every internal MCCA fit. Default is 0.1.
+        shrinkage: Shrinkage of every internal MCCA fit. Default is 0.1.
         min_samples: Subset size, as a fraction in ``(0, 1]`` or a count.
             Default is 0.25.
         residual_threshold: Minimum agreement of an inlier; None is 0.
@@ -82,7 +82,7 @@ class RANSACCCA(BaseModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
         "min_samples": [
             Interval(Real, 0, 1, closed="right"),
             Interval(Integral, 1, None, closed="left"),
@@ -97,7 +97,7 @@ class RANSACCCA(BaseModel):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.1,
+        shrinkage: float | list[float] = 0.1,
         min_samples: int | float = 0.25,
         residual_threshold: float | None = None,
         max_trials: int = 200,
@@ -105,7 +105,7 @@ class RANSACCCA(BaseModel):
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
         self.min_samples = min_samples
         self.residual_threshold = residual_threshold
         self.max_trials = max_trials
@@ -143,7 +143,9 @@ class RANSACCCA(BaseModel):
         trial = 0
         while trial < dynamic_max_trials:
             idx = rng.choice(n, min_samples, replace=False)
-            candidate = MCCA(n_components=k, c=self.c).fit([v[idx] for v in views_])
+            candidate = MCCA(n_components=k, shrinkage=self.shrinkage).fit(
+                [v[idx] for v in views_]
+            )
             agreement = _cross_view_agreement(
                 candidate.transform(cast("list[ArrayLike]", views_))
             )
@@ -160,7 +162,9 @@ class RANSACCCA(BaseModel):
             trial += 1
 
         assert best_mask is not None
-        final = MCCA(n_components=k, c=self.c).fit([v[best_mask] for v in views_])
+        final = MCCA(n_components=k, shrinkage=self.shrinkage).fit(
+            [v[best_mask] for v in views_]
+        )
         self.weights_: list[np.ndarray] = final.weights_
         self.inlier_mask_: np.ndarray = best_mask
         self.n_trials_: int = trial

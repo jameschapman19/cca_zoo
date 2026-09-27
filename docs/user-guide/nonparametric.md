@@ -39,19 +39,19 @@ where:
 - $A$ is the block off-diagonal kernel cross-covariance matrix
 - $B = \mathrm{block\_diag}(c_i K_i + (1-c_i) K_i^2)$ regularises the within-view kernel matrices
 
-The parameter `c` controls regularisation: larger `c` → stronger regularisation.
+The parameter `shrinkage` controls regularisation: larger `shrinkage` → stronger regularisation.
 
 ```python
 from cca_zoo.nonparametric import KCCA
 
 # Linear kernel (recovers classical CCA in feature space)
-model = KCCA(n_components=2, kernel="linear", c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="linear", shrinkage=0.1).fit([X1, X2])
 
 # RBF kernel
-model = KCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit([X1, X2])
 
 # Polynomial kernel
-model = KCCA(n_components=2, kernel="poly", degree=3, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="poly", degree=3, shrinkage=0.1).fit([X1, X2])
 
 # Per-view kernel parameters (list = one entry per view)
 model = KCCA(
@@ -59,7 +59,7 @@ model = KCCA(
     kernel=["rbf", "poly"],
     gamma=[0.01, None],
     degree=[1, 3],
-    c=[0.1, 0.5],
+    shrinkage=[0.1, 0.5],
 ).fit([X1, X2])
 ```
 
@@ -89,7 +89,7 @@ where $B_i = c_i K_i + (1-c_i) K_i^2$.
 ```python
 from cca_zoo.nonparametric import KGCCA
 
-model = KGCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2, X3])
+model = KGCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit([X1, X2, X3])
 ```
 
 ---
@@ -104,9 +104,9 @@ PARAFAC decomposition:
 ```python
 from cca_zoo.nonparametric import KTCCA
 
-model = KTCCA(n_components=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit(
-    [X1, X2, X3]
-)
+model = KTCCA(
+    n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1, random_state=0
+).fit([X1, X2, X3])
 ```
 
 ---
@@ -173,7 +173,7 @@ in place of a standard kernel.
 
 ## Hyperparameter tuning
 
-Kernel hyperparameters (`c`, `gamma`, `degree`) are best selected by cross-validation.
+Kernel hyperparameters (`shrinkage`, `gamma`, `degree`) are best selected by cross-validation.
 Use `GridSearchCV` from `cca_zoo.model_selection`:
 
 ```python
@@ -181,7 +181,7 @@ from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
 param_grid = {
-    "c": [0.01, 0.1, 1.0],
+    "shrinkage": [0.01, 0.1, 1.0],
     "gamma": [0.001, 0.01, 0.1],
 }
 gs = GridSearchCV(
@@ -215,7 +215,7 @@ model = KCCA(
     n_components=2,
     kernel=my_kernel,
     kernel_params={"sigma": 0.5},
-    c=0.1,
+    shrinkage=0.1,
 ).fit([X1, X2])
 ```
 
@@ -230,5 +230,5 @@ model = KCCA(
   for moderate training-set sizes rather than very large $n$.
 - For large datasets, prefer the linear EY-loss methods (`CCAEY`, `PLSEY`, `StochasticCCAEY`)
   or deep methods.
-- The `c` parameter is crucial: too small → numerical instability; too large → loss of structure.
+- The `shrinkage` parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see [Model Selection](model-selection.md)).

@@ -38,7 +38,7 @@ RANDOM_STATE: list[Any] = ["random_state"]
 
 #: The kernel arguments of the kernel models, each a scalar or per-view list.
 KERNEL_PARAMETERS: dict[str, list[Any]] = {
-    "c": RIDGE_PARAMETER,
+    "shrinkage": RIDGE_PARAMETER,
     "kernel": [str, callable, "array-like"],
     "gamma": [None, Interval(Real, 0, None, closed="neither"), "array-like"],
     "degree": [Interval(Real, 0, None, closed="left"), "array-like"],

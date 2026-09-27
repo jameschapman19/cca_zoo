@@ -25,21 +25,22 @@ class CCAEY(BaseFullBatchEYModel):
     $B = \frac{1}{M} \sum_i W_i^\top W_i$,
 
     $$
-    V_c = (1 - c) V + c B, \qquad
-    \mathcal{L}_{EY}(c) = -2 \operatorname{tr}(C - c V) + \operatorname{tr}(V_c V_c).
+    V_s = (1 - s) V + s B, \qquad
+    \mathcal{L}_{EY}(s) = -2 \operatorname{tr}(C - s V) + \operatorname{tr}(V_s V_s)
     $$
 
-    ``c`` is :class:`~cca_zoo.linear.RidgeCCA`'s blend: ``c=0`` is CCA and
-    ``c=1`` is :class:`~cca_zoo.linear.gradient.PLSEY`. The loss is minimised
-    by full-batch L-BFGS-B with its exact gradient; see
+    for ``shrinkage`` $s$, as in :class:`~cca_zoo.linear.RidgeCCA`: 0 is CCA
+    and 1 is :class:`~cca_zoo.linear.gradient.PLSEY`. The loss is minimised by
+    full-batch L-BFGS-B with its exact gradient; see
     :class:`~cca_zoo.linear.gradient.StochasticCCAEY` for mini-batches. With
-    few samples per feature, ``c=0`` is ill-conditioned; use ``c`` of 0.1 to
+    few samples per feature, ``shrinkage=0`` is ill-conditioned; use 0.1 to
     0.3.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
         max_iter: Maximum L-BFGS-B iterations. Default is 1000.
         tol: L-BFGS-B ``ftol``. Default is 1e-8.
         random_state: Seed for the initial weights. Default is None.
@@ -65,14 +66,14 @@ class CCAEY(BaseFullBatchEYModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseFullBatchEYModel._parameter_constraints,
-        "c": [Interval(Real, 0, 1, closed="both")],
+        "shrinkage": [Interval(Real, 0, 1, closed="both")],
     }
 
     def __init__(
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float = 0.0,
+        shrinkage: float = 0.0,
         max_iter: int = 1000,
         tol: float = 1e-8,
         random_state: int | None = None,
@@ -84,7 +85,7 @@ class CCAEY(BaseFullBatchEYModel):
             tol=tol,
             random_state=random_state,
         )
-        self.c = c
+        self.shrinkage = shrinkage
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
         """Fit the model.
@@ -119,7 +120,7 @@ class CCAEY(BaseFullBatchEYModel):
         """
         m = len(views)
         n = views[0].shape[0]
-        c = self.c
+        c = self.shrinkage
         centred_reps = [z - z.mean(axis=0) for z in representations]
         total = sum(centred_reps)
         _, v_data = ey_cross_covariance(representations)
@@ -142,7 +143,7 @@ class CCAEY(BaseFullBatchEYModel):
     ) -> float:
         r"""$\mathcal{L}_{EY}(c)$."""
         del views
-        c = self.c
+        c = self.shrinkage
         C, v_data = ey_cross_covariance(representations)
         b = weight_gram_mean(weights)
         v_blend = (1 - c) * v_data + c * b

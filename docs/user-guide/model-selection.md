@@ -23,11 +23,11 @@ held-out folds, using sklearn's cross-validation machinery under the hood.
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.linear import RidgeCCA
 
-param_grid = {"c": [0.001, 0.01, 0.1, 1.0]}
+param_grid = {"shrinkage": [0.001, 0.01, 0.1, 1.0]}
 gs = GridSearchCV(RidgeCCA(n_components=2), param_grid=param_grid, cv=5)
 gs.fit([X1, X2])
 
-print("Best c:", gs.best_params_["c"])
+print("Best shrinkage:", gs.best_params_["shrinkage"])
 print("Best CV score:", gs.best_score_)
 
 # Use the refitted best model directly
@@ -38,7 +38,7 @@ z1, z2 = best_model.transform([X1, X2])
 ### Per-view parameters
 
 Many CCA models accept per-view parameters as a scalar (broadcast to all views) or an
-explicit list, e.g. `KCCA(c=[0.01, 0.1])`. To search each view's value independently,
+explicit list, e.g. `KCCA(shrinkage=[0.01, 0.1])`. To search each view's value independently,
 suffix the parameter name with `__<view index>`; sklearn then searches the full Cartesian
 product across views:
 
@@ -46,18 +46,21 @@ product across views:
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
-param_grid = {"c__0": [0.01, 0.1, 1.0], "c__1": [0.001, 0.01]}  # all 6 combinations
+param_grid = {
+    "shrinkage__0": [0.01, 0.1, 1.0],
+    "shrinkage__1": [0.001, 0.01],
+}  # all 6 combinations
 
 gs = GridSearchCV(
     KCCA(n_components=2, kernel="rbf", gamma=0.01), param_grid=param_grid, cv=5
 )
 gs.fit([X1, X2])
-print(gs.best_params_)  # e.g. {"c__0": 0.1, "c__1": 0.01}
-print(gs.best_estimator_.c)  # [0.1, 0.01]
+print(gs.best_params_)  # e.g. {"shrinkage__0": 0.1, "shrinkage__1": 0.01}
+print(gs.best_estimator_.shrinkage)  # [0.1, 0.01]
 ```
 
 An index you don't mention in the grid keeps the estimator's current value for that view,
-so `param_grid={"c__0": [...]}` alone only tunes view 0, leaving view 1 fixed.
+so `param_grid={"shrinkage__0": [...]}` alone only tunes view 0, leaving view 1 fixed.
 
 ### Accessing results
 
@@ -69,7 +72,9 @@ import pandas as pd
 # Full CV results table
 df = pd.DataFrame(gs.cv_results_)
 print(
-    df[["param_c", "mean_test_score", "std_test_score"]].sort_values("mean_test_score")
+    df[["param_shrinkage", "mean_test_score", "std_test_score"]].sort_values(
+        "mean_test_score"
+    )
 )
 
 # Best parameters and score
@@ -120,7 +125,7 @@ candidate themselves and, like sklearn's, take only `refit=True`/`False`.
 
 ## RandomizedSearchCV
 
-For a continuous hyperparameter like `c`, sampling a distribution is usually more efficient
+For a continuous hyperparameter like `shrinkage`, sampling a distribution is usually more efficient
 than searching a fixed grid. `RandomizedSearchCV` mirrors
 `sklearn.model_selection.RandomizedSearchCV`: pass a distribution (anything with an `rvs`
 method, e.g. `scipy.stats.loguniform`) instead of a list of values, and it draws `n_iter`
@@ -133,13 +138,13 @@ from cca_zoo.linear import RidgeCCA
 
 rs = RandomizedSearchCV(
     RidgeCCA(n_components=2),
-    param_distributions={"c": loguniform(1e-4, 1.0)},
+    param_distributions={"shrinkage": loguniform(1e-4, 1.0)},
     n_iter=20,
     cv=5,
     random_state=0,
 )
 rs.fit([X1, X2])
-print("Best c:", rs.best_params_["c"])
+print("Best shrinkage:", rs.best_params_["shrinkage"])
 ```
 
 `HalvingGridSearchCV` and `HalvingRandomSearchCV` mirror sklearn's successive-halving
@@ -151,7 +156,7 @@ searches in the same way.
 
 `cross_val_score`, `cross_validate`, `cross_val_predict`, `learning_curve` and
 `validation_curve` are sklearn's functions taking a list of views; every other argument is
-passed to sklearn. `validation_curve` accepts per-view names such as `"c__0"`.
+passed to sklearn. `validation_curve` accepts per-view names such as `"shrinkage__0"`.
 `cross_val_predict` returns each view's out-of-fold scores, from which out-of-sample
 canonical correlations follow. Each fold's model fixes its own signs, so compare views
 within a component rather than scores across folds.
@@ -168,7 +173,9 @@ from cca_zoo.model_selection import (
 
 scores = cross_val_score(CCA(n_components=2), [X1, X2], cv=5)
 results = cross_validate(CCA(n_components=2), [X1, X2], cv=5, return_train_score=True)
-train, test = validation_curve(RidgeCCA(), [X1, X2], "c__0", [0.0, 0.1, 1.0], cv=5)
+train, test = validation_curve(
+    RidgeCCA(), [X1, X2], "shrinkage__0", [0.0, 0.1, 1.0], cv=5
+)
 out_of_fold = pairwise_correlations(
     cross_val_predict(CCA(n_components=2), [X1, X2], cv=5)
 )
@@ -191,7 +198,7 @@ from cca_zoo.preprocessing import PerViewTransformer
 pipeline = Pipeline(
     [("scale", PerViewTransformer(StandardScaler())), ("cca", RidgeCCA())]
 )
-gs = GridSearchCV(pipeline, {"cca__c__0": [0.0, 0.1, 1.0]}, cv=5).fit([X1, X2])
+gs = GridSearchCV(pipeline, {"cca__shrinkage__0": [0.0, 0.1, 1.0]}, cv=5).fit([X1, X2])
 ```
 
 ## Custom scoring
@@ -232,7 +239,7 @@ views = make_joint_data(
 # Grid search over kernel and regularisation
 param_grid = {
     "kernel": ["rbf", "poly"],
-    "c": [0.01, 0.1, 1.0],
+    "shrinkage": [0.01, 0.1, 1.0],
     "gamma": [0.01, 0.1],
 }
 gs = GridSearchCV(

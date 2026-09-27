@@ -100,10 +100,10 @@ def test_sklearn_estimator_checks_slow(estimator: TwoViewAdapter, check: Any) ->
 # Meta-estimators fit on views, so sklearn's fitting checks cannot build their
 # data; its construction checks apply unchanged.
 _META_ESTIMATORS = [
-    GridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
-    RandomizedSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
-    HalvingGridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
-    HalvingRandomSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
+    GridSearchCV(RidgeCCA(), param_grid={"shrinkage": [0.1]}),
+    RandomizedSearchCV(RidgeCCA(), param_distributions={"shrinkage": [0.1]}),
+    HalvingGridSearchCV(RidgeCCA(), param_grid={"shrinkage": [0.1]}),
+    HalvingRandomSearchCV(RidgeCCA(), param_distributions={"shrinkage": [0.1]}),
     PerViewTransformer(StandardScaler()),
 ]
 _CONSTRUCTION_CHECKS = [

@@ -32,7 +32,8 @@ class TCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         eps: Floor on the within-view eigenvalues. Default is 1e-6.
         random_state: Seed for PARAFAC. Default is None.
 
@@ -55,7 +56,7 @@ class TCCA(BaseModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
         "eps": POSITIVE_EPS,
         "random_state": [None, Interval(Integral, 0, None, closed="left")],
     }
@@ -64,12 +65,12 @@ class TCCA(BaseModel):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         eps: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
         self.eps = eps
         self.random_state = random_state
 
@@ -84,7 +85,7 @@ class TCCA(BaseModel):
             self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         whitened, cov_invsqrt = self._whiten_views(views_, c_)
 
         M = cross_moment_tensor(whitened)

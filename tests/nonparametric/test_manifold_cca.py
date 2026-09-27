@@ -63,4 +63,4 @@ def test_relates_two_differently_wound_spirals() -> None:
 
     train, test = (spirals(np.sort(rng.uniform(0.5, 4 * np.pi, 200))) for _ in range(2))
     manifold = ManifoldCCA(n_neighbors=10).fit(train).score(test)
-    assert manifold > MCCA(c=0.1, pca=False).fit(train).score(test) + 0.3
+    assert manifold > MCCA(shrinkage=0.1, pca=False).fit(train).score(test) + 0.3

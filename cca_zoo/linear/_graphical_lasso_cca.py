@@ -31,7 +31,8 @@ class GraphicalLassoCCA(MCCA):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend applied to the estimated covariance, as in MCCA.
+        shrinkage: Shrinkage of each view's estimated covariance towards the
+            identity, in ``[0, 1]``, as in MCCA.
             Default is 0.
         alpha: Graphical-lasso penalty; None selects it by
             :class:`~sklearn.covariance.GraphicalLassoCV`. Per-view. Default
@@ -65,7 +66,7 @@ class GraphicalLassoCCA(MCCA):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like", None],
         "mode": [StrOptions({"cd", "lars"})],
         "max_iter": POSITIVE_INT,
@@ -76,7 +77,7 @@ class GraphicalLassoCCA(MCCA):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         alpha: float | list[float | None] | None = 0.01,
         mode: str = "cd",
         max_iter: int = 100,
@@ -85,7 +86,7 @@ class GraphicalLassoCCA(MCCA):
         super().__init__(
             n_components=n_components,
             center=center,
-            c=c,
+            shrinkage=shrinkage,
             pca=False,
             eps=eps,
         )

@@ -25,7 +25,9 @@ class KTCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.1.
+        shrinkage: Shrinkage of each view's kernel covariance towards the
+            kernel, in ``[0, 1]``: 0 is kernel CCA and 1 is kernel PLS.
+            Per-view. Default is 0.1.
         kernel: Kernel name or callable for
             :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
             ``"linear"``.
@@ -68,7 +70,7 @@ class KTCCA(BaseModel):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.1,
+        shrinkage: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
         gamma: float | list[float | None] | None = None,
         degree: float | list[float] = 1.0,
@@ -78,7 +80,7 @@ class KTCCA(BaseModel):
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
         self.kernel = kernel
         self.gamma = gamma
         self.degree = degree
@@ -98,7 +100,7 @@ class KTCCA(BaseModel):
             self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.1, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.1, self.n_views_)
         kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
         gamma_ = perview_parameter("gamma", self.gamma, None, self.n_views_)
         degree_ = perview_parameter("degree", self.degree, 1.0, self.n_views_)

@@ -29,7 +29,8 @@ class GCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         view_weights: Weight $\mu_i$ of each view; None weights them
             equally. Default is None.
         eps: Floor on the within-view eigenvalues. Default is 1e-6.
@@ -53,7 +54,7 @@ class GCCA(BaseModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
         "eps": POSITIVE_EPS,
         "view_weights": [None, "array-like"],
     }
@@ -62,12 +63,12 @@ class GCCA(BaseModel):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         view_weights: list[float] | None = None,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
         self.view_weights = view_weights
         self.eps = eps
 
@@ -82,7 +83,7 @@ class GCCA(BaseModel):
             self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
         # Q = sum_i mu_i X_i cov_i^{-1} X_i^T is H H^T for the stacked

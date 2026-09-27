@@ -13,7 +13,9 @@ from cca_zoo.nonparametric import KCCA, KGCCA, KTCCA
 def test_linear_kernel_is_cca(correlated_views: list[np.ndarray]) -> None:
     """With a linear kernel and little regularisation, KCCA is CCA."""
     np.testing.assert_allclose(
-        KCCA(n_components=2, c=1e-4).fit(correlated_views).score(correlated_views),
+        KCCA(n_components=2, shrinkage=1e-4)
+        .fit(correlated_views)
+        .score(correlated_views),
         CCA(n_components=2).fit(correlated_views).score(correlated_views),
         atol=1e-3,
     )

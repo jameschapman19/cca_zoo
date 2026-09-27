@@ -55,6 +55,7 @@ The table below gives each replacement.
 | `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
+| `c=` (`RidgeCCA`, `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA`, `GraphicalLassoCCA`, `RANSACCCA`, `TrimmedCCA`, `CCAEY`, `StochasticCCAEY`, `KCCA`, `KGCCA`, `KTCCA`), and per-view `c__0` | `shrinkage=`, `shrinkage__0`: the covariance's shrinkage towards the identity in `[0, 1]`, as sklearn's `shrinkage`; `c` read as SVM's inverse penalty `C` |
 | `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
 | `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
 | `VariationalBayesCCA.guide_`, `.svi_result_` | `posterior_samples_` and `losses_` |
@@ -75,7 +76,7 @@ The table below gives each replacement.
 - `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `cross_val_predict`,
   `learning_curve` and `validation_curve`: sklearn's functions taking a list of views, so
   multiview models are cross-validated as sklearn models are, without stacking views.
-  `validation_curve` takes per-view names such as `"c__0"`; `cross_val_predict` returns
+  `validation_curve` takes per-view names such as `"shrinkage__0"`; `cross_val_predict` returns
   each view's out-of-fold scores.
 - A `scoring` callable in the searches and cross-validation functions is called as
   `scoring(estimator, views)`, with the fitted multiview model and the held-out views.
@@ -235,7 +236,7 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
-- Per-view parameter names inside a `Pipeline`, such as `cca__c__0`, raised
+- Per-view parameter names inside a `Pipeline`, such as `cca__shrinkage__0`, raised
   `AttributeError` in the searches and `validation_curve`.
 - `CCAR3` and `ECCA` took the canonical directions from the SVD of the regression
   coefficients, which ignores the covariance of `X`, so with no penalty they did not

@@ -148,7 +148,7 @@ def validation_curve(
 
     :func:`sklearn.model_selection.validation_curve` on a list of views.
     ``param_name`` may set one view's value of a per-view parameter, e.g.
-    ``"c__0"``.
+    ``"shrinkage__0"``.
 
     Args:
         estimator: A multiview estimator.
@@ -168,7 +168,7 @@ def validation_curve(
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
         >>> train, test = validation_curve(
-        ...     RidgeCCA(), [X1, X2], "c__0", [0.0, 0.5, 1.0], cv=3
+        ...     RidgeCCA(), [X1, X2], "shrinkage__0", [0.0, 0.5, 1.0], cv=3
         ... )
         >>> test.shape
         (3, 3)

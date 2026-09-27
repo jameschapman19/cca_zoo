@@ -51,12 +51,12 @@ def test_converges_to_the_closed_form(
     )
 
 
-def test_ccaey_with_c_one_is_plsey(two_views: list[np.ndarray]) -> None:
-    """C blends CCAEY into PLSEY: at c=1 their objectives and gradients agree."""
+def test_ccaey_with_full_shrinkage_is_plsey(two_views: list[np.ndarray]) -> None:
+    """At shrinkage=1 CCAEY's objective and gradient are PLSEY's."""
     rng = np.random.default_rng(0)
     weights = [rng.standard_normal((v.shape[1], 2)) for v in two_views]
     scores = [v @ w for v, w in zip(two_views, weights)]
-    pls, cca = PLSEY(n_components=2), CCAEY(n_components=2, c=1.0)
+    pls, cca = PLSEY(n_components=2), CCAEY(n_components=2, shrinkage=1.0)
     assert pls._objective(two_views, scores, weights) == cca._objective(
         two_views, scores, weights
     )

@@ -19,13 +19,13 @@ class GRCCA(MCCA):
 
     Each view is augmented with its group-mean features, solved as
     :class:`MCCA`, and the weights collapsed back to the original
-    features. ``c`` shrinks within-group deviations and ``mu`` the
-    group effects; ``c=0`` ignores the groups.
+    features. ``shrinkage`` shrinks within-group deviations and ``mu`` the
+    group effects; ``shrinkage=0`` ignores the groups.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Within-group shrinkage in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Within-group shrinkage in ``[0, 1]``. Per-view. Default is 0.
         mu: Group-effect penalty. Per-view. Default is 0.
         eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
@@ -45,7 +45,8 @@ class GRCCA(MCCA):
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> groups = [rng.integers(0, 3, size=10), rng.integers(0, 3, size=8)]
-        >>> model = GRCCA(n_components=2, c=0.5).fit([X1, X2], feature_groups=groups)
+        >>> model = GRCCA(n_components=2, shrinkage=0.5)
+        >>> model = model.fit([X1, X2], feature_groups=groups)
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -57,14 +58,14 @@ class GRCCA(MCCA):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         mu: float | list[float] = 0.0,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             center=center,
-            c=c,
+            shrinkage=shrinkage,
             pca=False,
             eps=eps,
         )
@@ -89,7 +90,7 @@ class GRCCA(MCCA):
             self.
         """
         views_ = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu_ = perview_parameter("mu", self.mu, 0.0, self.n_views_)
 
         if feature_groups is None:

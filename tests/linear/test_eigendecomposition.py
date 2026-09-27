@@ -41,9 +41,9 @@ def test_cca_variates_are_uncorrelated_and_ordered() -> None:
 @pytest.mark.parametrize(
     "model",
     [
-        RidgeCCA(n_components=2, c=0.0),
+        RidgeCCA(n_components=2, shrinkage=0.0),
         MCCA(n_components=2),
-        GRCCA(n_components=2, c=0.0),
+        GRCCA(n_components=2, shrinkage=0.0),
         CCAR3(n_components=2),
         CCAR3(n_components=2, highdim=False, ledoit_wolf=False),
         ECCA(n_components=2),
@@ -115,7 +115,7 @@ def test_grcca_weights_are_on_the_original_features(
 ) -> None:
     """Group penalties augment the features internally, not in weights_."""
     groups = [np.arange(v.shape[1]) % 3 for v in two_views]
-    model = GRCCA(c=[0.5, 0.0]).fit(two_views, feature_groups=groups)
+    model = GRCCA(shrinkage=[0.5, 0.0]).fit(two_views, feature_groups=groups)
     assert [w.shape[0] for w in model.weights_] == [10, 8]
     with pytest.warns(UserWarning, match="feature_groups"):
-        GRCCA(c=0.5).fit(two_views)
+        GRCCA(shrinkage=0.5).fit(two_views)

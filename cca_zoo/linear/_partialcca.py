@@ -25,7 +25,8 @@ class PartialCCA(MCCA):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
     Attributes:
@@ -52,13 +53,13 @@ class PartialCCA(MCCA):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             center=center,
-            c=c,
+            shrinkage=shrinkage,
             pca=False,
             eps=eps,
         )
@@ -92,7 +93,7 @@ class PartialCCA(MCCA):
         deconfounded = [
             v - partials_arr @ beta for v, beta in zip(views_, self.confound_betas_)
         ]
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         A = self._build_A(deconfounded)
         B = self._build_B(deconfounded, c_)
         _, eigvecs = gevp(A, B, self.n_components)

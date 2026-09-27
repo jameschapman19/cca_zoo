@@ -111,7 +111,7 @@ All contributions must comply with the following:
    when it stops at `max_iter`.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
 4. Declare every constructor parameter in `_parameter_constraints`, merging in the
-   parent class's (e.g. `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}`;
+   parent class's (e.g. `{**BaseModel._parameter_constraints, "shrinkage": RIDGE_PARAMETER}`;
    `cca_zoo/_utils/_param_constraints.py` has shared fragments). An invalid value then
    fails clearly at `fit()`, as in sklearn.
 5. Export from the subpackage's `__init__.py` and add to `__all__`. This is what puts the

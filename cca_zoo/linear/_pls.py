@@ -16,7 +16,7 @@ class PLS(RidgeCCA):
     $$
 
     the truncated SVD of the cross-covariance; :class:`RidgeCCA` with
-    ``c=1``.
+    ``shrinkage=1``.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -47,7 +47,7 @@ class PLS(RidgeCCA):
         super().__init__(
             n_components=n_components,
             center=center,
-            c=1.0,
+            shrinkage=1.0,
         )
 
     def fit(self, views: list[ArrayLike], y: None = None) -> PLS:

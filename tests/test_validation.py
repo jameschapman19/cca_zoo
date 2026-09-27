@@ -50,10 +50,10 @@ def test_perview_parameter_broadcasts(
     value: float | list[int] | None, expected: list[float]
 ) -> None:
     """A scalar is broadcast, None gives the default and a list passes through."""
-    assert perview_parameter("c", value, 0.1, 3) == expected
+    assert perview_parameter("shrinkage", value, 0.1, 3) == expected
 
 
 def test_perview_parameter_needs_one_value_per_view() -> None:
     """A list of the wrong length names the parameter and the length expected."""
-    with pytest.raises(ValueError, match="'c' must be a scalar or a list of length 3"):
-        perview_parameter("c", [0.1, 0.2], 0.0, 3)
+    with pytest.raises(ValueError, match="'shrinkage' must be a scalar or a list of length 3"):
+        perview_parameter("shrinkage", [0.1, 0.2], 0.0, 3)

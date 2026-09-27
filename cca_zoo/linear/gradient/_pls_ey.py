@@ -12,7 +12,7 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 class PLSEY(CCAEY):
     """Multiview PLS by minimising the Eckart-Young loss.
 
-    :class:`~cca_zoo.linear.gradient.CCAEY` with ``c=1``, fitted by
+    :class:`~cca_zoo.linear.gradient.CCAEY` with ``shrinkage=1``, fitted by
     full-batch L-BFGS-B without forming a covariance matrix, so suited to
     wide data. See :class:`~cca_zoo.linear.gradient.StochasticCCAEY` for
     mini-batches.
@@ -53,7 +53,7 @@ class PLSEY(CCAEY):
         super().__init__(
             n_components=n_components,
             center=center,
-            c=1.0,
+            shrinkage=1.0,
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,

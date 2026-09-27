@@ -20,7 +20,7 @@ def test_recovers_a_smooth_nonmonotonic_relationship() -> None:
     train, test = [v[:500] for v in views], [v[500:] for v in views]
     gam = GAMCCA().fit(train).score(test)
     assert gam > 0.9
-    assert gam > RidgeCCA(c=0.3).fit(train).score(test) + 0.5
+    assert gam > RidgeCCA(shrinkage=0.3).fit(train).score(test) + 0.5
 
 
 def test_k_sets_each_views_basis_size(two_views_small: list[np.ndarray]) -> None:

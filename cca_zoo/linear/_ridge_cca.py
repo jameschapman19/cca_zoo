@@ -23,12 +23,13 @@ class RidgeCCA(BaseModel):
     $$
 
     solved by whitening each view and taking the SVD of the cross-covariance.
-    ``c=0`` is :class:`CCA` and ``c=1`` is :class:`PLS`.
+    ``shrinkage=0`` is :class:`CCA` and ``shrinkage=1`` is :class:`PLS`.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -43,22 +44,22 @@ class RidgeCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> model = RidgeCCA(n_components=2, c=[0.1, 0.5]).fit([X1, X2])
+        >>> model = RidgeCCA(n_components=2, shrinkage=[0.1, 0.5]).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
     }
 
     def __init__(
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
 
     def fit(self, views: list[ArrayLike], y: None = None) -> RidgeCCA:
         """Fit the model.
@@ -79,7 +80,7 @@ class RidgeCCA(BaseModel):
                 f"{type(self).__name__} requires exactly 2 views, got "
                 f"{self.n_views_}. Use MCCA for more than 2 views."
             )
-        c_ = perview_parameter("c", self.c, 0.0, 2)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, 2)
         X1, X2 = views_
         # Whiten each view with its regularised covariance
         X1_w, W1 = svd_whiten(X1, c_[0])

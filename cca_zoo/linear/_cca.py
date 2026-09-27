@@ -15,7 +15,7 @@ class CCA(RidgeCCA):
     \quad \text{subject to} \quad w_i^\top X_i^\top X_i w_i = 1.
     $$
 
-    :class:`RidgeCCA` with ``c=0``.
+    :class:`RidgeCCA` with ``shrinkage=0``.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -45,7 +45,7 @@ class CCA(RidgeCCA):
         super().__init__(
             n_components=n_components,
             center=center,
-            c=0.0,
+            shrinkage=0.0,
         )
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCA:

@@ -68,7 +68,7 @@ def test_learning_curve_shapes() -> None:
 def test_validation_curve_varies_one_views_parameter() -> None:
     """A per-view name varies that view's value only."""
     views = _views()
-    _, test = validation_curve(RidgeCCA(), views, "c__1", [0.0, 1.0], cv=3)
+    _, test = validation_curve(RidgeCCA(), views, "shrinkage__1", [0.0, 1.0], cv=3)
     for value, row in zip([0.0, 1.0], test):
-        expected = cross_val_score(RidgeCCA(c=[0.0, value]), views, cv=3)
+        expected = cross_val_score(RidgeCCA(shrinkage=[0.0, value]), views, cv=3)
         np.testing.assert_allclose(row, expected)

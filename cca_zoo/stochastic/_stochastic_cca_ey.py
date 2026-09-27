@@ -26,7 +26,8 @@ class StochasticCCAEY(CCAEY):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``, as in ``CCAEY``. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
         learning_rate: Step size. Default is 1e-2.
         momentum: Momentum in ``[0, 1)``. Default is 0.9.
         batch_size: Mini-batch size; None uses all samples. Default is None.
@@ -61,7 +62,7 @@ class StochasticCCAEY(CCAEY):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float = 0.0,
+        shrinkage: float = 0.0,
         learning_rate: float = 1e-2,
         momentum: float = 0.9,
         batch_size: int | None = None,
@@ -72,7 +73,7 @@ class StochasticCCAEY(CCAEY):
         super().__init__(
             n_components=n_components,
             center=center,
-            c=c,
+            shrinkage=shrinkage,
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,

@@ -21,7 +21,7 @@ from cca_zoo.model_selection import (
 from cca_zoo.model_selection._search import _MultiviewWrapper
 from cca_zoo.preprocessing import PerViewTransformer
 
-_GRID = {"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]}
+_GRID = {"shrinkage__0": [0.0, 0.5], "shrinkage__1": [0.1, 0.9]}
 _SEARCHES = [
     (GridSearchCV, {"param_grid": _GRID}),
     (
@@ -44,10 +44,10 @@ def test_search_over_per_view_parameters(
 ) -> None:
     """Each view's value is searched independently and reported without prefixes."""
     fitted = search(RidgeCCA(), cv=2, **kwargs).fit(two_views)
-    assert set(fitted.best_params_) == {"c__0", "c__1"}
-    assert fitted.best_estimator_.c == [
-        fitted.best_params_["c__0"],
-        fitted.best_params_["c__1"],
+    assert set(fitted.best_params_) == {"shrinkage__0", "shrinkage__1"}
+    assert fitted.best_estimator_.shrinkage == [
+        fitted.best_params_["shrinkage__0"],
+        fitted.best_params_["shrinkage__1"],
     ]
     assert not any("estimator__" in key for key in fitted.cv_results_)
     assert len(fitted.transform(two_views)) == 2
@@ -58,12 +58,12 @@ def test_grid_search_is_sklearns_on_the_stacked_views(
     two_views: list[np.ndarray],
 ) -> None:
     """Scores and choice match sklearn's GridSearchCV on the stacked views."""
-    ours = GridSearchCV(RidgeCCA(), param_grid={"c": [0.0, 0.3, 0.9]}, cv=3).fit(
-        two_views
-    )
+    ours = GridSearchCV(
+        RidgeCCA(), param_grid={"shrinkage": [0.0, 0.3, 0.9]}, cv=3
+    ).fit(two_views)
     theirs = skms.GridSearchCV(
         _MultiviewWrapper(RidgeCCA(), n_features_per_view=[10, 8]),
-        param_grid={"estimator__c": [0.0, 0.3, 0.9]},
+        param_grid={"estimator__shrinkage": [0.0, 0.3, 0.9]},
         cv=3,
     ).fit(np.hstack(two_views))
     np.testing.assert_allclose(
@@ -76,20 +76,22 @@ def test_grid_search_is_sklearns_on_the_stacked_views(
 def test_grid_search_over_a_list_of_grids(two_views: list[np.ndarray]) -> None:
     """Disjoint grids are searched in turn."""
     gs = GridSearchCV(
-        RidgeCCA(), param_grid=[{"c": [0.0]}, {"n_components": [1, 2]}], cv=2
+        RidgeCCA(), param_grid=[{"shrinkage": [0.0]}, {"n_components": [1, 2]}], cv=2
     ).fit(two_views)
     assert len(gs.cv_results_["params"]) == 3
 
 
 def test_per_view_override_keeps_the_other_views(two_views: list[np.ndarray]) -> None:
     """Views missing from the grid keep the estimator's value."""
-    gs = GridSearchCV(RidgeCCA(c=0.3), param_grid={"c__0": [0.0, 0.9]}, cv=2)
-    assert gs.fit(two_views).best_estimator_.c[1] == 0.3
+    gs = GridSearchCV(
+        RidgeCCA(shrinkage=0.3), param_grid={"shrinkage__0": [0.0, 0.9]}, cv=2
+    )
+    assert gs.fit(two_views).best_estimator_.shrinkage[1] == 0.3
 
 
 def test_per_view_index_beyond_the_views_raises(two_views: list[np.ndarray]) -> None:
     """A view index beyond the data names the problem."""
-    gs = GridSearchCV(RidgeCCA(), param_grid={"c__5": [0.1]}, cv=2)
+    gs = GridSearchCV(RidgeCCA(), param_grid={"shrinkage__5": [0.1]}, cv=2)
     with pytest.raises(ValueError, match="only 2 views"):
         gs.fit(two_views)
 
@@ -109,22 +111,25 @@ def test_callable_refit_sees_unprefixed_cv_results(
 
     def smallest_c(cv_results: dict[str, Any]) -> int:
         seen.append(set(cv_results))
-        return int(np.argmin(cv_results["param_c"]))
+        return int(np.argmin(cv_results["param_shrinkage"]))
 
     gs = GridSearchCV(
-        RidgeCCA(), param_grid={"c": [0.5, 0.0, 0.9]}, cv=3, refit=smallest_c
+        RidgeCCA(), param_grid={"shrinkage": [0.5, 0.0, 0.9]}, cv=3, refit=smallest_c
     ).fit(two_views)
-    assert "param_c" in seen[0]
-    assert gs.best_params_["c"] == 0.0
+    assert "param_shrinkage" in seen[0]
+    assert gs.best_params_["shrinkage"] == 0.0
 
 
 def test_per_view_names_reach_into_a_pipeline(two_views: list[np.ndarray]) -> None:
     """A per-view name addresses a pipeline step's parameter."""
     pipeline = Pipeline(
-        [("scale", PerViewTransformer(StandardScaler())), ("cca", RidgeCCA(c=0.3))]
+        [
+            ("scale", PerViewTransformer(StandardScaler())),
+            ("cca", RidgeCCA(shrinkage=0.3)),
+        ]
     )
-    gs = GridSearchCV(pipeline, param_grid={"cca__c__0": [0.0, 0.9]}, cv=2)
-    assert gs.fit(two_views).best_estimator_["cca"].c[1] == 0.3
+    gs = GridSearchCV(pipeline, param_grid={"cca__shrinkage__0": [0.0, 0.9]}, cv=2)
+    assert gs.fit(two_views).best_estimator_["cca"].shrinkage[1] == 0.3
 
 
 def test_scoring_gets_the_estimator_and_views(two_views: list[np.ndarray]) -> None:
@@ -135,8 +140,8 @@ def test_scoring_gets_the_estimator_and_views(two_views: list[np.ndarray]) -> No
         seen.append((type(estimator), len(views)))
         return 0.0
 
-    GridSearchCV(RidgeCCA(), param_grid={"c": [0.0]}, cv=2, scoring=n_views).fit(
-        two_views
-    )
+    GridSearchCV(
+        RidgeCCA(), param_grid={"shrinkage": [0.0]}, cv=2, scoring=n_views
+    ).fit(two_views)
     cross_validate(RidgeCCA(), two_views, cv=2, scoring={"n": n_views})
     assert set(seen) == {(RidgeCCA, 2)}

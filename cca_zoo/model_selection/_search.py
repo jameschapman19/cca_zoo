@@ -292,11 +292,10 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
-        >>> gs = GridSearchCV(
-        ...     RidgeCCA(), param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]}, cv=2
-        ... ).fit([X1, X2])
+        >>> grid = {"shrinkage__0": [0.0, 0.1], "shrinkage__1": [0.0, 0.5]}
+        >>> gs = GridSearchCV(RidgeCCA(), param_grid=grid, cv=2).fit([X1, X2])
         >>> sorted(gs.best_params_.items())
-        [('c__0', 0.0), ('c__1', 0.5)]
+        [('shrinkage__0', 0.0), ('shrinkage__1', 0.5)]
     """
 
     _inner_cv_cls = skms.GridSearchCV
@@ -399,15 +398,15 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         >>> rs = RandomizedSearchCV(
         ...     RidgeCCA(),
         ...     param_distributions={
-        ...         "c__0": loguniform(1e-3, 1.0),
-        ...         "c__1": loguniform(1e-3, 1.0),
+        ...         "shrinkage__0": loguniform(1e-3, 1.0),
+        ...         "shrinkage__1": loguniform(1e-3, 1.0),
         ...     },
         ...     n_iter=5,
         ...     cv=2,
         ...     random_state=0,
         ... ).fit([X1, X2])
         >>> sorted(rs.best_params_)
-        ['c__0', 'c__1']
+        ['shrinkage__0', 'shrinkage__1']
     """
 
     _inner_cv_cls = skms.RandomizedSearchCV
@@ -517,12 +516,12 @@ class HalvingGridSearchCV(_BaseMultiviewSearchCV):
         >>> X2 = rng.standard_normal((50, 4))
         >>> hgs = HalvingGridSearchCV(
         ...     RidgeCCA(),
-        ...     param_grid={"c__0": [0.0, 0.1], "c__1": [0.0, 0.5]},
+        ...     param_grid={"shrinkage__0": [0.0, 0.1], "shrinkage__1": [0.0, 0.5]},
         ...     cv=2,
         ...     random_state=0,
         ... ).fit([X1, X2])
         >>> sorted(hgs.best_params_.items())
-        [('c__0', 0.1), ('c__1', 0.0)]
+        [('shrinkage__0', 0.1), ('shrinkage__1', 0.0)]
     """
 
     _inner_cv_cls = skms.HalvingGridSearchCV
@@ -645,7 +644,7 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         >>> X2 = rng.standard_normal((50, 4))
         >>> hrs = HalvingRandomSearchCV(
         ...     RidgeCCA(),
-        ...     param_distributions={"c": loguniform(1e-3, 1.0)},
+        ...     param_distributions={"shrinkage": loguniform(1e-3, 1.0)},
         ...     cv=2,
         ...     random_state=0,
         ... ).fit([X1, X2])

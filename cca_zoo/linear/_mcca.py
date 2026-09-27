@@ -26,12 +26,13 @@ class MCCA(BaseModel):
 
     solved as the generalized eigenproblem $A v = \lambda B v$, with $A$ the
     between-view and $B$ the regularised within-view covariance blocks.
-    ``c=0`` is CCA and ``c=1`` is PLS.
+    ``shrinkage=0`` is CCA and ``shrinkage=1`` is PLS.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        c: Ridge blend in ``[0, 1]``. Per-view. Default is 0.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         pca: Whether to solve in each view's principal components, which is
             faster and more stable for wide data. Default is True.
         eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
@@ -53,12 +54,12 @@ class MCCA(BaseModel):
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
-        >>> model = MCCA(n_components=2, c=0.1).fit([X1, X2, X3])
+        >>> model = MCCA(n_components=2, shrinkage=0.1).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
+        "shrinkage": RIDGE_PARAMETER,
         "pca": ["boolean"],
         "eps": POSITIVE_EPS,
     }
@@ -67,12 +68,12 @@ class MCCA(BaseModel):
         self,
         n_components: int = 1,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         pca: bool = True,
         eps: float = 1e-6,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.c = c
+        self.shrinkage = shrinkage
         self.pca = pca
         self.eps = eps
 
@@ -87,7 +88,7 @@ class MCCA(BaseModel):
             self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
 
         if self.pca:
             pca_models = [PCA().fit(v) for v in views_]
