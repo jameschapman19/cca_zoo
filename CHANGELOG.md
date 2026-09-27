@@ -360,7 +360,7 @@ Same results (to rounding, or up to a rotation inside a degenerate eigenspace), 
   sample's outer product before averaging — for two kernel views an n x n x n
   intermediate (8 GB at n = 1000) for what is `W1ᵀW2 / n` — and whiten with one
   symmetric `eigh` (`psd_inverse_sqrt`) instead of `inv(sqrtm(·))`. `KTCCA` at n = 1000
-  drops from 49 s to under 1 s; `TCCA` about 19x.
+  drops from 49 s to under 2 s; `TCCA` about 19x.
 - `GCCA` takes its shared latent space from the thin SVD of the stacked whitened views
   rather than an eigendecomposition of the n x n matrix they span: O(n p²) instead of
   O(n³), 17x at n = 4000.
