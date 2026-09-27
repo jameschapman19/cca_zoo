@@ -33,13 +33,15 @@ dependencies = [
 deep = ["torch>=2.1", "lightning>=2.1"]
 probabilistic = ["numpyro>=0.13", "jax>=0.4", "arviz>=0.17"]
 tree = ["xgboost>=2.0", "lightgbm>=4.0", "catboost>=1.2"]
+optuna = ["optuna>=4.0", "optuna-integration>=4.0"]
 dev = ["pytest>=8", "pytest-cov>=5", "pytest-xdist>=3.5", "mypy>=1.8", "ruff>=0.4"]
 docs = [
     "mkdocs>=1.5,<2.0",
     "mkdocs-material>=9.5,<10.0",
     "mkdocstrings[python]>=0.24",
+    "cca-zoo[optuna]",
 ]
-all = ["cca-zoo[deep,probabilistic,tree]"]
+all = ["cca-zoo[deep,probabilistic,tree,optuna]"]
 
 [project.urls]
 Homepage = "https://github.com/jameschapman19/cca_zoo"
@@ -97,7 +99,7 @@ disable_error_code = ["misc", "untyped-decorator"]
 [tool.pytest.ini_options]
 addopts = "-n auto --cov=cca_zoo --cov-report=term-missing"
 markers = [
-    "slow: tests requiring torch/numpyro/xgboost (deselect with -m 'not slow')",
+    "slow: tests requiring an optional extra (deselect with -m 'not slow')",
 ]
 
 [tool.coverage.run]

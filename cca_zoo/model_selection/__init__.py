@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from cca_zoo.model_selection import _search
 from cca_zoo.model_selection._search import (
     GridSearchCV,
     HalvingGridSearchCV,
@@ -33,3 +34,16 @@ __all__ = [
     "learning_curve",
     "validation_curve",
 ]
+
+if hasattr(_search, "OptunaSearchCV"):
+    OptunaSearchCV = _search.OptunaSearchCV
+    __all__.append("OptunaSearchCV")
+else:
+
+    def __getattr__(name: str) -> object:
+        if name == "OptunaSearchCV":
+            raise ImportError(
+                "OptunaSearchCV requires optuna-integration: "
+                "pip install 'cca-zoo[optuna]'."
+            )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

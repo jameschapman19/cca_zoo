@@ -155,7 +155,7 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --group dev --extra deep --extra probabilistic --extra tree --locked
+        run: uv sync --group dev --extra deep --extra probabilistic --extra tree --extra optuna --locked
 
       - name: Run slow tests
         run: uv run pytest -m slow --cov=cca_zoo --cov-report=xml
@@ -163,7 +163,7 @@ jobs:
       - name: Run doctests
         run: |
           uv run pytest --doctest-modules --no-cov \
-            cca_zoo/deep cca_zoo/probabilistic cca_zoo/tree
+            cca_zoo/deep cca_zoo/probabilistic cca_zoo/tree cca_zoo/model_selection/_search.py
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

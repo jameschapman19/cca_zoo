@@ -54,6 +54,40 @@ def test_search_over_per_view_parameters(
     assert isinstance(fitted.score(two_views), float)
 
 
+@pytest.mark.parametrize(
+    ("ours", "theirs"),
+    [
+        (GridSearchCV, skms.GridSearchCV),
+        (RandomizedSearchCV, skms.RandomizedSearchCV),
+        (HalvingGridSearchCV, skms.HalvingGridSearchCV),
+        (HalvingRandomSearchCV, skms.HalvingRandomSearchCV),
+    ],
+    ids=lambda c: c.__name__,
+)
+def test_parameters_are_the_upstream_searchs(ours: type, theirs: type) -> None:
+    """Each search takes exactly the parameters of the sklearn search it extends."""
+    assert ours._get_param_names() == theirs._get_param_names()
+
+
+@pytest.mark.slow
+def test_optuna_search_over_per_view_parameters(two_views: list[np.ndarray]) -> None:
+    """OptunaSearchCV searches per-view values and returns the multiview model."""
+    distributions = pytest.importorskip("optuna.distributions")
+    from cca_zoo.model_selection import OptunaSearchCV
+
+    space = {
+        f"shrinkage__{i}": distributions.FloatDistribution(0.0, 1.0) for i in (0, 1)
+    }
+    fitted = OptunaSearchCV(RidgeCCA(), space, n_trials=4, cv=2, random_state=0)
+    fitted.fit(two_views)
+    assert fitted.best_estimator_.shrinkage == [
+        fitted.best_params_["shrinkage__0"],
+        fitted.best_params_["shrinkage__1"],
+    ]
+    assert len(fitted.transform(two_views)) == 2
+    assert isinstance(fitted.score(two_views), float)
+
+
 def test_grid_search_is_sklearns_on_the_stacked_views(
     two_views: list[np.ndarray],
 ) -> None:

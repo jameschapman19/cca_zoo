@@ -7,9 +7,10 @@ into one array for sklearn and splitting them back for the estimator.
 
 from __future__ import annotations
 
+import importlib.util
 import re
 from collections.abc import Callable
-from typing import Any, ClassVar, cast
+from typing import Any, cast
 
 import numpy as np
 import sklearn.model_selection as skms
@@ -216,12 +217,47 @@ def _copy_fitted_attrs(target: Any, inner: BaseEstimator) -> None:
         target.best_estimator_ = inner.best_estimator_.estimator_
 
 
-class _MultiviewSearchMixin:
-    """Shared ``transform``/``score`` for the wrapped multiview search classes."""
+class _MultiviewSearch:
+    """Mixin running the sklearn-style search class it precedes on lists of views.
 
-    refit: bool | str | Callable[[dict[str, Any]], int]
-    _inner_cv: BaseEstimator
+    ``class GridSearchCV(_MultiviewSearch, skms.GridSearchCV)`` inherits the
+    upstream constructor, so its parameters, ``get_params`` and ``clone`` are
+    the upstream search's own. ``fit`` runs an upstream instance on the
+    stacked views, with the estimator wrapped, the parameter names prefixed
+    and ``scoring`` and ``refit`` adapted, and copies its results back with
+    the prefix removed and the fitted multiview model as ``best_estimator_``.
+    """
+
+    refit: Any
     best_estimator_: BaseEstimator
+    _search: BaseEstimator
+
+    def fit(
+        self, views: list[ArrayLike], y: None = None, **fit_params: Any
+    ) -> _MultiviewSearch:
+        """Run the search.
+
+        Args:
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
+            **fit_params: Forwarded to the estimator's ``fit``.
+
+        Returns:
+            self.
+        """
+        mro = type(self).__mro__
+        upstream = mro[mro.index(_MultiviewSearch) + 1]
+        params = self.get_params(deep=False)  # type: ignore[attr-defined]
+        params["estimator"], X = _wrap(params["estimator"], views)
+        for space in ("param_grid", "param_distributions"):
+            if space in params:
+                params[space] = _wrap_param_space(params[space])
+        params["scoring"] = _unwrapped_scoring(params["scoring"])
+        params["refit"] = _unwrapped_refit(params["refit"])
+        self._search = upstream(**params)
+        self._search.fit(X, y, **fit_params)
+        _copy_fitted_attrs(self, self._search)
+        return self
 
     def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Transform multiview data with the best estimator.
@@ -238,61 +274,18 @@ class _MultiviewSearchMixin:
 
     def score(self, views: list[ArrayLike], y: None = None) -> float:
         """Score the best estimator on held-out multiview data."""
-        x_concat = np.hstack([np.asarray(v) for v in views])
-        return float(self._inner_cv.score(x_concat, y))
+        return float(self._search.score(np.hstack([np.asarray(v) for v in views]), y))
 
 
-class _BaseMultiviewSearchCV(_MultiviewSearchMixin, BaseEstimator):
-    """Shared ``fit``: wrap the estimator, run ``_inner_cv_cls``, copy results back."""
-
-    estimator: BaseEstimator
-    _inner_cv_cls: ClassVar[type[BaseEstimator]]
-
-    def _fit(
-        self,
-        views: list[ArrayLike],
-        y: None,
-        inner_cv_kwargs: dict[str, Any],
-        **fit_params: Any,
-    ) -> _BaseMultiviewSearchCV:
-        wrapped_estimator, X = _wrap(self.estimator, views)
-        self._inner_cv = self._inner_cv_cls(
-            estimator=wrapped_estimator, **inner_cv_kwargs
-        )
-        self._inner_cv.fit(X, y, **fit_params)
-        _copy_fitted_attrs(self, self._inner_cv)
-        return self
-
-
-class GridSearchCV(_BaseMultiviewSearchCV):
+class GridSearchCV(_MultiviewSearch, skms.GridSearchCV):
     """Exhaustive grid search over a multiview estimator's parameters.
 
-    A multiview adapter for :class:`sklearn.model_selection.GridSearchCV`;
-    parameter names are unprefixed, and ``name__<view>`` searches one view's
-    value of a per-view parameter.
-
-    Args:
-        estimator: A multiview estimator.
-        param_grid: Dict, or list of dicts, of parameter values to try.
-        cv: Number of folds or a splitter. Default is 5.
-        scoring: ``None`` uses the estimator's ``score``; a callable
-            ``scoring(estimator, views)``, or a dict of them, scores the fitted
-            estimator on the held-out views. Default is None.
-        n_jobs: Number of parallel jobs. Default is None.
-        refit: Whether to refit the best candidate on all data, or a callable
-            choosing it from ``cv_results_``. Default is True.
-        verbose: Verbosity level. Default is 0.
-        pre_dispatch: Jobs dispatched during parallel execution. Default is
-            ``"2*n_jobs"``.
-        error_score: Score assigned when a fit fails. Default is ``np.nan``.
-        return_train_score: Whether to include training scores. Default is
-            False.
-
-    Attributes:
-        cv_results_: Per-candidate results, as in sklearn.
-        best_estimator_: The refitted multiview estimator.
-        best_params_: Parameters of the best candidate.
-        best_score_: Mean cross-validated score of the best candidate.
+    The multiview form of :class:`~sklearn.model_selection.GridSearchCV`, with its
+    parameters, attributes and methods. ``fit``, ``transform`` and ``score``
+    take a list of views; parameter names are the estimator's own, with
+    ``name__<view>`` setting one view's value of a per-view parameter;
+    ``best_estimator_`` is the fitted multiview estimator; and a ``scoring``
+    callable is called as ``scoring(estimator, views)``.
 
     Examples:
         >>> import numpy as np
@@ -307,94 +300,16 @@ class GridSearchCV(_BaseMultiviewSearchCV):
         [('shrinkage__0', 0.0), ('shrinkage__1', 0.5)]
     """
 
-    _inner_cv_cls = skms.GridSearchCV
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        param_grid: dict[str, list[Any]] | list[dict[str, list[Any]]],
-        *,
-        cv: int | Any = 5,
-        scoring: _Scoring = None,
-        n_jobs: int | None = None,
-        refit: bool | str | Callable[[dict[str, Any]], int] = True,
-        verbose: int = 0,
-        pre_dispatch: str | int = "2*n_jobs",
-        error_score: float = np.nan,
-        return_train_score: bool = False,
-    ) -> None:
-        self.estimator = estimator
-        self.param_grid = param_grid
-        self.cv = cv
-        self.scoring = scoring
-        self.n_jobs = n_jobs
-        self.refit = refit
-        self.verbose = verbose
-        self.pre_dispatch = pre_dispatch
-        self.error_score = error_score
-        self.return_train_score = return_train_score
-
-    def fit(
-        self,
-        views: list[ArrayLike],
-        y: None = None,
-        **fit_params: Any,
-    ) -> GridSearchCV:
-        """Run the search.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-            **fit_params: Forwarded to the estimator's ``fit``.
-
-        Returns:
-            self.
-        """
-        inner_cv_kwargs = dict(
-            param_grid=_wrap_param_space(self.param_grid),
-            cv=self.cv,
-            scoring=_unwrapped_scoring(self.scoring),
-            n_jobs=self.n_jobs,
-            refit=_unwrapped_refit(self.refit),
-            verbose=self.verbose,
-            pre_dispatch=self.pre_dispatch,
-            error_score=self.error_score,
-            return_train_score=self.return_train_score,
-        )
-        return cast("GridSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params))
-
-
-class RandomizedSearchCV(_BaseMultiviewSearchCV):
+class RandomizedSearchCV(_MultiviewSearch, skms.RandomizedSearchCV):
     """Randomized search over a multiview estimator's parameters.
 
-    A multiview adapter for :class:`sklearn.model_selection.RandomizedSearchCV`,
-    with the same parameter naming as :class:`GridSearchCV`.
-
-    Args:
-        estimator: A multiview estimator.
-        param_distributions: Dict, or list of dicts, of value lists or
-            distributions with an ``rvs`` method.
-        n_iter: Number of candidates sampled. Default is 10.
-        cv: Number of folds or a splitter. Default is 5.
-        scoring: ``None`` uses the estimator's ``score``; a callable
-            ``scoring(estimator, views)``, or a dict of them, scores the fitted
-            estimator on the held-out views. Default is None.
-        n_jobs: Number of parallel jobs. Default is None.
-        refit: Whether to refit the best candidate on all data, or a callable
-            choosing it from ``cv_results_``. Default is True.
-        verbose: Verbosity level. Default is 0.
-        random_state: Seed for the parameter sampling. Default is None.
-        pre_dispatch: Jobs dispatched during parallel execution. Default is
-            ``"2*n_jobs"``.
-        error_score: Score assigned when a fit fails. Default is ``np.nan``.
-        return_train_score: Whether to include training scores. Default is
-            False.
-
-    Attributes:
-        cv_results_: Per-candidate results, as in sklearn.
-        best_estimator_: The refitted multiview estimator.
-        best_params_: Parameters of the best candidate.
-        best_score_: Mean cross-validated score of the best candidate.
+    The multiview form of :class:`~sklearn.model_selection.RandomizedSearchCV`, with its
+    parameters, attributes and methods. ``fit``, ``transform`` and ``score``
+    take a list of views; parameter names are the estimator's own, with
+    ``name__<view>`` setting one view's value of a per-view parameter;
+    ``best_estimator_`` is the fitted multiview estimator; and a ``scoring``
+    callable is called as ``scoring(estimator, views)``.
 
     Examples:
         >>> import numpy as np
@@ -404,244 +319,50 @@ class RandomizedSearchCV(_BaseMultiviewSearchCV):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 4))
+        >>> space = {"shrinkage__0": loguniform(1e-3, 1.0)}
         >>> rs = RandomizedSearchCV(
-        ...     RidgeCCA(),
-        ...     param_distributions={
-        ...         "shrinkage__0": loguniform(1e-3, 1.0),
-        ...         "shrinkage__1": loguniform(1e-3, 1.0),
-        ...     },
-        ...     n_iter=5,
-        ...     cv=2,
-        ...     random_state=0,
+        ...     RidgeCCA(), space, n_iter=5, cv=2, random_state=0
         ... ).fit([X1, X2])
         >>> sorted(rs.best_params_)
-        ['shrinkage__0', 'shrinkage__1']
+        ['shrinkage__0']
     """
 
-    _inner_cv_cls = skms.RandomizedSearchCV
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        param_distributions: dict[str, Any] | list[dict[str, Any]],
-        *,
-        n_iter: int = 10,
-        cv: int | Any = 5,
-        scoring: _Scoring = None,
-        n_jobs: int | None = None,
-        refit: bool | str | Callable[[dict[str, Any]], int] = True,
-        verbose: int = 0,
-        random_state: int | Any = None,
-        pre_dispatch: str | int = "2*n_jobs",
-        error_score: float = np.nan,
-        return_train_score: bool = False,
-    ) -> None:
-        self.estimator = estimator
-        self.param_distributions = param_distributions
-        self.n_iter = n_iter
-        self.cv = cv
-        self.scoring = scoring
-        self.n_jobs = n_jobs
-        self.refit = refit
-        self.verbose = verbose
-        self.random_state = random_state
-        self.pre_dispatch = pre_dispatch
-        self.error_score = error_score
-        self.return_train_score = return_train_score
-
-    def fit(
-        self,
-        views: list[ArrayLike],
-        y: None = None,
-        **fit_params: Any,
-    ) -> RandomizedSearchCV:
-        """Run the search.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-            **fit_params: Forwarded to the estimator's ``fit``.
-
-        Returns:
-            self.
-        """
-        inner_cv_kwargs = dict(
-            param_distributions=_wrap_param_space(self.param_distributions),
-            n_iter=self.n_iter,
-            cv=self.cv,
-            scoring=_unwrapped_scoring(self.scoring),
-            n_jobs=self.n_jobs,
-            refit=_unwrapped_refit(self.refit),
-            verbose=self.verbose,
-            random_state=self.random_state,
-            pre_dispatch=self.pre_dispatch,
-            error_score=self.error_score,
-            return_train_score=self.return_train_score,
-        )
-        return cast(
-            "RandomizedSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
-        )
-
-
-class HalvingGridSearchCV(_BaseMultiviewSearchCV):
+class HalvingGridSearchCV(_MultiviewSearch, skms.HalvingGridSearchCV):
     """Successive-halving grid search over a multiview estimator's parameters.
 
-    A multiview adapter for :class:`sklearn.model_selection.HalvingGridSearchCV`,
-    with the same parameter naming as :class:`GridSearchCV`.
-
-    Args:
-        estimator: A multiview estimator.
-        param_grid: Dict, or list of dicts, of parameter values to try.
-        factor: Candidate reduction and resource growth per round. Default is 3.
-        resource: Resource grown between rounds. Default is ``"n_samples"``.
-        max_resources: Maximum resource per candidate. Default is ``"auto"``.
-        min_resources: Resource in the first round. Default is ``"exhaust"``.
-        aggressive_elimination: Whether to eliminate candidates before
-            resources can grow. Default is False.
-        cv: Number of folds or a splitter. Default is 5.
-        scoring: ``None`` uses the estimator's ``score``; a callable
-            ``scoring(estimator, views)``, or a dict of them, scores the fitted
-            estimator on the held-out views. Default is None.
-        refit: Whether to refit the best candidate on all data. Default is True.
-        error_score: Score assigned when a fit fails. Default is ``np.nan``.
-        return_train_score: Whether to include training scores. Default is
-            True.
-        random_state: Seed for the per-round subsampling. Default is None.
-        n_jobs: Number of parallel jobs. Default is None.
-        verbose: Verbosity level. Default is 0.
-
-    Attributes:
-        cv_results_: Per-candidate results, as in sklearn.
-        best_estimator_: The refitted multiview estimator.
-        best_params_: Parameters of the best candidate.
-        best_score_: Mean cross-validated score of the best candidate.
+    The multiview form of
+    :class:`~sklearn.model_selection.HalvingGridSearchCV`, with its
+    parameters, attributes and methods. ``fit``, ``transform`` and ``score``
+    take a list of views; parameter names are the estimator's own, with
+    ``name__<view>`` setting one view's value of a per-view parameter;
+    ``best_estimator_`` is the fitted multiview estimator; and a ``scoring``
+    callable is called as ``scoring(estimator, views)``.
 
     Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import HalvingGridSearchCV
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 5))
-        >>> X2 = rng.standard_normal((50, 4))
-        >>> hgs = HalvingGridSearchCV(
-        ...     RidgeCCA(),
-        ...     param_grid={"shrinkage__0": [0.0, 0.1], "shrinkage__1": [0.0, 0.5]},
-        ...     cv=2,
-        ...     random_state=0,
-        ... ).fit([X1, X2])
-        >>> sorted(hgs.best_params_.items())
-        [('shrinkage__0', 0.1), ('shrinkage__1', 0.0)]
+        >>> X1 = rng.standard_normal((60, 5))
+        >>> X2 = rng.standard_normal((60, 4))
+        >>> grid = {"shrinkage__0": [0.0, 0.1, 0.5]}
+        >>> hgs = HalvingGridSearchCV(RidgeCCA(), grid, cv=2, random_state=0)
+        >>> sorted(hgs.fit([X1, X2]).best_params_)
+        ['shrinkage__0']
     """
 
-    _inner_cv_cls = skms.HalvingGridSearchCV
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        param_grid: dict[str, list[Any]] | list[dict[str, list[Any]]],
-        *,
-        factor: int | float = 3,
-        resource: str = "n_samples",
-        max_resources: int | str = "auto",
-        min_resources: int | str = "exhaust",
-        aggressive_elimination: bool = False,
-        cv: int | Any = 5,
-        scoring: _Scoring = None,
-        refit: bool = True,
-        error_score: float = np.nan,
-        return_train_score: bool = True,
-        random_state: int | Any = None,
-        n_jobs: int | None = None,
-        verbose: int = 0,
-    ) -> None:
-        self.estimator = estimator
-        self.param_grid = param_grid
-        self.factor = factor
-        self.resource = resource
-        self.max_resources = max_resources
-        self.min_resources = min_resources
-        self.aggressive_elimination = aggressive_elimination
-        self.cv = cv
-        self.scoring = scoring
-        self.refit = refit
-        self.error_score = error_score
-        self.return_train_score = return_train_score
-        self.random_state = random_state
-        self.n_jobs = n_jobs
-        self.verbose = verbose
+class HalvingRandomSearchCV(_MultiviewSearch, skms.HalvingRandomSearchCV):
+    """Successive-halving randomized search over a multiview model's parameters.
 
-    def fit(
-        self,
-        views: list[ArrayLike],
-        y: None = None,
-        **fit_params: Any,
-    ) -> HalvingGridSearchCV:
-        """Run the search.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-            **fit_params: Forwarded to the estimator's ``fit``.
-
-        Returns:
-            self.
-        """
-        inner_cv_kwargs = dict(
-            param_grid=_wrap_param_space(self.param_grid),
-            factor=self.factor,
-            resource=self.resource,
-            max_resources=self.max_resources,
-            min_resources=self.min_resources,
-            aggressive_elimination=self.aggressive_elimination,
-            cv=self.cv,
-            scoring=_unwrapped_scoring(self.scoring),
-            refit=self.refit,
-            error_score=self.error_score,
-            return_train_score=self.return_train_score,
-            random_state=self.random_state,
-            n_jobs=self.n_jobs,
-            verbose=self.verbose,
-        )
-        return cast(
-            "HalvingGridSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
-        )
-
-
-class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
-    """Successive-halving randomized search over a multiview estimator's parameters.
-
-    A multiview adapter for
-    :class:`sklearn.model_selection.HalvingRandomSearchCV`, with the same
-    parameter naming as :class:`GridSearchCV`.
-
-    Args:
-        estimator: A multiview estimator.
-        param_distributions: Dict, or list of dicts, of value lists or
-            distributions with an ``rvs`` method.
-        n_candidates: Number of candidates sampled. Default is ``"exhaust"``.
-        factor: Candidate reduction and resource growth per round. Default is 3.
-        resource: Resource grown between rounds. Default is ``"n_samples"``.
-        max_resources: Maximum resource per candidate. Default is ``"auto"``.
-        min_resources: Resource in the first round. Default is ``"smallest"``.
-        aggressive_elimination: Whether to eliminate candidates before
-            resources can grow. Default is False.
-        cv: Number of folds or a splitter. Default is 5.
-        scoring: ``None`` uses the estimator's ``score``; a callable
-            ``scoring(estimator, views)``, or a dict of them, scores the fitted
-            estimator on the held-out views. Default is None.
-        refit: Whether to refit the best candidate on all data. Default is True.
-        error_score: Score assigned when a fit fails. Default is ``np.nan``.
-        return_train_score: Whether to include training scores. Default is
-            True.
-        random_state: Seed for the sampling and subsampling. Default is None.
-        n_jobs: Number of parallel jobs. Default is None.
-        verbose: Verbosity level. Default is 0.
-
-    Attributes:
-        cv_results_: Per-candidate results, as in sklearn.
-        best_estimator_: The refitted multiview estimator.
-        best_params_: Parameters of the best candidate.
-        best_score_: Mean cross-validated score of the best candidate.
+    The multiview form of
+    :class:`~sklearn.model_selection.HalvingRandomSearchCV`, with its
+    parameters, attributes and methods. ``fit``, ``transform`` and ``score``
+    take a list of views; parameter names are the estimator's own, with
+    ``name__<view>`` setting one view's value of a per-view parameter;
+    ``best_estimator_`` is the fitted multiview estimator; and a ``scoring``
+    callable is called as ``scoring(estimator, views)``.
 
     Examples:
         >>> import numpy as np
@@ -649,88 +370,47 @@ class HalvingRandomSearchCV(_BaseMultiviewSearchCV):
         >>> from cca_zoo.linear import RidgeCCA
         >>> from cca_zoo.model_selection import HalvingRandomSearchCV
         >>> rng = np.random.default_rng(0)
-        >>> X1 = rng.standard_normal((50, 5))
-        >>> X2 = rng.standard_normal((50, 4))
-        >>> hrs = HalvingRandomSearchCV(
-        ...     RidgeCCA(),
-        ...     param_distributions={"shrinkage": loguniform(1e-3, 1.0)},
-        ...     cv=2,
-        ...     random_state=0,
-        ... ).fit([X1, X2])
+        >>> X1 = rng.standard_normal((60, 5))
+        >>> X2 = rng.standard_normal((60, 4))
+        >>> space = {"shrinkage__0": loguniform(1e-3, 1.0)}
+        >>> hrs = HalvingRandomSearchCV(RidgeCCA(), space, cv=2, random_state=0)
+        >>> sorted(hrs.fit([X1, X2]).best_params_)
+        ['shrinkage__0']
     """
 
-    _inner_cv_cls = skms.HalvingRandomSearchCV
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        param_distributions: dict[str, Any] | list[dict[str, Any]],
-        *,
-        n_candidates: int | str = "exhaust",
-        factor: int | float = 3,
-        resource: str = "n_samples",
-        max_resources: int | str = "auto",
-        min_resources: int | str = "smallest",
-        aggressive_elimination: bool = False,
-        cv: int | Any = 5,
-        scoring: _Scoring = None,
-        refit: bool = True,
-        error_score: float = np.nan,
-        return_train_score: bool = True,
-        random_state: int | Any = None,
-        n_jobs: int | None = None,
-        verbose: int = 0,
-    ) -> None:
-        self.estimator = estimator
-        self.param_distributions = param_distributions
-        self.n_candidates = n_candidates
-        self.factor = factor
-        self.resource = resource
-        self.max_resources = max_resources
-        self.min_resources = min_resources
-        self.aggressive_elimination = aggressive_elimination
-        self.cv = cv
-        self.scoring = scoring
-        self.refit = refit
-        self.error_score = error_score
-        self.return_train_score = return_train_score
-        self.random_state = random_state
-        self.n_jobs = n_jobs
-        self.verbose = verbose
+if importlib.util.find_spec("optuna_integration") is not None:
+    import optuna_integration
 
-    def fit(
-        self,
-        views: list[ArrayLike],
-        y: None = None,
-        **fit_params: Any,
-    ) -> HalvingRandomSearchCV:
-        """Run the search.
+    class OptunaSearchCV(_MultiviewSearch, optuna_integration.OptunaSearchCV):
+        """Optuna's search over a multiview estimator's parameters.
 
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-            **fit_params: Forwarded to the estimator's ``fit``.
+        The multiview form of :class:`optuna_integration.OptunaSearchCV`, with
+        its parameters, attributes and methods. ``fit``, ``transform`` and
+        ``score`` take a list of views; parameter names are the estimator's
+        own, with ``name__<view>`` setting one view's value of a per-view
+        parameter; ``best_estimator_`` is the fitted multiview estimator; and
+        a ``scoring`` callable is called as ``scoring(estimator, views)``.
+        Optuna's own records, such as ``study_``, keep the internal
+        ``estimator__`` prefix. Requires the ``optuna`` extra.
 
-        Returns:
-            self.
+        Examples:
+            >>> import numpy as np
+            >>> from optuna.distributions import FloatDistribution
+            >>> from cca_zoo.linear import RidgeCCA
+            >>> from cca_zoo.model_selection import OptunaSearchCV
+            >>> rng = np.random.default_rng(0)
+            >>> X1 = rng.standard_normal((50, 5))
+            >>> X2 = rng.standard_normal((50, 4))
+            >>> space = {"shrinkage__0": FloatDistribution(0.0, 1.0)}
+            >>> search = OptunaSearchCV(
+            ...     RidgeCCA(), space, n_trials=5, cv=2, random_state=0
+            ... ).fit([X1, X2])
+            >>> sorted(search.best_params_)
+            ['shrinkage__0']
         """
-        inner_cv_kwargs = dict(
-            param_distributions=_wrap_param_space(self.param_distributions),
-            n_candidates=self.n_candidates,
-            factor=self.factor,
-            resource=self.resource,
-            max_resources=self.max_resources,
-            min_resources=self.min_resources,
-            aggressive_elimination=self.aggressive_elimination,
-            cv=self.cv,
-            scoring=_unwrapped_scoring(self.scoring),
-            refit=self.refit,
-            error_score=self.error_score,
-            return_train_score=self.return_train_score,
-            random_state=self.random_state,
-            n_jobs=self.n_jobs,
-            verbose=self.verbose,
-        )
-        return cast(
-            "HalvingRandomSearchCV", self._fit(views, y, inner_cv_kwargs, **fit_params)
-        )
+
+        @property
+        def best_params_(self) -> dict[str, Any]:
+            """Parameters of the best trial, by the estimator's own names."""
+            return {_unprefix(k): v for k, v in self.study_.best_params.items()}

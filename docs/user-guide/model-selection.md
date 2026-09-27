@@ -147,8 +147,32 @@ rs.fit([X1, X2])
 print("Best shrinkage:", rs.best_params_["shrinkage"])
 ```
 
-`HalvingGridSearchCV` and `HalvingRandomSearchCV` mirror sklearn's successive-halving
-searches in the same way.
+`HalvingGridSearchCV` and `HalvingRandomSearchCV` are sklearn's successive-halving searches
+in the same way. Each search class extends its sklearn namesake, so it takes exactly that
+class's parameters and follows it as sklearn changes; only `fit`, `transform` and `score`
+take a list of views, and parameter names are the model's own.
+
+### OptunaSearchCV
+
+With the `optuna` extra (`pip install 'cca-zoo[optuna]'`), `OptunaSearchCV` is
+`optuna_integration.OptunaSearchCV` on a list of views, with Optuna's samplers, pruners and
+parameters:
+
+```python
+from optuna.distributions import FloatDistribution
+from cca_zoo.model_selection import OptunaSearchCV
+
+search = OptunaSearchCV(
+    RidgeCCA(n_components=2),
+    {"shrinkage__0": FloatDistribution(0, 1), "shrinkage__1": FloatDistribution(0, 1)},
+    n_trials=50,
+    cv=5,
+).fit([X1, X2])
+print(search.best_params_)
+```
+
+Optuna's own records, such as `search.study_.trials_dataframe()`, show the parameters with an
+internal `estimator__` prefix.
 
 ---
 

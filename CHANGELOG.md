@@ -132,6 +132,11 @@ The table below gives each replacement.
   which for a linear or additive model is exactly twice its variance share. The name is
   not sklearn's `feature_importances_`, which tools such as `SelectFromModel` read as one
   array.
+- `cca_zoo.model_selection.OptunaSearchCV` (with the `optuna` extra):
+  `optuna_integration.OptunaSearchCV` on a list of views, with per-view parameter names.
+- The search classes extend their sklearn namesakes rather than copying their
+  constructors, so each takes exactly its upstream parameters and follows sklearn's changes;
+  `isinstance(search, sklearn.model_selection.GridSearchCV)` holds.
 - `n_iter_` on every model with `max_iter`, and sklearn's `ConvergenceWarning` when a fit
   stops at `max_iter` before meeting its tolerance. `VariationalBayesCCA`, which runs a
   fixed number of SVI steps with no stopping rule, takes `n_iter` instead.

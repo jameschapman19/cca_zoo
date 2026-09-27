@@ -12,6 +12,8 @@ Cross-validation, hyperparameter search and significance testing for multiview m
 
 ::: cca_zoo.model_selection.HalvingRandomSearchCV
 
+::: cca_zoo.model_selection.OptunaSearchCV
+
 ::: cca_zoo.model_selection.cross_val_score
 
 ::: cca_zoo.model_selection.cross_validate
