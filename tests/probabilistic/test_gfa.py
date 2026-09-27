@@ -205,6 +205,8 @@ def test_gfa_drop_k_prunes_spurious_dimensions() -> None:
     assert model.n_components_ < 4
     for w in model.weights_:
         assert w.shape[1] == model.n_components_
+    reconstructions = model.inverse_transform(model.transform(views))
+    assert [r.shape for r in reconstructions] == [v.shape for v in views]
 
 
 def test_gfa_drop_k_false_keeps_all_dimensions() -> None:

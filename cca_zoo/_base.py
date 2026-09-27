@@ -200,11 +200,12 @@ class BaseModel(BaseEstimator, ABC):
                 f"Expected {self.n_views_} score arrays, got {len(scores)}."
             )
         arrays = [np.asarray(s) for s in scores]
+        # Models that prune dimensions, such as GFA, record the number kept.
+        n_components = getattr(self, "n_components_", self.n_components)
         for i, s in enumerate(arrays):
-            if s.shape[1] != self.n_components:
+            if s.shape[1] != n_components:
                 raise ValueError(
-                    f"scores[{i}] has {s.shape[1]} columns, expected "
-                    f"n_components={self.n_components}."
+                    f"scores[{i}] has {s.shape[1]} columns, expected {n_components}."
                 )
         return [
             s @ _least_squares_map(self._transform_view(i, train), train)

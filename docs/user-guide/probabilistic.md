@@ -167,8 +167,10 @@ z = model.posterior_mean([X1, X2])  # shape (n_samples, n_components)
 z_from_x1 = model.posterior_mean([X1, None])  # conditioning on view 1 alone
 ```
 
-`transform` returns each view's own projection $X_i W_i$, one array per view as for every model
-in `cca_zoo`, so correlations, `score` and `predict` work as they do elsewhere.
+`transform` returns one array per view, as for every model in `cca_zoo`: each view's posterior
+mean given that view alone, the formula above with a single term in each sum. It weights
+features by their noise precision, so noisy features count for less than in the raw projection
+$X_i W_i$. Correlations, `score` and `predict` then work as they do elsewhere.
 
 ---
 

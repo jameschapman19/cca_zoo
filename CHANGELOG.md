@@ -155,9 +155,9 @@ The table below gives each replacement.
   contract for `score` requires; it was an array of per-dimension correlations. Those
   come from `cca_zoo.metrics`:
   `average_pairwise_correlations(pairwise_correlations(model.transform(views)))`.
-- **Breaking:** the probabilistic models' `transform` returns one projection `x_i @ W_i`
-  per view, like every other model, instead of a single-element list holding the joint
-  posterior mean (now `posterior_mean`). Their special-cased `score`, correlation and
+- **Breaking:** the probabilistic models' `transform` returns one array per view, like
+  every other model: each view's posterior mean given that view alone, instead of a
+  single-element list holding the joint posterior mean (now `posterior_mean`). Their special-cased `score`, correlation and
   loading methods are gone, since the shared ones now apply.
 - `transform`, `predict` and `inverse_transform` all go through one per-view encoder,
   `BaseModel._transform_view`: a linear model's projection onto `weights_`, overridden
@@ -210,6 +210,12 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `ProbabilisticCCA` and `VariationalBayesCCA` used their noise parameter as a standard
+  deviation in the likelihood but as a variance in `posterior_mean`, `log_likelihood`
+  and `predict`, so all three were computed with the wrong noise. The parameter is now a
+  variance throughout, as documented.
+- `GFA.inverse_transform` raised whenever dimensions were pruned, expecting
+  `n_components` columns rather than `n_components_`.
 - **Breaking:** `DVCCA` now follows Wang et al. (2016): the posterior $q(z \mid x_1)$ is
   inferred from the first view alone, by a single `encoder`, and every view is decoded
   from $z$. It took one encoder per view and added their means and log-variances, which

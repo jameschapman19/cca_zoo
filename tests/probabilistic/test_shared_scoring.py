@@ -1,6 +1,6 @@
 """Regression tests for scoring/loadings shared by every probabilistic model.
 
-``ProbabilisticCCA`` and ``VariationalBayesCCA`` return one projection per
+``ProbabilisticCCA`` and ``VariationalBayesCCA`` return one posterior mean per
 view from ``transform``, like every model, so ``BaseModel``'s scoring and
 loadings apply unchanged. These tests guard the failure modes an earlier
 single-array ``transform`` had: a 2-view problem degenerating to a 1x1
@@ -162,3 +162,43 @@ def test_log_likelihood_prefers_better_fit(ModelClass: type) -> None:
     ).fit(bad_views)
 
     assert good_model.log_likelihood(good_views) > bad_model.log_likelihood(good_views)
+
+
+def _heteroscedastic_views(n: int = 400) -> tuple[list[np.ndarray], np.ndarray]:
+    """Two views of a 2-d latent; view 1 has three quiet and three noisy features."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((n, 2))
+    sd = [np.array([0.1] * 3 + [2.0] * 3), np.full(5, 0.5)]
+    views = [
+        z @ rng.standard_normal((len(s), 2)).T + rng.standard_normal((n, len(s))) * s
+        for s in sd
+    ]
+    return views, z
+
+
+@pytest.mark.slow
+def test_noise_parameter_is_a_variance() -> None:
+    """The fitted noise matches the true variances (0.01 and 4), not their roots."""
+    views, _ = _heteroscedastic_views()
+    model = pcca_module.VariationalBayesCCA(2, max_iter=3000, random_state=0).fit(views)
+    psi = model._noise_variances()[0]
+    assert psi[:3].max() < 0.05
+    assert psi[3:].min() > 3.0
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
+)
+def test_transform_is_each_views_posterior_mean(
+    ModelClass: type, two_views: list[np.ndarray]
+) -> None:
+    """Each view's transform is its posterior mean given that view alone."""
+    model = ModelClass(n_components=2, **_fast_kwargs(ModelClass)).fit(two_views)
+    x1, x2 = model.transform(two_views)
+    np.testing.assert_allclose(
+        x1, model.posterior_mean([two_views[0], None]), rtol=1e-5
+    )
+    np.testing.assert_allclose(
+        x2, model.posterior_mean([None, two_views[1]]), rtol=1e-5
+    )

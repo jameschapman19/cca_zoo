@@ -94,7 +94,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
                 dist.Normal(jnp.zeros(p_i), jnp.ones(p_i)).to_event(1),
             )
             ws.append(w_i)
-            psis.append(jnp.exp(log_psi_i))
+            psis.append(jnp.exp(log_psi_i))  # noise variances
 
         # Sample latent variables and observations
         with numpyro.plate("n", n):
@@ -106,7 +106,7 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
                 mean_i = z @ w_i.T  # (n, p_i)
                 numpyro.sample(
                     f"x_{i}",
-                    dist.Normal(mean_i, psi_i).to_event(1),
+                    dist.Normal(mean_i, jnp.sqrt(psi_i)).to_event(1),
                     obs=jnp.array(xi),
                 )
 

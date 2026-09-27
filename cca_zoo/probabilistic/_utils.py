@@ -130,12 +130,37 @@ class PosteriorMeanTransformMixin:
     means_: list[np.ndarray]
     weights_: list[np.ndarray]
     posterior_samples_: dict[str, Any]
+    _views_fit_: list[np.ndarray]
 
     def _noise_variances(self) -> list[np.ndarray]:
         """Posterior-mean per-feature noise variance of each view."""
         return [
             np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
             for i in range(self.n_views_)
+        ]
+
+    def _encoder(self, view: int) -> np.ndarray:
+        r"""Matrix mapping a centred view to its own posterior mean latent.
+
+        $\Psi_i^{-1} W_i (I + W_i^\top \Psi_i^{-1} W_i)^{-1}$, of shape
+        (n_features_i, k).
+        """
+        w = self.weights_[view]
+        psi_inv = 1.0 / np.maximum(self._noise_variances()[view], 1e-8)
+        scaled = w * psi_inv[:, np.newaxis]
+        encoder: np.ndarray = scaled @ np.linalg.inv(np.eye(w.shape[1]) + w.T @ scaled)
+        return encoder
+
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        """Posterior mean of the latent given this view alone."""
+        scores: np.ndarray = centred @ self._encoder(view)
+        return scores
+
+    def _feature_importances(self) -> list[np.ndarray]:
+        """Variance share of each feature in its view's linear posterior mean."""
+        return [
+            train.var(axis=0) * np.sum(self._encoder(i) ** 2, axis=1)
+            for i, train in enumerate(self._views_fit_)
         ]
 
     def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
@@ -151,8 +176,9 @@ class PosteriorMeanTransformMixin:
     def posterior_mean(self, views: list[ArrayLike | None]) -> np.ndarray:
         """Posterior mean of the shared latent variable.
 
-        Unlike :meth:`transform`, which projects each view separately, this
-        combines every view's evidence. ``None`` marks an unobserved view.
+        Unlike :meth:`transform`, which infers the latent from each view
+        separately, this combines every view's evidence. ``None`` marks an
+        unobserved view.
 
         Args:
             views: One array of shape (n_samples, n_features_i) or None per view.
