@@ -154,8 +154,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a
-`fit()` wrapper; after `model.fit_cca(train_loader)`, `trainer.predict` returns canonical
-variates. See the [deep learning guide](https://jameschapman19.github.io/cca_zoo/user-guide/deep/).
+`fit()` wrapper, and `trainer.predict` returns each view's encoding. See the [deep learning guide](https://jameschapman19.github.io/cca_zoo/user-guide/deep/).
 
 | Class | Description | Citation | Views |
 |---|---|---|---|

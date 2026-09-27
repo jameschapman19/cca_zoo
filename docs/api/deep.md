@@ -12,7 +12,6 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
         - forward
         - loss
         - predict_step
-        - fit_cca
         - configure_optimizers
 
 ---

@@ -34,6 +34,7 @@ from cca_zoo.deep import (
     VICReg,
 )
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
+from cca_zoo.linear import CCA
 from cca_zoo.metrics import pairwise_correlations
 
 pytestmark = pytest.mark.slow
@@ -106,18 +107,15 @@ TRAINABLE: dict[str, Callable[[], BaseDeep]] = {
 
 
 @pytest.mark.parametrize("name", MODELS)
-def test_predict_returns_canonical_variates(name: str) -> None:
-    """After fit_cca, predictions are canonical variates."""
+def test_predict_returns_the_encodings(name: str) -> None:
+    """trainer.predict returns what calling the model does, one array per view."""
     model = MODELS[name]()
     views = _views()
     _trainer().fit(model, _loader(views, shuffle=True))
-    model.fit_cca(_loader(views))
-    scores = _predict(model, _loader(views))
-    assert [s.shape for s in scores] == [(64, K), (64, K)]
-    for s in scores:
-        np.testing.assert_allclose(np.cov(s, rowvar=False), np.eye(K), atol=1e-3)
-    corrs = pairwise_correlations(scores)[0, 1]
-    assert corrs[0] >= corrs[1]
+    model.eval()
+    expected = model([torch.as_tensor(v) for v in views])
+    for scores, z in zip(_predict(model, _loader(views)), expected):
+        np.testing.assert_allclose(scores, z.detach().numpy(), atol=1e-6)
 
 
 @pytest.mark.parametrize("name", TRAINABLE)
@@ -134,27 +132,12 @@ def test_validation_loss_is_the_training_loss(name: str) -> None:
     assert "test/objective" in trainer.callback_metrics
 
 
-def test_predict_before_fitting_raises() -> None:
-    """Predicting needs the linear CCA fitted at the end of training."""
-    with pytest.raises(RuntimeError, match="fit_cca"):
-        _predict(DCCA(K, _encoders()), _loader(_views()))
-
-
-def test_fit_cca_enables_prediction_without_training() -> None:
-    """fit_cca fits the projection on any loader."""
-    model = DCCA(K, _encoders())
-    model.fit_cca(_loader(_views()))
-    assert _predict(model, _loader(_views()))[0].shape == (64, K)
-
-
 @pytest.mark.parametrize("name", ["DCCA", "DVCCA", "DVCCAPrivate", "DCCAE"])
 def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
     """Hyperparameters and the fitted projection are restored from a checkpoint."""
     model = TRAINABLE[name]()
     trainer = _trainer()
     trainer.fit(model, _loader(_views()))
-    if not isinstance(model, DVCCA):
-        model.fit_cca(_loader(_views()))
     path = tmp_path / "model.ckpt"
     trainer.save_checkpoint(path)
     fresh = TRAINABLE[name]()
@@ -180,8 +163,8 @@ def test_dcca_learns_shared_signal() -> None:
     model = DCCA(K, _encoders(), learning_rate=1e-2)
     train = _loader([v[:300] for v in views], shuffle=True)
     _trainer(max_epochs=30).fit(model, train)
-    model.fit_cca(train)
-    scores = _predict(model, _loader([v[300:] for v in views]))
+    cca = CCA(n_components=K).fit(_predict(model, _loader([v[:300] for v in views])))
+    scores = cca.transform(_predict(model, _loader([v[300:] for v in views])))
     assert pairwise_correlations(scores)[0, 1].min() > 0.8
 
 
@@ -225,8 +208,6 @@ def test_models_train_on_three_views(name: str) -> None:
     views = _views(n_views=3)
     model = _three_view_models([v.shape[1] for v in views])[name]
     _trainer().fit(model, _loader(views))
-    if not name.startswith("DVCCA"):
-        model.fit_cca(_loader(views))
     expected = 1 if name.startswith("DVCCA") else 3
     assert len(_predict(model, _loader(views))) == expected
 
@@ -357,7 +338,6 @@ def test_dpcca_finds_the_signal_the_partials_do_not_explain(
         MultiviewDataset(views, partials=partials), batch_size=256, shuffle=True
     )
     _trainer(max_epochs=30).fit(model, train)
-    model.fit_cca(train)
     (z1, _) = _predict(model, _loader(views))  # no partials needed to predict
     assert abs(np.corrcoef(z1[:, 0], p)[0, 1]) > 0.8
 

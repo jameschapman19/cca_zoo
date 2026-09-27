@@ -3,16 +3,11 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Iterable
 from typing import Any
 
 import lightning.pytorch as pl
-import numpy as np
 import torch
 import torch.nn as nn
-from numpy.typing import ArrayLike
-
-from cca_zoo.linear._mcca import MCCA
 
 Batch = dict[str, Any]
 
@@ -20,12 +15,10 @@ Batch = dict[str, Any]
 class BaseDeep(pl.LightningModule):
     """Base class for deep multiview models, as Lightning modules.
 
-    Train with a :class:`lightning.pytorch.Trainer`. Calling the model returns
-    each view's raw encoding. After training, :meth:`fit_cca` fits a linear
-    CCA to the training encodings, and ``trainer.predict`` then returns
-    canonical variates. The projection is held in buffers, so a checkpoint
-    saved after :meth:`fit_cca` restores it. Subclasses implement
-    :meth:`loss`.
+    Train with a :class:`lightning.pytorch.Trainer`. Calling the model, or
+    ``trainer.predict``, returns each view's encoding; for canonical variates,
+    fit :class:`~cca_zoo.linear.CCA` or :class:`~cca_zoo.linear.MCCA` to the
+    training encodings. Subclasses implement :meth:`loss`.
 
     The covariance-based losses are estimated from each process's batch, so
     under multi-GPU (DDP) training they see the per-GPU batch, not the global
@@ -37,11 +30,6 @@ class BaseDeep(pl.LightningModule):
             outputs.
         learning_rate: Adam learning rate. Default is 1e-3.
 
-    Attributes:
-        cca_weights: Linear CCA projection of each view's encoding, shape
-            (n_views, n_components, n_components).
-        cca_means: Training mean of each view's encoding, shape
-            (n_views, n_components).
     """
 
     def __init__(
@@ -65,15 +53,6 @@ class BaseDeep(pl.LightningModule):
         self.encoders = nn.ModuleList(encoders)
         self.n_components = n_components
         self.learning_rate = learning_rate
-        n_views = len(encoders)
-        self.register_buffer(
-            "cca_weights", torch.eye(n_components).repeat(n_views, 1, 1)
-        )
-        self.register_buffer("cca_means", torch.zeros(n_views, n_components))
-        self.register_buffer("cca_fitted", torch.tensor(False))
-        self.cca_weights: torch.Tensor
-        self.cca_means: torch.Tensor
-        self.cca_fitted: torch.Tensor
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
         """Encode each view; one tensor of shape (batch_size, n_components) per view."""
@@ -127,45 +106,8 @@ class BaseDeep(pl.LightningModule):
         return self._logged_objective(batch, "test")
 
     def predict_step(self, batch: Batch, batch_idx: int) -> list[torch.Tensor]:
-        """Canonical variates of a batch, one tensor per view.
-
-        Raises:
-            RuntimeError: If the linear CCA has not been fitted.
-        """
-        if not self.cca_fitted:
-            raise RuntimeError(
-                "The linear CCA is not fitted; call model.fit_cca(train_loader) "
-                "after training."
-            )
-        return [
-            (z - mean) @ weights
-            for z, mean, weights in zip(
-                self(batch["views"]), self.cca_means, self.cca_weights
-            )
-        ]
-
-    @torch.no_grad()
-    def fit_cca(self, dataloader: Iterable[Batch]) -> None:
-        """Fit the linear CCA that ``predict_step`` applies, on ``dataloader``.
-
-        Call after training, usually on the training data.
-
-        Args:
-            dataloader: Batches with a ``"views"`` key.
-        """
-        was_training = self.training
-        self.eval()
-        batches = [
-            self([v.to(self.device) for v in batch["views"]]) for batch in dataloader
-        ]
-        self.train(was_training)
-        encodings: list[ArrayLike] = [
-            torch.cat(view_batches).cpu().numpy() for view_batches in zip(*batches)
-        ]
-        cca = MCCA(n_components=self.n_components).fit(encodings)
-        self.cca_weights.copy_(torch.as_tensor(np.stack(cca.weights_)))
-        self.cca_means.copy_(torch.as_tensor(np.stack(cca.means_)))
-        self.cca_fitted.fill_(True)
+        """Encodings of a batch, one tensor per view."""
+        return self.forward(batch["views"])
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Adam with ``learning_rate``."""

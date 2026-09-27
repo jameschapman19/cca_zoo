@@ -61,7 +61,7 @@ class DVCCA(BaseDeep):
     $$
 
     Unlike the other deep models there is one encoding, so ``trainer.predict``
-    returns a single array, the posterior mean $\mu$, with no linear CCA.
+    returns a single array, the posterior mean $\mu$.
 
     Args:
         n_components: Latent dimension.

@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-
-import numpy as np
 import torch
 import torch.nn as nn
-from numpy.typing import ArrayLike
 
 from cca_zoo.deep._base import BaseDeep, Batch
 from cca_zoo.deep._dcca_ey import _cca_cv
-from cca_zoo.linear._mcca import MCCA
 
 
 def _covariance(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -36,9 +31,8 @@ class DPCCA(BaseDeep):
     $\Sigma_{Z F_i}$ are running estimates, as in the original method.
     ``partial_encoder=None`` uses $Z$ as given; a module encodes it, trained to
     explain the encodings by least squares, so that partialling removes all
-    the encoded $Z$ can explain. $Z$ is needed only for training: the linear
-    CCA applied at prediction is fitted on partialled training encodings and
-    then applied to encodings of the views alone.
+    the encoded $Z$ can explain. $Z$ is needed only for training: prediction
+    encodes the views alone.
 
     Rotman et al. train by nonlinear orthogonal iterations, regressing each
     view onto the other's whitened partialled encoding; this implementation
@@ -172,43 +166,3 @@ class DPCCA(BaseDeep):
             terms["residual"] = residual
             objective = objective + residual
         return {"objective": objective, **terms}
-
-    @torch.no_grad()
-    def fit_cca(self, dataloader: Iterable[Batch]) -> None:
-        """Fit the linear CCA that ``predict_step`` applies, on partialled encodings.
-
-        The encodings of ``dataloader`` are partialled on its ``"partials"`` by
-        least squares over the whole set, so the projection targets the
-        correlation not explained by the conditioning variable.
-
-        Args:
-            dataloader: Batches with ``"views"`` and ``"partials"`` keys.
-        """
-        was_training = self.training
-        self.eval()
-        encodings: list[list[torch.Tensor]] = []
-        conditioning: list[torch.Tensor] = []
-        for batch in dataloader:
-            batch = {k: _to(v, self.device) for k, v in batch.items()}
-            encodings.append(self(batch["views"]))
-            conditioning.append(self._conditioning(batch))
-        self.train(was_training)
-        z = torch.cat(conditioning).cpu().numpy()
-        z = z - z.mean(axis=0)
-        views = [torch.cat(view).cpu().numpy() for view in zip(*encodings)]
-        means = [v.mean(axis=0) for v in views]
-        partialled: list[ArrayLike] = [
-            (v - m) - z @ np.linalg.lstsq(z, v - m, rcond=None)[0]
-            for v, m in zip(views, means)
-        ]
-        cca = MCCA(n_components=self.n_components).fit(partialled)
-        self.cca_weights.copy_(torch.as_tensor(np.stack(cca.weights_)))
-        self.cca_means.copy_(torch.as_tensor(np.stack(means)))
-        self.cca_fitted.fill_(True)
-
-
-def _to(value: torch.Tensor | list[torch.Tensor], device: torch.device) -> object:
-    """``value``, or each tensor in it, on ``device``."""
-    if isinstance(value, list):
-        return [v.to(device) for v in value]
-    return value.to(device)
