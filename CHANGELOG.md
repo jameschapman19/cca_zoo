@@ -70,10 +70,11 @@ The table below gives each replacement.
 - `cca_zoo.deep.DVCCAPrivate`, DVCCA with a private latent per view (Wang et al., 2016):
   view $i$ is decoded from the shared $z$ and its own $h_i$, which takes up
   view-specific variation. `private_means` gives the private posterior means.
-- `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `learning_curve` and
-  `validation_curve`: sklearn's functions taking a list of views, so multiview models are
-  cross-validated as sklearn models are, without stacking views or building a
-  `MultiviewWrapper` by hand. `validation_curve` takes per-view names such as `"c__0"`.
+- `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `cross_val_predict`,
+  `learning_curve` and `validation_curve`: sklearn's functions taking a list of views, so
+  multiview models are cross-validated as sklearn models are, without stacking views or
+  building a `MultiviewWrapper` by hand. `validation_curve` takes per-view names such as
+  `"c__0"`; `cross_val_predict` returns each view's out-of-fold scores.
 - `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
   regression spline (Friedman, 1991) as the per-view encoder, trained on the same
   Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,

@@ -12,6 +12,7 @@ from cca_zoo.model_selection._significance import (
     permutation_test_significance,
 )
 from cca_zoo.model_selection._validation import (
+    cross_val_predict,
     cross_val_score,
     cross_validate,
     learning_curve,
@@ -24,6 +25,7 @@ __all__ = [
     "RandomizedSearchCV",
     "PermutationTestResult",
     "permutation_test_significance",
+    "cross_val_predict",
     "cross_val_score",
     "cross_validate",
     "learning_curve",

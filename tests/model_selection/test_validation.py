@@ -8,6 +8,7 @@ import sklearn.model_selection as skms
 from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import (
     MultiviewWrapper,
+    cross_val_predict,
     cross_val_score,
     cross_validate,
     learning_curve,
@@ -43,6 +44,18 @@ def test_cross_validate_returns_fitted_multiview_estimators() -> None:
     results = cross_validate(CCA(), _views(), cv=3, return_estimator=True)
     assert all(isinstance(est, CCA) for est in results["estimator"])
     assert results["test_score"].shape == (3,)
+
+
+def test_cross_val_predict_transforms_each_fold_with_the_others_model() -> None:
+    """Each view's scores are out-of-fold transforms."""
+    views = _views()
+    predicted = cross_val_predict(CCA(n_components=2), views, cv=3)
+    for train, test in skms.KFold(3).split(views[0]):
+        model = CCA(n_components=2).fit([v[train] for v in views])
+        for scores, expected in zip(
+            predicted, model.transform([v[test] for v in views])
+        ):
+            np.testing.assert_allclose(scores[test], expected)
 
 
 def test_learning_curve_shapes() -> None:

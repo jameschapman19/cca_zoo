@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import sklearn
 import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
@@ -65,6 +66,42 @@ def cross_validate(
     if "estimator" in results:
         results["estimator"] = [fitted.estimator_ for fitted in results["estimator"]]
     return results
+
+
+def cross_val_predict(
+    estimator: BaseEstimator, views: list[ArrayLike], **kwargs: Any
+) -> list[np.ndarray]:
+    """Out-of-fold scores of a multiview estimator.
+
+    :func:`sklearn.model_selection.cross_val_predict` with ``method="transform"``
+    on a list of views: each sample is transformed by the model fitted without
+    its fold. Each fold's model fixes its own sign and order of components, so
+    compare views within a component (e.g. with
+    :func:`cca_zoo.metrics.pairwise_correlations`) rather than scores across folds.
+
+    Args:
+        estimator: A multiview estimator.
+        views: Arrays of shape (n_samples, n_features_i), one per view.
+        **kwargs: Passed to :func:`sklearn.model_selection.cross_val_predict`,
+            such as ``cv``, ``groups`` and ``n_jobs``.
+
+    Returns:
+        Arrays of shape (n_samples, n_components), one per view.
+
+    Examples:
+        >>> import numpy as np
+        >>> from cca_zoo.linear import CCA
+        >>> from cca_zoo.model_selection import cross_val_predict
+        >>> rng = np.random.default_rng(0)
+        >>> X1, X2 = rng.standard_normal((50, 5)), rng.standard_normal((50, 4))
+        >>> [s.shape for s in cross_val_predict(CCA(n_components=2), [X1, X2], cv=3)]
+        [(50, 2), (50, 2)]
+    """
+    wrapper, X = _wrap(estimator, views)
+    # sklearn's validation insists on ``predict`` even with method="transform".
+    with sklearn.config_context(skip_parameter_validation=True):
+        scores = skms.cross_val_predict(wrapper, X, method="transform", **kwargs)
+    return np.split(scores, len(views), axis=1)
 
 
 def learning_curve(

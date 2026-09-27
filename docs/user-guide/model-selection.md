@@ -146,17 +146,29 @@ print("Best c:", rs.best_params_["c"])
 
 ## Cross-validation
 
-`cross_val_score`, `cross_validate`, `learning_curve` and `validation_curve` are sklearn's
-functions taking a list of views; every other argument is passed to sklearn.
-`validation_curve` accepts per-view names such as `"c__0"`.
+`cross_val_score`, `cross_validate`, `cross_val_predict`, `learning_curve` and
+`validation_curve` are sklearn's functions taking a list of views; every other argument is
+passed to sklearn. `validation_curve` accepts per-view names such as `"c__0"`.
+`cross_val_predict` returns each view's out-of-fold scores, from which out-of-sample
+canonical correlations follow. Each fold's model fixes its own signs, so compare views
+within a component rather than scores across folds.
 
 ```python
 from cca_zoo.linear import CCA, RidgeCCA
-from cca_zoo.model_selection import cross_val_score, cross_validate, validation_curve
+from cca_zoo.metrics import pairwise_correlations
+from cca_zoo.model_selection import (
+    cross_val_predict,
+    cross_val_score,
+    cross_validate,
+    validation_curve,
+)
 
 scores = cross_val_score(CCA(n_components=2), [X1, X2], cv=5)
 results = cross_validate(CCA(n_components=2), [X1, X2], cv=5, return_train_score=True)
 train, test = validation_curve(RidgeCCA(), [X1, X2], "c__0", [0.0, 0.1, 1.0], cv=5)
+out_of_fold = pairwise_correlations(
+    cross_val_predict(CCA(n_components=2), [X1, X2], cv=5)
+)
 ```
 
 ### Other sklearn tools

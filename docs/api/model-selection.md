@@ -12,6 +12,8 @@ Cross-validation, hyperparameter search and significance testing for multiview m
 
 ::: cca_zoo.model_selection.cross_validate
 
+::: cca_zoo.model_selection.cross_val_predict
+
 ::: cca_zoo.model_selection.learning_curve
 
 ::: cca_zoo.model_selection.validation_curve
