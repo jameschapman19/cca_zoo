@@ -51,6 +51,7 @@ class RidgeCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
     }
+    _preserved_dtypes: ClassVar[list[type]] = [np.float64, np.float32]
 
     def __init__(
         self,

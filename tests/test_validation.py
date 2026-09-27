@@ -55,5 +55,7 @@ def test_perview_parameter_broadcasts(
 
 def test_perview_parameter_needs_one_value_per_view() -> None:
     """A list of the wrong length names the parameter and the length expected."""
-    with pytest.raises(ValueError, match="'shrinkage' must be a scalar or a list of length 3"):
+    with pytest.raises(
+        ValueError, match="'shrinkage' must be a scalar or a list of length 3"
+    ):
         perview_parameter("shrinkage", [0.1, 0.2], 0.0, 3)

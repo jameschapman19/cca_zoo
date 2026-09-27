@@ -16,6 +16,7 @@ def validate_views(
     min_views: int = 2,
     ensure_all_finite: bool = True,
     ensure_min_samples: int = 1,
+    dtype: type | list[type] = np.float64,
 ) -> list[np.ndarray]:
     """Validate and convert multiview data to a list of 2-D numpy arrays.
 
@@ -26,6 +27,9 @@ def validate_views(
             ``True``. Callers that handle missing data themselves (e.g. an
             imputer) pass ``False``.
         ensure_min_samples: Minimum number of samples. Default is 1.
+        dtype: The dtype to convert to, or a list of dtypes to keep, as in
+            :func:`~sklearn.utils.check_array`. Views of mixed precision are
+            all converted to the first. Default is float64.
 
     Returns:
         List of validated numpy arrays, each of shape (n_samples, n_features_i).
@@ -41,12 +45,15 @@ def validate_views(
             v,
             ensure_2d=True,
             allow_nd=False,
-            dtype=np.float64,
+            dtype=dtype,
             ensure_all_finite=ensure_all_finite,
             ensure_min_samples=ensure_min_samples,
         )
         for v in views
     ]
+    if len({v.dtype for v in processed}) > 1:
+        first = dtype[0] if isinstance(dtype, list) else dtype
+        processed = [v.astype(first) for v in processed]
     n_samples = processed[0].shape[0]
     if not all(v.shape[0] == n_samples for v in processed):
         raise ValueError(

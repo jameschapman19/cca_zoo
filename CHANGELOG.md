@@ -257,7 +257,9 @@ Removed outright, with no deprecation period; the table above gives each replace
   the number of views and features seen in fit, rather than failing in matrix
   arithmetic or silently ignoring extra views, and `fit` needs at least two samples.
   Views are converted to float64, so `GraphicalLassoCCA` accepts float32 and integer
-  data, and the tree models return float64 scores.
+  data, and the tree models return float64 scores. `RidgeCCA`, `CCA` and `PLS`, which
+  compute accurately in float32, keep float32 views in float32, as sklearn's transformers
+  do, and declare it in their `preserves_dtype` tag.
 - `CCA` and `PLS` named `RidgeCCA` in their error for a third view.
 - `StochasticCCAEY` returned NaN weights when its updates diverged; it now raises,
   suggesting a lower `learning_rate` or scaling the views.

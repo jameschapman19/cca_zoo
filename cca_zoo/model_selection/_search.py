@@ -16,6 +16,7 @@ import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.experimental import enable_halving_search_cv  # noqa: F401
+from sklearn.utils import Tags
 from sklearn.utils.validation import check_array, check_is_fitted, validate_data
 
 _PARAM_PREFIX = "estimator__"
@@ -112,6 +113,14 @@ class _MultiviewWrapper(TransformerMixin, BaseEstimator):
             for idx, value in overrides.items():
                 values[idx] = value
             self.estimator.set_params(**{name: values})
+
+    def __sklearn_tags__(self) -> Tags:
+        """The transformer tags, with the estimator's preserved dtypes."""
+        tags = super().__sklearn_tags__()
+        inner = self.estimator.__sklearn_tags__().transformer_tags
+        if inner is not None:
+            tags.transformer_tags.preserves_dtype = inner.preserves_dtype
+        return tags
 
     def fit(
         self, X: np.ndarray, y: None = None, **fit_params: Any

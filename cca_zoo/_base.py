@@ -9,7 +9,7 @@ from typing import Any, ClassVar, TypeVar
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
-from sklearn.utils import Tags, check_random_state
+from sklearn.utils import Tags, TransformerTags, check_random_state
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -67,6 +67,8 @@ class BaseModel(BaseEstimator, ABC):
         "n_components": [Interval(Integral, 1, None, closed="left")],
         "center": ["boolean"],
     }
+    # Input dtypes the model fits and transforms in; others become float64.
+    _preserved_dtypes: ClassVar[list[type]] = [np.float64]
 
     def __init__(self, n_components: int = 1, center: bool = True) -> None:
         self.n_components = n_components
@@ -95,7 +97,9 @@ class BaseModel(BaseEstimator, ABC):
     def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Validate parameters and views, record their shapes and centre them."""
         self._validate_params()
-        validated = validate_views(views, ensure_min_samples=2)
+        validated = validate_views(
+            views, ensure_min_samples=2, dtype=self._preserved_dtypes
+        )
         self.n_views_: int = len(validated)
         self.n_features_per_view_: list[int] = [v.shape[1] for v in validated]
         self.n_samples_: int = validated[0].shape[0]
@@ -128,7 +132,7 @@ class BaseModel(BaseEstimator, ABC):
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
         """View ``i`` as a validated array with the width seen in fit."""
-        (checked,) = validate_views([view], min_views=1)
+        (checked,) = validate_views([view], min_views=1, dtype=self._preserved_dtypes)
         if checked.shape[1] != self.n_features_per_view_[i]:
             raise ValueError(
                 f"View {i} has {checked.shape[1]} features, but "
@@ -349,6 +353,9 @@ class BaseModel(BaseEstimator, ABC):
     def __sklearn_tags__(self) -> Tags:
         """Tags marking the multiview input, which sklearn's own checks cannot build."""
         tags = super().__sklearn_tags__()
+        tags.transformer_tags = TransformerTags(
+            preserves_dtype=[np.dtype(t).name for t in self._preserved_dtypes]
+        )
         tags.no_validation = True
         tags.input_tags.two_d_array = False
         tags._skip_test = True
