@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from cca_zoo.deep._base import Batch
 from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep.objectives import MCCALoss
 
 
 def _reconstruction_loss(
@@ -25,21 +26,21 @@ class DCCAE(DCCA):
         + \lambda \sum_i \operatorname{MSE}(x_i, \text{decoder}_i(z_i)).
     $$
 
-    ``lam=0`` is :class:`DCCA` and ``lam=1`` independent autoencoders.
+    ``lam=0`` is :class:`DMCCA` (:class:`DCCA` with two views) and ``lam=1``
+    independent autoencoders.
 
     Args:
         n_components: Latent dimension.
         encoders: One module per view.
         decoders: One module per view mapping its encoding back.
         lam: Reconstruction weight in ``[0, 1]``. Default is 0.5.
-        objective: Correlation loss; None uses ``CCALoss(eps)``. Default is
-            None.
+        objective: Correlation loss; None uses ``MCCALoss(eps)``, the sum of
+            ``CCALoss`` over pairs of views. Default is None.
         learning_rate: Adam learning rate. Default is 1e-3.
         eps: Ridge of the default loss. Default is 1e-6.
 
     Raises:
-        ValueError: If ``lam`` is outside ``[0, 1]``, or ``objective`` is None
-            and there are not two encoders.
+        ValueError: If ``lam`` is outside ``[0, 1]``.
 
     References:
         Wang, W., Arora, R., Livescu, K., & Bilmes, J. (2015). On deep
@@ -70,7 +71,7 @@ class DCCAE(DCCA):
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=objective,
+            objective=MCCALoss(eps=eps) if objective is None else objective,
             learning_rate=learning_rate,
             eps=eps,
         )

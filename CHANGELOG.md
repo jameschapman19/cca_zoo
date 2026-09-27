@@ -164,9 +164,11 @@ The table below gives each replacement.
     and test losses include reconstruction. `DVCCA` and `SplitAE` previously logged 0, and
     `DCCAE` only its correlation term.
   - **Hyperparameters:** they are saved (`load_from_checkpoint` takes the modules again).
-  - **Checks:** an encoder of the wrong width raises. `DCCASDL`, `BarlowTwins` and
-    `VICReg`, and `DCCA`/`DCCAE` with the default two-view loss, raise on other numbers of
-    views instead of silently using the first two.
+  - **Checks:** an encoder of the wrong width raises, and `DCCA` with its default two-view
+    `CCALoss` raises on other numbers of views.
+  - **Any number of views:** `DCCASDL`, `BarlowTwins` and `VICReg` silently used only the
+    first two views; their alignment terms are now summed over pairs of views, and
+    `DCCAE`'s default loss is `MCCALoss`. With two views every loss is unchanged.
   - **Base classes:** `DCCAEY`, `DCCANOI`, `DCCASDL`, `BarlowTwins` and `VICReg` subclass
     `BaseDeep` rather than carrying an unused `DCCA` loss.
 

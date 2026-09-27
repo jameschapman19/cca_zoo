@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import itertools
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cca_zoo.deep._base import BaseDeep, Batch, _require_two_views
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
 def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
@@ -19,22 +21,21 @@ def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
 class DCCASDL(BaseDeep):
     r"""Deep CCA with a stochastic decorrelation loss.
 
-    Batch-normalised encodings are aligned by mean squared error and
-    decorrelated within each view:
+    Batch-normalised encodings are aligned by mean squared error, summed over
+    pairs of views, and decorrelated within each view:
 
     $$
-    \mathcal{L} = \operatorname{MSE}(z_1, z_2) + \lambda \sum_i
-        \operatorname{mean}\lvert \text{offdiag}(\operatorname{Cov}(z_i)) \rvert.
+    \mathcal{L} = \sum_{a < b} \operatorname{MSE}(z_a, z_b) + \lambda \sum_a
+        \operatorname{mean}\lvert \text{offdiag}(\operatorname{Cov}(z_a)) \rvert.
     $$
+
+    With two views this is the original loss.
 
     Args:
         n_components: Latent dimension.
         encoders: One module per view.
         lam: Weight of the decorrelation term. Default is 0.5.
         learning_rate: Adam learning rate. Default is 1e-3.
-
-    Raises:
-        ValueError: If there are not two encoders.
 
     References:
         Chang, X., Xiang, T., & Hospedales, T. M. (2018). Scalable and
@@ -54,7 +55,6 @@ class DCCASDL(BaseDeep):
         lam: float = 0.5,
         learning_rate: float = 1e-3,
     ) -> None:
-        _require_two_views(encoders, "DCCASDL")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
@@ -79,7 +79,9 @@ class DCCASDL(BaseDeep):
             ``{"objective", "l2", "sdl"}``.
         """
         representations = self(batch["views"])
-        l2 = F.mse_loss(representations[0], representations[1])
+        l2 = torch.stack(
+            [F.mse_loss(a, b) for a, b in itertools.combinations(representations, 2)]
+        ).sum()
         sdl = torch.stack([_sdl_loss(r) for r in representations]).sum()
         return {
             "objective": l2 + self.lam * sdl,

@@ -87,14 +87,17 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `DGCCA` | any | Generalized CCA (Benton et al., 2019) |
 | `DTCCA` | any | Tensor CCA (Wong et al., 2021) |
 | `DCCANOI` | any | Nonlinear orthogonal iterations (Wang et al., 2015) |
-| `DCCASDL` | 2 | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
-| `BarlowTwins` | 2 | Cross-correlation to the identity (Zbontar et al., 2021) |
-| `VICReg` | 2 | Variance, invariance and covariance terms (Bardes et al., 2022) |
-| `DCCAE` | 2, or any with a multiview `objective` | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
+| `DCCASDL` | any | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
+| `BarlowTwins` | any | Cross-correlation to the identity (Zbontar et al., 2021) |
+| `VICReg` | any | Variance, invariance and covariance terms (Bardes et al., 2022) |
+| `DCCAE` | any | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
 | `SplitAE` | any | Every view reconstructed from all encodings |
 | `DVCCA` | any | Variational: a latent inferred from the first view generates every view (Wang et al., 2016) |
 
-Two-view models raise on other numbers of encoders rather than ignoring views.
+As on the linear side, only `DCCA`'s default loss is two-view, like `CCA`; `DMCCA` and
+`DGCCA` generalise it as `MCCA` and `GCCA` do. Losses defined between two views
+(`BarlowTwins`, `VICReg`, `DCCASDL`, and `DCCAE`'s default `MCCALoss`) are summed over
+pairs of views, and with two views each is the published loss.
 
 `DCCA` and `DCCAE` take an `objective` from `cca_zoo.deep.objectives`, or any module
 mapping a list of encodings to a scalar:

@@ -2,30 +2,31 @@
 
 from __future__ import annotations
 
+import itertools
+
 import torch
 import torch.nn as nn
 
-from cca_zoo.deep._base import BaseDeep, Batch, _require_two_views
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
 class BarlowTwins(BaseDeep):
-    r"""Barlow Twins: drive the cross-correlation of two views to the identity.
+    r"""Barlow Twins: drive the cross-correlation between views to the identity.
 
     $$
-    \mathcal{L} = \sum_i (1 - C_{ii})^2 + \lambda \sum_{i \neq j} C_{ij}^2,
-    \qquad C = \tfrac{1}{n} Z_1^\top Z_2,
+    \mathcal{L} = \sum_{a < b} \Bigl( \sum_i (1 - C^{ab}_{ii})^2
+        + \lambda \sum_{i \neq j} (C^{ab}_{ij})^2 \Bigr),
+    \qquad C^{ab} = \tfrac{1}{n} Z_a^\top Z_b,
     $$
 
-    for batch-normalised encodings $Z_1, Z_2$.
+    for batch-normalised encodings $Z_a$, summed over pairs of views; with two
+    views this is the original loss.
 
     Args:
         n_components: Latent dimension.
         encoders: One module per view.
         lam: Weight of the off-diagonal term. Default is 5e-3.
         learning_rate: Adam learning rate. Default is 1e-3.
-
-    Raises:
-        ValueError: If there are not two encoders.
 
     References:
         Zbontar, J., Jing, L., Misra, I., LeCun, Y., & Deny, S. (2021).
@@ -46,7 +47,6 @@ class BarlowTwins(BaseDeep):
         lam: float = 5e-3,
         learning_rate: float = 1e-3,
     ) -> None:
-        _require_two_views(encoders, "BarlowTwins")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
@@ -71,14 +71,13 @@ class BarlowTwins(BaseDeep):
             ``{"objective", "invariance", "redundancy"}``.
         """
         representations = self(batch["views"])
-        z1, z2 = representations[0], representations[1]
-        n = z1.shape[0]
-        cross_cov = z1.T @ z2 / n
-
-        invariance = torch.sum(torch.pow(1.0 - torch.diag(cross_cov), 2))
-        # Off-diagonal entries
-        mask = ~torch.eye(cross_cov.shape[0], dtype=torch.bool, device=cross_cov.device)
-        redundancy = torch.sum(torch.pow(cross_cov[mask], 2))
+        n, k = representations[0].shape
+        off_diagonal = ~torch.eye(k, dtype=torch.bool, device=representations[0].device)
+        invariance = redundancy = torch.zeros((), device=representations[0].device)
+        for z1, z2 in itertools.combinations(representations, 2):
+            cross = z1.T @ z2 / n
+            invariance = invariance + torch.sum((1.0 - torch.diag(cross)) ** 2)
+            redundancy = redundancy + torch.sum(cross[off_diagonal] ** 2)
         objective = invariance + self.lam * redundancy
         return {
             "objective": objective,

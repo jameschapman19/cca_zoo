@@ -161,9 +161,3 @@ class BaseDeep(pl.LightningModule):
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Adam with ``learning_rate``."""
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-
-def _require_two_views(encoders: list[nn.Module], name: str) -> None:
-    """Raise unless there are exactly two encoders."""
-    if len(encoders) != 2:
-        raise ValueError(f"{name} is defined for two views, got {len(encoders)}.")

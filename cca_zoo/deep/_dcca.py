@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from cca_zoo.deep._base import BaseDeep, Batch, _require_two_views
+from cca_zoo.deep._base import BaseDeep, Batch
 from cca_zoo.deep.objectives import CCALoss
 
 
@@ -65,8 +65,11 @@ class DCCA(BaseDeep):
         learning_rate: float = 1e-3,
         eps: float = 1e-6,
     ) -> None:
-        if objective is None:
-            _require_two_views(encoders, "CCALoss")
+        if objective is None and len(encoders) != 2:
+            raise ValueError(
+                f"DCCA's default CCALoss is defined for two views, got "
+                f"{len(encoders)}; use DMCCA, DGCCA or a multiview objective."
+            )
         super().__init__(
             n_components=n_components,
             encoders=encoders,

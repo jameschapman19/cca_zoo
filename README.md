@@ -156,20 +156,24 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 Built on PyTorch Lightning — models are trained with a standard `lightning.Trainer`, not a
 `fit()` wrapper, and `trainer.predict` returns canonical variates. See the [deep learning guide](https://jameschapman19.github.io/cca_zoo/user-guide/deep/).
 
-| Class | Description | Citation |
-|---|---|---|
-| `DCCA` | Deep CCA, pluggable objective | Andrew et al. (2013) |
-| `DCCAEY` | Deep CCA via Eigengame / Eckart-Young objective | Chapman, Wells & Lawry Aguila (2024) |
-| `DCCANOI` | Deep CCA via non-linear orthogonal iterations | Wang et al. (2015) |
-| `DCCASDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) |
-| `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) |
-| `DVCCA` | Deep variational CCA | Wang et al. (2016) |
-| `DTCCA` | Deep tensor CCA | Wong et al. (2021) |
-| `DMCCA` | Deep multiset CCA — pairwise-sum objective, ≥2 views | Kettenring (1971) |
-| `DGCCA` | Deep generalised CCA, ≥2 views | Benton et al. (2019) |
-| `SplitAE` | Split autoencoder baseline | — |
-| `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) |
-| `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) |
+| Class | Description | Citation | Views |
+|---|---|---|---|
+| `DCCA` | Deep CCA; any number of views with a multiview `objective` | Andrew et al. (2013) | 2 |
+| `DMCCA` | Deep multiset CCA, pairwise-sum objective | Kettenring (1971) | ≥2 |
+| `DGCCA` | Deep generalised CCA | Benton et al. (2019) | ≥2 |
+| `DTCCA` | Deep tensor CCA | Wong et al. (2021) | ≥2 |
+| `DCCAEY` | Deep CCA via Eigengame / Eckart-Young objective | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `DCCANOI` | Deep CCA via non-linear orthogonal iterations | Wang et al. (2015) | ≥2 |
+| `DCCASDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) | ≥2 |
+| `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) | ≥2 |
+| `DVCCA` | Deep variational CCA | Wang et al. (2016) | ≥2 |
+| `SplitAE` | Split autoencoder baseline | — | ≥2 |
+| `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) | ≥2 |
+| `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) | ≥2 |
+
+Losses defined between two views (`BarlowTwins`, `VICReg`, `DCCASDL`, `DCCAE`'s default)
+are summed over pairs of views, as `DMCCA` sums `DCCA`'s; with two views each is the
+published loss.
 
 ### `cca_zoo.probabilistic`
 

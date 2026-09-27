@@ -168,40 +168,61 @@ def test_dcca_learns_shared_signal() -> None:
     assert pairwise_correlations(scores)[0, 1].min() > 0.8
 
 
-@pytest.mark.parametrize(
-    "make",
-    [
-        lambda e: DCCA(K, e),
-        lambda e: DCCAE(K, e, [nn.Linear(K, 4)] * 3),
-        lambda e: DCCASDL(K, e),
-        lambda e: BarlowTwins(K, e),
-        lambda e: VICReg(K, e),
-    ],
-    ids=["DCCA", "DCCAE", "DCCASDL", "BarlowTwins", "VICReg"],
-)
-def test_two_view_models_reject_more_views(make: Callable) -> None:
-    """Models defined for two views raise rather than ignore extra views."""
+def test_dcca_default_loss_rejects_more_views() -> None:
+    """DCCA's default CCALoss is two-view, like linear CCA; it raises on more."""
     with pytest.raises(ValueError, match="two views"):
-        make([nn.Linear(4, K) for _ in range(3)])
+        DCCA(K, [nn.Linear(4, K) for _ in range(3)])
 
 
-@pytest.mark.parametrize(
-    "make",
-    [
-        lambda e: DCCA(K, e, objective=MCCALoss()),
-        lambda e: DMCCA(K, e),
-        lambda e: DGCCA(K, e),
-        lambda e: DTCCA(K, e),
-        lambda e: DCCAEY(K, e),
-    ],
-    ids=["DCCA+MCCALoss", "DMCCA", "DGCCA", "DTCCA", "DCCAEY"],
-)
-def test_multiview_models_train_on_three_views(make: Callable) -> None:
-    """Multiview losses train on three views and predict one array per view."""
+def _three_view_models(widths: list[int]) -> dict[str, BaseDeep]:
+    """Every deep model built for three views of the given widths."""
+
+    def enc() -> list[nn.Module]:
+        return [nn.Linear(p, K) for p in widths]
+
+    def dec(width: int) -> list[nn.Module]:
+        return [nn.Linear(width, p) for p in widths]
+
+    return {
+        "DCCA+MCCALoss": DCCA(K, enc(), objective=MCCALoss()),
+        "DMCCA": DMCCA(K, enc()),
+        "DGCCA": DGCCA(K, enc()),
+        "DTCCA": DTCCA(K, enc()),
+        "DCCAEY": DCCAEY(K, enc()),
+        "DCCANOI": DCCANOI(K, enc()),
+        "DCCASDL": DCCASDL(K, enc()),
+        "BarlowTwins": BarlowTwins(K, enc()),
+        "VICReg": VICReg(K, enc()),
+        "DCCAE": DCCAE(K, enc(), dec(K)),
+        "SplitAE": SplitAE(K, enc(), dec(3 * K)),
+        "DVCCA": DVCCA(K, nn.Linear(widths[0], 2 * K), dec(K)),
+    }
+
+
+THREE_VIEW_NAMES = list(_three_view_models([6, 5, 4]))
+
+
+@pytest.mark.parametrize("name", THREE_VIEW_NAMES)
+def test_models_train_on_three_views(name: str) -> None:
+    """Every model but DCCA's default takes any number of views."""
     views = _views(n_views=3)
-    model = make([nn.Linear(v.shape[1], K) for v in views])
+    model = _three_view_models([v.shape[1] for v in views])[name]
     _trainer().fit(model, _loader(views))
-    assert len(_predict(model, _loader(views))) == 3
+    expected = 1 if name == "DVCCA" else 3
+    assert len(_predict(model, _loader(views))) == expected
+
+
+@pytest.mark.parametrize("name", ["DCCASDL", "BarlowTwins", "VICReg"])
+def test_pairwise_losses_use_every_view(name: str) -> None:
+    """The third view changes the loss rather than being ignored."""
+    views = [torch.as_tensor(v) for v in _views(n_views=3)]
+    model = _three_view_models([v.shape[1] for v in views])[name]
+    model.eval()
+    changed = [views[0], views[1], views[2] * 3.0 + 1.0]
+    assert not torch.equal(
+        model.loss({"views": views})["objective"],
+        model.loss({"views": changed})["objective"],
+    )
 
 
 def test_encoder_width_must_match_n_components() -> None:
