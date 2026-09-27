@@ -125,12 +125,12 @@ def test_validation_loss_is_the_training_loss(name: str) -> None:
     model = TRAINABLE[name]()
     trainer = _trainer(max_epochs=1)
     trainer.fit(model, _loader(_views()), _loader(_views(seed=1)))
-    trainer.test(model, _loader(_views(seed=1)), verbose=False)
-    assert "test/objective" in trainer.callback_metrics
     terms = model.loss({"views": [torch.as_tensor(v) for v in _views()]})
     logged = {k for k in trainer.callback_metrics if k.startswith("val/")}
     assert logged == {f"val/{k}" for k in terms}
     assert float(trainer.callback_metrics["val/objective"]) != 0.0
+    trainer.test(model, _loader(_views(seed=1)), verbose=False)
+    assert "test/objective" in trainer.callback_metrics
 
 
 def test_predict_before_fitting_raises() -> None:
