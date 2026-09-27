@@ -572,17 +572,11 @@ class _MarsEncoder:
         terms: list[_Term],
         basis_mean: np.ndarray,
         coef: np.ndarray,
-        train_pred: np.ndarray,
     ) -> None:
         self.terms_ = terms
         self.basis_mean_ = basis_mean
         self.coef_ = coef
         self.k = coef.shape[1]
-        self._train_pred = train_pred
-
-    def predict(self) -> np.ndarray:
-        """Encoder output on the training data, shape (n_samples, k)."""
-        return self._train_pred
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for new data, shape (n, k)."""
@@ -791,10 +785,8 @@ class MARSCCA(BaseModel):
         self.n_removed_: int = n_removed
 
         self.encoders_: list[_MarsEncoder] = [
-            _MarsEncoder(t, raw.mean(axis=0), coef, rep)
-            for t, raw, coef, rep in zip(
-                terms, raw_bases, coefficients, representations
-            )
+            _MarsEncoder(t, raw.mean(axis=0), coef)
+            for t, raw, coef in zip(terms, raw_bases, coefficients)
         ]
         return self
 

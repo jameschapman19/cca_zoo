@@ -100,5 +100,9 @@ markers = [
     "slow: tests requiring torch/numpyro/xgboost (deselect with -m 'not slow')",
 ]
 
+[tool.coverage.run]
+omit = ["cca_zoo/_version.py"]  # written by hatch-vcs at build time
+
 [tool.coverage.report]
-exclude_lines = []
+# Fallbacks for a missing optional dependency, which CI always installs.
+exclude_also = ["^else:$", "except ImportError:"]

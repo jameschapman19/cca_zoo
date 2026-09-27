@@ -20,9 +20,9 @@ def test_score_is_the_mean_canonical_correlation(
     two_views: list[np.ndarray],
 ) -> None:
     """Score is the mean over dimensions of the per-dimension correlations."""
-    model = CCA(n_components=2).fit(two_views)
+    model = CCA(n_components=2)
     per_dimension = average_pairwise_correlations(
-        pairwise_correlations(model.transform(two_views))
+        pairwise_correlations(model.fit_transform(two_views))
     )
     assert model.score(two_views) == pytest.approx(per_dimension.mean(), rel=1e-12)
 

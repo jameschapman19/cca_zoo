@@ -50,3 +50,12 @@ def test_needs_neither_numpyro_nor_jax() -> None:
         "assert not {'numpyro', 'jax'} & set(sys.modules)\n"
     )
     subprocess.run([sys.executable, "-c", script], check=True)
+
+
+def test_posterior_mean_needs_a_view_per_slot() -> None:
+    """posterior_mean takes one entry per view, at least one observed."""
+    model = GFA(max_iter=10).fit(_views())
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        model.posterior_mean([None])
+    with pytest.raises(ValueError, match="At least one view"):
+        model.posterior_mean([None, None])

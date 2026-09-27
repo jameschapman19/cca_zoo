@@ -79,17 +79,13 @@ def mcd_projection_index(
         random_state: Passed to :class:`~sklearn.covariance.MinCovDet`.
 
     Returns:
-        The robust correlation, or 0 if the fit is degenerate.
+        The robust correlation, or 0 if either robust variance is zero.
     """
-    z = np.column_stack([u, v])
-    try:
-        cov = (
-            MinCovDet(support_fraction=support_fraction, random_state=random_state)
-            .fit(z)
-            .covariance_
-        )
-    except ValueError:
-        return 0.0
+    cov = (
+        MinCovDet(support_fraction=support_fraction, random_state=random_state)
+        .fit(np.column_stack([u, v]))
+        .covariance_
+    )
     denom = np.sqrt(cov[0, 0] * cov[1, 1])
     return 0.0 if denom < 1e-12 else float(cov[0, 1] / denom)
 

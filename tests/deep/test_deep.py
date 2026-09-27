@@ -125,6 +125,8 @@ def test_validation_loss_is_the_training_loss(name: str) -> None:
     model = TRAINABLE[name]()
     trainer = _trainer(max_epochs=1)
     trainer.fit(model, _loader(_views()), _loader(_views(seed=1)))
+    trainer.test(model, _loader(_views(seed=1)), verbose=False)
+    assert "test/objective" in trainer.callback_metrics
     terms = model.loss({"views": [torch.as_tensor(v) for v in _views()]})
     logged = {k for k in trainer.callback_metrics if k.startswith("val/")}
     assert logged == {f"val/{k}" for k in terms}
@@ -278,7 +280,13 @@ def test_dcca_noi_whitens_with_running_covariance_in_eval() -> None:
 
 
 def test_encoder_widths_are_checked() -> None:
-    """Encoders must output n_components values, or twice that for a posterior."""
+    """Constructor arguments and encoder widths are checked."""
+    for model, argument in [(DCCANOI, "rho"), (DPCCA, "rho"), (DCCAE, "lam")]:
+        kwargs = {argument: 2.0}
+        if model is DCCAE:
+            kwargs["decoders"] = [nn.Linear(K, p) for p in P]
+        with pytest.raises(ValueError, match=argument):
+            model(K, _encoders(), **kwargs)
     with pytest.raises(ValueError, match="two views"):
         DCCA(K, [nn.Linear(4, K) for _ in range(3)])
     with pytest.raises(ValueError, match="n_components"):

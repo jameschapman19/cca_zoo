@@ -11,7 +11,6 @@ from scipy.optimize import minimize
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import random_orthonormal_weights
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 
 
@@ -71,11 +70,11 @@ class BaseFullBatchEYModel(BaseModel):
     ) -> float:
         """The loss."""
 
+    @abstractmethod
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Random weights with orthonormal columns, one matrix per view."""
-        return random_orthonormal_weights(views, self.n_components, rng)
+        """Starting weights, one matrix per view."""
 
     def _fit_lbfgsb(
         self, views: list[np.ndarray], rng: np.random.Generator

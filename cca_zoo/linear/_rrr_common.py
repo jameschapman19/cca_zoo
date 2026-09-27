@@ -14,16 +14,9 @@ def _sqrt_inv_psd(S: np.ndarray, threshold: float = 1e-4) -> np.ndarray:
 
 
 def _whiten_factor(G: np.ndarray, ridge: float) -> np.ndarray:
-    """Return W such that W.T @ G @ W == I, via a (jittered) Cholesky factor."""
-    p = G.shape[0]
-    G = (G + G.T) / 2 + ridge * np.eye(p)
-    try:
-        L = np.linalg.cholesky(G)
-        return np.asarray(np.linalg.inv(L).T)
-    except np.linalg.LinAlgError:
-        vals, vecs = np.linalg.eigh(G)
-        vals = np.maximum(vals, ridge)
-        return np.asarray((vecs * (1.0 / np.sqrt(vals))) @ vecs.T)
+    """Return W such that W.T @ G @ W == I for the ridge-regularised G."""
+    vals, vecs = np.linalg.eigh((G + G.T) / 2 + ridge * np.eye(G.shape[0]))
+    return np.asarray((vecs / np.sqrt(np.maximum(vals, ridge))) @ vecs.T)
 
 
 def _whiten_response(Y: np.ndarray, ledoit_wolf: bool) -> tuple[np.ndarray, np.ndarray]:

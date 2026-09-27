@@ -5,7 +5,17 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAR3, ECCA, GRCCA, MCCA, PartialCCA, RidgeCCA
+from cca_zoo.linear import (
+    CCA,
+    CCAR3,
+    ECCA,
+    GCCA,
+    GRCCA,
+    MCCA,
+    GraphicalLassoCCA,
+    PartialCCA,
+    RidgeCCA,
+)
 from tests._helpers import canonical_correlations
 
 
@@ -57,6 +67,23 @@ def test_ccar3_penalty_drops_whole_features(two_views: list[np.ndarray]) -> None
     )
     dropped = ~weights.any(axis=1)
     assert dropped.any() and not dropped.all()
+    assert not CCAR3(alpha=1e3).fit(two_views).weights_[0].any()
+
+
+@pytest.mark.parametrize(
+    "model",
+    [MCCA(), GCCA(), GraphicalLassoCCA(alpha=0.5)],
+    ids=lambda m: type(m).__name__,
+)
+def test_fits_more_features_than_samples(model: object) -> None:
+    """Singular covariances are floored rather than inverted."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((30, 1))
+    views = [
+        z @ rng.standard_normal((1, p)) + 0.5 * rng.standard_normal((30, p))
+        for p in (50, 40)
+    ]
+    assert model.fit(views).score(views) > 0.3
 
 
 def test_ecca_penalty_drops_features(two_views: list[np.ndarray]) -> None:

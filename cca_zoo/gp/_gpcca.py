@@ -101,14 +101,9 @@ class _GpEncoder:
             self.kernel_(X, self.inducing_)
         )
         self.coef_: np.ndarray = np.zeros((self.inducing_.shape[0], k))
-        self._train_pred: np.ndarray = np.zeros((self.n, k))
         self._variance_model = GaussianProcessRegressor(
             kernel=self.kernel_, alpha=ridge, optimizer=None
         ).fit(self.inducing_, np.zeros(self.inducing_.shape[0]))
-
-    def predict(self) -> np.ndarray:
-        """Encoder output on the training data, shape (n_samples, k)."""
-        return self._train_pred
 
     def predict_new(
         self, X: np.ndarray, return_std: bool = False
@@ -266,11 +261,8 @@ class GaussianProcessCCA(BaseModel):
             coefficients.append(result.x[offset : offset + size].reshape(shape))
             offset += size
 
-        representations = [basis @ coef for basis, coef in zip(bases, coefficients)]
-
-        for enc, coef, rep in zip(encoders, coefficients, representations):
+        for enc, coef in zip(encoders, coefficients):
             enc.coef_ = coef
-            enc._train_pred = rep
 
         self.encoders_: list[_GpEncoder] = encoders
         return self

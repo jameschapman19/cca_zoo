@@ -80,6 +80,10 @@ def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
         model.transform([views[0], views[1][:10]])
     with pytest.raises(ValueError, match="View 0 has 3 features"):
         model.predict([views[1], None])
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        model.predict([views[0]])
+    with pytest.raises(ValueError, match="same number of samples"):
+        model.predict([views[0], views[1][:10]])
 
 
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)

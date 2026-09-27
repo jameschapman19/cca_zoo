@@ -25,6 +25,8 @@ def test_each_view_gets_its_own_fit(two_views: list[np.ndarray]) -> None:
     x1[0, 0] = np.nan
     out = mixed.fit_transform([x1, two_views[1]])
     assert not np.isnan(out[0]).any() and out[1].shape == (50, 3)
+    with pytest.raises(ValueError, match="one entry per view"):
+        PerViewTransformer([StandardScaler()]).fit(two_views)
 
 
 def test_inverse_transform(two_views: list[np.ndarray]) -> None:

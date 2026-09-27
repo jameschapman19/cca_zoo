@@ -42,6 +42,6 @@ def test_small_alpha_is_mcca(two_views_small: list[np.ndarray]) -> None:
 def test_alpha_per_view_sparsifies_that_precision(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """A larger alpha gives that view's precision fewer nonzero off-diagonals."""
-    precision = GraphicalLassoCCA(alpha=[1e-4, 2.0]).fit(two_views_small).precision_
+    """An alpha above the cross-validated one sparsifies that view's precision."""
+    precision = GraphicalLassoCCA(alpha=[None, 2.0]).fit(two_views_small).precision_
     assert _offdiagonal_nonzeros(precision[1]) < _offdiagonal_nonzeros(precision[0])

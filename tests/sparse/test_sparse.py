@@ -85,11 +85,13 @@ def test_each_sweep_lowers_the_objective(
     assert losses[-1] <= losses[0]
 
 
-@pytest.mark.parametrize("alpha", [0.1, 1.0, 2.0])
-def test_multitask_with_one_component_is_elasticnet(alpha: float) -> None:
+@pytest.mark.parametrize(
+    ("alpha", "fits"), [(0.1, True), (1.0, True), (2.0, True), (4.0, False)]
+)
+def test_multitask_with_one_component_is_elasticnet(alpha: float, fits: bool) -> None:
     """With one component the row-group penalty is the elastic net's.
 
-    At alpha=2 the all-zero weights are a local minimum both must avoid.
+    Both avoid the all-zero local minimum until the penalty outweighs the fit.
     """
     views = _signal_and_noise_columns()
     kwargs = {"alpha": alpha, "max_iter": 500, "random_state": 0}
@@ -97,7 +99,7 @@ def test_multitask_with_one_component_is_elasticnet(alpha: float) -> None:
     lasso = ElasticNetCCA(**kwargs).fit(views).weights_
     for g, e in zip(group, lasso):
         np.testing.assert_allclose(g, e, atol=0.02)
-        assert g.any()
+        assert g.any() == fits
 
 
 def test_multitask_drops_a_feature_from_every_component(
@@ -132,6 +134,9 @@ def test_omp_keeps_its_budget_of_features(
         n_components=2, n_nonzero_coefs=budget, random_state=0
     )
     assert [_active_rows(w) for w in model.fit(correlated_views).weights_] == expected
+    for bad in ([3], [3, 0]):
+        with pytest.raises(ValueError, match="n_nonzero_coefs"):
+            model.set_params(n_nonzero_coefs=bad).fit(correlated_views)
 
 
 def test_pmd_tau_one_is_unconstrained(two_views: list[np.ndarray]) -> None:

@@ -40,8 +40,12 @@ def test_transform_of_training_data_follows_the_embedding(
     two_views_small: list[np.ndarray],
 ) -> None:
     """Out-of-sample extension at the training points tracks their embedding."""
-    for method in ("laplacian", "lle"):
-        model = ManifoldCCA(method=method, n_neighbors=8).fit(two_views_small)
+    for kwargs in (
+        {"method": "laplacian"},
+        {"method": "laplacian", "affinity": "rbf", "n_operator_components": 8},
+        {"method": "lle"},
+    ):
+        model = ManifoldCCA(n_neighbors=8, **kwargs).fit(two_views_small)
         for z, t in zip(model.embedding_, model.transform(two_views_small)):
             assert abs(np.corrcoef(z[:, 0], t[:, 0])[0, 1]) > 0.8
 
