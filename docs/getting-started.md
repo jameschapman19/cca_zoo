@@ -75,11 +75,11 @@ average_pairwise_correlations(pairwise_correlations(scores))  # e.g. [0.94, 0.87
 ### Inspecting weights
 
 After fitting, a linear model's `weights_` is a list of weight matrices (one per view), and
-every model's `feature_importances_` gives one non-negative array per view summing to 1:
+every model's `feature_importances_per_view_` gives one non-negative array per view summing to 1:
 
 ```python
 W1, W2 = model.weights_  # each shape (n_features_i, n_components)
-imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
+imp1, imp2 = model.feature_importances_per_view_  # each shape (n_features_i,)
 ```
 
 ### Predicting a missing view

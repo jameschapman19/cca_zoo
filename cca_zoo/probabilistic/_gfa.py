@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 import numpy as np
 from numpy.typing import ArrayLike
 
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT, RANDOM_STATE
 from cca_zoo.probabilistic._utils import BaseProbabilistic
 
@@ -162,6 +163,7 @@ class GFA(BaseProbabilistic):
         prev_z: np.ndarray | None = None
         n_iter = self.max_iter
         stable_count = 0
+        converged = False
         for iteration in range(self.max_iter):
             # --- W update (per view), using the current zz ---
             for m in range(m_views):
@@ -231,8 +233,10 @@ class GFA(BaseProbabilistic):
             prev_z = z.copy()
             if stable_count >= _PATIENCE:
                 n_iter = iteration + 1
+                converged = True
                 break
 
+        warn_if_not_converged(self, converged)
         self.n_iter_ = n_iter
         self.n_components_ = k
         self._draw_posterior_samples(
@@ -240,7 +244,7 @@ class GFA(BaseProbabilistic):
         )
         self.weights_: list[np.ndarray] = list(w)
         self.view_relevance_: np.ndarray = np.array(alpha)
-        return self
+        return self._finish_fit(validated)
 
     # ------------------------------------------------------------------
     # Posterior sampling

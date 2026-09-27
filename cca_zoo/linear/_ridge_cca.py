@@ -91,4 +91,4 @@ class RidgeCCA(BaseModel):
         U = U[:, :k]
         Vt = Vt[:k, :]
         self.weights_: list[np.ndarray] = [W1 @ U, W2 @ Vt.T]
-        return self
+        return self._finish_fit(views_)

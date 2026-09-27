@@ -8,7 +8,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [4.0.0] - Unreleased
 
 A major release that settles the public API: every model follows one scikit-learn-style
-contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_`),
+contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_per_view_`),
 and every deprecated alias accumulated through 3.x is removed rather than carried forward.
 The table below gives each replacement.
 
@@ -23,7 +23,7 @@ The table below gives each replacement.
 | `TrimmedCCA(n_starts=)`, `ProjectionPursuitCCA(n_restarts=)` | `n_init=`, sklearn's name for random restarts |
 | deep models' `lr=` | `learning_rate=`, as for every other model |
 | `ProbabilisticCCA(num_warmup=, num_samples=)` | `n_warmup=`, `n_posterior_samples=` |
-| `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `max_iter=`, `n_posterior_samples=` |
+| `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `n_iter=` (a fixed number of SVI steps), `n_posterior_samples=` |
 | `MultiviewWrapper` on stacked views | the `cca_zoo.model_selection` searches and cross-validation functions on the list of views; `Pipeline` with `cca_zoo.preprocessing.PerViewTransformer` for preprocessing |
 | `PermutationTestResult.correlations_`, `.p_values_`, and the other fields | the same names without the trailing `_` |
 | `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `MARSCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
@@ -48,13 +48,16 @@ The table below gives each replacement.
 | `PLS_EY` | `cca_zoo.linear.PLSEY` |
 | `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
 | `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
-| `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_` |
+| `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_per_view_` |
 | deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
 | deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
 | deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
 | `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
+| `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
+| `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
+| `VariationalBayesCCA.guide_`, `.svi_result_` | `posterior_samples_` and `losses_` |
 
 ### Added
 
@@ -94,7 +97,7 @@ The table below gives each replacement.
   one linear constraint, so each backward step scores every candidate exactly from one
   eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
   terms are inspectable via `model.basis_functions(view)`, and its
-  `feature_importances_` is `earth`'s `evimp` (the loss criterion).
+  `feature_importances_per_view_` is `earth`'s `evimp` (the loss criterion).
   Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
   `minspan`, `endspan`), so an `earth` user can read a call directly. The one default
   that differs is `minspan`: `minspan=0` is Friedman's spacing exactly, as in `earth`,
@@ -107,13 +110,18 @@ The table below gives each replacement.
   formed and memory stays O(n_samples * n_features) regardless of `nk` or
   `degree`.
 
-- `feature_importances_` on every model: one non-negative array per view, summing to 1,
-  computed on access as for sklearn's tree models. Each family uses its own literature's
-  importance — a linear model's `Var(x_j) * sum_k w_jk**2`, `GAMCCA` each smooth's variance,
-  `MARSCCA` `earth`'s `evimp`, the tree models their total split gain — and models with no
-  such decomposition (kernel, Gaussian-process, manifold) the mean squared change in a
-  view's latent scores when a feature is permuted, which for a linear or additive model is
-  exactly twice its variance share.
+- `feature_importances_per_view_` on every model: one non-negative array per view, summing
+  to 1, computed at fit. Each family uses its own literature's importance — a linear
+  model's `Var(x_j) * sum_k w_jk**2`, `GAMCCA` each smooth's variance, `MARSCCA` `earth`'s
+  `evimp`, the tree models their total split gain — and models with no such decomposition
+  (kernel, Gaussian-process, manifold) the mean squared change in a view's latent scores
+  when a feature is permuted, over at most 500 training rows drawn with `random_state`,
+  which for a linear or additive model is exactly twice its variance share. The name is
+  not sklearn's `feature_importances_`, which tools such as `SelectFromModel` read as one
+  array.
+- `n_iter_` on every model with `max_iter`, and sklearn's `ConvergenceWarning` when a fit
+  stops at `max_iter` before meeting its tolerance. `VariationalBayesCCA`, which runs a
+  fixed number of SVI steps with no stopping rule, takes `n_iter` instead.
 
 - `ProbabilisticCCA`, `VariationalBayesCCA` and `GFA` gain `posterior_mean(views)`, the
   posterior mean of the shared latent given every view or, with `None` entries, any subset.
@@ -129,6 +137,14 @@ The table below gives each replacement.
 
 ### Changed
 
+- Fitted models no longer keep their training data. `predict`, `inverse_transform` and the
+  importances took it from a stored copy of the views; what they need is now computed at
+  fit, so a pickled model does not carry the dataset. `KTCCA` no longer keeps an
+  n-by-n whitening matrix, `GaussianProcessCCA`'s encoders an n-by-m training basis,
+  `GAMCCA`'s its training spline basis, and the probabilistic models their samplers, which
+  held the views. Only the kernel and manifold models, whose out-of-sample map is built
+  from the training rows, keep them, as `train_views_`; `GaussianProcessCCA` keeps its
+  inducing points, every row by default.
 - Every constructor parameter of every model is validated when fitting, as sklearn's are;
   the kernel, tree, probabilistic and iterative sparse models, and `random_state`
   everywhere, previously accepted anything.

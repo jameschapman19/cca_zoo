@@ -20,17 +20,20 @@ from cca_zoo.linear._rrr_common import (
 
 def _row_sparse_rrr(
     X: np.ndarray, Y_tilde: np.ndarray, alpha: float, max_iter: int, tol: float
-) -> np.ndarray:
+) -> tuple[np.ndarray, int]:
     """Solve ``min_B ||Y - XB||^2 / n + alpha * sum_j ||B[j]||`` by MultiTaskLasso.
 
     sklearn scales the loss by ``1 / (2n)``, so its ``alpha`` is half of this
     one.
+
+    Returns:
+        ``B``, and the MultiTaskLasso's iterations.
     """
     model = MultiTaskLasso(
         alpha=alpha / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
     )
     model.fit(X, Y_tilde)
-    return np.asarray(model.coef_.T)
+    return np.asarray(model.coef_.T), model.n_iter_
 
 
 class CCAR3(BaseModel):
@@ -64,6 +67,8 @@ class CCAR3(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations of the MultiTaskLasso, or None when
+            ``highdim=False`` solves directly.
 
     References:
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
@@ -131,8 +136,9 @@ class CCAR3(BaseModel):
 
         Y_tilde, sqrt_inv_Sy = _whiten_response(Y, self.ledoit_wolf)
 
+        self.n_iter_: int | None = None
         if self.highdim:
-            B = _row_sparse_rrr(
+            B, self.n_iter_ = _row_sparse_rrr(
                 X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
             )
         else:
@@ -143,4 +149,4 @@ class CCAR3(BaseModel):
             B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
         )
         self.weights_: list[np.ndarray] = [U, V]
-        return self
+        return self._finish_fit(views_)

@@ -108,7 +108,7 @@ class MCCA(BaseModel):
             ]
         else:
             self.weights_ = raw_weights
-        return self
+        return self._finish_fit(views_)
 
     # ------------------------------------------------------------------
     # Matrix construction helpers (overridable by subclasses)

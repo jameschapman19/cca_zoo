@@ -108,8 +108,9 @@ with small values everywhere is shared.
     monotonic, and so immune to this). Checking against a run with early stopping disabled
     caught this proxy staying below tolerance for 700+ iterations in the middle of a slow
     pruning process before rising again — a patience window makes this less likely, but can't
-    rule it out. If `n_components_` looks larger than you'd expect, raise `max_iter` (default
-    10000) rather than assuming the result is final.
+    rule it out. A fit that reaches `max_iter` (default 10000) without meeting the criterion
+    raises a `ConvergenceWarning`; if `n_components_` looks larger than you'd expect, raise
+    `max_iter` rather than assuming the result is final.
 
 `GFA.transform` and `GFA.weights_` behave identically to the other two classes; `n_iter_` reports
 how many iterations were actually run.
@@ -202,7 +203,7 @@ from cca_zoo.probabilistic import VariationalBayesCCA
 # n_components is an upper bound here — set it generously and let ARD prune it
 model = VariationalBayesCCA(
     n_components=5,
-    max_iter=2000,
+    n_iter=2000,
     learning_rate=1e-2,
     random_state=0,
 )
@@ -252,7 +253,7 @@ print("Posterior mean weights shape:", mcmc_model.weights_[0].shape)  # (10, 2)
 # to see ARD prune the unsupported ones
 vb_model = VariationalBayesCCA(
     n_components=4,
-    max_iter=2000,
+    n_iter=2000,
     random_state=42,
 )
 vb_model.fit(views)
@@ -275,8 +276,9 @@ print("Latent shape:", z.shape)  # (100, 4)
 - **Warmup vs samples (MCMC).** NUTS requires a warm-up phase to adapt the step size. A typical
   setting is `n_warmup=500, n_posterior_samples=1000`. For exploration, `n_warmup=100,
   n_posterior_samples=200` is enough.
-- **max_iter vs learning_rate (VB).** Check `model.losses_` — if it hasn't plateaued, increase
-  `max_iter`. If it's noisy or diverging, lower `learning_rate`.
+- **n_iter vs learning_rate (VB).** SVI runs all `n_iter` steps, with no stopping rule. Check
+  `model.losses_` — if it hasn't plateaued, increase `n_iter`. If it's noisy or diverging,
+  lower `learning_rate`.
 - **max_iter vs tol (GFA).** Convergence-based early stopping is a best-effort heuristic (see the
   warning above) — if `n_components_` looks too large, raise `max_iter` rather than lowering
   `tol` further.
@@ -284,8 +286,9 @@ print("Latent shape:", z.shape)  # (100, 4)
   uncertainty in the weights is meaningful (rough guide: $n < 500$ for MCMC; VB scales further).
 - **Feature scaling.** Center and scale your views before fitting (`center=True` is the
   default). The priors on $W_i$ assume unit-scale inputs.
-- **Convergence diagnostics.** Use [ArviZ](https://python.arviz.org/) on the NumPyro MCMC object
-  (accessible via `model.mcmc_` on `ProbabilisticCCA`) for R-hat and effective sample size checks.
+- **Convergence diagnostics.** `numpyro.diagnostics.summary(model.posterior_samples_,
+  group_by_chain=False)` gives the split R-hat and effective sample size of every site. The
+  fitted model keeps the draws, not the sampler, which would hold the training data.
 - **Comparing models.** Use `model.log_likelihood(held_out_views)` rather than `model.score(...)`
   when the question is "which model/n_components fits this data better" — it's the
   statistically proper Bayesian criterion, unlike the correlation-based `score` every model

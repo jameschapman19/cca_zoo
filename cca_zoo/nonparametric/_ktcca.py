@@ -41,6 +41,8 @@ class KTCCA(BaseModel):
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
             n_components).
+        train_views_: The centred training views, against which the kernel
+            of a new view is evaluated.
 
     References:
         Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
@@ -123,7 +125,7 @@ class KTCCA(BaseModel):
             )
             for i, v in enumerate(views_)
         ]
-        whitened, self._cov_invsqrt = self._whiten_kernels(kernels, c_)
+        whitened, cov_invsqrt = self._whiten_kernels(kernels, c_)
 
         M = cross_moment_tensor(whitened)
 
@@ -135,9 +137,9 @@ class KTCCA(BaseModel):
             random_state=self.random_state,
         )
         self.weights_: list[np.ndarray] = [
-            self._cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
+            cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
         ]
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         kernel = pairwise_kernels(

@@ -14,7 +14,7 @@ pytestmark = pytest.mark.slow
 
 _QUICK = {
     ProbabilisticCCA: {"n_warmup": 20, "n_posterior_samples": 20},
-    VariationalBayesCCA: {"max_iter": 300},
+    VariationalBayesCCA: {"n_iter": 300},
 }
 
 
@@ -56,7 +56,7 @@ def test_noise_is_a_variance() -> None:
     """The fitted noise matches each feature's true variance, 0.01 or 4."""
     views, _ = _views(n=400, noise=np.array([0.1] * 3 + [2.0] * 3))
     psi = (
-        VariationalBayesCCA(2, max_iter=3000, random_state=0)
+        VariationalBayesCCA(2, n_iter=3000, random_state=0)
         .fit(views)
         ._noise_variances()[0]
     )
@@ -67,7 +67,7 @@ def test_vb_recovers_the_latent_subspace() -> None:
     """The posterior mean spans the true latent space, up to rotation."""
     views, z = _views()
     z_hat = (
-        VariationalBayesCCA(2, max_iter=2000, random_state=0)
+        VariationalBayesCCA(2, n_iter=2000, random_state=0)
         .fit(views)
         .posterior_mean(views)
     )
@@ -78,7 +78,7 @@ def test_ard_shrinks_an_unsupported_dimension() -> None:
     """Of three dimensions for two factors, the spare one gets the largest precision."""
     views, _ = _views()
     relevance = np.sort(
-        VariationalBayesCCA(3, max_iter=2000, random_state=0).fit(views).ard_relevance_
+        VariationalBayesCCA(3, n_iter=2000, random_state=0).fit(views).ard_relevance_
     )
     assert relevance[2] > 2 * relevance[1]
 

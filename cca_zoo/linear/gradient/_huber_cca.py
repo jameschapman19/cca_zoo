@@ -97,6 +97,7 @@ class HuberCCA(BaseFullBatchEYModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: L-BFGS-B iterations run.
 
     References:
         Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant
@@ -149,7 +150,7 @@ class HuberCCA(BaseFullBatchEYModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_lbfgsb(views_, rng)
-        return self
+        return self._finish_fit(views_)
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator

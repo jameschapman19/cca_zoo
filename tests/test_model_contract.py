@@ -4,15 +4,17 @@ scikit-learn's own checks (``test_estimator_checks``) cover each model as an
 estimator of one array. These cover what is specific to several views:
 ``transform``, ``predict`` and ``inverse_transform`` through each model's
 per-view encoder, the number and shapes of views, parameter validation and
-``feature_importances_``.
+``feature_importances_per_view_``.
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._param_validation import InvalidParameterError
 
+import cca_zoo._base
 from cca_zoo._base import BaseModel
 from tests._helpers import MODEL_CLASSES, make_model
 
@@ -107,6 +109,7 @@ _ADEQUATE = {
 }
 
 
+@pytest.mark.filterwarnings("error::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_recovers_a_shared_signal(cls: type[BaseModel]) -> None:
     """At its defaults, each model finds a strong one-dimensional shared signal."""
@@ -115,6 +118,20 @@ def test_recovers_a_shared_signal(cls: type[BaseModel]) -> None:
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
     assert _fit(model, views).score(views) > 0.8
+
+
+_ITERATIVE = [c for c in MODEL_CLASSES if "max_iter" in make_model(c).get_params()]
+# ECCA's default alpha=0 is solved by least squares, without iterating.
+_ITERATING = {"ECCA": {"alpha": 0.1}}
+
+
+@pytest.mark.parametrize("cls", _ITERATIVE, ids=[c.__name__ for c in _ITERATIVE])
+def test_stopping_at_max_iter_warns(cls: type[BaseModel]) -> None:
+    """A fit cut short by max_iter warns, and n_iter_ reports the iterations run."""
+    model = make_model(cls).set_params(max_iter=1, **_ITERATING.get(cls.__name__, {}))
+    with pytest.warns(ConvergenceWarning):
+        _fit(model, _views(0))
+    assert np.max(model.n_iter_) == 1
 
 
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
@@ -142,21 +159,61 @@ def test_refit_leaves_no_stale_state(cls: type[BaseModel]) -> None:
     )
 
 
+# Out-of-sample kernel and manifold embeddings are built from the training rows;
+# GaussianProcessCCA uses every row as an inducing point by default.
+_KEEPS_TRAINING_VIEWS = {"KCCA", "KGCCA", "KTCCA", "ManifoldCCA", "GaussianProcessCCA"}
+
+
+def _arrays(obj: object, seen: set[int]) -> list[np.ndarray]:
+    """Every array reachable from ``obj``'s attributes and containers."""
+    if id(obj) in seen:
+        return []
+    seen.add(id(obj))
+    if isinstance(obj, np.ndarray):
+        return [obj]
+    if isinstance(obj, dict):
+        children = list(obj.values())
+    elif isinstance(obj, list | tuple):
+        children = list(obj)
+    elif hasattr(obj, "__dict__") and type(obj).__module__.startswith("cca_zoo"):
+        children = list(vars(obj).values())
+    else:
+        return []
+    return [a for child in children for a in _arrays(child, seen)]
+
+
+@pytest.mark.parametrize(
+    "cls", [c for c in MODEL_CLASSES if c.__name__ not in _KEEPS_TRAINING_VIEWS]
+)
+def test_fitted_model_keeps_no_training_data(cls: type[BaseModel]) -> None:
+    """No array in the fitted model holds a training view, raw or centred."""
+    views = _views(0)
+    model = _fit(make_model(cls), views)
+    training = views + [v - v.mean(axis=0) for v in views]
+    for array in _arrays(model, set()):
+        assert not any(
+            array.shape == v.shape and np.allclose(array, v) for v in training
+        )
+
+
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_feature_importances(cls: type[BaseModel]) -> None:
     """One non-negative array per view summing to one, or zero if no feature is used."""
     views = _views(0)
-    importances = _fit(make_model(cls), views).feature_importances_
+    importances = _fit(make_model(cls), views).feature_importances_per_view_
     assert [imp.shape for imp in importances] == [(v.shape[1],) for v in views]
     for imp in importances:
         assert np.all(imp >= 0)
         assert imp.sum() == pytest.approx(1.0) or not imp.any()
 
 
-def test_linear_importance_matches_the_permutation_definition() -> None:
+def test_linear_importance_matches_the_permutation_definition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Var(x_j) * sum_k w_jk^2 is half the mean squared permutation change."""
     from cca_zoo.linear import CCA
 
+    monkeypatch.setattr(cca_zoo._base, "_PERMUTATION_SAMPLES", 20000)
     rng = np.random.default_rng(0)
     z = rng.standard_normal((20000, 1))
     views = [
@@ -164,8 +221,9 @@ def test_linear_importance_matches_the_permutation_definition() -> None:
         for p in (4, 3)
     ]
     model = CCA(n_components=2).fit(views)
-    closed_form = model._feature_importances()
-    permuted = model._permutation_importances()
+    centred = [v - m for v, m in zip(views, model.means_)]
+    closed_form = model._feature_importances(centred)
+    permuted = model._permutation_importances(centred)
     for exact, estimate in zip(closed_form, permuted):
         np.testing.assert_allclose(estimate, 2 * exact, rtol=0.05)
 
@@ -200,5 +258,5 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
     model = cls(n_components=1, **kwargs)
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
-    importances = model.fit(_signal_in_first_feature(300)).feature_importances_
+    importances = model.fit(_signal_in_first_feature(300)).feature_importances_per_view_
     assert [int(np.argmax(imp)) for imp in importances] == [0, 0]

@@ -115,7 +115,7 @@ class GRCCA(MCCA):
             self._collapse_weights(block, g, c, m)
             for block, g, c, m in zip(raw_blocks, feature_groups, c_, mu_)
         ]
-        return self
+        return self._finish_fit(views_)
 
     # ------------------------------------------------------------------
     # Helpers

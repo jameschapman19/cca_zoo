@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import coordinate_descent_ey
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
@@ -45,6 +46,7 @@ class ElasticNetCCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Coordinate-descent sweeps at the full penalty.
 
     Examples:
         >>> import numpy as np
@@ -98,7 +100,7 @@ class ElasticNetCCA(BaseModel):
         alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
         l1_ratio_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
         rng = np.random.default_rng(self.random_state)
-        weights, _ = coordinate_descent_ey(
+        weights, self.n_iter_, converged = coordinate_descent_ey(
             bases=views_,
             k=self.n_components,
             alpha=alpha_,
@@ -108,5 +110,6 @@ class ElasticNetCCA(BaseModel):
             rng=rng,
             positive=self.positive,
         )
+        warn_if_not_converged(self, converged)
         self.weights_: list[np.ndarray] = weights
-        return self
+        return self._finish_fit(views_)

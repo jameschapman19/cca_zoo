@@ -188,7 +188,7 @@ def test_admm_update_solves_the_papers_problem() -> None:
     X, target, tau = rng.standard_normal((60, 15)), rng.standard_normal(60) * 0.5, 0.2
     model = ADMMCCA(tau=tau, max_iter=1, admm_iter=20_000, tol=1e-14, random_state=0)
     w = [np.zeros(15), np.array([1.0])]
-    model._fit_single([X, target[:, None]], w, 0)
+    model._fit_single([X, target[:, None]], w)
     score = X @ w[0]
     assert np.linalg.norm(score) > 0.99  # the constraint is active
     active = np.abs(w[0]) > 1e-6

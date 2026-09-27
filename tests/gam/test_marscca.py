@@ -36,7 +36,7 @@ def test_feature_importances_rank_the_interacting_features() -> None:
     """Earth's evimp puts the interacting features first and unused ones at zero."""
     views = _interaction(400, 2)
     model = MARSCCA(degree=2, nk=16, nprune=10, random_state=0).fit(views)
-    importance = model.feature_importances_[0]
+    importance = model.feature_importances_per_view_[0]
     assert set(np.argsort(importance)[-2:]) == {0, 1}
     used = {f for term in model.encoders_[0].terms_ for f, _, _ in term}
     assert all(importance[f] == 0 for f in range(importance.size) if f not in used)

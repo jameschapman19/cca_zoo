@@ -16,6 +16,7 @@ from sklearn.preprocessing import KernelCenterer
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_grad_z,
@@ -83,9 +84,8 @@ class _GpEncoder:
         n_inducing: int | None,
         random_state: int | None,
     ) -> None:
-        self.n, self.p = X.shape
         self.k = k
-        if n_inducing is None or n_inducing >= self.n:
+        if n_inducing is None or n_inducing >= X.shape[0]:
             self.inducing_: np.ndarray = X
         else:
             _, idx = kmeans_plusplus(
@@ -94,16 +94,22 @@ class _GpEncoder:
             self.inducing_ = X[idx]
 
         self.kernel_: Kernel = kernel
-        k_ind_raw = self.kernel_(self.inducing_, self.inducing_)
-        self._centerer = KernelCenterer().fit(k_ind_raw)
-        self.ridge_matrix_: np.ndarray = self._centerer.transform(k_ind_raw)
-        self.basis_: np.ndarray = self._centerer.transform(
-            self.kernel_(X, self.inducing_)
+        self._centerer = KernelCenterer().fit(
+            self.kernel_(self.inducing_, self.inducing_)
         )
         self.coef_: np.ndarray = np.zeros((self.inducing_.shape[0], k))
         self._variance_model = GaussianProcessRegressor(
             kernel=self.kernel_, alpha=ridge, optimizer=None
         ).fit(self.inducing_, np.zeros(self.inducing_.shape[0]))
+
+    def basis(self, X: np.ndarray) -> np.ndarray:
+        """The centred cross-kernel of ``X`` with the inducing points."""
+        basis: np.ndarray = self._centerer.transform(self.kernel_(X, self.inducing_))
+        return basis
+
+    def ridge_matrix(self) -> np.ndarray:
+        """The centred kernel of the inducing points, the RKHS-norm metric."""
+        return self.basis(self.inducing_)
 
     def predict_new(
         self, X: np.ndarray, return_std: bool = False
@@ -118,8 +124,7 @@ class _GpEncoder:
         Returns:
             The output, or ``(mean, std)``, each of shape (n, k).
         """
-        basis = self._centerer.transform(self.kernel_(X, self.inducing_))
-        mean: np.ndarray = basis @ self.coef_
+        mean: np.ndarray = self.basis(X) @ self.coef_
         if not return_std:
             return mean
         _, std = self._variance_model.predict(X, return_std=True)
@@ -154,6 +159,7 @@ class GaussianProcessCCA(BaseModel):
     Attributes:
         encoders_: Fitted per-view encoders, with ``inducing_``, ``kernel_``
             and ``coef_``.
+        n_iter_: L-BFGS-B iterations run.
 
     References:
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
@@ -237,8 +243,8 @@ class GaussianProcessCCA(BaseModel):
             for X, kern, a, n_ind in zip(views_, kernel_, alpha_, n_inducing_)
         ]
 
-        bases = [enc.basis_ for enc in encoders]
-        ridge_matrices = [enc.ridge_matrix_ for enc in encoders]
+        bases = [enc.basis(X) for enc, X in zip(encoders, views_)]
+        ridge_matrices = [enc.ridge_matrix() for enc in encoders]
 
         rng = np.random.default_rng(self.random_state)
         coefficients0 = cheap_orthonormal_projection_weights(bases, k, None, rng)
@@ -254,6 +260,8 @@ class GaussianProcessCCA(BaseModel):
             method="L-BFGS-B",
             options={"maxiter": self.max_iter, "ftol": self.tol},
         )
+        self.n_iter_: int = result.nit
+        warn_if_not_converged(self, result.nit < self.max_iter)
 
         coefficients = []
         offset = 0
@@ -265,7 +273,7 @@ class GaussianProcessCCA(BaseModel):
             enc.coef_ = coef
 
         self.encoders_: list[_GpEncoder] = encoders
-        return self
+        return self._finish_fit(views_)
 
     def transform(  # type: ignore[override]
         self, views: list[ArrayLike], return_std: bool = False

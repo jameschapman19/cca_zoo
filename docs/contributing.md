@@ -99,12 +99,16 @@ All contributions must comply with the following:
    (e.g. `cca_zoo/linear/_mymodel.py`).
 2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep). This gets you
    `transform`, `fit_transform`, `predict`, `inverse_transform`, `score`, and correct
-   sklearn `get_params`/`set_params`/tags for free. Implement `fit`, setting `weights_`
-   for a linear model; a nonlinear one overrides `_transform_view(view, centred)`, its
-   per-view encoder, which every other method goes through. Override
-   `_feature_importances()` if the model has a native importance (one non-negative array
-   per view); the `feature_importances_` property normalises it, and falls back to
-   permutation importance otherwise.
+   sklearn `get_params`/`set_params`/tags for free. Implement `fit`, starting with
+   `views = self._setup_fit(views)` and ending with `return self._finish_fit(views)`, and
+   set `weights_` for a linear model; a nonlinear one overrides
+   `_transform_view(view, centred)`, its per-view encoder, which every other method goes
+   through. `_finish_fit` records what `predict`, `inverse_transform` and
+   `feature_importances_per_view_` need, so the model does not keep its training data.
+   Override `_feature_importances(views)` if the model has a native importance (one
+   non-negative array per view); otherwise permutation importance is used.
+   An iterative model reports `n_iter_` and warns with sklearn's `ConvergenceWarning`
+   when it stops at `max_iter`.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
 4. Declare every constructor parameter in `_parameter_constraints`, merging in the
    parent class's (e.g. `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}`;
@@ -117,7 +121,8 @@ All contributions must comply with the following:
      idempotent refits, invariance to sample order, and more.
    - `tests/test_model_contract.py` checks the multiview contract: `transform`,
      `predict` and `inverse_transform`, the number and shapes of views, that every
-     parameter is validated, `center=False`, `feature_importances_`, and that the model
+     parameter is validated, `center=False`, `feature_importances_per_view_`,
+     convergence warnings, and that the model
      recovers a strong shared signal at its defaults.
    If a check cannot apply to the model, add it to that file's expected failures with
    the reason.

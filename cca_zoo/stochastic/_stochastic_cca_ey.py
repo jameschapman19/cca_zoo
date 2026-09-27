@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils import gen_batches
 from sklearn.utils._param_validation import Interval
 
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
 from cca_zoo.linear.gradient._cca_ey import CCAEY
 
@@ -37,6 +38,7 @@ class StochasticCCAEY(CCAEY):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Epochs run.
 
     Examples:
         >>> import numpy as np
@@ -95,7 +97,7 @@ class StochasticCCAEY(CCAEY):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_sgd(views_, rng)
-        return self
+        return self._finish_fit(views_)
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
@@ -114,7 +116,8 @@ class StochasticCCAEY(CCAEY):
         weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
         prev_obj = np.inf
-        for _ in range(self.max_iter):
+        converged = False
+        for n_iter in range(1, self.max_iter + 1):
             perm = rng.permutation(n)
             shuffled = [v[perm] for v in views]
             for sl in gen_batches(n, bs):
@@ -132,6 +135,9 @@ class StochasticCCAEY(CCAEY):
                     "views with StandardScaler."
                 )
             if abs(prev_obj - obj) < self.tol:
+                converged = True
                 break
             prev_obj = obj
+        self.n_iter_: int = n_iter
+        warn_if_not_converged(self, converged)
         return weights

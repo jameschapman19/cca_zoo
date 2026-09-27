@@ -215,6 +215,8 @@ class ManifoldCCA(BaseModel):
 
     Attributes:
         embedding_: Training embedding of each view, shape (n_samples, n_components).
+        train_views_: The centred training views, from which a new view's
+            embedding is interpolated.
 
     References:
         Roweis, S. T., & Saul, L. K. (2000). Nonlinear dimensionality reduction
@@ -351,6 +353,7 @@ class ManifoldCCA(BaseModel):
         blocks = list(np.split(eigvecs, offsets[1:-1], axis=0))
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
         self.embedding_: list[np.ndarray] = embedding
+        self.train_views_: list[np.ndarray] = views_
         self._n_neighbors_: list[int] = n_neighbors_
         self._affinity_: list[str] = affinity_
         self._lle_reg_: list[float] = lle_reg_
@@ -371,10 +374,10 @@ class ManifoldCCA(BaseModel):
         else:
             self._laplacian_state_ = None
             self._lle_state_ = lle_nn
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        v_train = self._views_fit_[view]
+        v_train = self.train_views_[view]
         n_neighbors = self._n_neighbors_[view]
         if self.method == "lle":
             assert self._lle_state_ is not None

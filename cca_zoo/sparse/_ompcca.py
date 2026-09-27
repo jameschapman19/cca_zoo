@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import omp_coordinate_descent_ey
 from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
 
@@ -34,6 +35,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Rounds of regrowing the active sets.
 
     Examples:
         >>> import numpy as np
@@ -104,9 +106,9 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             ValueError: If ``n_nonzero_coefs`` has the wrong length or is not positive.
         """
         views_ = self._setup_fit(views)
-        n_nonzero_coefs = self._resolve_n_nonzero_coefs(self.n_features_in_)
+        n_nonzero_coefs = self._resolve_n_nonzero_coefs(self.n_features_per_view_)
         rng = np.random.default_rng(self.random_state)
-        weights, _ = omp_coordinate_descent_ey(
+        weights, self.n_iter_, converged = omp_coordinate_descent_ey(
             bases=views_,
             k=self.n_components,
             n_nonzero_coefs=n_nonzero_coefs,
@@ -114,5 +116,6 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             tol=self.tol,
             rng=rng,
         )
+        warn_if_not_converged(self, converged)
         self.weights_: list[np.ndarray] = weights
-        return self
+        return self._finish_fit(views_)

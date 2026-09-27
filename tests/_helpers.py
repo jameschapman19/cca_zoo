@@ -27,7 +27,7 @@ SLOW_MODULES = {"cca_zoo.tree", "cca_zoo.probabilistic"}
 # Constructor arguments that keep each fit small; other models use defaults.
 _FAST: dict[str, dict[str, Any]] = {
     "ProbabilisticCCA": {"n_warmup": 10, "n_posterior_samples": 10},
-    "VariationalBayesCCA": {"max_iter": 20, "n_posterior_samples": 10},
+    "VariationalBayesCCA": {"n_iter": 20, "n_posterior_samples": 10},
     "GFA": {"max_iter": 50, "n_posterior_samples": 10},
     "XGBoostCCA": {"n_estimators": 3},
     "LightGBMCCA": {"n_estimators": 3},

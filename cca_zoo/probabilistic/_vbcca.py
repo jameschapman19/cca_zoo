@@ -40,7 +40,8 @@ class VariationalBayesCCA(BaseProbabilistic):
         n_components: Upper bound on the number of latent dimensions.
             Default is 1.
         center: Whether to centre each view. Default is True.
-        max_iter: SVI steps. Default is 2000.
+        n_iter: SVI steps; there is no stopping rule, so all are run.
+            Default is 2000.
         learning_rate: Adam learning rate for SVI. Default is 1e-2.
         n_posterior_samples: Draws from the fitted posterior. Default is 1000.
         random_state: Seed for the JAX PRNG. Default is None.
@@ -64,12 +65,12 @@ class VariationalBayesCCA(BaseProbabilistic):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
-        >>> model = VariationalBayesCCA(n_components=2, max_iter=50).fit([X1, X2])
+        >>> model = VariationalBayesCCA(n_components=2, n_iter=50).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseProbabilistic._parameter_constraints,
-        "max_iter": POSITIVE_INT,
+        "n_iter": POSITIVE_INT,
         "learning_rate": POSITIVE_EPS,
         "n_posterior_samples": POSITIVE_INT,
         "random_state": RANDOM_STATE,
@@ -79,13 +80,13 @@ class VariationalBayesCCA(BaseProbabilistic):
         self,
         n_components: int = 1,
         center: bool = True,
-        max_iter: int = 2000,
+        n_iter: int = 2000,
         learning_rate: float = 1e-2,
         n_posterior_samples: int = 1000,
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
-        self.max_iter = max_iter
+        self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
@@ -170,10 +171,8 @@ class VariationalBayesCCA(BaseProbabilistic):
         rng_key, predictive_key = jax.random.split(
             jax.random.PRNGKey(_integer_seed(self.random_state))
         )
-        svi_result = svi.run(rng_key, self.max_iter, validated, progress_bar=False)
-        self.svi_result_ = svi_result
+        svi_result = svi.run(rng_key, self.n_iter, validated, progress_bar=False)
         self.losses_: np.ndarray = np.array(svi_result.losses)
-        self.guide_ = guide
 
         predictive = Predictive(
             guide, params=svi_result.params, num_samples=self.n_posterior_samples
@@ -190,4 +189,4 @@ class VariationalBayesCCA(BaseProbabilistic):
         self.ard_relevance_: np.ndarray = np.array(
             self.posterior_samples_["alpha"].mean(axis=0)
         )
-        return self
+        return self._finish_fit(validated)

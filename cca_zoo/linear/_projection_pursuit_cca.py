@@ -15,6 +15,7 @@ from sklearn.covariance import MinCovDet
 from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._linalg import deflate
 from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 
@@ -120,6 +121,7 @@ class ProjectionPursuitCCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Powell iterations of each component's best restart.
 
     References:
         Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
@@ -182,8 +184,12 @@ class ProjectionPursuitCCA(BaseModel):
         pairs: list[tuple[int, int]],
         index_fn: IndexFn,
         rng: np.random.Generator,
-    ) -> list[np.ndarray]:
-        """One unit direction per view maximising the mean pairwise index."""
+    ) -> tuple[list[np.ndarray], int]:
+        """One unit direction per view maximising the mean pairwise index.
+
+        Returns:
+            The directions, and the Powell iterations of the best restart.
+        """
         ps = [v.shape[1] for v in views]
         sizes = [max(p - 1, 0) for p in ps]
         offsets = np.cumsum([0] + sizes)
@@ -203,10 +209,11 @@ class ProjectionPursuitCCA(BaseModel):
         n_theta = int(offsets[-1])
         if n_theta == 0:
             # Every view is already 1-dimensional: nothing left to search.
-            return unpack(np.zeros(0))
+            return unpack(np.zeros(0)), 0
 
         best_value = np.inf
         best_theta = np.zeros(n_theta)
+        best_n_iter = 0
         for _ in range(self.n_init):
             theta0 = rng.uniform(0.0, 2 * np.pi, size=n_theta)
             result = minimize(
@@ -221,7 +228,8 @@ class ProjectionPursuitCCA(BaseModel):
             )
             if result.fun < best_value:
                 best_value, best_theta = float(result.fun), result.x
-        return unpack(best_theta)
+                best_n_iter = result.nit
+        return unpack(best_theta), best_n_iter
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ProjectionPursuitCCA:
         """Fit the model.
@@ -239,13 +247,16 @@ class ProjectionPursuitCCA(BaseModel):
         pairs = list(combinations(range(self.n_views_), 2))
 
         weights: list[np.ndarray] = [
-            np.zeros((p, self.n_components)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
+        self.n_iter_: list[int] = []
         for d in range(self.n_components):
-            directions = self._fit_directions(deflated, pairs, index_fn, rng)
+            directions, n_iter = self._fit_directions(deflated, pairs, index_fn, rng)
+            self.n_iter_.append(n_iter)
             for i, a in enumerate(directions):
                 weights[i][:, d] = a
             deflated = deflate(deflated, directions)
+        warn_if_not_converged(self, max(self.n_iter_) < self.max_iter)
         self.weights_ = weights
-        return self
+        return self._finish_fit(views_)

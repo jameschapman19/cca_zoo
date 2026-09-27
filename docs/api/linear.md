@@ -18,7 +18,6 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
         - predict
         - fit_transform
         - score
-        - feature_importances_
 
 ---
 

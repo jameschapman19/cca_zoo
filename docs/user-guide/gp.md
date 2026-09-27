@@ -84,7 +84,7 @@ design points), so it is computed under the (uncentred) GP prior implied by the 
 level, and inducing points as the mean fit.
 
 `GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to
-`GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_`
+`GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_per_view_`
 is therefore permutation-based: the mean squared change in each view's latent scores when a
 feature's training values are shuffled, normalised to sum to 1 per view.
 

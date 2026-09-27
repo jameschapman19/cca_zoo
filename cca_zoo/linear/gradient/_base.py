@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 
 
@@ -30,6 +31,7 @@ class BaseFullBatchEYModel(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: L-BFGS-B iterations run.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -108,4 +110,6 @@ class BaseFullBatchEYModel(BaseModel):
             method="L-BFGS-B",
             options={"maxiter": self.max_iter, "ftol": self.tol},
         )
+        self.n_iter_: int = result.nit
+        warn_if_not_converged(self, result.nit < self.max_iter)
         return _unflatten(result.x)

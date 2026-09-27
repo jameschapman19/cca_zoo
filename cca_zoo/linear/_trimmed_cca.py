@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import weight_gram_mean
 from cca_zoo._utils._param_constraints import (
     POSITIVE_INT,
@@ -158,6 +159,7 @@ class TrimmedCCA(BaseModel):
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, 1).
         inlier_mask_: Boolean mask of the kept training rows.
+        n_iter_: Concentration steps of the best restart.
 
     References:
         Rousseeuw, P. J., & Van Driessen, K. (1999). A fast algorithm for
@@ -234,6 +236,7 @@ class TrimmedCCA(BaseModel):
         best_weights: list[np.ndarray] | None = None
         best_mask: np.ndarray | None = None
         best_obj = np.inf
+        best_converged = False
         for _ in range(self.n_init):
             weights = []
             for xv in views_:
@@ -246,25 +249,31 @@ class TrimmedCCA(BaseModel):
             weights = _refit(model, xs_kept, weights, self.tol)
             cur_obj = _objective_value(model, xs_kept, weights)
 
-            for _ in range(self.max_iter):
+            converged = False
+            for n_iter in range(1, self.max_iter + 1):
                 zs = [(xv @ w).ravel() for xv, w in zip(views_, weights)]
                 b = weight_gram_mean(weights)[0, 0]
                 new_kept = _select(zs, b, self.c, h)
                 if np.array_equal(new_kept, kept):
+                    converged = True
                     break
                 xs_new = [xv[new_kept] for xv in views_]
                 new_weights = _refit(model, xs_new, weights, self.tol)
                 new_obj = _objective_value(model, xs_new, new_weights)
                 if new_obj > cur_obj + 1e-10:
+                    converged = True
                     break
                 kept, weights, cur_obj = new_kept, new_weights, new_obj
 
             if cur_obj < best_obj:
                 best_obj, best_weights, best_mask = cur_obj, weights, kept
+                self.n_iter_: int = n_iter
+                best_converged = converged
 
         assert best_weights is not None
         assert best_mask is not None
+        warn_if_not_converged(self, best_converged)
         self.weights_: list[np.ndarray] = best_weights
         self.inlier_mask_: np.ndarray = np.zeros(n, dtype=bool)
         self.inlier_mask_[best_mask] = True
-        return self
+        return self._finish_fit(views_)

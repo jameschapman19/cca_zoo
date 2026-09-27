@@ -256,24 +256,26 @@ _PENALTY_PATH = (0.0, 0.1, 0.3, 1.0)
 
 
 def _along_penalty_path(
-    sweeps: Callable[[list[float]], list[np.ndarray]],
+    sweeps: Callable[[list[float]], tuple[list[np.ndarray], int, bool]],
     coefficients: list[np.ndarray],
     alpha: list[float],
     penalty: Callable[[], float],
-) -> list[np.ndarray]:
+) -> tuple[int, bool]:
     """Run ``sweeps`` at each fraction of ``alpha`` in turn, warm-started.
 
-    ``sweeps`` updates ``coefficients`` in place and returns the embeddings.
-    All-zero weights have objective zero, so a fit ending above that is
-    replaced by them.
+    ``sweeps`` updates ``coefficients`` in place and returns the embeddings,
+    the sweeps it ran and whether it converged. All-zero weights have
+    objective zero, so a fit ending above that is replaced by them.
+
+    Returns:
+        ``(n_iter, converged)`` of the fit at the full penalty.
     """
     for scale in _PENALTY_PATH:
-        representations = sweeps([a * scale for a in alpha])
+        representations, n_iter, converged = sweeps([a * scale for a in alpha])
     if ey_loss(representations)["objective"] + penalty() > 0.0:
         for c in coefficients:
             c[:] = 0.0
-        representations = [np.zeros_like(z) for z in representations]
-    return representations
+    return n_iter, converged
 
 
 def coordinate_descent_ey(
@@ -285,7 +287,7 @@ def coordinate_descent_ey(
     tol: float,
     rng: np.random.Generator,
     positive: bool = False,
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
+) -> tuple[list[np.ndarray], int, bool]:
     r"""Elastic-net penalised EY fit on fixed bases by exact coordinate descent.
 
     Minimises, over $Z_i = \text{bases}_i B_i$,
@@ -313,11 +315,12 @@ def coordinate_descent_ey(
         positive: Constrain every coefficient to be non-negative.
 
     Returns:
-        ``(coefficients, representations)``: per-view coefficients of shape
-        (n_basis_i, k) and embeddings of shape (n_samples, k).
+        ``(coefficients, n_iter, converged)``: per-view coefficients of shape
+        (n_basis_i, k), and the sweeps at the full penalty and whether they
+        met ``tol`` before ``max_iter``.
     """
     coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
-    representations = _along_penalty_path(
+    n_iter, converged = _along_penalty_path(
         lambda scaled: _elastic_net_sweeps(
             bases, coefficients, scaled, l1_ratio, max_iter, tol, positive
         ),
@@ -325,7 +328,7 @@ def coordinate_descent_ey(
         alpha,
         lambda: _elastic_net_penalty(coefficients, alpha, l1_ratio),
     )
-    return coefficients, representations
+    return coefficients, n_iter, converged
 
 
 def _elastic_net_penalty(
@@ -348,11 +351,12 @@ def _elastic_net_sweeps(
     max_iter: int,
     tol: float,
     positive: bool,
-) -> list[np.ndarray]:
+) -> tuple[list[np.ndarray], int, bool]:
     """Exact coordinate sweeps of :func:`coordinate_descent_ey`, in place.
 
     Returns:
-        The embedding of each view, shape (n_samples, k).
+        The embedding of each view, shape (n_samples, k), the sweeps run and
+        whether the objective settled within ``tol``.
     """
     m = len(bases)
     n = bases[0].shape[0]
@@ -365,7 +369,7 @@ def _elastic_net_sweeps(
     col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
 
     prev_obj = np.inf
-    for _ in range(max_iter):
+    for n_iter in range(1, max_iter + 1):
         for i, (basis, coef) in enumerate(zip(bases, coefficients)):
             zi = representations[i]
             v_other = (
@@ -406,10 +410,9 @@ def _elastic_net_sweeps(
             coefficients, alpha, l1_ratio
         )
         if abs(prev_obj - obj) < tol:
-            break
+            return representations, n_iter, True
         prev_obj = obj
-
-    return representations
+    return representations, max_iter, False
 
 
 def _group_penalty(
@@ -443,7 +446,7 @@ def group_coordinate_descent_ey(
     tol: float,
     rng: np.random.Generator,
     max_backtrack: int = 40,
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
+) -> tuple[list[np.ndarray], int, bool]:
     r"""Row-group elastic-net penalised EY fit on fixed bases.
 
     As :func:`coordinate_descent_ey` with sklearn's ``MultiTaskElasticNet``
@@ -467,10 +470,10 @@ def group_coordinate_descent_ey(
         max_backtrack: Maximum step halvings per row.
 
     Returns:
-        ``(coefficients, representations)`` as :func:`coordinate_descent_ey`.
+        ``(coefficients, n_iter, converged)`` as :func:`coordinate_descent_ey`.
     """
     coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
-    representations = _along_penalty_path(
+    n_iter, converged = _along_penalty_path(
         lambda scaled: _group_sweeps(
             bases, coefficients, scaled, l1_ratio, max_iter, tol, max_backtrack
         ),
@@ -478,7 +481,7 @@ def group_coordinate_descent_ey(
         alpha,
         lambda: _group_penalty(coefficients, alpha, l1_ratio),
     )
-    return coefficients, representations
+    return coefficients, n_iter, converged
 
 
 def _group_sweeps(
@@ -489,11 +492,11 @@ def _group_sweeps(
     max_iter: int,
     tol: float,
     max_backtrack: int,
-) -> list[np.ndarray]:
+) -> tuple[list[np.ndarray], int, bool]:
     """Proximal row sweeps of :func:`group_coordinate_descent_ey`, in place.
 
     Returns:
-        The embedding of each view, shape (n_samples, k).
+        As :func:`_elastic_net_sweeps`.
     """
     m = len(bases)
     n = bases[0].shape[0]
@@ -507,7 +510,7 @@ def _group_sweeps(
 
     cur_loss = ey_loss(representations)["objective"]
     prev_obj = np.inf
-    for _ in range(max_iter):
+    for n_iter in range(1, max_iter + 1):
         for i, (basis, coef) in enumerate(zip(bases, coefficients)):
             zi = representations[i]
             v_other = (
@@ -565,10 +568,9 @@ def _group_sweeps(
 
         cur_obj = cur_loss + _group_penalty(coefficients, alpha, l1_ratio)
         if abs(prev_obj - cur_obj) < tol:
-            break
+            return representations, n_iter, True
         prev_obj = cur_obj
-
-    return representations
+    return representations, max_iter, False
 
 
 def omp_coordinate_descent_ey(
@@ -579,7 +581,7 @@ def omp_coordinate_descent_ey(
     tol: float,
     rng: np.random.Generator,
     refit_sweeps: int = 20,
-) -> tuple[list[np.ndarray], list[np.ndarray]]:
+) -> tuple[list[np.ndarray], int, bool]:
     """EY fit on fixed bases by greedy forward selection, as in OMP.
 
     Each view's active set grows one feature at a time up to its budget,
@@ -598,8 +600,8 @@ def omp_coordinate_descent_ey(
         refit_sweeps: Maximum sweeps refitting the active set per addition.
 
     Returns:
-        ``(coefficients, representations)`` as :func:`coordinate_descent_ey`;
-        rows outside the active sets are exactly zero.
+        ``(coefficients, n_iter, converged)`` as :func:`coordinate_descent_ey`,
+        counting rounds; rows outside the active sets are exactly zero.
     """
     m = len(bases)
     n = bases[0].shape[0]
@@ -612,7 +614,7 @@ def omp_coordinate_descent_ey(
     total = sum(representations)
 
     prev_obj = np.inf
-    for _ in range(max_iter):
+    for n_iter in range(1, max_iter + 1):
         for i, basis in enumerate(bases):
             target = min(n_nonzero_coefs[i], n_features[i])
             zi = representations[i]
@@ -683,10 +685,9 @@ def omp_coordinate_descent_ey(
 
         obj = ey_loss(representations)["objective"]
         if abs(prev_obj - obj) < tol:
-            break
+            return coefficients, n_iter, True
         prev_obj = obj
-
-    return coefficients, representations
+    return coefficients, max_iter, False
 
 
 def _penalty_matrix(penalty: float | np.ndarray, size: int) -> np.ndarray:

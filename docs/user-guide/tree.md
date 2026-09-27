@@ -83,12 +83,12 @@ faster default.
 
 ## Feature importance
 
-`feature_importances_` is each view's total split gain, summed over its components' boosters
+`feature_importances_per_view_` is each view's total split gain, summed over its components' boosters
 and normalised to sum to 1, the same convention as sklearn's gradient-boosting models:
 
 ```python
 model = XGBoostCCA(n_components=2).fit([X1, X2])
-imp1, imp2 = model.feature_importances_  # each shape (n_features_i,)
+imp1, imp2 = model.feature_importances_per_view_  # each shape (n_features_i,)
 ```
 
 The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed

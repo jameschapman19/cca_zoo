@@ -51,12 +51,12 @@ class _GamEncoder:
     is kept as its square root, ``penalty_factor_``. Coefficients are
     constrained to the complement of each feature's constant
     (``constraint_``), which centring makes unidentifiable, as ``mgcv``'s
-    sum-to-zero constraint does. The basis stays sparse and is centred
-    implicitly.
+    sum-to-zero constraint does. The training basis, from :meth:`raw_basis`,
+    stays sparse and is centred implicitly.
     """
 
     def __init__(self, X: np.ndarray, k: int, m: int | tuple[int, int]) -> None:
-        self.n, self.p = X.shape
+        self.p = X.shape[1]
         order, penalty_order = _spline_orders(m)
         self._spline = SplineTransformer(
             n_knots=k - order,
@@ -66,14 +66,9 @@ class _GamEncoder:
             include_bias=True,
             sparse_output=True,
         )
-        # B-splines are local: each row has order + 2 nonzeros per feature, so
-        # the basis is kept sparse and centred only implicitly (its mean is
-        # subtracted wherever a product with it is taken).
-        self.raw_basis_: sparse.csr_array = sparse.csr_array(
-            self._spline.fit_transform(X)
-        )
-        self.n_splines_: int = self.raw_basis_.shape[1] // self.p
-        self.basis_mean_: np.ndarray = np.asarray(self.raw_basis_.mean(axis=0)).ravel()
+        raw_basis = self._spline.fit(X).transform(X)
+        self.n_splines_: int = raw_basis.shape[1] // self.p
+        self.basis_mean_: np.ndarray = np.asarray(raw_basis.mean(axis=0)).ravel()
         differences = np.diff(np.eye(self.n_splines_), n=penalty_order, axis=0)
         # The penalty's square root, F with R = F.T @ F: the difference
         # matrix of every feature's coefficients.
@@ -99,26 +94,31 @@ class _GamEncoder:
         self.constraint_: np.ndarray = (
             np.eye(self.p * self.n_splines_) - 2 * self.reflectors_ @ self.reflectors_.T
         )[:, self.free_]
-        self.coef_: np.ndarray = np.zeros((self.raw_basis_.shape[1], 1))
-        self._train_pred: np.ndarray = np.zeros((self.n, 1))
+        self.coef_: np.ndarray = np.zeros((raw_basis.shape[1], 1))
 
-    def centred_product(self, coef: np.ndarray) -> np.ndarray:
-        """The centred training basis times ``coef``, without densifying it."""
-        result: np.ndarray = self.raw_basis_ @ coef - self.basis_mean_ @ coef
-        return result
+    def raw_basis(self, X: np.ndarray) -> sparse.csr_array:
+        """The uncentred B-spline basis of ``X``.
 
-    def basis_operator(self, scale: float) -> LinearOperator:
-        """The centred, constrained training basis over ``scale``, unformed."""
+        B-splines are local: each row has order + 2 nonzeros per feature, so
+        the basis is kept sparse and centred only implicitly, by subtracting
+        its training mean wherever a product with it is taken.
+        """
+        return sparse.csr_array(self._spline.transform(X))
+
+    def basis_operator(
+        self, raw_basis: sparse.csr_array, scale: float
+    ) -> LinearOperator:
+        """The centred, constrained basis over ``scale``, unformed."""
 
         def product(coef: np.ndarray) -> np.ndarray:
-            return self.centred_product(self.constraint_ @ coef) / scale
+            constrained = self.constraint_ @ coef
+            centred: np.ndarray = (
+                raw_basis @ constrained - self.basis_mean_ @ constrained
+            )
+            return centred / scale
 
-        shape = (self.n, self.constraint_.shape[1])
+        shape = (raw_basis.shape[0], self.constraint_.shape[1])
         return LinearOperator(shape, matvec=product, matmat=product)
-
-    def predict(self) -> np.ndarray:
-        """Encoder output on the training data, shape (n_samples, k)."""
-        return self._train_pred
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for new data, shape (n, k)."""
@@ -128,7 +128,7 @@ class _GamEncoder:
         return result
 
     def feature_term(self, feature_idx: int, x: np.ndarray) -> np.ndarray:
-        """One feature's additive term, shape (n, k); the terms sum to :meth:`predict`.
+        """One feature's additive term, shape (n, k); the terms sum to the encoding.
 
         Args:
             feature_idx: Index of the feature.
@@ -235,9 +235,10 @@ class GAMCCA(BaseModel):
                     f"order must be below k."
                 )
         encoders = [_GamEncoder(X, k, m) for X, k, m in zip(views_, k_, m_)]
+        raw_bases = [enc.raw_basis(X) for enc, X in zip(encoders, views_)]
         # The stacked Gram of the centred, constrained bases, from the sparse
         # raw bases: Z'(S - 1 mu')'(S - 1 mu')Z = Z'(S'S - n mu mu')Z.
-        stacked = sparse.hstack([enc.raw_basis_ for enc in encoders]).tocsr()
+        stacked = sparse.hstack(raw_bases).tocsr()
         mean = np.concatenate([enc.basis_mean_ for enc in encoders])
         n = stacked.shape[0]
         scale = m_views * (n - 1)
@@ -259,12 +260,12 @@ class GAMCCA(BaseModel):
         )
         reduced = [
             full_rank_reparametrisation(
-                enc.basis_operator(np.sqrt(scale)),
+                enc.basis_operator(raw, np.sqrt(scale)),
                 gram[np.ix_(view == i, view == i)],
                 np.sqrt(sp) * enc.penalty_factor_ @ enc.constraint_,
                 np.sqrt(sp) * enc.penalty_norm_,
             )
-            for i, (enc, sp) in enumerate(zip(encoders, sp_))
+            for i, (enc, raw, sp) in enumerate(zip(encoders, raw_bases, sp_))
         ]
         rows = [row_i for _, row_i, _ in reduced]
         reduced_gram = np.block(
@@ -285,15 +286,14 @@ class GAMCCA(BaseModel):
         )
         for enc, (lift_i, _, _), coef in zip(encoders, reduced, coefficients):
             enc.coef_ = enc.constraint_ @ lift_i @ coef
-            enc._train_pred = enc.centred_product(enc.coef_)
 
         self.encoders_: list[_GamEncoder] = encoders
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return self.encoders_[view].predict_new(centred)
 
-    def _feature_importances(self) -> list[np.ndarray]:
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
         """Variance of each feature's smooth over the training data."""
         return [
             np.array(
@@ -302,7 +302,7 @@ class GAMCCA(BaseModel):
                     for j in range(train.shape[1])
                 ]
             )
-            for enc, train in zip(self.encoders_, self._views_fit_)
+            for enc, train in zip(self.encoders_, views)
         ]
 
     def shape_function(self, view: int, feature: int, x: ArrayLike) -> np.ndarray:

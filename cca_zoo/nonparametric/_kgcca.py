@@ -42,6 +42,8 @@ class KGCCA(BaseModel):
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
             n_components).
+        train_views_: The centred training views, against which the kernel
+            of a new view is evaluated.
 
     References:
         Tenenhaus, A., Philippe, C., & Frouin, V. (2015). Kernel generalized
@@ -137,7 +139,7 @@ class KGCCA(BaseModel):
         self._degree = degree_
         self._coef0 = coef0_
         self._kp = kp_
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         kernel = pairwise_kernels(

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from abc import abstractmethod
 from typing import Any, ClassVar, cast
 
@@ -12,6 +11,7 @@ from scipy.optimize import brentq
 from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 
 from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._linalg import deflate, soft_threshold
 from cca_zoo._utils._param_constraints import (
     FRACTION_PER_VIEW,
@@ -23,9 +23,6 @@ from cca_zoo._utils._param_constraints import (
     RIDGE_PARAMETER,
 )
 from cca_zoo._utils._validation import perview_parameter
-
-logger = logging.getLogger(__name__)
-
 
 # ---------------------------------------------------------------------------
 # Abstract iterative base
@@ -47,6 +44,7 @@ class _BaseIterative(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -83,35 +81,42 @@ class _BaseIterative(BaseModel):
         rng = np.random.default_rng(self.random_state)
         # Initialise weight storage: (n_features_i, n_components)
         self.weights_: list[np.ndarray] = [
-            np.zeros((p, self.n_components)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
+        self.n_iter_: list[int] = []
+        all_converged = True
         for d in range(self.n_components):
             # Random initialisation for this dimension
-            w = [rng.standard_normal(p) for p in self.n_features_in_]
+            w = [rng.standard_normal(p) for p in self.n_features_per_view_]
             w = [wi / np.linalg.norm(wi) for wi in w]
-            self._fit_single(deflated, w, d)
+            n_iter, converged = self._fit_single(deflated, w)
+            self.n_iter_.append(n_iter)
+            all_converged = all_converged and converged
             for i in range(self.n_views_):
                 self.weights_[i][:, d] = w[i]
             deflated = deflate(deflated, w)
-        return self
+        warn_if_not_converged(self, all_converged)
+        return self._finish_fit(views_)
 
     def _fit_single(
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
-        """Run the alternating updates for one latent dimension, in place on ``w``."""
-        for iteration in range(self.max_iter):
+    ) -> tuple[int, bool]:
+        """Run the alternating updates for one latent dimension, in place on ``w``.
+
+        Returns:
+            The iterations run, and whether the weights settled within ``tol``.
+        """
+        for n_iter in range(1, self.max_iter + 1):
             w_prev = [wi.copy() for wi in w]
             for i in range(len(views)):
                 w[i] = self._update_weight(views, w, i)
-            # Check convergence
             delta = max(np.linalg.norm(w[i] - w_prev[i]) for i in range(len(views)))
             if delta < self.tol:
-                logger.debug("dim %d converged at iteration %d", d, iteration)
-                break
+                return n_iter, True
+        return self.max_iter, False
 
     @abstractmethod
     def _update_weight(
@@ -203,6 +208,7 @@ class PMDCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Witten, D. M., Tibshirani, R., & Hastie, T. (2009). A penalized matrix
@@ -258,17 +264,16 @@ class PMDCCA(_BaseIterative):
     def _setup_tau(self) -> list[float]:
         """Per-view L1 bounds ``tau * sqrt(n_features_i)``."""
         tau_ = perview_parameter("tau", self.tau, 1.0, self.n_views_)
-        return [t * np.sqrt(p) for t, p in zip(tau_, self.n_features_in_)]
+        return [t * np.sqrt(p) for t, p in zip(tau_, self.n_features_per_view_)]
 
     def _fit_single(
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Set the L1 bounds, then run the alternating updates."""
         self._l1_bounds = self._setup_tau()
-        super()._fit_single(views, w, d)
+        return super()._fit_single(views, w)
 
     def _update_weight(
         self,
@@ -316,6 +321,7 @@ class ADMMCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -362,8 +368,7 @@ class ADMMCCA(_BaseIterative):
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Alternate over views, each update an inner linearised-ADMM solve."""
         tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
         n_views = len(views)
@@ -375,7 +380,7 @@ class ADMMCCA(_BaseIterative):
         # reset every time a view's block is revisited).
         z = [views[i] @ w[i] for i in range(n_views)]
         xi = [np.zeros(views[i].shape[0]) for i in range(n_views)]
-        for _iter in range(self.max_iter):
+        for n_iter in range(1, self.max_iter + 1):
             w_prev = [wi.copy() for wi in w]
             for i in range(n_views):
                 s_other = sum(views[j] @ w[j] for j in range(n_views) if j != i)
@@ -397,8 +402,8 @@ class ADMMCCA(_BaseIterative):
                         break
             delta = max(np.linalg.norm(w[i] - w_prev[i]) for i in range(n_views))
             if delta < self.tol:
-                logger.debug("ADMM dim %d converged at iter %d", d, _iter)
-                break
+                return n_iter, True
+        return self.max_iter, False
 
     def _update_weight(
         self,
@@ -439,6 +444,7 @@ class IPLSCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Mai, Q., & Zhang, X. (2019). An iterative penalized least squares
@@ -483,13 +489,12 @@ class IPLSCCA(_BaseIterative):
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Build the per-view regressors, then run the alternating updates."""
         alpha_ = perview_parameter("alpha", self.alpha, 0.0, len(views))
         l1_ = perview_parameter("l1_ratio", self.l1_ratio, 1.0, len(views))
         self._regressors = _make_regressors(alpha_, l1_, self.tol, self.random_state)
-        super()._fit_single(views, w, d)
+        return super()._fit_single(views, w)
 
     def _update_weight(
         self,
@@ -532,6 +537,7 @@ class SpanCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016). A simple
@@ -572,14 +578,13 @@ class SpanCCA(_BaseIterative):
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Set the per-view spans, then run the alternating updates."""
         default_span = views[0].shape[1]
         span_raw = self.span if self.span is not None else default_span
         span_ = perview_parameter("span", span_raw, default_span, len(views))
         self._spans: list[int] = [int(s) for s in span_]
-        super()._fit_single(views, w, d)
+        return super()._fit_single(views, w)
 
     def _update_weight(
         self,
@@ -632,6 +637,7 @@ class WaijenborgCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H. (2008).
@@ -677,13 +683,12 @@ class WaijenborgCCA(_BaseIterative):
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Build the per-view regressors, then run the alternating updates."""
         alpha_ = perview_parameter("alpha", self.alpha, 0.0, len(views))
         l1_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, len(views))
         self._regressors = _make_regressors(alpha_, l1_, self.tol, self.random_state)
-        super()._fit_single(views, w, d)
+        return super()._fit_single(views, w)
 
     def _update_weight(
         self,
@@ -726,6 +731,7 @@ class ParkhomenkoCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse canonical
@@ -767,14 +773,13 @@ class ParkhomenkoCCA(_BaseIterative):
         self,
         views: list[np.ndarray],
         w: list[np.ndarray],
-        d: int,
-    ) -> None:
+    ) -> tuple[int, bool]:
         """Standardise the views and set the thresholds, then run the updates."""
         self._tau_vals = perview_parameter("tau", self.tau, 0.1, len(views))
         scales = [v.std(axis=0, keepdims=True) for v in views]
         scales = [np.where(s < 1e-12, 1.0, s) for s in scales]
         scaled_views = [v / s for v, s in zip(views, scales)]
-        super()._fit_single(scaled_views, w, d)
+        n_iter, converged = super()._fit_single(scaled_views, w)
         # w is in the standardised views' coordinates; convert back to the
         # original feature scale and re-normalise to unit L2 norm, matching
         # every other class in this module's convention.
@@ -783,6 +788,7 @@ class ParkhomenkoCCA(_BaseIterative):
             norm = np.linalg.norm(w[i])
             if norm > 1e-12:
                 w[i] = w[i] / norm
+        return n_iter, converged
 
     def _update_weight(
         self,
@@ -858,6 +864,7 @@ class SAR(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Iterations run for each component.
 
     References:
         Wilms, I., & Croux, C. (2015). Sparse canonical correlation analysis
@@ -909,13 +916,17 @@ class SAR(_BaseIterative):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_: list[np.ndarray] = [
-            np.zeros((p, self.n_components)) for p in self.n_features_in_
+            np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
+        self.n_iter_: list[int] = []
+        all_converged = True
         for d in range(self.n_components):
-            w = [rng.standard_normal(p) for p in self.n_features_in_]
+            w = [rng.standard_normal(p) for p in self.n_features_per_view_]
             w = [wi / np.linalg.norm(wi) for wi in w]
-            self._fit_single(deflated, w, d)
+            n_iter, converged = self._fit_single(deflated, w)
+            self.n_iter_.append(n_iter)
+            all_converged = all_converged and converged
             if d == 0:
                 w_final = w
             else:
@@ -926,7 +937,8 @@ class SAR(_BaseIterative):
             for j in range(self.n_views_):
                 self.weights_[j][:, d] = w_final[j]
             deflated = deflate(deflated, w)
-        return self
+        warn_if_not_converged(self, all_converged)
+        return self._finish_fit(views_)
 
     def _reexpress(
         self, original_view: np.ndarray, deflated_score: np.ndarray

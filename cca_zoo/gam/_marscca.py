@@ -788,7 +788,7 @@ class MARSCCA(BaseModel):
             _MarsEncoder(t, raw.mean(axis=0), coef)
             for t, raw, coef in zip(terms, raw_bases, coefficients)
         ]
-        return self
+        return self._finish_fit(views_)
 
     @staticmethod
     def _add_best_pair(
@@ -843,7 +843,7 @@ class MARSCCA(BaseModel):
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return self.encoders_[view].predict_new(centred)
 
-    def _feature_importances(self) -> list[np.ndarray]:
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
         """``earth``'s ``evimp``, with the EY loss in place of the RSS.
 
         Each backward-pass subset's loss decrease over the next smaller one is
@@ -855,7 +855,7 @@ class MARSCCA(BaseModel):
         for view, term in self.backward_path_[self.n_removed_ :]:
             members.append(members[-1] - {(view, term)})
         losses = list(self.backward_loss_[self.n_removed_ :]) + [0.0]
-        importance = [np.zeros(p) for p in self.n_features_in_]
+        importance = [np.zeros(p) for p in self.n_features_per_view_]
         for s, subset in enumerate(members):
             used = {(view, f) for view, term in subset for f, _, _ in term}
             for view, feature in used:

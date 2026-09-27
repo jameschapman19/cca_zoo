@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from numbers import Integral
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
-from sklearn.utils import Tags
+from sklearn.utils import Tags, check_random_state
 from sklearn.utils._param_validation import Interval
 from sklearn.utils.validation import check_is_fitted
 
@@ -18,6 +18,13 @@ from cca_zoo.metrics._correlation import (
     average_pairwise_correlations as _average_pairwise_correlations,
 )
 from cca_zoo.metrics._correlation import pairwise_correlations as _pairwise_correlations
+
+_Model = TypeVar("_Model", bound="BaseModel")
+
+# Permutation importances are computed at fit on at most this many training
+# rows, as sklearn's ``permutation_importance(max_samples=...)``, so that they
+# add a small fraction to the fit of the models that need them.
+_PERMUTATION_SAMPLES = 500
 
 
 def _least_squares_map(scores: np.ndarray, data: np.ndarray) -> np.ndarray:
@@ -29,10 +36,11 @@ def _least_squares_map(scores: np.ndarray, data: np.ndarray) -> np.ndarray:
 class BaseModel(BaseEstimator, ABC):
     """Base class for multiview CCA models.
 
-    Subclasses implement :meth:`fit`. A linear model sets ``weights_``; a
+    Subclasses implement :meth:`fit`, starting with :meth:`_setup_fit` and
+    ending with :meth:`_finish_fit`. A linear model sets ``weights_``; a
     nonlinear model overrides :meth:`_transform_view`, its per-view encoder.
     ``transform``, ``predict``, ``inverse_transform``, ``score`` and
-    ``feature_importances_`` are built on that encoder.
+    ``feature_importances_per_view_`` are built on that encoder.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -41,9 +49,18 @@ class BaseModel(BaseEstimator, ABC):
 
     Attributes:
         means_: Per-view feature means subtracted before fitting.
-        n_features_in_: Number of features in each view.
+        n_features_per_view_: Number of features in each view.
         n_samples_: Number of training samples.
         n_views_: Number of views.
+        feature_importances_per_view_: Each feature's share of its view's
+            embedding, one array per view. Non-negative and summing to 1
+            within each view (all zeros if a view's embedding uses no
+            feature). Linear models use ``Var(x_j) * sum_k w_jk**2``; GAMCCA
+            the variance of each smooth, MARSCCA ``earth``'s ``evimp`` and the
+            tree models split gain. Other models use the mean squared change
+            in the view's scores when the feature is permuted, over at most
+            500 training rows, which equals twice the variance share for a
+            linear or additive model.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -80,26 +97,43 @@ class BaseModel(BaseEstimator, ABC):
         self._validate_params()
         validated = validate_views(views, ensure_min_samples=2)
         self.n_views_: int = len(validated)
-        self.n_features_in_: list[int] = [v.shape[1] for v in validated]
+        self.n_features_per_view_: list[int] = [v.shape[1] for v in validated]
         self.n_samples_: int = validated[0].shape[0]
         if self.center:
             self.means_: list[np.ndarray] = [v.mean(axis=0) for v in validated]
             validated = [v - m for v, m in zip(validated, self.means_)]
         else:
-            self.means_ = [np.zeros(p) for p in self.n_features_in_]
-        # Retained for predict() and inverse_transform(), which regress the
-        # training data on its own latent scores.
-        self._views_fit_: list[np.ndarray] = validated
+            self.means_ = [np.zeros(p) for p in self.n_features_per_view_]
         return validated
+
+    def _finish_fit(self: _Model, views: list[np.ndarray]) -> _Model:
+        """Record what later calls need from the centred training views.
+
+        ``predict`` and ``inverse_transform`` regress the training views on
+        their latent scores; the maps and the importances are computed here so
+        that the fitted model does not keep the training data.
+        """
+        own_scores = [self._transform_view(i, v) for i, v in enumerate(views)]
+        self._inverse_maps_ = [
+            _least_squares_map(s, v) for s, v in zip(own_scores, views)
+        ]
+        latent = self._shared_latent(dict(enumerate(views)))
+        self._predict_maps_ = [_least_squares_map(latent, v) for v in views]
+        self.feature_importances_per_view_: list[np.ndarray] = []
+        for raw in self._feature_importances(views):
+            raw = np.maximum(raw, 0.0)
+            total = raw.sum()
+            self.feature_importances_per_view_.append(raw / total if total > 0 else raw)
+        return self
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
         """View ``i`` as a validated array with the width seen in fit."""
         (checked,) = validate_views([view], min_views=1)
-        if checked.shape[1] != self.n_features_in_[i]:
+        if checked.shape[1] != self.n_features_per_view_[i]:
             raise ValueError(
                 f"View {i} has {checked.shape[1]} features, but "
-                f"{type(self).__name__} is expecting {self.n_features_in_[i]} "
-                "features."
+                f"{type(self).__name__} is expecting "
+                f"{self.n_features_per_view_[i]} features."
             )
         return checked
 
@@ -144,45 +178,34 @@ class BaseModel(BaseEstimator, ABC):
         scores: np.ndarray = centred @ self.weights_[view]
         return scores
 
-    @property
-    def feature_importances_(self) -> list[np.ndarray]:
-        """Each feature's share of its view's embedding, one array per view.
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
+        """Unnormalised importances from the centred training views.
 
-        Non-negative and summing to 1 within each view (all zeros if a view's
-        embedding uses no feature). Linear models use ``Var(x_j) * sum_k w_jk**2``;
-        GAMCCA the variance of each smooth, MARSCCA ``earth``'s ``evimp`` and
-        the tree models split gain. Other models use the mean squared change in
-        the view's scores when the feature is permuted, which equals twice the
-        variance share for a linear or additive model.
+        See ``feature_importances_per_view_``.
         """
-        check_is_fitted(self)
-        importances = []
-        for raw in self._feature_importances():
-            raw = np.maximum(raw, 0.0)
-            total = raw.sum()
-            importances.append(raw / total if total > 0 else raw)
-        return importances
-
-    def _feature_importances(self) -> list[np.ndarray]:
-        """Unnormalised per-view importances; see :attr:`feature_importances_`."""
         if type(self)._transform_view is BaseModel._transform_view:
             return [
-                train.var(axis=0) * np.sum(w**2, axis=1)
-                for train, w in zip(self._views_fit_, self.weights_)
+                v.var(axis=0) * np.sum(w**2, axis=1)
+                for v, w in zip(views, self.weights_)
             ]
-        return self._permutation_importances()
+        return self._permutation_importances(views)
 
-    def _permutation_importances(self) -> list[np.ndarray]:
-        """Mean squared change in each view's scores when a feature is permuted."""
-        rng = np.random.default_rng(0)
+    def _permutation_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
+        """Mean squared change in each view's scores when a feature is permuted.
+
+        Computed on a random subset of at most ``_PERMUTATION_SAMPLES`` rows.
+        """
+        # A model without randomness of its own gets reproducible importances.
+        rng = check_random_state(self.get_params().get("random_state", 0))
+        rows = rng.permutation(len(views[0]))[:_PERMUTATION_SAMPLES]
         importances = []
-        for i, train in enumerate(self._views_fit_):
-            scores = self._transform_view(i, train)
-            order = rng.permutation(len(train))
-            changes = np.empty(train.shape[1])
-            for j in range(train.shape[1]):
-                permuted = train.copy()
-                permuted[:, j] = train[order, j]
+        for i, view in enumerate(v[rows] for v in views):
+            scores = self._transform_view(i, view)
+            order = rng.permutation(len(view))
+            changes = np.empty(view.shape[1])
+            for j in range(view.shape[1]):
+                permuted = view.copy()
+                permuted[:, j] = view[order, j]
                 changes[j] = np.mean(
                     np.sum((self._transform_view(i, permuted) - scores) ** 2, axis=1)
                 )
@@ -231,9 +254,7 @@ class BaseModel(BaseEstimator, ABC):
                     f"scores[{i}] has {s.shape[1]} columns, expected {n_components}."
                 )
         return [
-            s @ _least_squares_map(self._transform_view(i, train), train)
-            + self.means_[i]
-            for i, (s, train) in enumerate(zip(arrays, self._views_fit_))
+            s @ m + mean for s, m, mean in zip(arrays, self._inverse_maps_, self.means_)
         ]
 
     def fit_transform(self, views: list[ArrayLike], y: None = None) -> list[np.ndarray]:
@@ -319,11 +340,7 @@ class BaseModel(BaseEstimator, ABC):
         latent = self._shared_latent(
             {i: v - self.means_[i] for i, v in observed.items()}
         )
-        train_latent = self._shared_latent(dict(enumerate(self._views_fit_)))
-        return [
-            latent @ _least_squares_map(train_latent, train) + self.means_[i]
-            for i, train in enumerate(self._views_fit_)
-        ]
+        return [latent @ m + mean for m, mean in zip(self._predict_maps_, self.means_)]
 
     # ------------------------------------------------------------------
     # Sklearn compatibility

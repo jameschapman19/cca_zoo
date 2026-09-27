@@ -291,11 +291,11 @@ class TreeCCA(BaseModel, ABC):
     def _booster_gain(self, booster: Any, n_features: int) -> np.ndarray:
         """Total split gain per feature of one fitted booster, shape (n_features,)."""
 
-    def _feature_importances(self) -> list[np.ndarray]:
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
         """Total split gain over each view's boosters."""
         return [
             np.sum([self._booster_gain(b, p) for b in boosters], axis=0)
-            for boosters, p in zip(self.boosters_, self.n_features_in_)
+            for boosters, p in zip(self.boosters_, self.n_features_per_view_)
         ]
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TreeCCA:
@@ -366,7 +366,7 @@ class TreeCCA(BaseModel, ABC):
                     grads = _boosting_targets(representations)
 
         self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         scores: np.ndarray = self._predict_boosters(

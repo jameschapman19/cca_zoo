@@ -40,6 +40,8 @@ class KCCA(BaseModel):
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
             n_components).
+        train_views_: The centred training views, against which the kernel
+            of a new view is evaluated.
 
     References:
         Hardoon, D. R., Szedmak, S., & Shawe-Taylor, J. (2004). Canonical
@@ -112,7 +114,7 @@ class KCCA(BaseModel):
         self._degree: list[float] = degree_
         self._coef0: list[float] = coef0_
         self._kp: list[dict[str, object]] = kp_
-        return self
+        return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         kernel = pairwise_kernels(

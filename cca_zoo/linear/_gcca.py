@@ -102,4 +102,4 @@ class GCCA(BaseModel):
         )
         T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.n_components]
         self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
-        return self
+        return self._finish_fit(views_)

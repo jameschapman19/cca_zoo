@@ -98,7 +98,7 @@ class PartialCCA(MCCA):
         _, eigvecs = gevp(A, B, self.n_components)
         splits = np.cumsum([v.shape[1] for v in deconfounded])
         self.weights_: list[np.ndarray] = np.split(eigvecs, splits[:-1], axis=0)
-        return self
+        return self._finish_fit(views_)
 
     def transform(
         self,

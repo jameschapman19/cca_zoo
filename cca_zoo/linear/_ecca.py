@@ -17,24 +17,30 @@ from cca_zoo.linear._rrr_common import _postprocess_rrr_fit, _whiten_response
 
 def _entrywise_sparse_rrr(
     X: np.ndarray, Y: np.ndarray, alpha: float, max_iter: int, tol: float
-) -> np.ndarray:
+) -> tuple[np.ndarray, int | None]:
     """Solve ``min_B ||Y - XB||^2 / n + alpha * sum |B|`` by one Lasso per column.
 
     sklearn's Lasso scales the loss by ``1 / (2n)``, so its ``alpha`` is half
     of this one. ``alpha=0`` is solved by least squares.
+
+    Returns:
+        ``B``, and the most iterations any column's Lasso ran (``None`` for
+        least squares).
     """
     if alpha == 0.0:
         B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
-        return np.asarray(B)
+        return np.asarray(B), None
     q = Y.shape[1]
     B = np.zeros((X.shape[1], q))
+    n_iter = 0
     for k in range(q):
         model = Lasso(
             alpha=alpha / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
         )
         model.fit(X, Y[:, k])
         B[:, k] = model.coef_
-    return B
+        n_iter = max(n_iter, model.n_iter_)
+    return B, n_iter
 
 
 class ECCA(BaseModel):
@@ -64,6 +70,8 @@ class ECCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: Most iterations of any column's Lasso, or None when
+            ``alpha=0`` is solved by least squares.
 
     References:
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
@@ -123,11 +131,11 @@ class ECCA(BaseModel):
         X, Y = views_
 
         Y_tilde, sqrt_inv_Sy = _whiten_response(Y, ledoit_wolf=False)
-        B = _entrywise_sparse_rrr(
+        B, self.n_iter_ = _entrywise_sparse_rrr(
             X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
         )
         U, V = _postprocess_rrr_fit(
             B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
         )
         self.weights_: list[np.ndarray] = [U, V]
-        return self
+        return self._finish_fit(views_)

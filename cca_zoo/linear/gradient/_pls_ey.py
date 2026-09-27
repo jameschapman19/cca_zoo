@@ -26,6 +26,7 @@ class PLSEY(CCAEY):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        n_iter_: L-BFGS-B iterations run.
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained

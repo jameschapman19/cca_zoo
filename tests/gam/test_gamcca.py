@@ -35,8 +35,8 @@ def test_large_sp_makes_that_views_smooths_linear(
     """A huge smoothing parameter removes the penalised differences of one view only."""
     model = GAMCCA(sp=[1e-3, 1e6]).fit(correlated_views)
     wiggle = [
-        np.linalg.norm(enc.penalty_factor_ @ enc.coef_) / np.linalg.norm(enc.predict())
-        for enc in model.encoders_
+        np.linalg.norm(enc.penalty_factor_ @ enc.coef_) / np.linalg.norm(scores)
+        for enc, scores in zip(model.encoders_, model.transform(correlated_views))
     ]
     assert wiggle[1] < 1e-2 * wiggle[0]
 
@@ -55,4 +55,4 @@ def test_shape_functions_sum_to_the_encoding(two_views_small: list[np.ndarray]) 
     model = GAMCCA().fit(two_views_small)
     view = two_views_small[0]
     total = sum(model.shape_function(0, j, view[:, j]) for j in range(view.shape[1]))
-    np.testing.assert_allclose(total, model.encoders_[0].predict(), atol=1e-6)
+    np.testing.assert_allclose(total, model.transform(two_views_small)[0], atol=1e-6)

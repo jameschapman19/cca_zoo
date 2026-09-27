@@ -144,7 +144,6 @@ class ProbabilisticCCA(BaseProbabilistic):
         )
         rng_key = jax.random.PRNGKey(_integer_seed(self.random_state))
         mcmc.run(rng_key, validated)
-        self.mcmc_ = mcmc
         self.posterior_samples_ = {
             k: np.array(v) for k, v in mcmc.get_samples().items()
         }
@@ -157,7 +156,7 @@ class ProbabilisticCCA(BaseProbabilistic):
             [self.posterior_samples_[f"W_{i}"] for i in range(self.n_views_)], axis=1
         )  # (n_posterior_samples, P, k)
         aligned_w, rotations = align_posterior_rotation(w_stack)
-        splits = np.cumsum(self.n_features_in_)[:-1]
+        splits = np.cumsum(self.n_features_per_view_)[:-1]
         for i, w_i_aligned in enumerate(np.split(aligned_w, splits, axis=1)):
             self.posterior_samples_[f"W_{i}"] = w_i_aligned
         self.posterior_samples_["z"] = np.einsum(
@@ -168,4 +167,4 @@ class ProbabilisticCCA(BaseProbabilistic):
         self.weights_: list[np.ndarray] = [
             self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
-        return self
+        return self._finish_fit(validated)

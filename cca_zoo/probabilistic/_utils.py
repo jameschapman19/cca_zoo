@@ -155,11 +155,11 @@ class BaseProbabilistic(BaseModel):
         scores: np.ndarray = centred @ self._encoder(view)
         return scores
 
-    def _feature_importances(self) -> list[np.ndarray]:
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
         """Variance share of each feature in its view's linear posterior mean."""
         return [
             train.var(axis=0) * np.sum(self._encoder(i) ** 2, axis=1)
-            for i, train in enumerate(self._views_fit_)
+            for i, train in enumerate(views)
         ]
 
     def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
