@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
+import os
+
+# Each pytest-xdist worker gets one thread: BLAS, torch and XLA would otherwise
+# each spread over every core and contend across workers. Set before they load.
+if "PYTEST_XDIST_WORKER" in os.environ:
+    for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        os.environ[_var] = "1"
+    os.environ["XLA_FLAGS"] = (
+        "--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1"
+    )
+
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
 
 
 @pytest.fixture
