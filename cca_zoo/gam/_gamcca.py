@@ -188,6 +188,7 @@ class GAMCCA(BaseModel):
         (200, 2)
     """
 
+    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "k": [Interval(Integral, 4, None, closed="left"), "array-like"],

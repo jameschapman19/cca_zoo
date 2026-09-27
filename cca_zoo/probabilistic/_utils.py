@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import scipy.linalg
@@ -130,6 +130,8 @@ class BaseProbabilistic(BaseModel):
 
     weights_: list[np.ndarray]
     posterior_samples_: dict[str, Any]
+
+    _components_bounded_by_features: ClassVar[bool] = False
 
     def _noise_variances(self) -> list[np.ndarray]:
         """Posterior-mean per-feature noise variance of each view."""

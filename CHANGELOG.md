@@ -149,6 +149,12 @@ The table below gives each replacement.
 
 ### Changed
 
+- Every model whose embedding projects the features (the linear, sparse, gradient, tree and
+  MARS models) raises a `ValueError` when `n_components` exceeds the narrowest view's
+  features, as sklearn's `CCA` does. `CCA`, `RidgeCCA` and `PLS` silently returned fewer
+  components; others returned degenerate extra components, and a dozen failed in numpy
+  with a broadcasting error. The kernel, manifold, Gaussian-process, GAM and probabilistic
+  models, whose embeddings are not bounded by the features, are unchanged.
 - `TCCA` and `permutation_test_significance` take `random_state` as sklearn does: an int, a
   `RandomState` instance or None. `TCCA` rejected a `RandomState`, and the permutation test
   took a numpy `Generator`.

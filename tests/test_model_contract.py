@@ -88,6 +88,16 @@ def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
         model.predict([views[0], views[1][:10]])
 
 
+_BOUNDED = [c for c in MODEL_CLASSES if c._components_bounded_by_features]
+
+
+@pytest.mark.parametrize("cls", _BOUNDED, ids=[c.__name__ for c in _BOUNDED])
+def test_n_components_beyond_the_narrowest_view_raises(cls: type[BaseModel]) -> None:
+    """A model projecting the features has at most the narrowest view's components."""
+    with pytest.raises(ValueError, match="must be at most 3"):
+        _fit(make_model(cls).set_params(n_components=4), _views(0))
+
+
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_every_parameter_is_validated(cls: type[BaseModel]) -> None:
     """Each constructor parameter has a constraint that a nonsense value fails."""

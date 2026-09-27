@@ -179,6 +179,7 @@ class GaussianProcessCCA(BaseModel):
         >>> means, stds = model.transform([X1, X2], return_std=True)
     """
 
+    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],

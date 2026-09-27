@@ -69,6 +69,9 @@ class BaseModel(BaseEstimator, ABC):
     }
     # Input dtypes the model fits and transforms in; others become float64.
     _preserved_dtypes: ClassVar[list[type]] = [np.float64]
+    # Whether n_components is bounded by the narrowest view's features, as for
+    # any model whose embedding is a projection of the features.
+    _components_bounded_by_features: ClassVar[bool] = True
 
     def __init__(self, n_components: int = 1, center: bool = True) -> None:
         self.n_components = n_components
@@ -102,6 +105,12 @@ class BaseModel(BaseEstimator, ABC):
         )
         self.n_views_: int = len(validated)
         self.n_features_per_view_: list[int] = [v.shape[1] for v in validated]
+        max_components = min(self.n_features_per_view_)
+        if self._components_bounded_by_features and self.n_components > max_components:
+            raise ValueError(
+                f"n_components={self.n_components} must be at most "
+                f"{max_components}, the number of features in the narrowest view."
+            )
         self.n_samples_: int = validated[0].shape[0]
         if self.center:
             self.means_: list[np.ndarray] = [v.mean(axis=0) for v in validated]

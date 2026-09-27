@@ -232,6 +232,7 @@ class ManifoldCCA(BaseModel):
         >>> Z1, Z2 = model.transform([X1, X2])
     """
 
+    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "method": [StrOptions({"laplacian", "lle"})],

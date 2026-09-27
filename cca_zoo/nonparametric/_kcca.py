@@ -58,6 +58,7 @@ class KCCA(BaseModel):
         >>> model = KCCA(n_components=2, kernel="rbf", shrinkage=0.1).fit([X1, X2])
     """
 
+    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         **KERNEL_PARAMETERS,

@@ -61,6 +61,7 @@ class KGCCA(BaseModel):
         >>> model = KGCCA(n_components=2, kernel="rbf").fit([X1, X2, X3])
     """
 
+    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         **KERNEL_PARAMETERS,
