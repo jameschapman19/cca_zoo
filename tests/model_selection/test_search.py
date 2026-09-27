@@ -11,8 +11,6 @@ import sklearn.model_selection as skms
 from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import (
     GridSearchCV,
-    HalvingGridSearchCV,
-    HalvingRandomSearchCV,
     MultiviewWrapper,
     RandomizedSearchCV,
 )
@@ -23,11 +21,6 @@ _SEARCHES = [
     (
         RandomizedSearchCV,
         {"param_distributions": _GRID, "n_iter": 3, "random_state": 0},
-    ),
-    (HalvingGridSearchCV, {"param_grid": _GRID, "min_resources": 20}),
-    (
-        HalvingRandomSearchCV,
-        {"param_distributions": _GRID, "min_resources": 20, "random_state": 0},
     ),
 ]
 

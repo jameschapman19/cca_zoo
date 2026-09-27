@@ -28,8 +28,6 @@ from cca_zoo._base import BaseModel
 from cca_zoo.linear import RidgeCCA
 from cca_zoo.model_selection import (
     GridSearchCV,
-    HalvingGridSearchCV,
-    HalvingRandomSearchCV,
     MultiviewWrapper,
     RandomizedSearchCV,
 )
@@ -102,8 +100,6 @@ def test_sklearn_estimator_checks_slow(estimator: TwoViewAdapter, check: Any) ->
 _META_ESTIMATORS = [
     GridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
     RandomizedSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
-    HalvingGridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
-    HalvingRandomSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
     MultiviewWrapper(RidgeCCA(), n_features_per_view=[2, 2]),
     PerViewTransformer(StandardScaler()),
 ]

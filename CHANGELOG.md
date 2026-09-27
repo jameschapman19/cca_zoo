@@ -55,6 +55,7 @@ The table below gives each replacement.
 | `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
+| `HalvingGridSearchCV`, `HalvingRandomSearchCV` | sklearn's, on `MultiviewWrapper(model, n_features_per_view)` and the stacked views (see the model selection guide) |
 
 ### Added
 
@@ -192,6 +193,8 @@ The table below gives each replacement.
 Removed outright, with no deprecation period; the table above gives each replacement.
 
 - The `weights` property, which duplicated the `weights_` attribute.
+- `HalvingGridSearchCV` and `HalvingRandomSearchCV`, which mirrored sklearn's experimental
+  successive-halving searches; use sklearn's on `MultiviewWrapper` instead.
 - The `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings`
   model methods, which duplicated the `cca_zoo.metrics` functions of the same names.
 - `cca_zoo.model_selection.procrustes_rotation`, which duplicated

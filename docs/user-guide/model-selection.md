@@ -114,8 +114,7 @@ gs = GridSearchCV(
 ```
 
 `cv_results_` carries the same parameter names you passed in the grid (`param_nprune`, not the
-internal `param_estimator__nprune`). The successive-halving searches choose their final
-candidate themselves and, like sklearn's, take only `refit=True`/`False`.
+internal `param_estimator__nprune`).
 
 ---
 
@@ -164,7 +163,7 @@ train, test = validation_curve(RidgeCCA(), [X1, X2], "c__0", [0.0, 0.1, 1.0], cv
 
 These functions and the search classes wrap the estimator in `MultiviewWrapper`, which
 stacks the views into one array and splits them back. Use it directly for any other sklearn
-tool, such as a `Pipeline` step:
+tool, such as a `Pipeline` step or sklearn's successive-halving search:
 
 ```python
 import numpy as np
@@ -178,6 +177,13 @@ wrapper = MultiviewWrapper(
 )
 pipeline = make_pipeline(StandardScaler(), wrapper)  # scaling refitted within each fold
 scores = sk_cross_val_score(pipeline, np.hstack([X1, X2]), cv=5)
+
+from sklearn.experimental import enable_halving_search_cv  # noqa: F401
+from sklearn.model_selection import HalvingGridSearchCV
+
+search = HalvingGridSearchCV(wrapper, {"estimator__c__0": [0.0, 0.1, 1.0]}, cv=5)
+search.fit(np.hstack([X1, X2]))
+best = search.best_estimator_.estimator_  # the fitted multiview model
 ```
 
 ---
