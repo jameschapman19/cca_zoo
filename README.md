@@ -168,6 +168,7 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | `DCCASDL` | Deep CCA via stochastic decorrelation loss | Chang, Xiang & Hospedales (2018) | ≥2 |
 | `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) | ≥2 |
 | `DVCCA` | Deep variational CCA | Wang et al. (2016) | ≥2 |
+| `DVCCAPrivate` | Deep variational CCA with private latents per view | Wang et al. (2016) | ≥2 |
 | `SplitAE` | Split autoencoder baseline | — | ≥2 |
 | `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) | ≥2 |
 | `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) | ≥2 |

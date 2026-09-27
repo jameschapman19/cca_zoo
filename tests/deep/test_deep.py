@@ -28,6 +28,7 @@ from cca_zoo.deep import (
     DVCCA,
     BarlowTwins,
     BaseDeep,
+    DVCCAPrivate,
     MultiviewDataset,
     SplitAE,
     VICReg,
@@ -94,6 +95,13 @@ MODELS: dict[str, Callable[[], BaseDeep]] = {
 TRAINABLE: dict[str, Callable[[], BaseDeep]] = {
     **MODELS,
     "DVCCA": lambda: DVCCA(K, nn.Linear(P[0], 2 * K), [nn.Linear(K, p) for p in P]),
+    "DVCCAPrivate": lambda: DVCCAPrivate(
+        K,
+        nn.Linear(P[0], 2 * K),
+        [nn.Linear(p, 2) for p in P],
+        [nn.Linear(K + 1, p) for p in P],
+        n_private=1,
+    ),
 }
 
 
@@ -136,7 +144,7 @@ def test_fit_cca_enables_prediction_without_training() -> None:
     assert _predict(model, _loader(_views()))[0].shape == (64, K)
 
 
-@pytest.mark.parametrize("name", ["DCCA", "DVCCA", "DCCAE"])
+@pytest.mark.parametrize("name", ["DCCA", "DVCCA", "DVCCAPrivate", "DCCAE"])
 def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
     """Hyperparameters and the fitted projection are restored from a checkpoint."""
     model = TRAINABLE[name]()
@@ -147,11 +155,12 @@ def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
     fresh = TRAINABLE[name]()
     modules: dict[str, object] = (
         {"encoder": fresh.encoders[0]}
-        if name == "DVCCA"
+        if isinstance(fresh, DVCCA)
         else {"encoders": list(fresh.encoders)}
     )
-    if hasattr(fresh, "decoders"):
-        modules["decoders"] = list(fresh.decoders)
+    for attr in ("decoders", "private_encoders"):
+        if hasattr(fresh, attr):
+            modules[attr] = list(getattr(fresh, attr))
     restored = type(model).load_from_checkpoint(path, **modules)
     for a, b in zip(
         _predict(model, _loader(_views())), _predict(restored, _loader(_views()))
@@ -196,6 +205,13 @@ def _three_view_models(widths: list[int]) -> dict[str, BaseDeep]:
         "DCCAE": DCCAE(K, enc(), dec(K)),
         "SplitAE": SplitAE(K, enc(), dec(3 * K)),
         "DVCCA": DVCCA(K, nn.Linear(widths[0], 2 * K), dec(K)),
+        "DVCCAPrivate": DVCCAPrivate(
+            K,
+            nn.Linear(widths[0], 2 * K),
+            [nn.Linear(p, 2) for p in widths],
+            dec(K + 1),
+            n_private=1,
+        ),
     }
 
 
@@ -208,7 +224,7 @@ def test_models_train_on_three_views(name: str) -> None:
     views = _views(n_views=3)
     model = _three_view_models([v.shape[1] for v in views])[name]
     _trainer().fit(model, _loader(views))
-    expected = 1 if name == "DVCCA" else 3
+    expected = 1 if name.startswith("DVCCA") else 3
     assert len(_predict(model, _loader(views))) == expected
 
 
@@ -247,6 +263,28 @@ def test_dvcca_predicts_the_first_views_posterior_mean() -> None:
     (mean,) = _predict(model, _loader(views))
     expected = model.encoders[0](torch.as_tensor(views[0]))[:, :K]
     np.testing.assert_allclose(mean, expected.detach().numpy(), atol=1e-6)
+
+
+def test_dvcca_private_encoder_width_must_be_twice_n_private() -> None:
+    """Each private encoder outputs a mean and a log-variance."""
+    model = DVCCAPrivate(
+        K,
+        nn.Linear(P[0], 2 * K),
+        [nn.Linear(p, 1) for p in P],
+        [nn.Linear(K + 1, p) for p in P],
+        n_private=1,
+    )
+    with pytest.raises(ValueError, match="2 \\* n_private"):
+        model.loss({"views": [torch.randn(4, p) for p in P]})
+
+
+def test_dvcca_private_means_come_from_each_view() -> None:
+    """Each private posterior mean is the first half of its encoder's output."""
+    model = TRAINABLE["DVCCAPrivate"]()
+    assert isinstance(model, DVCCAPrivate)
+    views = [torch.as_tensor(v) for v in _views()]
+    for mean, enc, v in zip(model.private_means(views), model.private_encoders, views):
+        torch.testing.assert_close(mean, enc(v)[:, :1])
 
 
 def test_dcca_ey_uses_independent_views() -> None:

@@ -94,6 +94,7 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `DCCAE` | any | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
 | `SplitAE` | any | Every view reconstructed from all encodings |
 | `DVCCA` | any | Variational: a latent inferred from the first view generates every view (Wang et al., 2016) |
+| `DVCCAPrivate` | any | `DVCCA` plus a private latent per view (Wang et al., 2016) |
 
 As on the linear side, only `DCCA` is two-view, like `CCA`; `DMCCA`, `DGCCA` and
 `DTCCA` generalise it as `MCCA`, `GCCA` and `TCCA` do. Losses defined between two views
@@ -123,6 +124,11 @@ encoding and `SplitAE` from the concatenation of all encodings (decoder input
 `n_views * n_components`). `DVCCA` has a single `encoder`, of the first view, which
 outputs `2 * n_components` values, a mean and a log-variance; every view is decoded from
 the latent. Its prediction is one array, the posterior mean, with no linear CCA.
+`DVCCAPrivate` adds `private_encoders`, one per view with `2 * n_private` outputs, and
+decodes each view from the shared latent and its own private one (decoder input
+`n_components + n_private`). The private latents absorb view-specific variation; which
+latent ends up with which signal depends on the initialisation, so check the shared
+latent against a second view, and `model.private_means(views)` for the private parts.
 
 ```python
 from cca_zoo.deep import DCCAE
@@ -179,4 +185,5 @@ class MyModel(BaseDeep):
 
 - **Batch size matters.** The CCA losses estimate covariances per mini-batch; use batches
   well above `n_components`, or `DCCAEY` when they must be small.
-- **Encoders end in exactly `n_components` outputs** (`2 * n_components` for `DVCCA`).
+- **Encoders end in exactly `n_components` outputs** (`2 * n_components` for the
+  variational encoders).

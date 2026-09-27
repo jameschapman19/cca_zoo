@@ -66,6 +66,9 @@ The table below gives each replacement.
   explain the encodings by least squares, not on the correlation loss as in the paper,
   which rewards it for leaving the confound in. The prediction-time linear CCA is fitted
   on partialled encodings. `MultiviewDataset` takes `partials`.
+- `cca_zoo.deep.DVCCAPrivate`, DVCCA with a private latent per view (Wang et al., 2016):
+  view $i$ is decoded from the shared $z$ and its own $h_i$, which takes up
+  view-specific variation. `private_means` gives the private posterior means.
 - `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `learning_curve` and
   `validation_curve`: sklearn's functions taking a list of views, so multiview models are
   cross-validated as sklearn models are, without stacking views or building a
@@ -210,7 +213,9 @@ Removed outright, with no deprecation period; the table above gives each replace
 - **Breaking:** `DVCCA` now follows Wang et al. (2016): the posterior $q(z \mid x_1)$ is
   inferred from the first view alone, by a single `encoder`, and every view is decoded
   from $z$. It took one encoder per view and added their means and log-variances, which
-  is neither the published model nor a valid posterior.
+  is neither the published model nor a valid posterior. Its reconstruction term is now
+  the Gaussian negative log-likelihood, squared errors summed over features, as the ELBO
+  requires; the mean over features weighted the KL term by the number of features.
 - `DMCCA` cited Kettenring (1971), the linear method; it now cites the deep one,
   Somandepalli et al. (2019).
 - `DCCANOI`'s whitening layer returned unwhitened encodings in eval mode, so its
