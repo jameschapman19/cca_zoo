@@ -12,6 +12,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import random_orthonormal_weights
+from cca_zoo._utils._param_constraints import RANDOM_STATE
 
 
 class BaseFullBatchEYModel(BaseModel):
@@ -36,6 +37,7 @@ class BaseFullBatchEYModel(BaseModel):
         **BaseModel._parameter_constraints,
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

@@ -15,6 +15,7 @@ def validate_views(
     views: list[ArrayLike],
     min_views: int = 2,
     ensure_all_finite: bool = True,
+    ensure_min_samples: int = 1,
 ) -> list[np.ndarray]:
     """Validate and convert multiview data to a list of 2-D numpy arrays.
 
@@ -24,6 +25,7 @@ def validate_views(
         ensure_all_finite: Whether to reject NaN/inf entries. Default is
             ``True``. Callers that handle missing data themselves (e.g. an
             imputer) pass ``False``.
+        ensure_min_samples: Minimum number of samples. Default is 1.
 
     Returns:
         List of validated numpy arrays, each of shape (n_samples, n_features_i).
@@ -39,8 +41,9 @@ def validate_views(
             v,
             ensure_2d=True,
             allow_nd=False,
-            dtype="numeric",
+            dtype=np.float64,
             ensure_all_finite=ensure_all_finite,
+            ensure_min_samples=ensure_min_samples,
         )
         for v in views
     ]

@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.model_selection.GridSearchCV."""
+"""The multiview hyperparameter searches."""
 
 from __future__ import annotations
 
@@ -6,10 +6,9 @@ from typing import Any
 
 import numpy as np
 import pytest
-from sklearn.base import clone
-from sklearn.model_selection import cross_val_score
+import sklearn.model_selection as skms
 
-from cca_zoo.linear import CCA, MCCA, RidgeCCA
+from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import (
     GridSearchCV,
     HalvingGridSearchCV,
@@ -18,515 +17,84 @@ from cca_zoo.model_selection import (
     RandomizedSearchCV,
 )
 
-# ---------------------------------------------------------------------------
-# Basic fit
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_fit_completes(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV.fit completes without error on two-view data."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    fitted = gs.fit(two_views)
-    assert fitted is gs
-
-
-def test_grid_search_fit_returns_self(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV.fit returns self."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1]},
-        cv=2,
-    )
-    result = gs.fit(two_views)
-    assert result is gs
-
-
-# ---------------------------------------------------------------------------
-# best_params_
-# ---------------------------------------------------------------------------
-
-
-def test_best_params_accessible_after_fit(two_views: list[np.ndarray]) -> None:
-    """best_params_ is set after fit and contains the searched parameter key."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert hasattr(gs, "best_params_")
-    assert "n_components" in gs.best_params_
-
-
-def test_best_params_value_in_grid(two_views: list[np.ndarray]) -> None:
-    """best_params_ value is one of the grid values."""
-    grid_values = [1, 2]
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": grid_values},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert gs.best_params_["n_components"] in grid_values
-
-
-def test_best_params_no_prefix(two_views: list[np.ndarray]) -> None:
-    """best_params_ keys should NOT have 'estimator__' prefix."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    for key in gs.best_params_:
-        assert not key.startswith("estimator__"), (
-            f"Key '{key}' should not have 'estimator__' prefix"
-        )
-
-
-# ---------------------------------------------------------------------------
-# best_score_
-# ---------------------------------------------------------------------------
-
-
-def test_best_score_is_float(two_views: list[np.ndarray]) -> None:
-    """best_score_ is a Python float."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert isinstance(gs.best_score_, float)
-
-
-def test_best_score_in_valid_range(two_views: list[np.ndarray]) -> None:
-    """best_score_ is a valid correlation value in [-1, 1]."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert -1.0 <= gs.best_score_ <= 1.0
-
-
-# ---------------------------------------------------------------------------
-# best_estimator_
-# ---------------------------------------------------------------------------
-
-
-def test_best_estimator_accessible_after_fit(two_views: list[np.ndarray]) -> None:
-    """best_estimator_ is set after fit when refit=True (default)."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        refit=True,
-    )
-    gs.fit(two_views)
-    assert hasattr(gs, "best_estimator_")
-
-
-def test_best_estimator_is_fitted(two_views: list[np.ndarray]) -> None:
-    """best_estimator_ is fitted and can transform data."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    result = gs.best_estimator_.transform(two_views)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# cv_results_
-# ---------------------------------------------------------------------------
-
-
-def test_cv_results_accessible_after_fit(two_views: list[np.ndarray]) -> None:
-    """cv_results_ is a dict accessible after fit."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert hasattr(gs, "cv_results_")
-    assert isinstance(gs.cv_results_, dict)
-    assert "mean_test_score" in gs.cv_results_
-
-
-# ---------------------------------------------------------------------------
-# Multiple parameters in grid
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_multi_param(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV handles a grid with multiple parameters."""
-    gs = GridSearchCV(
-        RidgeCCA(),
-        param_grid={"n_components": [1, 2], "c": [0.0, 0.1]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert "n_components" in gs.best_params_
-    assert "c" in gs.best_params_
-
-
-# ---------------------------------------------------------------------------
-# List of grids
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_list_of_grids(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV accepts a list of parameter dicts (disjoint grids)."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid=[
-            {"n_components": [1]},
-            {"n_components": [2]},
-        ],
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert gs.best_params_["n_components"] in [1, 2]
-
-
-# ---------------------------------------------------------------------------
-# score method after fit
-# ---------------------------------------------------------------------------
-
-
-def test_score_after_fit(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV.score works on new data after fit."""
-    rng = np.random.default_rng(10)
-    test_views = [rng.standard_normal((20, 10)), rng.standard_normal((20, 8))]
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    s = gs.score(test_views)
-    assert isinstance(s, float)
-    assert -1.0 <= s <= 1.0
-
-
-# ---------------------------------------------------------------------------
-# n_jobs
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_n_jobs(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV works with n_jobs=1."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        n_jobs=1,
-    )
-    gs.fit(two_views)
-    assert hasattr(gs, "best_score_")
-
-
-# ---------------------------------------------------------------------------
-# Three-view model
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_three_view_model(three_views: list[np.ndarray]) -> None:
-    """GridSearchCV works with a multi-view model (MCCA) on three views."""
-    gs = GridSearchCV(
-        MCCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(three_views)
-    assert isinstance(gs.best_score_, float)
-    assert "n_components" in gs.best_params_
-
-
-# ---------------------------------------------------------------------------
-# transform (delegates to best_estimator_)
-# ---------------------------------------------------------------------------
-
-
-def test_transform_after_fit(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV.transform delegates to best_estimator_.transform."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    result = gs.transform(two_views)
-    expected = gs.best_estimator_.transform(two_views)
-    assert len(result) == len(two_views)
-    for a, b in zip(result, expected):
-        np.testing.assert_array_equal(a, b)
-
-
-def test_transform_without_refit_raises(two_views: list[np.ndarray]) -> None:
-    """GridSearchCV.transform raises when refit=False (no best_estimator_)."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        refit=False,
-    )
-    gs.fit(two_views)
-    with pytest.raises(AttributeError, match="refit"):
-        gs.transform(two_views)
-
-
-# ---------------------------------------------------------------------------
-# cv_results_ keys are unprefixed, consistent with best_params_
-# ---------------------------------------------------------------------------
-
-
-def test_cv_results_param_keys_unprefixed(two_views: list[np.ndarray]) -> None:
-    """cv_results_ param_* keys match best_params_ keys (no 'estimator__')."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert "param_n_components" in gs.cv_results_
-    assert not any(k.startswith("param_estimator__") for k in gs.cv_results_)
-    assert all(
-        not any(key.startswith("estimator__") for key in params)
-        for params in gs.cv_results_["params"]
-    )
-
-
-# ---------------------------------------------------------------------------
-# Full sklearn GridSearchCV attribute surface is forwarded
-# ---------------------------------------------------------------------------
-
-
-def test_forwards_full_sklearn_attribute_surface(two_views: list[np.ndarray]) -> None:
-    """Attributes beyond best_*/cv_results_ (e.g. best_index_) are forwarded."""
-    gs = GridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-    )
-    gs.fit(two_views)
-    assert hasattr(gs, "best_index_")
-    assert hasattr(gs, "scorer_")
-    assert hasattr(gs, "n_splits_")
-    assert gs.n_splits_ == 2
-
-
-# ---------------------------------------------------------------------------
-# GridSearchCV/RandomizedSearchCV are themselves ordinary sklearn estimators
-# ---------------------------------------------------------------------------
-
-
-def test_grid_search_cv_is_clonable() -> None:
-    """GridSearchCV round-trips through sklearn's clone/get_params/set_params."""
-    gs = GridSearchCV(CCA(), param_grid={"n_components": [1, 2]}, cv=2)
-    cloned = clone(gs)
-    assert cloned.param_grid == gs.param_grid
-    assert cloned is not gs
-
-
-# ---------------------------------------------------------------------------
-# RandomizedSearchCV
-# ---------------------------------------------------------------------------
-
-
-def test_randomized_search_fit_completes(two_views: list[np.ndarray]) -> None:
-    """RandomizedSearchCV.fit completes and best_params_ is in range."""
-    rs = RandomizedSearchCV(
-        RidgeCCA(),
-        param_distributions={"c": [0.0, 0.1, 0.5]},
-        n_iter=2,
-        cv=2,
-        random_state=0,
-    )
-    rs.fit(two_views)
-    assert rs.best_params_["c"] in [0.0, 0.1, 0.5]
-
-
-def test_randomized_search_transform(two_views: list[np.ndarray]) -> None:
-    """RandomizedSearchCV.transform delegates to best_estimator_."""
-    rs = RandomizedSearchCV(
-        CCA(),
-        param_distributions={"n_components": [1, 2]},
-        n_iter=2,
-        cv=2,
-        random_state=0,
-    )
-    rs.fit(two_views)
-    result = rs.transform(two_views)
-    assert len(result) == len(two_views)
-
-
-# ---------------------------------------------------------------------------
-# MultiviewWrapper is public and composes with arbitrary sklearn tools
-# ---------------------------------------------------------------------------
-
-
-def test_multiview_wrapper_with_cross_val_score(two_views: list[np.ndarray]) -> None:
-    """MultiviewWrapper can be used directly with sklearn's cross_val_score."""
-    n_features_per_view = [v.shape[1] for v in two_views]
-    wrapper = MultiviewWrapper(
-        CCA(n_components=1), n_features_per_view=n_features_per_view
-    )
-    x_concat = np.hstack(two_views)
-    scores = cross_val_score(wrapper, x_concat, cv=2)
-    assert scores.shape == (2,)
-
-
-# ---------------------------------------------------------------------------
-# Independent per-view hyperparameter grids via "name__<view index>"
-# ---------------------------------------------------------------------------
-
-
-def test_per_view_grid_searches_cartesian_product(
+_GRID = {"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]}
+_SEARCHES = [
+    (GridSearchCV, {"param_grid": _GRID}),
+    (
+        RandomizedSearchCV,
+        {"param_distributions": _GRID, "n_iter": 3, "random_state": 0},
+    ),
+    (HalvingGridSearchCV, {"param_grid": _GRID, "min_resources": 20}),
+    (
+        HalvingRandomSearchCV,
+        {"param_distributions": _GRID, "min_resources": 20, "random_state": 0},
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("search", "kwargs"), _SEARCHES, ids=[s.__name__ for s, _ in _SEARCHES]
+)
+def test_search_over_per_view_parameters(
+    search: type, kwargs: dict[str, Any], two_views: list[np.ndarray]
+) -> None:
+    """Each view's value is searched independently and reported without prefixes."""
+    fitted = search(RidgeCCA(), cv=2, **kwargs).fit(two_views)
+    assert set(fitted.best_params_) == {"c__0", "c__1"}
+    assert fitted.best_estimator_.c == [
+        fitted.best_params_["c__0"],
+        fitted.best_params_["c__1"],
+    ]
+    assert not any("estimator__" in key for key in fitted.cv_results_)
+    assert len(fitted.transform(two_views)) == 2
+    assert isinstance(fitted.score(two_views), float)
+
+
+def test_grid_search_is_sklearns_on_the_stacked_views(
     two_views: list[np.ndarray],
 ) -> None:
-    """'c__0'/'c__1' are searched independently, not as one paired vector."""
-    gs = GridSearchCV(
-        RidgeCCA(n_components=1),
-        param_grid={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
-        cv=2,
+    """Scores and choice match sklearn's GridSearchCV on a MultiviewWrapper."""
+    ours = GridSearchCV(RidgeCCA(), param_grid={"c": [0.0, 0.3, 0.9]}, cv=3).fit(
+        two_views
     )
-    gs.fit(two_views)
-    assert len(gs.cv_results_["params"]) == 4  # full 2x2 Cartesian product
-    assert set(gs.best_params_) == {"c__0", "c__1"}
-    assert gs.best_params_["c__0"] in [0.0, 0.5]
-    assert gs.best_params_["c__1"] in [0.1, 0.9]
-    assert gs.best_estimator_.c == [gs.best_params_["c__0"], gs.best_params_["c__1"]]
-
-
-def test_per_view_grid_partial_override_keeps_other_view_default(
-    two_views: list[np.ndarray],
-) -> None:
-    """Only the indices present in the grid are overridden; others keep their value."""
-    gs = GridSearchCV(
-        RidgeCCA(n_components=1, c=0.3),
-        param_grid={"c__0": [0.0, 0.9]},
-        cv=2,
+    theirs = skms.GridSearchCV(
+        MultiviewWrapper(RidgeCCA(), n_features_per_view=[10, 8]),
+        param_grid={"estimator__c": [0.0, 0.3, 0.9]},
+        cv=3,
+    ).fit(np.hstack(two_views))
+    np.testing.assert_allclose(
+        ours.cv_results_["mean_test_score"], theirs.cv_results_["mean_test_score"]
     )
-    gs.fit(two_views)
-    assert gs.best_estimator_.c[1] == 0.3
-    assert gs.best_estimator_.c[0] in [0.0, 0.9]
+    assert ours.best_index_ == theirs.best_index_
+    assert ours.n_splits_ == 3
 
 
-def test_per_view_grid_out_of_range_index_raises(two_views: list[np.ndarray]) -> None:
-    """An index beyond the number of views raises a clear ValueError."""
-    gs = GridSearchCV(RidgeCCA(n_components=1), param_grid={"c__5": [0.1]}, cv=2)
-    with pytest.raises(ValueError, match="views"):
+def test_grid_search_over_a_list_of_grids(two_views: list[np.ndarray]) -> None:
+    """Disjoint grids are searched in turn."""
+    gs = GridSearchCV(
+        RidgeCCA(), param_grid=[{"c": [0.0]}, {"n_components": [1, 2]}], cv=2
+    ).fit(two_views)
+    assert len(gs.cv_results_["params"]) == 3
+
+
+def test_per_view_override_keeps_the_other_views(two_views: list[np.ndarray]) -> None:
+    """Views missing from the grid keep the estimator's value."""
+    gs = GridSearchCV(RidgeCCA(c=0.3), param_grid={"c__0": [0.0, 0.9]}, cv=2)
+    assert gs.fit(two_views).best_estimator_.c[1] == 0.3
+
+
+def test_per_view_index_beyond_the_views_raises(two_views: list[np.ndarray]) -> None:
+    """A view index beyond the data names the problem."""
+    gs = GridSearchCV(RidgeCCA(), param_grid={"c__5": [0.1]}, cv=2)
+    with pytest.raises(ValueError, match="only 2 views"):
         gs.fit(two_views)
 
 
-def test_per_view_grid_with_randomized_search(two_views: list[np.ndarray]) -> None:
-    """Per-view keys work with RandomizedSearchCV too (same wrapper)."""
-    rs = RandomizedSearchCV(
-        RidgeCCA(n_components=1),
-        param_distributions={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
-        n_iter=3,
-        cv=2,
-        random_state=0,
-    )
-    rs.fit(two_views)
-    assert rs.best_estimator_.c == [rs.best_params_["c__0"], rs.best_params_["c__1"]]
-
-
-# ---------------------------------------------------------------------------
-# HalvingGridSearchCV / HalvingRandomSearchCV
-# ---------------------------------------------------------------------------
-
-
-def test_halving_grid_search_fit_completes(two_views: list[np.ndarray]) -> None:
-    """HalvingGridSearchCV.fit completes and best_params_ is in the grid."""
-    hgs = HalvingGridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        min_resources=20,
-    )
-    hgs.fit(two_views)
-    assert hgs.best_params_["n_components"] in [1, 2]
-
-
-def test_halving_grid_search_cv_results_no_prefix(two_views: list[np.ndarray]) -> None:
-    """cv_results_/best_params_ keys have the 'estimator__' prefix stripped."""
-    hgs = HalvingGridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        min_resources=20,
-    )
-    hgs.fit(two_views)
-    assert "param_n_components" in hgs.cv_results_
-    assert not any(k.startswith("param_estimator__") for k in hgs.cv_results_)
-    assert not any(key.startswith("estimator__") for key in hgs.best_params_)
-
-
-def test_halving_grid_search_transform(two_views: list[np.ndarray]) -> None:
-    """HalvingGridSearchCV.transform delegates to best_estimator_."""
-    hgs = HalvingGridSearchCV(
-        CCA(),
-        param_grid={"n_components": [1, 2]},
-        cv=2,
-        min_resources=20,
-    )
-    hgs.fit(two_views)
-    result = hgs.transform(two_views)
-    assert len(result) == len(two_views)
-
-
-def test_halving_random_search_fit_completes(two_views: list[np.ndarray]) -> None:
-    """HalvingRandomSearchCV.fit completes and best_params_ is in range."""
-    hrs = HalvingRandomSearchCV(
-        RidgeCCA(),
-        param_distributions={"c": [0.0, 0.1, 0.5]},
-        cv=2,
-        min_resources=20,
-        random_state=0,
-    )
-    hrs.fit(two_views)
-    assert hrs.best_params_["c"] in [0.0, 0.1, 0.5]
-
-
-def test_halving_search_cv_is_clonable() -> None:
-    """HalvingGridSearchCV/HalvingRandomSearchCV round-trip through clone."""
-    hgs = HalvingGridSearchCV(
-        CCA(), param_grid={"n_components": [1, 2]}, cv=2, min_resources=20
-    )
-    cloned = clone(hgs)
-    assert cloned.param_grid == hgs.param_grid
-    assert cloned is not hgs
-
-
-def test_halving_per_view_grid_searches_cartesian_product(
-    two_views: list[np.ndarray],
-) -> None:
-    """Per-view 'c__0'/'c__1' keys work with HalvingGridSearchCV too."""
-    hgs = HalvingGridSearchCV(
-        RidgeCCA(n_components=1),
-        param_grid={"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]},
-        cv=2,
-        min_resources=20,
-    )
-    hgs.fit(two_views)
-    assert set(hgs.best_params_) == {"c__0", "c__1"}
-    assert hgs.best_estimator_.c == [hgs.best_params_["c__0"], hgs.best_params_["c__1"]]
-
-
-# ---------------------------------------------------------------------------
-# callable refit
-# ---------------------------------------------------------------------------
+def test_transform_needs_refit(two_views: list[np.ndarray]) -> None:
+    """With refit=False there is no best estimator to transform with."""
+    gs = GridSearchCV(CCA(), param_grid={"n_components": [1]}, cv=2, refit=False)
+    with pytest.raises(AttributeError, match="refit=False"):
+        gs.fit(two_views).transform(two_views)
 
 
 def test_callable_refit_sees_unprefixed_cv_results(

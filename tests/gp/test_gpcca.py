@@ -9,76 +9,14 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Kernel
 
 from cca_zoo.gp import GaussianProcessCCA
 from cca_zoo.gp._gpcca import _GpEncoder
-from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
 def _make_model(n_components: int = 1, **kwargs: object) -> GaussianProcessCCA:
     kwargs.setdefault("random_state", 0)
     return GaussianProcessCCA(n_components=n_components, **kwargs)
-
-
-# ---------------------------------------------------------------------------
-# fit completes
-# ---------------------------------------------------------------------------
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-    assert len(model.encoders_) == 3
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes
-# ---------------------------------------------------------------------------
-
-
-def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, n_components) arrays."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform returns correct shapes for new (unseen) test samples."""
-    rng = np.random.default_rng(99)
-    test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    k = 1
-    model = _make_model(n_components=k).fit(two_views_small)
-    result = model.transform(test_views)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (10, k)
-
-
-def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
-    """Transform on three-view data returns one array per view."""
-    k = 2
-    model = _make_model(n_components=k).fit(three_views_small)
-    result = model.transform(three_views_small)
-    assert len(result) == 3
-    n = three_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
 
 
 # ---------------------------------------------------------------------------
@@ -103,144 +41,8 @@ def test_transform_return_std_shapes_and_positive(
 
 
 # ---------------------------------------------------------------------------
-# fit_transform consistency
-# ---------------------------------------------------------------------------
-
-
-def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
-    """fit_transform equals fit().transform() numerically."""
-    m1 = _make_model()
-    m2 = _make_model()
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# score shape and range
-# ---------------------------------------------------------------------------
-
-
-def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score is one float, as sklearn expects."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    s = model.score(two_views_small)
-    assert isinstance(s, float)
-
-
-def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score values lie in [-1, 1]."""
-    model = _make_model().fit(two_views_small)
-    s = model.score(two_views_small)
-    assert np.all(s >= -1.0 - 1e-9)
-    assert np.all(s <= 1.0 + 1e-9)
-
-
-# get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package (including GaussianProcessCCA) by
-# tests/test_sklearn_compat.py.
-
-
-# ---------------------------------------------------------------------------
-# weights is not implemented
-# ---------------------------------------------------------------------------
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = GaussianProcessCCA(random_state=0)
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
-# ---------------------------------------------------------------------------
-# factor_loadings shapes
-# ---------------------------------------------------------------------------
-
-
-def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """factor_loadings returns (n_features_i, k) arrays."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
-    assert len(loadings) == 2
-    for loading, view in zip(loadings, two_views_small):
-        assert loading.shape == (view.shape[1], k)
-
-
-# ---------------------------------------------------------------------------
-# pairwise_correlations shape
-# ---------------------------------------------------------------------------
-
-
-def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
-    """pairwise_correlations returns (n_views, n_views, k)."""
-    k = 1
-    model = _make_model(n_components=k).fit(two_views_small)
-    corrs = pairwise_correlations(model.transform(two_views_small))
-    assert corrs.shape == (2, 2, k)
-
-
-# ---------------------------------------------------------------------------
-# center=False
-# ---------------------------------------------------------------------------
-
-
-def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """GaussianProcessCCA works with center=False."""
-    model = _make_model(center=False)
-    model.fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# encoders_ attribute
-# ---------------------------------------------------------------------------
-
-
-def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
-    """encoders_ has one encoder per view, each producing k-dim output."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    assert len(model.encoders_) == 2
-    for enc in model.encoders_:
-        assert enc.k == k
-        assert enc.predict().shape == (two_views_small[0].shape[0], k)
-
-
-def test_encoder_kernel_is_sklearn_kernel(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Each encoder's kernel is built from actual sklearn kernel objects.
-
-    Confirms the kernel math (and, for predictive uncertainty, the GP
-    posterior-variance formula) is delegated to scikit-learn rather than
-    reimplemented -- fitting the coefficients themselves is now direct
-    coordinate descent on the EY loss (see the module docstring), not a
-    per-step GaussianProcessRegressor.fit() call.
-    """
-    model = _make_model().fit(two_views_small)
-    for enc in model.encoders_:
-        assert isinstance(enc.kernel_, Kernel)
-        assert isinstance(enc._variance_model, GaussianProcessRegressor)
-
-
-# ---------------------------------------------------------------------------
 # Per-view parameters
 # ---------------------------------------------------------------------------
-
-
-def test_per_view_n_inducing_list(two_views_small: list[np.ndarray]) -> None:
-    """A per-view n_inducing list selects a different inducing-point count per view."""
-    n = two_views_small[0].shape[0]
-    model = _make_model(n_inducing=[n // 2, None]).fit(two_views_small)
-    assert model.encoders_[0].inducing_.shape[0] == n // 2
-    assert model.encoders_[1].inducing_.shape[0] == n
 
 
 def test_per_view_kernel_list(two_views_small: list[np.ndarray]) -> None:
@@ -252,59 +54,9 @@ def test_per_view_kernel_list(two_views_small: list[np.ndarray]) -> None:
     assert isinstance(model.encoders_[1].kernel_, RBF)
 
 
-def test_per_view_alpha_wrong_length_raises(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """A per-view alpha list must have one entry per view."""
-    with pytest.raises(ValueError, match="alpha"):
-        _make_model(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
-
-
-# ---------------------------------------------------------------------------
-# Correctness / optimality
-# ---------------------------------------------------------------------------
-
-
-def test_gpcca_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """GaussianProcessCCA finds substantial correlation on shared latent structure."""
-    model = GaussianProcessCCA(n_components=1, random_state=0)
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
-
-
-def test_gpcca_finds_correlation_on_three_correlated_views() -> None:
-    """GaussianProcessCCA (multiview) finds substantial correlation on 3 views."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((200, 1))
-    views = [
-        z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
-        for _ in range(3)
-    ]
-    model = GaussianProcessCCA(n_components=1, random_state=0)
-    s = model.fit(views).score(views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
-
-
 # ---------------------------------------------------------------------------
 # sparse (inducing-point) approximation
 # ---------------------------------------------------------------------------
-
-
-def test_sparse_fit_completes_and_shapes(two_views_small: list[np.ndarray]) -> None:
-    """n_inducing < n_samples selects that many basis (inducing) points and fits."""
-    k = 2
-    n = two_views_small[0].shape[0]
-    n_inducing = n // 2
-    model = _make_model(n_components=k, n_inducing=n_inducing).fit(two_views_small)
-    for enc in model.encoders_:
-        assert isinstance(enc, _GpEncoder)
-        assert enc.inducing_.shape[0] == n_inducing
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (n, k)
 
 
 def test_sparse_return_std_shapes_and_positive(
@@ -330,18 +82,6 @@ def test_n_inducing_at_least_n_samples_falls_back_to_exact(
     for enc in model.encoders_:
         assert isinstance(enc, _GpEncoder)
         assert enc.inducing_.shape[0] == n
-
-
-def test_sparse_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """The sparse approximation still recovers substantial correlation."""
-    n = correlated_views[0].shape[0]
-    model = GaussianProcessCCA(
-        n_components=1, random_state=0, n_inducing=max(10, n // 3)
-    )
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 @pytest.mark.slow

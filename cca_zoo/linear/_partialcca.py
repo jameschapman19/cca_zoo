@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._utils._linalg import gevp
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._validation import perview_parameter
 from cca_zoo.linear._mcca import MCCA
 
 
@@ -116,10 +115,9 @@ class PartialCCA(MCCA):
         Returns:
             One array of shape (n_samples, n_components) per view.
         """
-        check_is_fitted(self)
         if partials is None:
             return super().transform(views)
-        validated = validate_views(views)
+        validated = self._check_views(views)
         partials_arr = np.asarray(partials, dtype=float)
         centred = [v - m for v, m in zip(validated, self.means_)]
         deconfounded = [

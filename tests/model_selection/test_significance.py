@@ -7,7 +7,6 @@ import pytest
 
 from cca_zoo.linear import CCA
 from cca_zoo.model_selection import (
-    PermutationTestResult,
     permutation_test_significance,
 )
 
@@ -27,19 +26,6 @@ def signal_and_noise_views() -> list[np.ndarray]:
     noise1 = rng.standard_normal((n, 3))
     noise2 = rng.standard_normal((n, 3))
     return [np.hstack([signal1, noise1]), np.hstack([signal2, noise2])]
-
-
-def test_permutation_test_returns_result_object(
-    signal_and_noise_views: list[np.ndarray],
-) -> None:
-    """permutation_test_significance returns a PermutationTestResult."""
-    result = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=19,
-        random_state=0,
-    )
-    assert isinstance(result, PermutationTestResult)
 
 
 def test_permutation_test_shapes(signal_and_noise_views: list[np.ndarray]) -> None:
@@ -117,27 +103,6 @@ def test_permutation_test_unrelated_views_not_significant() -> None:
     assert result.p_values[0] > 0.1
 
 
-def test_permutation_test_reproducible_with_same_random_state(
-    signal_and_noise_views: list[np.ndarray],
-) -> None:
-    """Same random_state gives identical results."""
-    result_a = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=15,
-        random_state=42,
-    )
-    result_b = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=15,
-        random_state=42,
-    )
-    np.testing.assert_array_equal(
-        result_a.null_correlations, result_b.null_correlations
-    )
-
-
 def test_permutation_test_does_not_mutate_estimator(
     signal_and_noise_views: list[np.ndarray],
 ) -> None:
@@ -147,18 +112,6 @@ def test_permutation_test_does_not_mutate_estimator(
         estimator, signal_and_noise_views, n_permutations=9, random_state=0
     )
     assert not hasattr(estimator, "weights_")
-
-
-def test_permutation_test_n_jobs(signal_and_noise_views: list[np.ndarray]) -> None:
-    """permutation_test_significance works with n_jobs=2."""
-    result = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=9,
-        random_state=0,
-        n_jobs=2,
-    )
-    assert result.correlations.shape == (1,)
 
 
 def test_permutation_test_invalid_n_permutations_raises(

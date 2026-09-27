@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from numbers import Real
+from typing import Any, ClassVar
 
 import numpy as np
 import xgboost as xgb
 from numpy.typing import ArrayLike
+from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import ey_grad_z, random_orthogonal_embedding
+from cca_zoo._utils._param_constraints import (
+    FRACTION_PER_VIEW,
+    NONNEGATIVE_PER_VIEW,
+    POSITIVE_INT_PER_VIEW,
+    RANDOM_STATE,
+)
 from cca_zoo._utils._validation import perview_parameter
 
 try:
@@ -222,6 +230,18 @@ class TreeCCA(BaseModel, ABC):
         Gradient-Boosted Trees. arXiv:2607.27027.
     """
 
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "n_estimators": POSITIVE_INT_PER_VIEW,
+        "max_depth": POSITIVE_INT_PER_VIEW,
+        "learning_rate": [Interval(Real, 0, None, closed="neither"), "array-like"],
+        "subsample": FRACTION_PER_VIEW,
+        "colsample_bytree": FRACTION_PER_VIEW,
+        "min_child_weight": NONNEGATIVE_PER_VIEW,
+        "gauss_seidel": ["boolean"],
+        "random_state": RANDOM_STATE,
+    }
+
     def __init__(
         self,
         n_components: int = 1,
@@ -349,7 +369,10 @@ class TreeCCA(BaseModel, ABC):
         return self
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        return self._predict_boosters(self.boosters_[view], centred)
+        scores: np.ndarray = self._predict_boosters(
+            self.boosters_[view], centred
+        ).astype(np.float64)
+        return scores
 
 
 class XGBoostCCA(TreeCCA):

@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from sklearn.base import clone
 from sklearn.decomposition import PCA
-from sklearn.exceptions import NotFittedError
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -18,15 +16,6 @@ from cca_zoo.preprocessing import PerViewTransformer
 # ---------------------------------------------------------------------------
 # Basic fit/transform, one transformer broadcast to every view
 # ---------------------------------------------------------------------------
-
-
-def test_fit_transform_shapes(two_views: list[np.ndarray]) -> None:
-    """Transform preserves sample count and returns one array per view."""
-    pvt = PerViewTransformer(StandardScaler())
-    out = pvt.fit(two_views).transform(two_views)
-    assert len(out) == len(two_views)
-    for original, transformed in zip(two_views, out):
-        assert transformed.shape == original.shape
 
 
 def test_each_view_scaled_independently(two_views: list[np.ndarray]) -> None:
@@ -41,20 +30,6 @@ def test_each_view_scaled_independently(two_views: list[np.ndarray]) -> None:
     assert pvt.transformers_[1].mean_.shape == (two_views[1].shape[1],)
 
 
-def test_fit_transform_matches_fit_then_transform(two_views: list[np.ndarray]) -> None:
-    """fit_transform is equivalent to fit(...).transform(...)."""
-    a = PerViewTransformer(StandardScaler()).fit_transform(two_views)
-    b = PerViewTransformer(StandardScaler()).fit(two_views).transform(two_views)
-    for x, y in zip(a, b):
-        np.testing.assert_array_equal(x, y)
-
-
-def test_transform_before_fit_raises(two_views: list[np.ndarray]) -> None:
-    """Transform without fit raises NotFittedError."""
-    with pytest.raises(NotFittedError):
-        PerViewTransformer(StandardScaler()).transform(two_views)
-
-
 # ---------------------------------------------------------------------------
 # A distinct transformer per view
 # ---------------------------------------------------------------------------
@@ -66,15 +41,6 @@ def test_per_view_transformer_list(two_views: list[np.ndarray]) -> None:
     out = pvt.fit(two_views).transform(two_views)
     assert out[0].shape == two_views[0].shape
     assert out[1].shape == (two_views[1].shape[0], 3)
-
-
-def test_per_view_transformer_list_wrong_length_raises(
-    two_views: list[np.ndarray],
-) -> None:
-    """A transformer list with the wrong length raises a clear ValueError."""
-    pvt = PerViewTransformer([StandardScaler(), StandardScaler(), StandardScaler()])
-    with pytest.raises(ValueError, match="one entry per view"):
-        pvt.fit(two_views)
 
 
 def test_heterogeneous_missing_data(two_views: list[np.ndarray]) -> None:
@@ -116,14 +82,6 @@ def test_inverse_transform_without_support_raises(two_views: list[np.ndarray]) -
 # ---------------------------------------------------------------------------
 
 
-def test_clonable() -> None:
-    """PerViewTransformer round-trips through sklearn's clone."""
-    pvt = PerViewTransformer(StandardScaler())
-    cloned = clone(pvt)
-    assert cloned is not pvt
-    assert isinstance(cloned.transformer, StandardScaler)
-
-
 def test_composes_with_sklearn_pipeline(two_views: list[np.ndarray]) -> None:
     """PerViewTransformer chains with sklearn's own Pipeline and a CCA model.
 
@@ -154,15 +112,3 @@ def test_pipeline_with_multiview_grid_search(two_views: list[np.ndarray]) -> Non
     gs = GridSearchCV(pipe, param_grid={"cca__n_components": [1, 2]}, cv=2)
     gs.fit(two_views)
     assert gs.best_params_["cca__n_components"] in [1, 2]
-
-
-# ---------------------------------------------------------------------------
-# Three-view model
-# ---------------------------------------------------------------------------
-
-
-def test_three_views(three_views: list[np.ndarray]) -> None:
-    """Works with more than two views."""
-    pvt = PerViewTransformer(StandardScaler())
-    out = pvt.fit_transform(three_views)
-    assert len(out) == 3

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 from scipy.linalg import block_diag
 from sklearn.covariance import GraphicalLasso
 
@@ -12,63 +11,6 @@ from cca_zoo.linear import MCCA, GraphicalLassoCCA
 
 def _make_model(n_components: int = 1, **kwargs: object) -> GraphicalLassoCCA:
     return GraphicalLassoCCA(n_components=n_components, **kwargs)
-
-
-# ---------------------------------------------------------------------------
-# fit completes / shapes
-# ---------------------------------------------------------------------------
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-
-
-def test_weights_shapes_and_matches_transform(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    weights = model.weights_
-    assert len(weights) == 2
-    for w, v in zip(weights, two_views_small):
-        assert w.shape == (v.shape[1], k)
-
-    transformed = model.transform(two_views_small)
-    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
-        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = GraphicalLassoCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
-def test_covariance_and_precision_shapes(three_views_small: list[np.ndarray]) -> None:
-    """covariance_/precision_ are one symmetric (p_i, p_i) array per view."""
-    model = _make_model().fit(three_views_small)
-    assert len(model.covariance_) == 3
-    assert len(model.precision_) == 3
-    for v, cov, prec in zip(three_views_small, model.covariance_, model.precision_):
-        p = v.shape[1]
-        assert cov.shape == (p, p)
-        assert prec.shape == (p, p)
-        np.testing.assert_allclose(cov, cov.T)
-        np.testing.assert_allclose(prec, prec.T)
 
 
 # ---------------------------------------------------------------------------
@@ -159,39 +101,3 @@ def test_fits_in_high_dimensional_regime() -> None:
 
     model = GraphicalLassoCCA(n_components=1, alpha=0.5, max_iter=500).fit([x1, x2])
     assert model.score([x1, x2]) > 0.3
-
-
-# ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks
-# ---------------------------------------------------------------------------
-
-
-def test_clone_and_get_params_roundtrip() -> None:
-    """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
-    from sklearn.base import clone
-
-    model = GraphicalLassoCCA(n_components=2, c=0.1, alpha=0.05, mode="cd")
-    cloned = clone(model)
-    assert cloned.get_params() == model.get_params()
-
-
-def test_invalid_alpha_raises() -> None:
-    """A negative alpha is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        GraphicalLassoCCA(alpha=-1.0)._validate_params()
-
-
-def test_invalid_mode_raises() -> None:
-    """An unrecognised solver mode is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        GraphicalLassoCCA(mode="not-a-mode")._validate_params()
-
-
-def test_pca_not_exposed() -> None:
-    """No pca constructor parameter -- this always solves in feature space."""
-    with pytest.raises(TypeError):
-        GraphicalLassoCCA(pca=True)  # type: ignore[call-arg]

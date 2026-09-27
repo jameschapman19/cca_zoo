@@ -126,6 +126,9 @@ The table below gives each replacement.
 
 ### Changed
 
+- Every constructor parameter of every model is validated when fitting, as sklearn's are;
+  the kernel, tree, probabilistic and iterative sparse models, and `random_state`
+  everywhere, previously accepted anything.
 - `GAMCCA` now follows `mgcv`'s API and P-spline smooths. This is a breaking change with
   no deprecation shim, as was `TreeCCA`'s `backend=` removal, since `GAMCCA` shipped only
   in 3.3.0. Each feature's smooth is `s(x, bs="ps", k=k, m=m)`: `k` B-splines on evenly
@@ -210,6 +213,27 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `CCAR3` and `ECCA` took the canonical directions from the SVD of the regression
+  coefficients, which ignores the covariance of `X`, so with no penalty they did not
+  recover CCA: `CCAR3` found a correlation of 0.27 where CCA finds 0.97. Both now take
+  the SVD of the fitted values, as Donnat & Tuzhilina (2024) do, and match CCA at
+  `alpha=0`. `ECCA` now also regresses the whitened `Y`. Its penalty zeroes entries of
+  the coefficients; the canonical weights drop a feature only when its whole row is
+  zero, and its documentation no longer says otherwise.
+- `MultiTaskElasticNetCCA` returned all-zero weights at its default `alpha=1`, and both
+  it and `ElasticNetCCA` could return zeros when a fit with a lower penalised objective
+  exists: all-zero weights are a local minimum the coordinate updates cannot leave. Both
+  now raise the penalty to `alpha` along a path from zero, warm-starting each stage, and
+  with one component `MultiTaskElasticNetCCA` equals `ElasticNetCCA`.
+- The shared whitening kept a numerically null direction of centred data with more
+  features than samples, with an enormous weight, affecting unregularised fits in that
+  regime.
+- `transform`, `predict`, `log_likelihood` and `posterior_mean` check each view against
+  the number of views and features seen in fit, rather than failing in matrix
+  arithmetic or silently ignoring extra views, and `fit` needs at least two samples.
+  Views are converted to float64, so `GraphicalLassoCCA` accepts float32 and integer
+  data, and the tree models return float64 scores.
+- `CCA` and `PLS` named `RidgeCCA` in their error for a third view.
 - `ProbabilisticCCA` and `VariationalBayesCCA` used their noise parameter as a standard
   deviation in the likelihood but as a variance in `posterior_mean`, `log_likelihood`
   and `predict`, so all three were computed with the wrong noise. The parameter is now a

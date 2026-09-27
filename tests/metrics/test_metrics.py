@@ -108,15 +108,6 @@ def test_redundancy_index_bounded_by_adequacy(
     assert np.all(redundancy >= 0.0)
 
 
-def test_redundancy_index_shape(correlated_views: list[np.ndarray]) -> None:
-    """redundancy_index has shape (n_views, n_views, n_components)."""
-    model = CCA(n_components=2).fit(correlated_views)
-    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
-    corrs = pairwise_correlations(model.transform(correlated_views))
-    redundancy = redundancy_index(loadings, corrs)
-    assert redundancy.shape == (2, 2, 2)
-
-
 def test_total_redundancy_sums_over_dimensions(
     correlated_views: list[np.ndarray],
 ) -> None:
@@ -145,40 +136,3 @@ def test_redundancy_asymmetric_across_views() -> None:
     corrs = pairwise_correlations(model.transform([x1, x2]))
     redundancy = redundancy_index(loadings, corrs)
     assert not np.allclose(redundancy[0, 1, :], redundancy[1, 0, :])
-
-
-# ---------------------------------------------------------------------------
-# Three-view model
-# ---------------------------------------------------------------------------
-
-
-def test_three_views(three_views: list[np.ndarray]) -> None:
-    """Every function handles more than two views."""
-    n_samples = three_views[0].shape[0]
-    rng = np.random.default_rng(0)
-    transformed = [rng.standard_normal((n_samples, 2)) for _ in range(3)]
-    corrs = pairwise_correlations(transformed)
-    assert corrs.shape == (3, 3, 2)
-    avg = average_pairwise_correlations(corrs)
-    assert avg.shape == (2,)
-    loadings = factor_loadings(three_views, transformed)
-    assert len(loadings) == 3
-
-
-@pytest.mark.parametrize(
-    "name",
-    [
-        "pairwise_correlations",
-        "average_pairwise_correlations",
-        "factor_loadings",
-        "adequacy_coefficient",
-        "redundancy_index",
-        "total_redundancy",
-    ],
-)
-def test_public_api_exported(name: str) -> None:
-    """Every documented function is importable from cca_zoo.metrics."""
-    import cca_zoo.metrics as metrics
-
-    assert name in metrics.__all__
-    assert hasattr(metrics, name)

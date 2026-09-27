@@ -16,7 +16,7 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate
-from cca_zoo._utils._param_constraints import POSITIVE_INT
+from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 
 IndexFn = Callable[[np.ndarray, np.ndarray], float]
 
@@ -150,6 +150,7 @@ class ProjectionPursuitCCA(BaseModel):
         "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

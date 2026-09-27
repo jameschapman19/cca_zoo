@@ -1,20 +1,12 @@
-"""Regression tests for scoring/loadings shared by every probabilistic model.
+"""The posterior inference shared by ProbabilisticCCA and VariationalBayesCCA.
 
-``ProbabilisticCCA`` and ``VariationalBayesCCA`` return one posterior mean per
-view from ``transform``, like every model, so ``BaseModel``'s scoring and
-loadings apply unchanged. These tests guard the failure modes an earlier
-single-array ``transform`` had: a 2-view problem degenerating to a 1x1
-self-comparison (0/0 -> nan), and loadings silently truncated to one view.
-All tests are marked slow and require numpyro + jax.
+All tests are marked slow and require numpyro and jax.
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
-
-from cca_zoo.metrics import factor_loadings, pairwise_correlations
-from tests._helpers import canonical_correlations
 
 numpyro = pytest.importorskip("numpyro", reason="numpyro is not installed")
 jax = pytest.importorskip("jax", reason="jax is not installed")
@@ -42,95 +34,6 @@ def two_views() -> list[np.ndarray]:
     """Two small random views."""
     rng = np.random.default_rng(0)
     return [rng.standard_normal((30, 4)), rng.standard_normal((30, 3))]
-
-
-@pytest.fixture
-def three_views() -> list[np.ndarray]:
-    """Three small random views."""
-    rng = np.random.default_rng(0)
-    return [
-        rng.standard_normal((30, 4)),
-        rng.standard_normal((30, 3)),
-        rng.standard_normal((30, 5)),
-    ]
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
-)
-def test_score_is_finite_two_views(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """score() must not be nan for a 2-view fit (regression for the 0/0 bug)."""
-    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
-        two_views
-    )
-    assert np.all(np.isfinite(canonical_correlations(model, two_views)))
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
-)
-def test_score_is_finite_three_views(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """score() must not be nan for a 3-view fit."""
-    model = ModelClass(n_components=1, random_state=0, **_fast_kwargs(ModelClass)).fit(
-        three_views
-    )
-    assert np.isfinite(model.score(three_views))
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
-)
-def test_pairwise_correlations_shape(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """pairwise_correlations returns (n_views, n_views, k), not degenerate (1,1,k)."""
-    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
-        three_views
-    )
-    corrs = pairwise_correlations(model.transform(three_views))
-    assert corrs.shape == (3, 3, 2)
-    assert np.all(np.isfinite(corrs))
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
-)
-def test_get_factor_loadings_one_per_view(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """factor_loadings returns one array per view, not just the first."""
-    k = 2
-    model = ModelClass(n_components=k, random_state=0, **_fast_kwargs(ModelClass)).fit(
-        three_views
-    )
-    loadings = factor_loadings(three_views, model.transform(three_views))
-    assert len(loadings) == 3
-    for loading, view in zip(loadings, three_views):
-        assert loading.shape == (view.shape[1], k)
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "ModelClass", _model_classes(), ids=[c.__name__ for c in _model_classes()]
-)
-def test_log_likelihood_is_finite_scalar(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """log_likelihood returns a finite scalar, evaluated jointly across views."""
-    model = ModelClass(n_components=2, random_state=0, **_fast_kwargs(ModelClass)).fit(
-        three_views
-    )
-    ll = model.log_likelihood(three_views)
-    assert isinstance(ll, float)
-    assert np.isfinite(ll)
 
 
 @pytest.mark.slow

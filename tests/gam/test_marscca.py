@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from sklearn.exceptions import NotFittedError
 
 from cca_zoo._utils._ey import ey_loss, penalised_basis_ey_closed_form
 from cca_zoo.gam import GAMCCA, MARSCCA
@@ -17,31 +16,6 @@ from cca_zoo.gam._marscca import (
     _max_knot_slots,
 )
 
-# get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package (including MARSCCA) by tests/test_sklearn_compat.py.
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data and returns self."""
-    model = MARSCCA(random_state=0)
-    assert model.fit(two_views_small) is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data, one encoder per view."""
-    model = MARSCCA(random_state=0).fit(three_views_small)
-    assert len(model.encoders_) == 3
-
-
-@pytest.mark.parametrize("k", [1, 2])
-def test_transform_shapes(two_views_small: list[np.ndarray], k: int) -> None:
-    """Transform returns (n_samples, n_components) arrays on new data."""
-    rng = np.random.default_rng(99)
-    test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    model = MARSCCA(n_components=k, random_state=0).fit(two_views_small)
-    for arr in model.transform(test_views):
-        assert arr.shape == (10, k)
-
 
 def test_transform_reproduces_training_embedding(
     two_views_small: list[np.ndarray],
@@ -50,23 +24,6 @@ def test_transform_reproduces_training_embedding(
     model = MARSCCA(n_components=2, degree=2, random_state=0).fit(two_views_small)
     for z, enc in zip(model.transform(two_views_small), model.encoders_):
         np.testing.assert_allclose(z, enc.predict(), atol=1e-10)
-
-
-def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score is one float in [-1, 1]."""
-    s = (
-        MARSCCA(n_components=2, random_state=0)
-        .fit(two_views_small)
-        .score(two_views_small)
-    )
-    assert isinstance(s, float)
-    assert abs(s) <= 1.0 + 1e-9
-
-
-def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """MARSCCA works with center=False."""
-    model = MARSCCA(center=False, random_state=0).fit(two_views_small)
-    assert len(model.transform(two_views_small)) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -93,15 +50,6 @@ def test_per_view_parameters_accept_none_entries(
         assert len({t for term in view0 for f, t, _ in term if f == feature}) <= 1
 
 
-@pytest.mark.parametrize("name", ["degree", "nk", "alpha", "minspan", "endspan"])
-def test_per_view_parameter_wrong_length_raises(
-    two_views_small: list[np.ndarray], name: str
-) -> None:
-    """Every per-view parameter must have one entry per view."""
-    with pytest.raises(ValueError, match=name):
-        MARSCCA(**{name: [2, 2, 2]}, random_state=0).fit(two_views_small)
-
-
 @pytest.mark.parametrize("nk", [1, 4, 7])
 def test_nk_respected(correlated_views: list[np.ndarray], nk: int) -> None:
     """No view's basis exceeds its nk budget, odd budgets included."""
@@ -109,13 +57,6 @@ def test_nk_respected(correlated_views: list[np.ndarray], nk: int) -> None:
     for enc in model.encoders_:
         assert 1 <= len(enc.terms_) <= nk
         assert enc.coef_.shape == (len(enc.terms_), 1)
-
-
-def test_per_view_nk(correlated_views: list[np.ndarray]) -> None:
-    """A per-view nk list gives each view its own budget."""
-    model = MARSCCA(nk=[4, 12], thresh=0.0, random_state=0).fit(correlated_views)
-    assert len(model.encoders_[0].terms_) == 4
-    assert len(model.encoders_[1].terms_) == 12
 
 
 def test_thresh_stops_forward_pass_early(correlated_views: list[np.ndarray]) -> None:
@@ -366,29 +307,9 @@ def test_basis_functions_strings(two_views_small: list[np.ndarray]) -> None:
     assert names[0] == expected
 
 
-def test_basis_functions_not_fitted_raises() -> None:
-    """basis_functions before fitting raises NotFittedError."""
-    with pytest.raises(NotFittedError):
-        MARSCCA(random_state=0).basis_functions(0)
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    with pytest.raises(NotFittedError):
-        MARSCCA(random_state=0).transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
 # ---------------------------------------------------------------------------
 # Correctness
 # ---------------------------------------------------------------------------
-
-
-def test_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """MARSCCA finds substantial correlation on views with shared structure."""
-    s = MARSCCA(random_state=0).fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 def test_interactions_beat_additive_models_on_product_signal() -> None:

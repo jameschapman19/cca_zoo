@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from cca_zoo.linear import MCCA, RANSACCCA, HuberCCA
 from cca_zoo.linear._ransac_cca import _cross_view_agreement
@@ -50,71 +49,11 @@ def test_agreement_symmetric_in_view_order() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-
-
-def test_weights_shapes_and_matches_transform(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    weights = model.weights_
-    assert len(weights) == 2
-    for w, v in zip(weights, two_views_small):
-        assert w.shape == (v.shape[1], k)
-
-    transformed = model.transform(two_views_small)
-    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
-        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = RANSACCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
-def test_inlier_mask_shape(two_views_small: list[np.ndarray]) -> None:
-    """inlier_mask_ is a boolean mask over the training samples."""
-    model = _make_model().fit(two_views_small)
-    assert model.inlier_mask_.shape == (two_views_small[0].shape[0],)
-    assert model.inlier_mask_.dtype == bool
-
-
 def test_min_samples_as_int(two_views_small: list[np.ndarray]) -> None:
     """An absolute int min_samples is honoured directly."""
     n = two_views_small[0].shape[0]
     model = _make_model(min_samples=max(4, n // 2)).fit(two_views_small)
     assert model.inlier_mask_.shape == (n,)
-
-
-# ---------------------------------------------------------------------------
-# Correctness on clean data
-# ---------------------------------------------------------------------------
-
-
-def test_ransac_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """On clean, uncontaminated data RANSACCCA still finds real correlation."""
-    model = RANSACCCA(n_components=1, max_trials=100, random_state=0)
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 # ---------------------------------------------------------------------------
@@ -215,35 +154,3 @@ def test_ransac_robust_to_sign_flipped_rows_unlike_mcca_and_huber() -> None:
     # rows -- not a majority-vote guarantee in general, but true here.
     inliers = ransac_model.inlier_mask_
     assert (~contaminated[inliers]).mean() > 0.7
-
-
-# ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks
-# ---------------------------------------------------------------------------
-
-
-def test_clone_and_get_params_roundtrip() -> None:
-    """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
-    from sklearn.base import clone
-
-    model = RANSACCCA(
-        n_components=2, c=0.2, min_samples=0.3, max_trials=50, random_state=0
-    )
-    cloned = clone(model)
-    assert cloned.get_params() == model.get_params()
-
-
-def test_invalid_max_trials_raises() -> None:
-    """max_trials below 1 is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        RANSACCCA(max_trials=0)._validate_params()
-
-
-def test_invalid_stop_probability_raises() -> None:
-    """stop_probability outside [0, 1] is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        RANSACCCA(stop_probability=1.5)._validate_params()

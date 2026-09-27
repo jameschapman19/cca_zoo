@@ -23,6 +23,7 @@ from cca_zoo._utils._ey import (
     penalised_basis_ey_gep,
     penalised_basis_ey_min_loss,
 )
+from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
 # A hinge factor (feature, knot, sign) is max(0, sign * (x[feature] - knot)).
@@ -656,6 +657,7 @@ class MARSCCA(BaseModel):
         "endspan": [Interval(Integral, 0, None, closed="left"), "array-like", None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "nprune": [Interval(Integral, 1, None, closed="left"), None],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

@@ -11,7 +11,11 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._param_constraints import POSITIVE_INT, RIDGE_PARAMETER
+from cca_zoo._utils._param_constraints import (
+    POSITIVE_INT,
+    RANDOM_STATE,
+    RIDGE_PARAMETER,
+)
 from cca_zoo.linear._mcca import MCCA
 
 
@@ -86,6 +90,7 @@ class RANSACCCA(BaseModel):
         "residual_threshold": [Interval(Real, None, None, closed="neither"), None],
         "max_trials": POSITIVE_INT,
         "stop_probability": [Interval(Real, 0, 1, closed="both")],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

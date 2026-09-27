@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.metrics import pairwise_kernels
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._param_constraints import KERNEL_PARAMETERS
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -54,6 +57,12 @@ class KGCCA(BaseModel):
         >>> X3 = rng.standard_normal((30, 5))
         >>> model = KGCCA(n_components=2, kernel="rbf").fit([X1, X2, X3])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        **KERNEL_PARAMETERS,
+        "view_weights": [None, "array-like"],
+    }
 
     def __init__(
         self,

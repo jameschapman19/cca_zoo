@@ -11,6 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import omp_coordinate_descent_ey
+from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
 
 
 class OrthogonalMatchingPursuitCCA(BaseModel):
@@ -49,6 +50,8 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "n_nonzero_coefs": [None, *POSITIVE_INT_PER_VIEW],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

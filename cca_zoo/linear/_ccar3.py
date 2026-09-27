@@ -38,7 +38,7 @@ class CCAR3(BaseModel):
 
     Whitens $Y$ by its (optionally Ledoit-Wolf) covariance, regresses
     $\tilde{Y} = Y \Sigma_Y^{-1/2}$ on $X$, and takes the canonical
-    directions from the rank-``n_components`` SVD of the coefficients. With
+    directions from the rank-``n_components`` SVD of the fitted values. With
     ``highdim=True`` the regression has a row-group lasso penalty,
 
     $$

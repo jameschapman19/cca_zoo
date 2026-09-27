@@ -7,6 +7,9 @@ from typing import Any
 import numpy as np
 import scipy.linalg
 from numpy.typing import ArrayLike
+from sklearn.utils.validation import check_is_fitted
+
+from cca_zoo._base import BaseModel
 
 
 def _integer_seed(random_state: int | None) -> int:
@@ -118,19 +121,15 @@ def align_posterior_rotation(
     return aligned, rotations
 
 
-class PosteriorMeanTransformMixin:
+class BaseProbabilistic(BaseModel):
     """Posterior inference of the shared latent for the probabilistic models.
 
-    Requires ``n_views_``, ``means_``, ``weights_`` and ``posterior_samples_``
-    with a ``log_psi_{i}`` entry per view.
+    Subclasses set ``weights_`` and ``posterior_samples_``, with a
+    ``log_psi_{i}`` entry of noise log-variances per view, in ``fit``.
     """
 
-    # Declared for mypy: set by the including class's fit(), not here.
-    n_views_: int
-    means_: list[np.ndarray]
     weights_: list[np.ndarray]
     posterior_samples_: dict[str, Any]
-    _views_fit_: list[np.ndarray]
 
     def _noise_variances(self) -> list[np.ndarray]:
         """Posterior-mean per-feature noise variance of each view."""
@@ -189,8 +188,6 @@ class PosteriorMeanTransformMixin:
         Raises:
             ValueError: If ``views`` has the wrong length or is all None.
         """
-        from sklearn.utils.validation import check_is_fitted
-
         check_is_fitted(self)
         if len(views) != self.n_views_:
             raise ValueError(
@@ -198,7 +195,7 @@ class PosteriorMeanTransformMixin:
                 f"unobserved view), got {len(views)}."
             )
         observed = {
-            i: np.asarray(v, dtype=float) - self.means_[i]
+            i: self._check_view(i, v) - self.means_[i]
             for i, v in enumerate(views)
             if v is not None
         }
@@ -215,11 +212,6 @@ class PosteriorMeanTransformMixin:
         Returns:
             The mean log-likelihood per sample.
         """
-        from sklearn.utils.validation import check_is_fitted
-
-        from cca_zoo._utils._validation import validate_views
-
-        check_is_fitted(self)
-        validated = validate_views(views)
+        validated = self._check_views(views)
         centered = [v - m for v, m in zip(validated, self.means_)]
         return marginal_log_likelihood(centered, self.weights_, self._noise_variances())

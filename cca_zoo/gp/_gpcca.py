@@ -14,7 +14,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Kernel
 from sklearn.preprocessing import KernelCenterer
 from sklearn.utils._param_validation import Interval
-from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
@@ -22,7 +21,8 @@ from cca_zoo._utils._ey import (
     ey_grad_z,
     ey_loss,
 )
-from cca_zoo._utils._validation import perview_parameter, validate_views
+from cca_zoo._utils._param_constraints import RANDOM_STATE
+from cca_zoo._utils._validation import perview_parameter
 
 
 def _lbfgsb_joint_objective(
@@ -184,6 +184,8 @@ class GaussianProcessCCA(BaseModel):
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
         "n_inducing": [None, Interval(Integral, 2, None, closed="left"), "array-like"],
+        "kernel": [None, Kernel, list],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(
@@ -289,8 +291,7 @@ class GaussianProcessCCA(BaseModel):
         """
         if not return_std:
             return super().transform(views)
-        check_is_fitted(self)
-        validated = validate_views(views, min_views=self.n_views_)
+        validated = self._check_views(views)
         centred = [v - m for v, m in zip(validated, self.means_)]
         means = []
         stds = []

@@ -12,7 +12,11 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import weight_gram_mean
-from cca_zoo._utils._param_constraints import POSITIVE_INT, RIDGE_PARAMETER
+from cca_zoo._utils._param_constraints import (
+    POSITIVE_INT,
+    RANDOM_STATE,
+    RIDGE_PARAMETER,
+)
 from cca_zoo.linear.gradient import CCAEY
 
 
@@ -178,6 +182,7 @@ class TrimmedCCA(BaseModel):
         "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": [Interval(Real, 0, None, closed="neither")],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

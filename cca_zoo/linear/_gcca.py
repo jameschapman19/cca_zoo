@@ -55,6 +55,7 @@ class GCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "c": RIDGE_PARAMETER,
         "eps": POSITIVE_EPS,
+        "view_weights": [None, "array-like"],
     }
 
     def __init__(

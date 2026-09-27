@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import block_diag
@@ -9,6 +11,7 @@ from sklearn.metrics import pairwise_kernels
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._param_constraints import KERNEL_PARAMETERS
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -51,6 +54,11 @@ class KCCA(BaseModel):
         >>> X2 = rng.standard_normal((30, 5))
         >>> model = KCCA(n_components=2, kernel="rbf", c=0.1).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        **KERNEL_PARAMETERS,
+    }
 
     def __init__(
         self,

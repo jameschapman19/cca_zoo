@@ -76,8 +76,8 @@ class RidgeCCA(BaseModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         if self.n_views_ != 2:
             raise ValueError(
-                f"RidgeCCA requires exactly 2 views, got {self.n_views_}. "
-                "Use MCCA for more than 2 views."
+                f"{type(self).__name__} requires exactly 2 views, got "
+                f"{self.n_views_}. Use MCCA for more than 2 views."
             )
         c_ = perview_parameter("c", self.c, 0.0, 2)
         X1, X2 = views_

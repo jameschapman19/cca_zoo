@@ -45,7 +45,12 @@ def _postprocess_rrr_fit(
     r: int,
     ridge: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Turn a reduced-rank coefficient matrix into whitened canonical directions."""
+    """Canonical directions from the regression of the whitened ``Y`` on ``X``.
+
+    ``B`` maps ``X`` to ``Y @ sqrt_inv_Sy``. The canonical correlations are the
+    singular values of the fitted values ``X @ B``, not of ``B``, whose
+    singular vectors ignore the covariance of ``X``.
+    """
     n, p = X.shape
     q = Y.shape[1]
 
@@ -53,9 +58,10 @@ def _postprocess_rrr_fit(
         return np.zeros((p, r)), np.zeros((q, r))
 
     r_eff = min(r, *B.shape)
-    U0, _, Vt0 = np.linalg.svd(B, full_matrices=False)
-    U0 = U0[:, :r_eff]
-    V0 = sqrt_inv_Sy @ Vt0[:r_eff, :].T
+    _, _, Qt = np.linalg.svd(X @ B, full_matrices=False)
+    Q = Qt[:r_eff].T
+    U0 = B @ Q
+    V0 = sqrt_inv_Sy @ Q
 
     XU0 = X @ U0
     YV0 = Y @ V0

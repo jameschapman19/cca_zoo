@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
-from typing import cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -13,6 +13,15 @@ from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import deflate, soft_threshold
+from cca_zoo._utils._param_constraints import (
+    FRACTION_PER_VIEW,
+    NONNEGATIVE_PER_VIEW,
+    POSITIVE_EPS,
+    POSITIVE_INT,
+    POSITIVE_INT_PER_VIEW,
+    RANDOM_STATE,
+    RIDGE_PARAMETER,
+)
 from cca_zoo._utils._validation import perview_parameter
 
 logger = logging.getLogger(__name__)
@@ -39,6 +48,13 @@ class _BaseIterative(BaseModel):
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        "max_iter": POSITIVE_INT,
+        "tol": POSITIVE_EPS,
+        "random_state": RANDOM_STATE,
+    }
 
     def __init__(
         self,
@@ -201,6 +217,11 @@ class PMDCCA(_BaseIterative):
         >>> model = PMDCCA(tau=0.5, random_state=0).fit([X1, X2])
     """
 
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "tau": FRACTION_PER_VIEW,
+    }
+
     def __init__(
         self,
         n_components: int = 1,
@@ -307,6 +328,13 @@ class ADMMCCA(_BaseIterative):
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ADMMCCA(tau=0.1, random_state=0).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "tau": NONNEGATIVE_PER_VIEW,
+        "mu": POSITIVE_EPS,
+        "admm_iter": POSITIVE_INT,
+    }
 
     def __init__(
         self,
@@ -425,6 +453,12 @@ class IPLSCCA(_BaseIterative):
         >>> model = IPLSCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "alpha": NONNEGATIVE_PER_VIEW,
+        "l1_ratio": RIDGE_PARAMETER,
+    }
+
     def __init__(
         self,
         n_components: int = 1,
@@ -510,6 +544,11 @@ class SpanCCA(_BaseIterative):
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = SpanCCA(span=5, random_state=0).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "span": [None, *POSITIVE_INT_PER_VIEW],
+    }
 
     def __init__(
         self,
@@ -608,6 +647,12 @@ class WaijenborgCCA(_BaseIterative):
         >>> model = WaijenborgCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "alpha": NONNEGATIVE_PER_VIEW,
+        "l1_ratio": RIDGE_PARAMETER,
+    }
+
     def __init__(
         self,
         n_components: int = 1,
@@ -694,6 +739,11 @@ class ParkhomenkoCCA(_BaseIterative):
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = ParkhomenkoCCA(tau=0.1, random_state=0).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "tau": NONNEGATIVE_PER_VIEW,
+    }
 
     def __init__(
         self,
@@ -822,6 +872,11 @@ class SAR(_BaseIterative):
         >>> X2 = np.column_stack([latent, rng.standard_normal((50, 7))])
         >>> model = SAR(random_state=0).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **_BaseIterative._parameter_constraints,
+        "n_lambda": POSITIVE_INT,
+    }
 
     def __init__(
         self,

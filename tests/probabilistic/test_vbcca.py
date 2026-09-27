@@ -58,48 +58,11 @@ def vbcca_class() -> type:
 
 
 @pytest.mark.slow
-def test_vbcca_fit_completes(vbcca_class: type) -> None:
-    """VariationalBayesCCA.fit completes for a minimal max_iter."""
-    views = _make_small_views()
-    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
-    fitted = model.fit(views)
-    assert fitted is model
-
-
-@pytest.mark.slow
-def test_vbcca_fit_sets_params(vbcca_class: type) -> None:
-    """VariationalBayesCCA.fit stores posterior samples and ARD relevance."""
-    views = _make_small_views()
-    model = vbcca_class(n_components=2, max_iter=20, random_state=0).fit(views)
-    assert hasattr(model, "posterior_samples_")
-    assert hasattr(model, "ard_relevance_")
-    assert model.ard_relevance_.shape == (2,)
-
-
-@pytest.mark.slow
 def test_vbcca_losses_decrease(vbcca_class: type) -> None:
     """The ELBO loss should be lower at the end of SVI than at the start."""
     views = _make_small_views(n=40)
     model = vbcca_class(n_components=1, max_iter=300, random_state=0).fit(views)
     assert model.losses_[-1] < model.losses_[0]
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.slow
-def test_vbcca_transform_output_shapes(vbcca_class: type) -> None:
-    """One transform array per view; posterior_mean gives the joint latent."""
-    n, k = 20, 2
-    views = _make_small_views(n=n)
-    model = vbcca_class(n_components=k, max_iter=20, random_state=0).fit(views)
-    result = model.transform(views)
-    assert len(result) == len(views)
-    assert all(r.shape == (n, k) for r in result)
-    assert model.posterior_mean(views).shape == (n, k)
-    assert model.posterior_mean([views[0], None]).shape == (n, k)
 
 
 # ---------------------------------------------------------------------------
@@ -124,41 +87,6 @@ def test_vbcca_ard_shrinks_unsupported_dimensions(vbcca_class: type) -> None:
     spurious_relevance = np.max(relevance)
     true_relevance = np.sort(relevance)[:true_k]
     assert spurious_relevance > 2 * np.max(true_relevance)
-
-
-# ---------------------------------------------------------------------------
-# n_components parameter / view-count handling
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("k", [1, 2])
-def test_vbcca_n_components(vbcca_class: type, k: int) -> None:
-    """VariationalBayesCCA can be instantiated with various n_components."""
-    model = vbcca_class(n_components=k, max_iter=20, random_state=0)
-    views = _make_small_views(n=15)
-    model.fit(views)
-    assert model.n_components == k
-
-
-@pytest.mark.slow
-def test_vbcca_supports_more_than_two_views(vbcca_class: type) -> None:
-    """VariationalBayesCCA's generative model is view-count generic (>=2)."""
-    rng = np.random.default_rng(0)
-    three_views = [rng.standard_normal((15, 4)) for _ in range(3)]
-    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
-    model.fit(three_views)
-    assert len(model.weights_) == 3
-
-
-@pytest.mark.slow
-def test_vbcca_rejects_single_view(vbcca_class: type) -> None:
-    """VariationalBayesCCA raises ValueError when given fewer than 2 views."""
-    rng = np.random.default_rng(0)
-    one_view = [rng.standard_normal((15, 4))]
-    model = vbcca_class(n_components=1, max_iter=20, random_state=0)
-    with pytest.raises(ValueError, match="views"):
-        model.fit(one_view)
 
 
 # ---------------------------------------------------------------------------

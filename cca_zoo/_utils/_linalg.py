@@ -44,8 +44,9 @@ def svd_whiten(
     else:
         # SVD path -- avoids forming the p x p covariance matrix.
         U, s, Vt = np.linalg.svd(X, full_matrices=False)
-        # Keep only dimensions with positive singular values
-        pos = s > 0
+        # Centred data always has a numerically null direction; as above, a
+        # strict ``s > 0`` would keep it with an enormous weight.
+        pos = s > s.max() * max(n, p) * np.finfo(s.dtype).eps
         s = s[pos]
         U = U[:, pos]
         Vt = Vt[pos, :]

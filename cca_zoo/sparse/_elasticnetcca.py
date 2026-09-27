@@ -11,6 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -61,6 +62,7 @@ class ElasticNetCCA(BaseModel):
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
         "positive": ["boolean"],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(

@@ -5,134 +5,11 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.sparse import MultiTaskElasticNetCCA
-
-
-def _make_model(n_components: int = 2, **kwargs: object) -> MultiTaskElasticNetCCA:
-    return MultiTaskElasticNetCCA(n_components=n_components, **kwargs)
-
-
-# ---------------------------------------------------------------------------
-# fit completes
-# ---------------------------------------------------------------------------
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes / weights
-# ---------------------------------------------------------------------------
-
-
-def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, n_components) arrays."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-def test_weights_shapes_and_matches_transform(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    weights = model.weights_
-    assert len(weights) == 2
-    for w, v in zip(weights, two_views_small):
-        assert w.shape == (v.shape[1], k)
-
-    transformed = model.transform(two_views_small)
-    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
-        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = MultiTaskElasticNetCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
-# ---------------------------------------------------------------------------
-# fit_transform consistency
-# ---------------------------------------------------------------------------
-
-
-def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
-    """fit_transform equals fit().transform() numerically."""
-    m1 = _make_model(random_state=0)
-    m2 = _make_model(random_state=0)
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# score
-# ---------------------------------------------------------------------------
-
-
-def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score is one float, as sklearn expects."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    s = model.score(two_views_small)
-    assert isinstance(s, float)
-
-
-def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score values lie in [-1, 1]."""
-    model = _make_model().fit(two_views_small)
-    s = model.score(two_views_small)
-    assert np.all(s >= -1.0 - 1e-9)
-    assert np.all(s <= 1.0 + 1e-9)
-
-
-# ---------------------------------------------------------------------------
-# center=False
-# ---------------------------------------------------------------------------
-
-
-def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """MultiTaskElasticNetCCA works with center=False."""
-    model = _make_model(center=False)
-    model.fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
+from cca_zoo.sparse import ElasticNetCCA, MultiTaskElasticNetCCA
 
 # ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
-
-
-def test_multitask_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """MultiTaskElasticNetCCA finds substantial correlation on correlated views."""
-    model = MultiTaskElasticNetCCA(n_components=1, alpha=0.01, random_state=0)
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 def test_objective_decreases_monotonically(
@@ -206,33 +83,22 @@ def test_per_view_alpha_list_gives_sparser_penalised_view(
     assert n_active_rows[1] < n_active_rows[0]
 
 
-def test_per_view_alpha_wrong_length_raises(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """A per-view alpha list must have one entry per view."""
-    with pytest.raises(ValueError, match="alpha"):
-        MultiTaskElasticNetCCA(alpha=[0.1, 0.2, 0.3]).fit(two_views_small)
+@pytest.mark.parametrize("alpha", [0.1, 1.0, 2.0])
+def test_one_component_matches_elasticnetcca(alpha: float) -> None:
+    """With one component the row-group penalty is the elastic net's.
 
-
-# ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks
-# ---------------------------------------------------------------------------
-
-
-def test_clone_and_get_params_roundtrip() -> None:
-    """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
-    from sklearn.base import clone
-
-    model = MultiTaskElasticNetCCA(
-        n_components=2, alpha=0.3, l1_ratio=0.4, random_state=0
-    )
-    cloned = clone(model)
-    assert cloned.get_params() == model.get_params()
-
-
-def test_invalid_l1_ratio_raises() -> None:
-    """l1_ratio outside [0, 1] is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        MultiTaskElasticNetCCA(l1_ratio=1.5)._validate_params()
+    At alpha=2 the all-zero weights are a local minimum that both solvers
+    must avoid: the signal gives a lower penalised objective.
+    """
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((200, 1))
+    views = [
+        z @ rng.standard_normal((1, p)) + 0.3 * rng.standard_normal((200, p))
+        for p in (6, 5)
+    ]
+    kwargs = {"alpha": alpha, "max_iter": 500, "random_state": 0}
+    group = MultiTaskElasticNetCCA(**kwargs).fit(views)
+    lasso = ElasticNetCCA(**kwargs).fit(views)
+    for g, e in zip(group.weights_, lasso.weights_):
+        np.testing.assert_allclose(g, e, atol=0.02)
+    assert all(w.any() for w in group.weights_)

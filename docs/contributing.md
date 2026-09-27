@@ -106,23 +106,26 @@ All contributions must comply with the following:
    per view); the `feature_importances_` property normalises it, and falls back to
    permutation importance otherwise.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
-4. If any constructor parameter has a documented range (e.g. a ridge parameter in
-   `[0, 1]`), declare it in `_parameter_constraints` (merging in the parent class's, e.g.
-   `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}` — see
-   `cca_zoo/_utils/_param_constraints.py` for shared constraint fragments and
-   `cca_zoo/linear/_mcca.py` for an example). This is optional but recommended: it turns
-   an invalid parameter into a clear error at `fit()` time instead of a cryptic failure
-   deep in the linear algebra.
-5. Export from the subpackage's `__init__.py` and add to `__all__`. Doing this is also
-   what gets your model automatically covered by `tests/test_sklearn_compat.py`'s
-   generic sklearn-estimator-contract checks (`get_params`/`set_params` round-tripping,
-   `repr`, init purity) — no per-model test needed for that part.
-6. Write tests in `tests/<subpackage>/test_mymodel.py` covering, at minimum: `fit`
-   completing without error, `transform`/`fit_transform` output shapes, `score` returning a
-   float in range, and — where a closed-form or known-correct reference solution exists — a
-   correctness check against it (see `tests/linear/test_eigendecomposition.py` for the
-   established pattern). If you added `_parameter_constraints`, add a rejection test per
-   constraint (see `tests/linear/test_parameter_constraints.py`).
+4. Declare every constructor parameter in `_parameter_constraints`, merging in the
+   parent class's (e.g. `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}`;
+   `cca_zoo/_utils/_param_constraints.py` has shared fragments). An invalid value then
+   fails clearly at `fit()`, as in sklearn.
+5. Export from the subpackage's `__init__.py` and add to `__all__`. This is what puts the
+   model under the generic tests, so it needs no tests of its own for anything they check:
+   - `tests/test_estimator_checks.py` runs scikit-learn's estimator checks on it through
+     a two-view adapter: input validation, fitted-state errors, pickling, cloning,
+     idempotent refits, invariance to sample order, and more.
+   - `tests/test_model_contract.py` checks the multiview contract: `transform`,
+     `predict` and `inverse_transform`, the number and shapes of views, that every
+     parameter is validated, `center=False`, `feature_importances_`, and that the model
+     recovers a strong shared signal at its defaults.
+   If a check cannot apply to the model, add it to that file's expected failures with
+   the reason.
+6. Test only what is specific to the model in `tests/<subpackage>/test_mymodel.py`:
+   agreement with a known answer where one exists (a closed form, another model it
+   reduces to, a brute-force optimum), what its parameters do, and the behaviour that
+   motivates it (robustness to outliers, sparsity, an interaction it captures). Do not
+   repeat the generic checks.
 7. Add a `::: cca_zoo.<subpackage>.MyModel` entry to the relevant `docs/api/*.md` page —
    `tests/test_docs_coverage.py` enforces this.
 8. Open a pull request against `main`.

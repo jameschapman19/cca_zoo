@@ -11,20 +11,8 @@ import subprocess
 import sys
 
 import numpy as np
-import pytest
 
-from cca_zoo.metrics import factor_loadings
 from cca_zoo.probabilistic import GFA
-from tests._helpers import canonical_correlations
-
-
-def _make_small_views(
-    n: int = 20, p1: int = 4, p2: int = 4, seed: int = 0
-) -> list[np.ndarray]:
-    rng = np.random.default_rng(seed)
-    x1 = rng.standard_normal((n, p1))
-    x2 = rng.standard_normal((n, p2))
-    return [x1, x2]
 
 
 def _make_low_rank_views(
@@ -41,24 +29,6 @@ def _make_low_rank_views(
 # ---------------------------------------------------------------------------
 # fit completes / basic attributes
 # ---------------------------------------------------------------------------
-
-
-def test_gfa_fit_completes() -> None:
-    """GFA.fit completes on two-view data without error."""
-    views = _make_small_views()
-    model = GFA(n_components=2, max_iter=200, random_state=0)
-    fitted = model.fit(views)
-    assert fitted is model
-
-
-def test_gfa_fit_sets_params() -> None:
-    """GFA.fit stores posterior samples, n_components_, and view_relevance_."""
-    views = _make_small_views()
-    model = GFA(n_components=2, max_iter=200, random_state=0).fit(views)
-    assert hasattr(model, "posterior_samples_")
-    assert hasattr(model, "n_components_")
-    assert hasattr(model, "n_iter_")
-    assert model.view_relevance_.shape == (2, model.n_components_)
 
 
 def test_gfa_does_not_import_numpyro_or_jax() -> None:
@@ -84,105 +54,6 @@ def test_gfa_does_not_import_numpyro_or_jax() -> None:
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "OK" in result.stdout
-
-
-# ---------------------------------------------------------------------------
-# transform / scoring
-# ---------------------------------------------------------------------------
-
-
-def test_gfa_transform_output_shapes() -> None:
-    """GFA.transform returns a single-element list of the right shape."""
-    n, k = 20, 2
-    views = _make_small_views(n=n)
-    model = GFA(n_components=k, drop_k=False, max_iter=200, random_state=0).fit(views)
-    result = model.transform(views)
-    assert len(result) == len(views)
-    assert all(r.shape == (n, model.n_components_) for r in result)
-    assert model.posterior_mean(views).shape == (n, model.n_components_)
-
-
-def test_gfa_score_is_finite() -> None:
-    """score() must not be nan (regression for the shared single-z transform bug)."""
-    views = _make_low_rank_views(n=60)
-    model = GFA(n_components=2, drop_k=False, max_iter=200, random_state=0).fit(views)
-    assert np.all(np.isfinite(canonical_correlations(model, views)))
-
-
-def test_gfa_get_factor_loadings_one_per_view() -> None:
-    """factor_loadings returns one array per view."""
-    views = _make_low_rank_views(n=60)
-    model = GFA(n_components=2, drop_k=False, max_iter=200, random_state=0).fit(views)
-    loadings = factor_loadings(views, model.transform(views))
-    assert len(loadings) == 2
-    for loading, view in zip(loadings, views):
-        assert loading.shape == (view.shape[1], model.n_components_)
-
-
-def test_gfa_log_likelihood_is_finite() -> None:
-    """log_likelihood returns a finite scalar."""
-    views = _make_low_rank_views(n=60)
-    model = GFA(n_components=2, drop_k=False, max_iter=200, random_state=0).fit(views)
-    ll = model.log_likelihood(views)
-    assert isinstance(ll, float)
-    assert np.isfinite(ll)
-
-
-# ---------------------------------------------------------------------------
-# n_components / view-count handling
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("k", [1, 2, 3])
-def test_gfa_n_components(k: int) -> None:
-    """GFA can be instantiated with various n_components upper bounds."""
-    views = _make_small_views(n=15)
-    model = GFA(n_components=k, drop_k=False, max_iter=200, random_state=0)
-    model.fit(views)
-    assert model.n_components == k
-    assert model.n_components_ == k  # drop_k=False: no pruning
-
-
-def test_gfa_supports_more_than_two_views() -> None:
-    """GFA's generative model is view-count generic (>=2)."""
-    rng = np.random.default_rng(0)
-    three_views = [rng.standard_normal((15, 4)) for _ in range(3)]
-    model = GFA(n_components=1, max_iter=200, random_state=0)
-    model.fit(three_views)
-    assert len(model.weights_) == 3
-
-
-def test_gfa_rejects_single_view() -> None:
-    """GFA raises ValueError when given fewer than 2 views."""
-    rng = np.random.default_rng(0)
-    one_view = [rng.standard_normal((15, 4))]
-    model = GFA(n_components=1, max_iter=200, random_state=0)
-    with pytest.raises(ValueError, match="views"):
-        model.fit(one_view)
-
-
-# ---------------------------------------------------------------------------
-# Reproducibility / center=False
-# ---------------------------------------------------------------------------
-
-
-def test_gfa_reproducibility() -> None:
-    """Same random_state gives identical weights."""
-    views = _make_small_views()
-    kwargs = dict(n_components=2, max_iter=200, random_state=42)
-    w1 = GFA(**kwargs).fit(views).weights_
-    w2 = GFA(**kwargs).fit(views).weights_
-    for a, b in zip(w1, w2):
-        np.testing.assert_array_equal(a, b)
-
-
-def test_gfa_center_false() -> None:
-    """GFA works with center=False."""
-    views = _make_small_views()
-    model = GFA(n_components=1, center=False, max_iter=200, random_state=0)
-    model.fit(views)
-    result = model.transform(views)
-    assert len(result) == len(views)
 
 
 # ---------------------------------------------------------------------------

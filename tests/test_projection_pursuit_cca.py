@@ -76,50 +76,11 @@ def test_mcd_index_matches_sign_of_relationship() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-
-
 def test_mcd_projection_index_fit_completes(two_views_small: list[np.ndarray]) -> None:
     """Fit completes with the (more expensive) MCD projection index too."""
     model = _make_model(projection_index="mcd")
     fitted = model.fit(two_views_small)
     assert fitted is model
-
-
-def test_weights_shapes_and_matches_transform(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Weights are real (p_i, k) arrays and transform(v) == centred(v) @ weights."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    weights = model.weights_
-    assert len(weights) == 2
-    for w, v in zip(weights, two_views_small):
-        assert w.shape == (v.shape[1], k)
-
-    transformed = model.transform(two_views_small)
-    for v, w, t, mean in zip(two_views_small, weights, transformed, model.means_):
-        np.testing.assert_allclose((v - mean) @ w, t, atol=1e-8)
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = ProjectionPursuitCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
 
 
 def test_directions_are_unit_norm(two_views_small: list[np.ndarray]) -> None:
@@ -128,20 +89,6 @@ def test_directions_are_unit_norm(two_views_small: list[np.ndarray]) -> None:
     for w in model.weights_:
         norms = np.linalg.norm(w, axis=0)
         np.testing.assert_allclose(norms, np.ones(2), atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# Correctness on clean data
-# ---------------------------------------------------------------------------
-
-
-def test_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """On clean data ProjectionPursuitCCA still finds real correlation."""
-    model = ProjectionPursuitCCA(n_components=1, n_init=5, random_state=0)
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 # ---------------------------------------------------------------------------
@@ -201,47 +148,3 @@ def test_robust_to_extreme_outliers_unlike_mcca() -> None:
     pp_corr = _held_out_corr(pp_model, x_test, y_test)
 
     assert pp_corr > mcca_corr + 0.2
-
-
-# ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks
-# ---------------------------------------------------------------------------
-
-
-def test_clone_and_get_params_roundtrip() -> None:
-    """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
-    from sklearn.base import clone
-
-    model = ProjectionPursuitCCA(
-        n_components=2,
-        projection_index="mcd",
-        mcd_support_fraction=0.8,
-        n_init=3,
-        random_state=0,
-    )
-    cloned = clone(model)
-    assert cloned.get_params() == model.get_params()
-
-
-def test_invalid_projection_index_raises() -> None:
-    """An unrecognised projection_index is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ProjectionPursuitCCA(projection_index="bogus")._validate_params()
-
-
-def test_invalid_n_restarts_raises() -> None:
-    """n_init below 1 is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ProjectionPursuitCCA(n_init=0)._validate_params()
-
-
-def test_invalid_mcd_support_fraction_raises() -> None:
-    """mcd_support_fraction outside (0, 1] is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ProjectionPursuitCCA(mcd_support_fraction=1.5)._validate_params()

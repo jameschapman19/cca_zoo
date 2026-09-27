@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
@@ -10,6 +12,7 @@ from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
+from cca_zoo._utils._param_constraints import KERNEL_PARAMETERS, RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -52,6 +55,12 @@ class KTCCA(BaseModel):
         >>> X3 = rng.standard_normal((20, 5))
         >>> model = KTCCA(random_state=0).fit([X1, X2, X3])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseModel._parameter_constraints,
+        **KERNEL_PARAMETERS,
+        "random_state": RANDOM_STATE,
+    }
 
     def __init__(
         self,

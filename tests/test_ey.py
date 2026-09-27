@@ -46,15 +46,6 @@ def test_ey_grad_z_matches_finite_difference(n_views: int) -> None:
         np.testing.assert_allclose(a, b, atol=1e-6)
 
 
-def test_ey_cross_covariance_shapes() -> None:
-    """ey_cross_covariance returns (k, k) matrices for C and V."""
-    rng = np.random.default_rng(0)
-    representations = [rng.standard_normal((20, 4)) for _ in range(3)]
-    C, V = ey_cross_covariance(representations)
-    assert C.shape == (4, 4)
-    assert V.shape == (4, 4)
-
-
 def test_ey_cross_covariance_two_views_matches_manual() -> None:
     """For M=2, C and V match a manual pairwise-covariance computation."""
     rng = np.random.default_rng(0)

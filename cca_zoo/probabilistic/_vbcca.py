@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._base import BaseModel
-from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin, _integer_seed
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT, RANDOM_STATE
+from cca_zoo.probabilistic._utils import BaseProbabilistic, _integer_seed
 
 # Weak, near-uninformative Gamma hyperprior on each ARD precision alpha_k,
 # following the standard choice for automatic relevance determination in
@@ -17,7 +17,7 @@ _ARD_A0 = 1e-3
 _ARD_B0 = 1e-3
 
 
-class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
+class VariationalBayesCCA(BaseProbabilistic):
     r"""Variational Bayesian CCA with automatic relevance determination.
 
     The probabilistic CCA model with an ARD prior shared across views:
@@ -66,6 +66,14 @@ class VariationalBayesCCA(PosteriorMeanTransformMixin, BaseModel):
         >>> X2 = rng.standard_normal((50, 3))
         >>> model = VariationalBayesCCA(n_components=2, max_iter=50).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseProbabilistic._parameter_constraints,
+        "max_iter": POSITIVE_INT,
+        "learning_rate": POSITIVE_EPS,
+        "n_posterior_samples": POSITIVE_INT,
+        "random_state": RANDOM_STATE,
+    }
 
     def __init__(
         self,

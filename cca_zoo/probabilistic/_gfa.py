@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._base import BaseModel
-from cca_zoo.probabilistic._utils import PosteriorMeanTransformMixin
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT, RANDOM_STATE
+from cca_zoo.probabilistic._utils import BaseProbabilistic
 
 # CCAGFA::getDefaultOpts() priors: near-improper/flat, matching the R
 # package's defaults exactly (prior.alpha_0/beta_0/alpha_0t/beta_0t <- 1e-14).
@@ -19,7 +21,7 @@ _DROP_TOL = 1e-7
 _PATIENCE = 1000
 
 
-class GFA(PosteriorMeanTransformMixin, BaseModel):
+class GFA(BaseProbabilistic):
     r"""Group Factor Analysis: Bayesian CCA with per-view ARD.
 
     A port of ``GFA()`` from the R package CCAGFA. A shared latent $z$
@@ -76,6 +78,15 @@ class GFA(PosteriorMeanTransformMixin, BaseModel):
         >>> X2 = rng.standard_normal((50, 3))
         >>> model = GFA(n_components=2, max_iter=50).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseProbabilistic._parameter_constraints,
+        "max_iter": POSITIVE_INT,
+        "tol": POSITIVE_EPS,
+        "drop_k": ["boolean"],
+        "n_posterior_samples": POSITIVE_INT,
+        "random_state": RANDOM_STATE,
+    }
 
     def __init__(
         self,

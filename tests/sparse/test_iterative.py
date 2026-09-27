@@ -9,10 +9,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.metrics import factor_loadings, pairwise_correlations
+from cca_zoo._base import BaseModel
 from cca_zoo.sparse import (
     ADMMCCA,
-    IPLSCCA,
     PMDCCA,
     SAR,
     ParkhomenkoCCA,
@@ -20,167 +19,9 @@ from cca_zoo.sparse import (
     WaijenborgCCA,
 )
 
-ALL_ITERATIVE_MODELS = [
-    PMDCCA,
-    ADMMCCA,
-    IPLSCCA,
-    SpanCCA,
-    WaijenborgCCA,
-    ParkhomenkoCCA,
-    SAR,
-]
-
-# Use few iterations for test speed
-_BASE_KWARGS: dict = dict(n_components=1, max_iter=50, random_state=0)
-
-
-# ---------------------------------------------------------------------------
-# fit completes
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_two_view_fit_completes(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = ModelClass(**_BASE_KWARGS)
-    fitted = model.fit(two_views)
-    assert fitted is model
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_three_view_fit_completes(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """Iterative models accept three or more views."""
-    model = ModelClass(**_BASE_KWARGS)
-    fitted = model.fit(three_views)
-    assert fitted is model
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_transform_shapes_two_view(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """Transform returns list of (n_samples, n_components) arrays."""
-    k = 2
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
-    result = model.transform(two_views)
-    assert len(result) == len(two_views)
-    for arr, view in zip(result, two_views):
-        assert arr.shape == (view.shape[0], k)
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_transform_shapes_three_view(
-    ModelClass: type, three_views: list[np.ndarray]
-) -> None:
-    """Transform returns correct shapes for three-view data."""
-    k = 2
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(three_views)
-    result = model.transform(three_views)
-    assert len(result) == len(three_views)
-    for arr, view in zip(result, three_views):
-        assert arr.shape == (view.shape[0], k)
-
-
-# ---------------------------------------------------------------------------
-# fit_transform consistency
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_fit_transform_consistency(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """fit_transform equals fit().transform()."""
-    kwargs = dict(n_components=1, max_iter=50, random_state=0)
-    result_ft = ModelClass(**kwargs).fit_transform(two_views)
-    result_sep = ModelClass(**kwargs).fit(two_views).transform(two_views)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(np.abs(a), np.abs(b), atol=1e-10)
-
-
-# ---------------------------------------------------------------------------
-# score shape and range
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_score_shape(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Score is one float, as sklearn expects."""
-    k = 2
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
-    s = model.score(two_views)
-    assert isinstance(s, float)
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_score_values_in_valid_range(
-    ModelClass: type, correlated_views: list[np.ndarray]
-) -> None:
-    """Score values lie in [-1, 1]."""
-    model = ModelClass(n_components=1, max_iter=100, random_state=0).fit(
-        correlated_views
-    )
-    s = model.score(correlated_views)
-    assert np.all(s >= -1.0 - 1e-9)
-    assert np.all(s <= 1.0 + 1e-9)
-
-
-# get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package by tests/test_sklearn_compat.py.
-
-
-# ---------------------------------------------------------------------------
-# weights shapes
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_weights_shapes_two_view(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Weights are shaped (n_features_i, n_components) per view."""
-    k = 2
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
-    w = model.weights_
-    assert len(w) == len(two_views)
-    for weight, view in zip(w, two_views):
-        assert weight.shape == (view.shape[1], k)
-
-
-# ---------------------------------------------------------------------------
-# factor_loadings shapes
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_get_factor_loadings_shapes(
-    ModelClass: type, two_views: list[np.ndarray]
-) -> None:
-    """factor_loadings returns (n_features_i, k) arrays."""
-    k = 2
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
-    loadings = factor_loadings(two_views, model.transform(two_views))
-    assert len(loadings) == len(two_views)
-    for loading, view in zip(loadings, two_views):
-        assert loading.shape == (view.shape[1], k)
-
-
 # ---------------------------------------------------------------------------
 # Sparsity verification
 # ---------------------------------------------------------------------------
-
-
-def test_pmd_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """PMDCCA with small tau produces sparse weights (some zeros)."""
-    model = PMDCCA(n_components=1, tau=0.3, max_iter=200, random_state=0).fit(two_views)
-    for w in model.weights_:
-        n_zeros = np.sum(np.abs(w) < 1e-10)
-        assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
 
 
 def test_pmd_invariant_to_input_scale(two_views: list[np.ndarray]) -> None:
@@ -279,39 +120,6 @@ def test_pmd_tau_controls_sparsity_monotonically(
     assert nnz_by_tau[-1] == sum(v.shape[1] for v in two_views)
 
 
-def test_parkhomenko_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """ParkhomenkoCCA with positive tau produces sparse weights."""
-    model = ParkhomenkoCCA(n_components=1, tau=0.5, max_iter=200, random_state=0).fit(
-        two_views
-    )
-    for w in model.weights_:
-        n_zeros = np.sum(np.abs(w) < 1e-10)
-        assert n_zeros > 0, f"Expected some zero weights, got {n_zeros}"
-
-
-def test_span_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """SpanCCA with span < n_features produces sparse weights."""
-    n_features = two_views[0].shape[1]
-    span = n_features // 2
-    model = SpanCCA(n_components=1, span=span, max_iter=200, random_state=0).fit(
-        two_views
-    )
-    # First view should have at most 'span' nonzero entries per dimension
-    w0 = model.weights_[0][:, 0]
-    n_nonzero = np.sum(np.abs(w0) > 1e-10)
-    assert n_nonzero <= span, f"Expected <= {span} nonzero, got {n_nonzero}"
-
-
-def test_admm_achieves_sparsity(two_views: list[np.ndarray]) -> None:
-    """ADMMCCA with positive tau produces some sparse weights."""
-    model = ADMMCCA(n_components=1, tau=0.5, max_iter=200, random_state=0).fit(
-        two_views
-    )
-    assert hasattr(model, "weights_")
-    for w in model.weights_:
-        assert w.shape[0] > 0
-
-
 def test_admm_stable_at_a_realistic_sample_size() -> None:
     """ADMMCCA's weights stay finite at n=200, not just the tiny n=50 examples.
 
@@ -392,22 +200,6 @@ def test_admm_block_satisfies_kkt_conditions() -> None:
     assert np.all(np.abs(zero_resid) <= tau + 1e-3)
 
 
-def test_waijenborg_cca_with_lasso(two_views: list[np.ndarray]) -> None:
-    """WaijenborgCCA with l1_ratio=1 (lasso) produces some sparse weights."""
-    model = WaijenborgCCA(
-        n_components=1, alpha=0.1, l1_ratio=1.0, max_iter=200, random_state=0
-    ).fit(two_views)
-    assert hasattr(model, "weights_")
-
-
-def test_ipls_with_lasso(two_views: list[np.ndarray]) -> None:
-    """IPLSCCA with alpha > 0 runs without error."""
-    model = IPLSCCA(
-        n_components=1, alpha=0.1, l1_ratio=1.0, max_iter=100, random_state=0
-    ).fit(two_views)
-    assert hasattr(model, "weights_")
-
-
 def test_sar_finds_zero_weights_when_no_signal(two_views: list[np.ndarray]) -> None:
     """SAR's BIC selection should prefer the all-zero fit on pure noise.
 
@@ -481,64 +273,21 @@ def test_sar_multicomponent_deflation_and_reexpression() -> None:
     assert abs(np.corrcoef(zx[:, 0], zx[:, 1])[0, 1]) < 0.3
 
 
-# ---------------------------------------------------------------------------
-# Reproducibility
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_reproducibility(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """Same random_state gives identical weights."""
-    kwargs = dict(n_components=1, max_iter=50, random_state=42)
-    w1 = ModelClass(**kwargs).fit(two_views).weights_
-    w2 = ModelClass(**kwargs).fit(two_views).weights_
-    for a, b in zip(w1, w2):
-        np.testing.assert_array_equal(a, b)
-
-
-# ---------------------------------------------------------------------------
-# center=False
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_center_false(ModelClass: type, two_views: list[np.ndarray]) -> None:
-    """All iterative models work with center=False."""
-    model = ModelClass(n_components=1, max_iter=20, center=False, random_state=0)
-    model.fit(two_views)
-    result = model.transform(two_views)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# pairwise_correlations shape
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("ModelClass", ALL_ITERATIVE_MODELS)
-def test_pairwise_correlations_shape(
-    ModelClass: type, two_views: list[np.ndarray]
+@pytest.mark.parametrize(
+    "model",
+    [
+        PMDCCA(tau=0.3),
+        ParkhomenkoCCA(tau=2.0),
+        SpanCCA(span=3),
+        ADMMCCA(tau=1.0),
+        WaijenborgCCA(alpha=0.1, l1_ratio=1.0),
+    ],
+    ids=lambda m: type(m).__name__,
+)
+def test_penalty_zeroes_weights(
+    model: BaseModel, correlated_views: list[np.ndarray]
 ) -> None:
-    """pairwise_correlations returns (n_views, n_views, k)."""
-    k = 1
-    model = ModelClass(n_components=k, max_iter=50, random_state=0).fit(two_views)
-    corrs = pairwise_correlations(model.transform(two_views))
-    assert corrs.shape == (2, 2, k)
-
-
-# ---------------------------------------------------------------------------
-# Correctness / optimality
-# ---------------------------------------------------------------------------
-
-
-def test_iterative_models_find_high_correlation(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """All iterative models find substantial correlation on clearly correlated views."""
-    for ModelClass in ALL_ITERATIVE_MODELS:
-        s = (
-            ModelClass(n_components=1, max_iter=500, random_state=0)
-            .fit(correlated_views)
-            .score(correlated_views)
-        )
-        assert np.all(s > 0.5), f"{ModelClass.__name__} got low correlation: {s}"
+    """Each sparsity penalty zeroes some, but not all, weights of a view."""
+    model.set_params(random_state=0).fit(correlated_views)
+    zero = [np.isclose(w, 0.0).mean() for w in model.weights_]
+    assert any(0.0 < z < 1.0 for z in zero)

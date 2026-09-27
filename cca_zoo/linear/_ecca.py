@@ -12,7 +12,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT
-from cca_zoo.linear._rrr_common import _postprocess_rrr_fit
+from cca_zoo.linear._rrr_common import _postprocess_rrr_fit, _whiten_response
 
 
 def _entrywise_sparse_rrr(
@@ -40,17 +40,19 @@ def _entrywise_sparse_rrr(
 class ECCA(BaseModel):
     r"""Two-view CCA by entrywise-sparse reduced rank regression.
 
-    Regresses $Y$ on $X$ with an entrywise lasso penalty,
+    Regresses the whitened $\tilde{Y} = Y \Sigma_Y^{-1/2}$ on $X$ with an
+    entrywise lasso penalty,
 
     $$
     \hat{B} = \underset{B}{\mathrm{argmin}}\ \frac{1}{n}
-        \lVert Y - X B \rVert_F^2 + \alpha \sum_{j,k} \lvert B_{jk} \rvert,
+        \lVert \tilde{Y} - X B \rVert_F^2 + \alpha \sum_{j,k} \lvert B_{jk} \rvert,
     $$
 
     and takes the canonical directions from the rank-``n_components`` SVD of
-    $\hat{B}$. Unlike :class:`~cca_zoo.linear.CCAR3`'s row-group penalty, a
-    feature can be dropped from some components and kept in others. A port
-    of ``ecca()`` from the R package ccar3.
+    the fitted values $X \hat{B}$. The penalty zeroes entries of $\hat{B}$,
+    where :class:`~cca_zoo.linear.CCAR3`'s zeroes whole rows; the canonical
+    directions combine its columns, so a feature leaves them only when its
+    whole row is zero. A port of ``ecca()`` from the R package ccar3.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -120,13 +122,12 @@ class ECCA(BaseModel):
             )
         X, Y = views_
 
+        Y_tilde, sqrt_inv_Sy = _whiten_response(Y, ledoit_wolf=False)
         B = _entrywise_sparse_rrr(
-            X, Y, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
+            X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
         )
-
-        no_whitening = np.eye(Y.shape[1])
         U, V = _postprocess_rrr_fit(
-            B, X, Y, no_whitening, self.n_components, ridge=self.eps
+            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
         )
         self.weights_: list[np.ndarray] = [U, V]
         return self

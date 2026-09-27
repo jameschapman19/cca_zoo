@@ -1,72 +1,49 @@
-"""The multiview estimator contract, checked on every model in the package.
+"""The multiview contract, checked on every model in the package.
 
-``transform``, ``predict`` and ``inverse_transform`` all map through each
-model's own per-view encoder (``BaseModel._transform_view``), so every model
-— linear, kernel, spline, tree, GP, manifold or probabilistic — must honour
-them identically. ``feature_importances_`` is checked here too: one
-non-negative array per view summing to one.
+scikit-learn's own checks (``test_estimator_checks``) cover each model as an
+estimator of one array. These cover what is specific to several views:
+``transform``, ``predict`` and ``inverse_transform`` through each model's
+per-view encoder, the number and shapes of views, parameter validation and
+``feature_importances_``.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import pytest
+from sklearn.utils._param_validation import InvalidParameterError
 
 from cca_zoo._base import BaseModel
-from tests.test_sklearn_compat import _MODEL_CLASSES
+from tests._helpers import MODEL_CLASSES, make_model
 
-# Constructor arguments that keep each fit small; every other model runs on
-# its defaults.
-_FAST: dict[str, dict[str, Any]] = {
-    "ProbabilisticCCA": {"n_warmup": 20, "n_posterior_samples": 20},
-    "VariationalBayesCCA": {"max_iter": 50},
-    "GFA": {"max_iter": 50},
-    "XGBoostCCA": {"n_estimators": 5},
-    "LightGBMCCA": {"n_estimators": 5},
-    "CatBoostCCA": {"n_estimators": 5},
-    "ProjectionPursuitCCA": {"n_init": 1, "max_iter": 5},
-    "StochasticCCAEY": {"max_iter": 5},
-}
+_IDS = [c.__name__ for c in MODEL_CLASSES]
+_TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA"}
 
 
-def _views(seed: int, shift: float = 0.0) -> list[np.ndarray]:
+def _views(
+    seed: int, shift: float = 0.0, n_views: int = 2, n: int = 60, noise: float = 0.5
+) -> list[np.ndarray]:
     rng = np.random.default_rng(seed)
-    z = rng.standard_normal((60, 1))
+    z = rng.standard_normal((n, 1))
     return [
-        shift + z @ rng.standard_normal((1, p)) + 0.5 * rng.standard_normal((60, p))
-        for p in (4, 3)
+        shift + z @ rng.standard_normal((1, p)) + noise * rng.standard_normal((n, p))
+        for p in (4, 3, 5)[:n_views]
     ]
 
 
-def _make(cls: type[BaseModel]) -> BaseModel:
-    model = cls(n_components=1, **_FAST.get(cls.__name__, {}))
-    if "random_state" in model.get_params():
-        model.set_params(random_state=0)
-    return model
-
-
-def _fit(
-    cls: type[BaseModel], views: list[np.ndarray], model: BaseModel | None = None
-) -> BaseModel:
-    model = _make(cls) if model is None else model
-    if cls.__name__ == "PartialCCA":
+def _fit(model: BaseModel, views: list[np.ndarray]) -> BaseModel:
+    if type(model).__name__ == "PartialCCA":
         partials = np.random.default_rng(1).standard_normal((len(views[0]), 1))
         return model.fit(views, partials=partials)
     return model.fit(views)
 
 
-_IDS = [c.__name__ for c in _MODEL_CLASSES]
-
-
-@pytest.mark.parametrize("cls", _MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
     """Every model transforms per view and reconstructs from any observed view."""
     views = _views(0, shift=5.0)
-    model = _fit(cls, views)
+    model = _fit(make_model(cls), views)
     scores = model.transform(views)
-    assert len(scores) == len(views)
     assert all(s.shape == (60, 1) and np.all(np.isfinite(s)) for s in scores)
     for missing in range(len(views)):
         observed: list[np.ndarray | None] = list(views)
@@ -78,15 +55,82 @@ def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
     assert [r.shape for r in inverted] == [v.shape for v in views]
 
 
-@pytest.mark.parametrize("cls", _MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_number_of_views(cls: type[BaseModel]) -> None:
+    """Two-view methods reject a third view by name; the rest take it."""
+    views = _views(0, n_views=3)
+    model = make_model(cls)
+    if cls.__name__ in _TWO_VIEW_ONLY:
+        with pytest.raises(ValueError, match=f"{cls.__name__} requires exactly 2"):
+            _fit(model, views)
+    else:
+        assert len(_fit(model, views).transform(views)) == 3
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
+    """A wrong number of views, width or sample count raises."""
+    views = _views(0)
+    model = _fit(make_model(cls), views)
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        model.transform(views[:1])
+    with pytest.raises(ValueError, match="View 1 has 4 features"):
+        model.transform([views[0], views[0]])
+    with pytest.raises(ValueError, match="same number of samples"):
+        model.transform([views[0], views[1][:10]])
+    with pytest.raises(ValueError, match="View 0 has 3 features"):
+        model.predict([views[1], None])
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_every_parameter_is_validated(cls: type[BaseModel]) -> None:
+    """Each constructor parameter has a constraint that a nonsense value fails."""
+    model = make_model(cls)
+    params = model.get_params()
+    assert set(params) <= set(cls._parameter_constraints)
+    for name in params:
+        invalid = make_model(cls).set_params(**{name: object()})
+        with pytest.raises(InvalidParameterError, match=name):
+            _fit(invalid, _views(0))
+
+
+# Settings for the models whose quick test settings are too short to converge.
+_ADEQUATE = {
+    "ProbabilisticCCA": {"n_warmup": 100, "n_posterior_samples": 100},
+    "XGBoostCCA": {"n_estimators": 50},
+    "LightGBMCCA": {"n_estimators": 50},
+    "CatBoostCCA": {"n_estimators": 50},
+}
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_recovers_a_shared_signal(cls: type[BaseModel]) -> None:
+    """At its defaults, each model finds a strong one-dimensional shared signal."""
+    views = _views(0, n=200, noise=0.3)
+    model = cls(**_ADEQUATE.get(cls.__name__, {}))
+    if "random_state" in model.get_params():
+        model.set_params(random_state=0)
+    assert _fit(model, views).score(views) > 0.8
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_center_false(cls: type[BaseModel]) -> None:
+    """Uncentred models keep zero means and still transform."""
+    views = _views(0)
+    model = _fit(make_model(cls).set_params(center=False), views)
+    assert all(not m.any() for m in model.means_)
+    assert all(np.all(np.isfinite(s)) for s in model.transform(views))
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_refit_leaves_no_stale_state(cls: type[BaseModel]) -> None:
     """After a refit, predictions match a fresh fit on the new data."""
     first, second = _views(0), _views(1, shift=3.0)
-    model = _fit(cls, first)
+    model = _fit(make_model(cls), first)
     model.predict([first[0], None])
     model.inverse_transform(model.transform(first))
-    _fit(cls, second, model)
-    fresh = _fit(cls, second)
+    _fit(model, second)
+    fresh = _fit(make_model(cls), second)
     np.testing.assert_allclose(
         model.predict([second[0], None])[1],
         fresh.predict([second[0], None])[1],
@@ -94,14 +138,7 @@ def test_refit_leaves_no_stale_state(cls: type[BaseModel]) -> None:
     )
 
 
-@pytest.mark.parametrize("cls", _MODEL_CLASSES, ids=_IDS)
-def test_score_is_a_float(cls: type[BaseModel]) -> None:
-    """``score`` follows sklearn's contract: one float, higher is better."""
-    views = _views(0)
-    assert isinstance(_fit(cls, views).score(views), float)
-
-
-@pytest.mark.parametrize("cls", _MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_feature_importances(cls: type[BaseModel]) -> None:
     """One non-negative array per view, each summing to one.
 
@@ -109,7 +146,7 @@ def test_feature_importances(cls: type[BaseModel]) -> None:
     one out) gets all zeros instead, as sklearn's tree models do.
     """
     views = _views(0)
-    importances = _fit(cls, views).feature_importances_
+    importances = _fit(make_model(cls), views).feature_importances_
     assert [imp.shape for imp in importances] == [(v.shape[1],) for v in views]
     for imp in importances:
         assert np.all(imp >= 0)
@@ -155,7 +192,7 @@ def _signal_in_first_feature(n: int) -> list[np.ndarray]:
 )
 def test_importance_finds_the_signal_feature(name: str) -> None:
     """Each importance family ranks the one informative feature first."""
-    classes = {c.__name__: c for c in _MODEL_CLASSES}
+    classes = {c.__name__: c for c in MODEL_CLASSES}
     if name not in classes:
         pytest.skip(f"{name}'s optional dependency is not installed")
     cls = classes[name]

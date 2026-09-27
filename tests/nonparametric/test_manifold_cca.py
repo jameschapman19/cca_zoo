@@ -144,44 +144,6 @@ def test_laplacian_new_point_affinity_nearest_neighbors_is_binary() -> None:
 
 
 @pytest.mark.parametrize("method", ["laplacian", "lle"])
-def test_two_view_fit_completes(method: str, two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error, for both operator types."""
-    model = _make_model(method=method).fit(two_views_small)
-    assert hasattr(model, "embedding_")
-
-
-@pytest.mark.parametrize("method", ["laplacian", "lle"])
-def test_three_view_fit_completes(
-    method: str, three_views_small: list[np.ndarray]
-) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model(method=method, n_neighbors=6).fit(three_views_small)
-    assert len(model.embedding_) == 3
-
-
-def test_weights_shapes(two_views_small: list[np.ndarray]) -> None:
-    """embedding_[i] is (n_train_samples, k), the training embedding itself."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    n = two_views_small[0].shape[0]
-    for w in model.embedding_:
-        assert w.shape == (n, k)
-
-
-def test_transform_shapes_on_new_data(
-    two_views_small: list[np.ndarray], two_views_test: list[np.ndarray]
-) -> None:
-    """Transform on unseen data returns (n_test, k) arrays via the extrapolator."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    test_views = [v[:, :5] for v in two_views_test]  # match two_views_small's width
-    transformed = model.transform(test_views)
-    assert len(transformed) == 2
-    for t in transformed:
-        assert t.shape == (test_views[0].shape[0], k)
-
-
-@pytest.mark.parametrize("method", ["laplacian", "lle"])
 def test_transform_on_training_data_matches_weights_reasonably(
     method: str, two_views_small: list[np.ndarray]
 ) -> None:
@@ -200,30 +162,9 @@ def test_transform_on_training_data_matches_weights_reasonably(
         assert abs(corr) > 0.8
 
 
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = ManifoldCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
 # ---------------------------------------------------------------------------
 # Per-view parameters
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("method", ["laplacian", "lle"])
-def test_per_view_n_neighbors_list_fits_and_transforms(
-    method: str, two_views_small: list[np.ndarray]
-) -> None:
-    """A per-view n_neighbors list still fits and extrapolates sensibly."""
-    model = _make_model(method=method, n_neighbors=[6, 12]).fit(two_views_small)
-    transformed = model.transform(two_views_small)
-    for w, t in zip(model.embedding_, transformed):
-        corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
-        assert abs(corr) > 0.8
 
 
 def test_per_view_n_operator_components_list_fits_and_transforms(
@@ -241,25 +182,6 @@ def test_per_view_n_operator_components_list_fits_and_transforms(
     for w, t in zip(model.embedding_, transformed):
         corr = np.corrcoef(w[:, 0], t[:, 0])[0, 1]
         assert abs(corr) > 0.8
-
-
-def test_per_view_affinity_and_gamma_lists(two_views_small: list[np.ndarray]) -> None:
-    """Per-view affinity/gamma lists let each view use a different RBF setting."""
-    model = _make_model(
-        method="laplacian",
-        affinity=["rbf", "nearest_neighbors"],
-        gamma=[0.5, None],
-    ).fit(two_views_small)
-    assert model._laplacian_state_[0].gamma == pytest.approx(0.5)
-    assert model._laplacian_state_[1].gamma is None
-
-
-def test_per_view_n_neighbors_wrong_length_raises(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """A per-view n_neighbors list must have one entry per view."""
-    with pytest.raises(ValueError, match="n_neighbors"):
-        _make_model(n_neighbors=[5, 6, 7]).fit(two_views_small)
 
 
 # ---------------------------------------------------------------------------
@@ -448,41 +370,3 @@ def test_laplacian_beats_linear_mcca_on_a_shared_nonlinear_spiral() -> None:
         f"expected laplacian ({manifold_corr:.2f}) to clearly beat "
         f"linear MCCA ({linear_corr:.2f}) on the spiral data"
     )
-
-
-# ---------------------------------------------------------------------------
-# sklearn compatibility spot-checks
-# ---------------------------------------------------------------------------
-
-
-def test_clone_and_get_params_roundtrip() -> None:
-    """clone()/get_params() round-trip correctly (sklearn BaseEstimator contract)."""
-    from sklearn.base import clone
-
-    model = ManifoldCCA(n_components=2, method="lle", n_neighbors=6, lle_reg=1e-2)
-    cloned = clone(model)
-    assert cloned.get_params() == model.get_params()
-
-
-def test_invalid_method_raises() -> None:
-    """An unrecognised method is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ManifoldCCA(method="isomap")._validate_params()
-
-
-def test_invalid_n_neighbors_raises() -> None:
-    """n_neighbors below 1 is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ManifoldCCA(n_neighbors=0)._validate_params()
-
-
-def test_invalid_affinity_raises() -> None:
-    """An unrecognised affinity is rejected by parameter validation."""
-    from sklearn.utils._param_validation import InvalidParameterError
-
-    with pytest.raises(InvalidParameterError):
-        ManifoldCCA(affinity="not-an-affinity")._validate_params()

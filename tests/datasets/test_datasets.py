@@ -73,16 +73,3 @@ def test_load_linnerud_returns_expected_shapes() -> None:
     x1, x2 = load_linnerud()
     assert x1.shape == (20, 3)
     assert x2.shape == (20, 3)
-
-
-# ---------------------------------------------------------------------------
-# Smoke test: __all__ lists are accessible
-# ---------------------------------------------------------------------------
-
-
-def test_datasets_all_attribute_exists() -> None:
-    """cca_zoo.datasets defines __all__."""
-    import cca_zoo.datasets as ds
-
-    assert hasattr(ds, "__all__")
-    assert isinstance(ds.__all__, list)

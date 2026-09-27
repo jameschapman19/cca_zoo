@@ -9,197 +9,12 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from sklearn.preprocessing import SplineTransformer
 
 from cca_zoo.gam import GAMCCA
-from cca_zoo.metrics import factor_loadings, pairwise_correlations
 
 
 def _make_model(n_components: int = 1, **kwargs: object) -> GAMCCA:
     return GAMCCA(n_components=n_components, **kwargs)
-
-
-# ---------------------------------------------------------------------------
-# fit completes
-# ---------------------------------------------------------------------------
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-    assert len(model.encoders_) == 3
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes
-# ---------------------------------------------------------------------------
-
-
-def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, n_components) arrays."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform returns correct shapes for new (unseen) test samples."""
-    rng = np.random.default_rng(99)
-    test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    k = 1
-    model = _make_model(n_components=k).fit(two_views_small)
-    result = model.transform(test_views)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (10, k)
-
-
-def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
-    """Transform on three-view data returns one array per view."""
-    k = 2
-    model = _make_model(n_components=k).fit(three_views_small)
-    result = model.transform(three_views_small)
-    assert len(result) == 3
-    n = three_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-# ---------------------------------------------------------------------------
-# fit_transform consistency
-# ---------------------------------------------------------------------------
-
-
-def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
-    """fit_transform equals fit().transform() numerically."""
-    m1 = _make_model()
-    m2 = _make_model()
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# score shape and range
-# ---------------------------------------------------------------------------
-
-
-def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score is one float, as sklearn expects."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    s = model.score(two_views_small)
-    assert isinstance(s, float)
-
-
-def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score values lie in [-1, 1]."""
-    model = _make_model().fit(two_views_small)
-    s = model.score(two_views_small)
-    assert np.all(s >= -1.0 - 1e-9)
-    assert np.all(s <= 1.0 + 1e-9)
-
-
-# get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package (including GAMCCA) by
-# tests/test_sklearn_compat.py.
-
-
-# ---------------------------------------------------------------------------
-# weights is not implemented
-# ---------------------------------------------------------------------------
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Transform before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = GAMCCA()
-    with pytest.raises(NotFittedError):
-        model.transform([np.ones((3, 2)), np.ones((3, 2))])
-
-
-# ---------------------------------------------------------------------------
-# factor_loadings shapes
-# ---------------------------------------------------------------------------
-
-
-def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """factor_loadings returns (n_features_i, k) arrays."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    loadings = factor_loadings(two_views_small, model.transform(two_views_small))
-    assert len(loadings) == 2
-    for loading, view in zip(loadings, two_views_small):
-        assert loading.shape == (view.shape[1], k)
-
-
-# ---------------------------------------------------------------------------
-# pairwise_correlations shape
-# ---------------------------------------------------------------------------
-
-
-def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
-    """pairwise_correlations returns (n_views, n_views, k)."""
-    k = 1
-    model = _make_model(n_components=k).fit(two_views_small)
-    corrs = pairwise_correlations(model.transform(two_views_small))
-    assert corrs.shape == (2, 2, k)
-
-
-# ---------------------------------------------------------------------------
-# center=False
-# ---------------------------------------------------------------------------
-
-
-def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """GAMCCA works with center=False."""
-    model = _make_model(center=False)
-    model.fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# encoders_ attribute
-# ---------------------------------------------------------------------------
-
-
-def test_encoders_attribute_shape(two_views_small: list[np.ndarray]) -> None:
-    """encoders_ has one encoder per view, each producing k-dim output."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    assert len(model.encoders_) == 2
-    for enc in model.encoders_:
-        assert enc.coef_.shape[1] == k
-        assert enc.predict().shape == (two_views_small[0].shape[0], k)
-
-
-def test_encoder_basis_is_sklearn_spline_transformer(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """The per-view spline basis is an actual fitted SplineTransformer.
-
-    Confirms basis construction is delegated to scikit-learn rather than
-    reimplemented.
-    """
-    model = _make_model().fit(two_views_small)
-    for enc in model.encoders_:
-        assert isinstance(enc._spline, SplineTransformer)
 
 
 # ---------------------------------------------------------------------------
@@ -226,15 +41,6 @@ def test_per_view_sp_smooths_only_that_view(correlated_views: list[np.ndarray]) 
         for enc in model.encoders_
     ]
     assert wiggle[1] < 1e-2 * wiggle[0]
-
-
-@pytest.mark.parametrize("name", ["k", "m", "sp"])
-def test_per_view_parameter_wrong_length_raises(
-    two_views_small: list[np.ndarray], name: str
-) -> None:
-    """Every per-view parameter must have one entry per view."""
-    with pytest.raises(ValueError, match=name):
-        _make_model(**{name: [8, 8, 8]}).fit(two_views_small)
 
 
 def test_m_tuple_sets_spline_and_penalty_order(
@@ -289,15 +95,6 @@ def test_data_free_splines_are_filled_in_by_the_penalty() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_shape_function_shape(two_views_small: list[np.ndarray]) -> None:
-    """shape_function evaluates one feature's additive term at given points."""
-    k = 2
-    model = _make_model(n_components=k).fit(two_views_small)
-    x_grid = np.linspace(-2, 2, 7)
-    term = model.shape_function(view=0, feature=1, x=x_grid)
-    assert term.shape == (7, k)
-
-
 def test_shape_function_sums_to_prediction(two_views_small: list[np.ndarray]) -> None:
     """Summed shape_function terms reproduce the encoder's raw prediction.
 
@@ -310,40 +107,9 @@ def test_shape_function_sums_to_prediction(two_views_small: list[np.ndarray]) ->
     np.testing.assert_allclose(total, model.encoders_[0].predict(), atol=1e-6)
 
 
-def test_shape_function_not_fitted_raises() -> None:
-    """Calling shape_function before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = GAMCCA()
-    with pytest.raises(NotFittedError):
-        model.shape_function(0, 0, np.array([0.0]))
-
-
 # ---------------------------------------------------------------------------
 # Correctness / optimality
 # ---------------------------------------------------------------------------
-
-
-def test_gamcca_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """GAMCCA finds substantial correlation on views with shared latent structure."""
-    model = GAMCCA(n_components=1)
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
-
-
-def test_gamcca_finds_correlation_on_three_correlated_views() -> None:
-    """GAMCCA (multiview) finds substantial correlation on 3 correlated views."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((200, 1))
-    views = [
-        z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
-        for _ in range(3)
-    ]
-    model = GAMCCA(n_components=1)
-    s = model.fit(views).score(views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
 
 
 @pytest.mark.slow

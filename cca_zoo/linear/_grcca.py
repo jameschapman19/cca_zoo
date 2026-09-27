@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import warnings
-from typing import cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._param_constraints import NONNEGATIVE_PER_VIEW
 from cca_zoo._utils._validation import perview_parameter
 from cca_zoo.linear._mcca import MCCA
 
@@ -46,6 +47,11 @@ class GRCCA(MCCA):
         >>> groups = [rng.integers(0, 3, size=10), rng.integers(0, 3, size=8)]
         >>> model = GRCCA(n_components=2, c=0.5).fit([X1, X2], feature_groups=groups)
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **MCCA._parameter_constraints,
+        "mu": NONNEGATIVE_PER_VIEW,
+    }
 
     def __init__(
         self,

@@ -78,7 +78,7 @@ class BaseModel(BaseEstimator, ABC):
     def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Validate parameters and views, record their shapes and centre them."""
         self._validate_params()
-        validated = validate_views(views)
+        validated = validate_views(views, ensure_min_samples=2)
         self.n_views_: int = len(validated)
         self.n_features_in_: list[int] = [v.shape[1] for v in validated]
         self.n_samples_: int = validated[0].shape[0]
@@ -91,6 +91,30 @@ class BaseModel(BaseEstimator, ABC):
         # training data on its own latent scores.
         self._views_fit_: list[np.ndarray] = validated
         return validated
+
+    def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
+        """View ``i`` as a validated array with the width seen in fit."""
+        (checked,) = validate_views([view], min_views=1)
+        if checked.shape[1] != self.n_features_in_[i]:
+            raise ValueError(
+                f"View {i} has {checked.shape[1]} features, but "
+                f"{type(self).__name__} is expecting {self.n_features_in_[i]} "
+                "features."
+            )
+        return checked
+
+    def _check_views(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Validate views passed after fitting against the fitted shapes."""
+        check_is_fitted(self)
+        if len(views) != self.n_views_:
+            raise ValueError(f"Expected {self.n_views_} views, got {len(views)}.")
+        checked = [self._check_view(i, v) for i, v in enumerate(views)]
+        if len({v.shape[0] for v in checked}) > 1:
+            raise ValueError(
+                "All views must have the same number of samples. "
+                f"Got shapes: {[v.shape for v in checked]}."
+            )
+        return checked
 
     # ------------------------------------------------------------------
     # Public API
@@ -105,8 +129,7 @@ class BaseModel(BaseEstimator, ABC):
         Returns:
             List of arrays, each of shape (n_samples, n_components).
         """
-        check_is_fitted(self)
-        validated = validate_views(views, min_views=self.n_views_)
+        validated = self._check_views(views)
         return [
             self._transform_view(i, v - self.means_[i]) for i, v in enumerate(validated)
         ]
@@ -279,7 +302,9 @@ class BaseModel(BaseEstimator, ABC):
                 f"Expected {self.n_views_} views (pass None for an "
                 f"unobserved view), got {len(views)}."
             )
-        observed = {i: np.asarray(v) for i, v in enumerate(views) if v is not None}
+        observed = {
+            i: self._check_view(i, v) for i, v in enumerate(views) if v is not None
+        }
         if not observed:
             raise ValueError("At least one view must be observed to predict.")
         first_i = next(iter(observed))
@@ -290,11 +315,6 @@ class BaseModel(BaseEstimator, ABC):
                     "All observed views must have the same number of "
                     f"samples. Got shapes: "
                     f"{[(j, a.shape) for j, a in observed.items()]}."
-                )
-            if v.shape[1] != self.n_features_in_[i]:
-                raise ValueError(
-                    f"View {i} has {v.shape[1]} features, expected "
-                    f"{self.n_features_in_[i]}."
                 )
         latent = self._shared_latent(
             {i: v - self.means_[i] for i, v in observed.items()}

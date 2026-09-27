@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._base import BaseModel
+from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 from cca_zoo.probabilistic._utils import (
-    PosteriorMeanTransformMixin,
+    BaseProbabilistic,
     _integer_seed,
     align_posterior_rotation,
 )
 
 
-class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
+class ProbabilisticCCA(BaseProbabilistic):
     r"""Probabilistic CCA with posterior sampling by NUTS.
 
     $$
@@ -53,6 +53,13 @@ class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
         ...     n_components=2, n_warmup=10, n_posterior_samples=10
         ... ).fit([X1, X2])
     """
+
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseProbabilistic._parameter_constraints,
+        "n_warmup": POSITIVE_INT,
+        "n_posterior_samples": POSITIVE_INT,
+        "random_state": RANDOM_STATE,
+    }
 
     def __init__(
         self,

@@ -23,7 +23,7 @@ References:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import numpy as np
 import scipy.linalg
@@ -251,6 +251,31 @@ def _ey_coordinate_smooth_quartic(
     return p4, p3, p2 + q2, p1 + q1
 
 
+# Fractions of alpha at which the penalised solvers fit in turn.
+_PENALTY_PATH = (0.0, 0.1, 0.3, 1.0)
+
+
+def _along_penalty_path(
+    sweeps: Callable[[list[float]], list[np.ndarray]],
+    coefficients: list[np.ndarray],
+    alpha: list[float],
+    penalty: Callable[[], float],
+) -> list[np.ndarray]:
+    """Run ``sweeps`` at each fraction of ``alpha`` in turn, warm-started.
+
+    ``sweeps`` updates ``coefficients`` in place and returns the embeddings.
+    All-zero weights have objective zero, so a fit ending above that is
+    replaced by them.
+    """
+    for scale in _PENALTY_PATH:
+        representations = sweeps([a * scale for a in alpha])
+    if ey_loss(representations)["objective"] + penalty() > 0.0:
+        for c in coefficients:
+            c[:] = 0.0
+        representations = [np.zeros_like(z) for z in representations]
+    return representations
+
+
 def coordinate_descent_ey(
     bases: list[np.ndarray],
     k: int,
@@ -271,8 +296,11 @@ def coordinate_descent_ey(
     $$
 
     updating one coefficient at a time to the exact minimiser of its quartic
-    restriction (:func:`_solve_quartic_coordinate`). Used by
-    :class:`~cca_zoo.sparse.ElasticNetCCA`.
+    restriction (:func:`_solve_quartic_coordinate`). All-zero weights are a
+    local minimum once every view reaches them, so the penalty is raised to
+    ``alpha`` along a path from zero, each stage warm-started from the last,
+    as glmnet does; a fit whose objective ends above zero's returns zeros.
+    Used by :class:`~cca_zoo.sparse.ElasticNetCCA`.
 
     Args:
         bases: Column-centred design matrix of each view.
@@ -288,14 +316,50 @@ def coordinate_descent_ey(
         ``(coefficients, representations)``: per-view coefficients of shape
         (n_basis_i, k) and embeddings of shape (n_samples, k).
     """
+    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+    representations = _along_penalty_path(
+        lambda scaled: _elastic_net_sweeps(
+            bases, coefficients, scaled, l1_ratio, max_iter, tol, positive
+        ),
+        coefficients,
+        alpha,
+        lambda: _elastic_net_penalty(coefficients, alpha, l1_ratio),
+    )
+    return coefficients, representations
+
+
+def _elastic_net_penalty(
+    coefficients: list[np.ndarray], alpha: list[float], l1_ratio: list[float]
+) -> float:
+    """Elastic-net penalty summed over views."""
+    return float(
+        sum(
+            a * r * np.sum(np.abs(c)) + 0.5 * a * (1.0 - r) * np.sum(c**2)
+            for c, a, r in zip(coefficients, alpha, l1_ratio)
+        )
+    )
+
+
+def _elastic_net_sweeps(
+    bases: list[np.ndarray],
+    coefficients: list[np.ndarray],
+    alpha: list[float],
+    l1_ratio: list[float],
+    max_iter: int,
+    tol: float,
+    positive: bool,
+) -> list[np.ndarray]:
+    """Exact coordinate sweeps of :func:`coordinate_descent_ey`, in place.
+
+    Returns:
+        The embedding of each view, shape (n_samples, k).
+    """
     m = len(bases)
     n = bases[0].shape[0]
-    n_minus_1 = n - 1
-    a0 = 1.0 / (m * n_minus_1)
+    k = coefficients[0].shape[1]
+    a0 = 1.0 / (m * (n - 1))
     lasso = [a * r for a, r in zip(alpha, l1_ratio)]
     ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
-
-    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
     representations = [b @ c for b, c in zip(bases, coefficients)]
     total = sum(representations)
     col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
@@ -338,16 +402,14 @@ def coordinate_descent_ey(
                         zi[:, c] += xj * delta
                         total[:, c] += xj * delta
 
-        penalty = sum(
-            alpha[i] * l1_ratio[i] * np.sum(np.abs(c)) + 0.5 * ridge[i] * np.sum(c**2)
-            for i, c in enumerate(coefficients)
+        obj = ey_loss(representations)["objective"] + _elastic_net_penalty(
+            coefficients, alpha, l1_ratio
         )
-        obj = ey_loss(representations)["objective"] + penalty
         if abs(prev_obj - obj) < tol:
             break
         prev_obj = obj
 
-    return coefficients, representations
+    return representations
 
 
 def _group_penalty(
@@ -388,8 +450,11 @@ def group_coordinate_descent_ey(
     penalty, $\alpha\rho\|B_i\|_{2,1} + \tfrac12\alpha(1-\rho)\|B_i\|_F^2$,
     so each feature is active in every component or in none. A row's
     restriction is a coupled quartic with no closed-form minimiser, so each
-    row takes a proximal-gradient step with backtracking until the exact
-    objective does not increase.
+    row takes a proximal-gradient step, backtracking until the EY loss is
+    below its quadratic upper bound at the step. Accepting any step that
+    lowers the penalised objective instead lets a row jump to zero past a
+    nonzero minimum. The penalty follows the same path as
+    :func:`coordinate_descent_ey`.
 
     Args:
         bases: Column-centred design matrix of each view.
@@ -404,20 +469,43 @@ def group_coordinate_descent_ey(
     Returns:
         ``(coefficients, representations)`` as :func:`coordinate_descent_ey`.
     """
+    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
+    representations = _along_penalty_path(
+        lambda scaled: _group_sweeps(
+            bases, coefficients, scaled, l1_ratio, max_iter, tol, max_backtrack
+        ),
+        coefficients,
+        alpha,
+        lambda: _group_penalty(coefficients, alpha, l1_ratio),
+    )
+    return coefficients, representations
+
+
+def _group_sweeps(
+    bases: list[np.ndarray],
+    coefficients: list[np.ndarray],
+    alpha: list[float],
+    l1_ratio: list[float],
+    max_iter: int,
+    tol: float,
+    max_backtrack: int,
+) -> list[np.ndarray]:
+    """Proximal row sweeps of :func:`group_coordinate_descent_ey`, in place.
+
+    Returns:
+        The embedding of each view, shape (n_samples, k).
+    """
     m = len(bases)
     n = bases[0].shape[0]
+    k = coefficients[0].shape[1]
     a0 = 1.0 / (m * (n - 1))
     lasso = [a * r for a, r in zip(alpha, l1_ratio)]
     ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
-
-    coefficients = cheap_orthonormal_projection_weights(bases, k, None, rng)
     representations = [b @ c for b, c in zip(bases, coefficients)]
     total = sum(representations)
     col_sq_norms = [np.sum(b**2, axis=0) for b in bases]
 
-    cur_obj = ey_loss(representations)["objective"] + _group_penalty(
-        coefficients, alpha, l1_ratio
-    )
+    cur_loss = ey_loss(representations)["objective"]
     prev_obj = np.inf
     for _ in range(max_iter):
         for i, (basis, coef) in enumerate(zip(bases, coefficients)):
@@ -462,11 +550,10 @@ def group_coordinate_descent_ey(
                             total[:, c] += xj * delta[c]
                         coef[j, :] = w_new_row
 
-                    trial_obj = ey_loss(representations)["objective"] + _group_penalty(
-                        coefficients, alpha, l1_ratio
-                    )
-                    if trial_obj <= cur_obj + 1e-12:
-                        cur_obj = trial_obj
+                    trial_loss = ey_loss(representations)["objective"]
+                    bound = cur_loss + grads @ delta + 0.5 * lipschitz * (delta @ delta)
+                    if trial_loss <= bound + 1e-12:
+                        cur_loss = trial_loss
                         break
 
                     if np.any(delta != 0.0):
@@ -476,11 +563,12 @@ def group_coordinate_descent_ey(
                         coef[j, :] = w0_row
                     lipschitz *= 2.0
 
+        cur_obj = cur_loss + _group_penalty(coefficients, alpha, l1_ratio)
         if abs(prev_obj - cur_obj) < tol:
             break
         prev_obj = cur_obj
 
-    return coefficients, representations
+    return representations
 
 
 def omp_coordinate_descent_ey(
