@@ -1,9 +1,9 @@
-"""scikit-learn's estimator checks, run on every model through a two-view adapter.
+"""scikit-learn's estimator checks, on every model through MultiviewWrapper.
 
-sklearn's checks fit and transform a single array ``X``. The adapter splits
-it into two views and otherwise passes it straight through, so input
-validation, fitted-state checks, pickling, cloning, idempotence and
-invariance to sample order are the models' own.
+sklearn's checks fit and transform one array. MultiviewWrapper splits it into
+views, so the checks test the wrapper and, through it, each model: input
+validation, fitted-state errors, pickling, cloning, idempotence and
+invariance to sample order.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 import pytest
 from numpy.typing import ArrayLike
-from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.base import BaseEstimator
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import (
     check_estimator_repr,
@@ -23,7 +23,6 @@ from sklearn.utils.estimator_checks import (
     check_set_params,
     parametrize_with_checks,
 )
-from sklearn.utils.validation import check_is_fitted, validate_data
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear import RidgeCCA
@@ -38,41 +37,22 @@ from cca_zoo.preprocessing import PerViewTransformer
 from tests._helpers import MODEL_CLASSES, SLOW_MODULES, make_model
 
 
-class TwoViewAdapter(TransformerMixin, BaseEstimator):
-    """A multiview model as a transformer of one array.
+class TwoViewAdapter(MultiviewWrapper):
+    """MultiviewWrapper for sklearn's checks, whose data vary in width.
 
-    Four or more features are split into two views; fewer are used as both
-    views. Scores are concatenated.
+    Four or more features are halved into two views; fewer are used as both.
     """
 
     def __init__(self, estimator: BaseModel) -> None:
         self.estimator = estimator
 
-    def _views(self, X: Any, reset: bool) -> list[Any]:
-        X = X if hasattr(X, "shape") else np.asarray(X)
-        if X.ndim != 2:
-            return [X, X]  # the model rejects it
-        if reset:
-            self.n_features_in_ = X.shape[1]
-        else:
-            validate_data(self, X, reset=False, skip_check_array=True)
-        half = X.shape[1] // 2
-        return [X[:, :half], X[:, half:]] if X.shape[1] >= 4 else [X, X]
+    def _view_widths(self, n_features: int) -> list[int]:
+        half = n_features // 2
+        return [half, n_features - half] if n_features >= 4 else [n_features]
 
-    def fit(self, X: ArrayLike, y: None = None) -> TwoViewAdapter:
-        """Fit the model on the views of ``X``."""
-        self.estimator_ = clone(self.estimator).fit(self._views(X, reset=True))
-        return self
-
-    def transform(self, X: ArrayLike) -> np.ndarray:
-        """The views' scores, side by side."""
-        check_is_fitted(self)
-        return np.hstack(self.estimator_.transform(self._views(X, reset=False)))
-
-    def score(self, X: ArrayLike, y: None = None) -> float:
-        """The model's score on the views of ``X``."""
-        check_is_fitted(self)
-        return self.estimator_.score(self._views(X, reset=False))
+    def _split_views(self, X: ArrayLike, reset: bool) -> list[np.ndarray]:
+        views = super()._split_views(X, reset)
+        return views if len(views) == 2 else views * 2
 
 
 _MARS_SMALL_DATA = (

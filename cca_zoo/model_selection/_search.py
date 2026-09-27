@@ -15,14 +15,15 @@ from typing import Any, ClassVar, cast
 import numpy as np
 import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
-from sklearn.base import BaseEstimator, clone
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.experimental import enable_halving_search_cv  # noqa: F401
+from sklearn.utils.validation import check_array, check_is_fitted, validate_data
 
 _PARAM_PREFIX = "estimator__"
 _VIEW_PARAM_RE = re.compile(r"^(.+)__(\d+)$")
 
 
-class MultiviewWrapper(BaseEstimator):
+class MultiviewWrapper(TransformerMixin, BaseEstimator):
     """Adapt a multiview estimator to sklearn's single-``X`` API.
 
     Views are concatenated along the feature axis on the way in and split
@@ -40,6 +41,7 @@ class MultiviewWrapper(BaseEstimator):
 
     Attributes:
         estimator_: The fitted multiview estimator.
+        n_features_in_: Total number of features across the views.
 
     Examples:
         >>> import numpy as np
@@ -58,14 +60,27 @@ class MultiviewWrapper(BaseEstimator):
         self.estimator = estimator
         self.n_features_per_view = n_features_per_view
 
-    def _split_views(self, X: np.ndarray) -> list[np.ndarray]:
-        """Split a concatenated matrix back into individual views."""
-        views = []
-        start = 0
-        for p in self.n_features_per_view:
-            views.append(X[:, start : start + p])
-            start += p
-        return views
+    def _split_views(self, X: ArrayLike, reset: bool) -> list[np.ndarray]:
+        """Split a stacked array back into its views.
+
+        Only the shape is checked here; the estimator validates the views.
+        """
+        stacked: np.ndarray = check_array(X, dtype=None, ensure_all_finite=False)
+        if reset:
+            self.n_features_in_ = stacked.shape[1]
+        else:
+            validate_data(self, stacked, reset=False, skip_check_array=True)
+        edges = np.cumsum(self._view_widths(stacked.shape[1]))[:-1]
+        return np.split(stacked, edges, axis=1)
+
+    def _view_widths(self, n_features: int) -> list[int]:
+        """The width of each view, checked against the stacked array's."""
+        if sum(self.n_features_per_view) != n_features:
+            raise ValueError(
+                f"n_features_per_view sums to {sum(self.n_features_per_view)}, "
+                f"but X has {n_features} features."
+            )
+        return list(self.n_features_per_view)
 
     def set_params(self, **params: Any) -> MultiviewWrapper:
         """Set parameters, including per-view ``estimator__<name>__<view>`` keys.
@@ -125,17 +140,18 @@ class MultiviewWrapper(BaseEstimator):
     def fit(self, X: np.ndarray, y: None = None, **fit_params: Any) -> MultiviewWrapper:
         """Fit the wrapped estimator on the concatenated multiview data."""
         self.estimator_ = clone(self.estimator)
-        self.estimator_.fit(self._split_views(X), **fit_params)
+        self.estimator_.fit(self._split_views(X, reset=True), **fit_params)
         return self
 
     def score(self, X: np.ndarray, y: None = None) -> float:
-        """Mean canonical correlation over all latent dimensions."""
-        return float(self.estimator_.score(self._split_views(X)))
+        """The estimator's score on the views of ``X``."""
+        check_is_fitted(self)
+        return float(self.estimator_.score(self._split_views(X, reset=False)))
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        """Transform and re-concatenate, so the wrapper composes with Pipeline."""
-        transformed = self.estimator_.transform(self._split_views(X))
-        return np.hstack(transformed)
+        """Each view's scores, side by side, so the wrapper composes with Pipeline."""
+        check_is_fitted(self)
+        return np.hstack(self.estimator_.transform(self._split_views(X, reset=False)))
 
 
 def _wrap(

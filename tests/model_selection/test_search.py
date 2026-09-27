@@ -112,3 +112,11 @@ def test_callable_refit_sees_unprefixed_cv_results(
     ).fit(two_views)
     assert "param_c" in seen[0]
     assert gs.best_params_["c"] == 0.0
+
+
+def test_wrapper_checks_the_view_widths(two_views: list[np.ndarray]) -> None:
+    """The view widths must add up to the stacked array's."""
+    with pytest.raises(ValueError, match="sums to 9, but X has 18"):
+        MultiviewWrapper(RidgeCCA(), n_features_per_view=[5, 4]).fit(
+            np.hstack(two_views)
+        )
