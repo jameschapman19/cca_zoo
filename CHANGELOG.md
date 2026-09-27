@@ -234,6 +234,8 @@ Removed outright, with no deprecation period; the table above gives each replace
   Views are converted to float64, so `GraphicalLassoCCA` accepts float32 and integer
   data, and the tree models return float64 scores.
 - `CCA` and `PLS` named `RidgeCCA` in their error for a third view.
+- `StochasticCCAEY` returned NaN weights when its updates diverged; it now raises,
+  suggesting a lower `learning_rate` or scaling the views.
 - `ProbabilisticCCA` and `VariationalBayesCCA` used their noise parameter as a standard
   deviation in the likelihood but as a variance in `posterior_mean`, `log_likelihood`
   and `predict`, so all three were computed with the wrong noise. The parameter is now a

@@ -140,11 +140,7 @@ def test_refit_leaves_no_stale_state(cls: type[BaseModel]) -> None:
 
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
 def test_feature_importances(cls: type[BaseModel]) -> None:
-    """One non-negative array per view, each summing to one.
-
-    A view whose embedding uses no feature at all (a sparse model can zero
-    one out) gets all zeros instead, as sklearn's tree models do.
-    """
+    """One non-negative array per view summing to one, or zero if no feature is used."""
     views = _views(0)
     importances = _fit(make_model(cls), views).feature_importances_
     assert [imp.shape for imp in importances] == [(v.shape[1],) for v in views]

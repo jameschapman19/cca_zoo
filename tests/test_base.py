@@ -28,10 +28,7 @@ def test_score_is_the_mean_canonical_correlation(
 
 
 def test_predict_reconstructs_another_view(scaled_views: list[np.ndarray]) -> None:
-    """Predict's least-squares loadings beat the naive ``scores @ weights.T``.
-
-    Weights are not loadings unless the data is whitened (#182).
-    """
+    """Predict regresses on the scores, which beats ``scores @ weights.T``."""
     model = CCA(n_components=2).fit(scaled_views)
     predicted = model.predict([scaled_views[0], None])[1]
     scores = (scaled_views[0] - model.means_[0]) @ model.weights_[0]

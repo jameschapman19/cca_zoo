@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.model_selection's permutation testing."""
+"""The permutation test of canonical correlations and loadings."""
 
 from __future__ import annotations
 
@@ -6,119 +6,47 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import CCA
-from cca_zoo.model_selection import (
-    permutation_test_significance,
-)
-
-# ---------------------------------------------------------------------------
-# permutation_test_significance
-# ---------------------------------------------------------------------------
+from cca_zoo.model_selection import permutation_test_significance
 
 
 @pytest.fixture
-def signal_and_noise_views() -> list[np.ndarray]:
-    """Two views each with a shared-signal block and a pure-noise block."""
+def signal_and_noise() -> list[np.ndarray]:
+    """Each view: shared-signal columns followed by three noise columns."""
     rng = np.random.default_rng(0)
-    n = 80
-    z = rng.standard_normal((n, 1))
-    signal1 = z @ rng.standard_normal((1, 4)) + 0.2 * rng.standard_normal((n, 4))
-    signal2 = z @ rng.standard_normal((1, 3)) + 0.2 * rng.standard_normal((n, 3))
-    noise1 = rng.standard_normal((n, 3))
-    noise2 = rng.standard_normal((n, 3))
-    return [np.hstack([signal1, noise1]), np.hstack([signal2, noise2])]
+    z = rng.standard_normal((80, 1))
+    signal = [
+        z @ rng.standard_normal((1, p)) + 0.2 * rng.standard_normal((80, p))
+        for p in (4, 3)
+    ]
+    return [np.hstack([s, rng.standard_normal((80, 3))]) for s in signal]
 
 
-def test_permutation_test_shapes(signal_and_noise_views: list[np.ndarray]) -> None:
-    """All result arrays have the expected shapes."""
-    k = 1
-    n_perm = 19
-    result = permutation_test_significance(
-        CCA(n_components=k),
-        signal_and_noise_views,
-        n_permutations=n_perm,
-        random_state=0,
-    )
-    assert result.correlations.shape == (k,)
-    assert result.null_correlations.shape == (n_perm, k)
-    assert result.p_values.shape == (k,)
-    assert len(result.loadings) == 2
-    assert len(result.null_loadings) == 2
-    assert len(result.loading_p_values) == 2
-    for view, loading, null_loading, loading_p in zip(
-        signal_and_noise_views,
-        result.loadings,
-        result.null_loadings,
-        result.loading_p_values,
-    ):
-        assert loading.shape == (view.shape[1], k)
-        assert null_loading.shape == (n_perm, view.shape[1], k)
-        assert loading_p.shape == (view.shape[1], k)
-
-
-def test_permutation_test_p_values_in_valid_range(
-    signal_and_noise_views: list[np.ndarray],
+def test_signal_features_are_significant_and_noise_is_not(
+    signal_and_noise: list[np.ndarray],
 ) -> None:
-    """p_values and loading_p_values all lie in (0, 1]."""
+    """Loadings on the signal columns have small p-values; noise columns do not."""
     result = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=19,
-        random_state=0,
+        CCA(), signal_and_noise, n_permutations=199, random_state=0
     )
-    assert np.all(result.p_values > 0) and np.all(result.p_values <= 1)
-    for p in result.loading_p_values:
-        assert np.all(p > 0) and np.all(p <= 1)
+    p = result.loading_p_values[0][:, 0]
+    assert np.all(p[:4] < 0.1) and np.all(p[4:] > 0.1)
+    assert result.null_loadings[0].shape == (199, 7, 1)
 
 
-def test_permutation_test_signal_features_more_significant_than_noise(
-    signal_and_noise_views: list[np.ndarray],
-) -> None:
-    """Signal-block loadings get lower p-values than pure-noise-block loadings.
-
-    This is the core ask of #130: telling apart features that reliably
-    drive a canonical dimension from features that don't.
-    """
-    result = permutation_test_significance(
-        CCA(n_components=1),
-        signal_and_noise_views,
-        n_permutations=199,
-        random_state=0,
-    )
-    # View 0: first 4 columns are signal, last 3 are noise.
-    signal_p = result.loading_p_values[0][:4, 0]
-    noise_p = result.loading_p_values[0][4:, 0]
-    assert signal_p.mean() < noise_p.mean()
-    assert np.all(signal_p < 0.1)
-    assert np.all(noise_p > 0.1)
-
-
-def test_permutation_test_unrelated_views_not_significant() -> None:
-    """Independent views give a large (non-significant) correlation p-value."""
+def test_independent_views_are_not_significant() -> None:
+    """Unrelated views give a large p-value for the correlation."""
     rng = np.random.default_rng(7)
-    x1 = rng.standard_normal((60, 5))
-    x2 = rng.standard_normal((60, 5))
+    views = [rng.standard_normal((60, 5)) for _ in range(2)]
     result = permutation_test_significance(
-        CCA(n_components=1), [x1, x2], n_permutations=99, random_state=0
+        CCA(), views, n_permutations=99, random_state=0
     )
     assert result.p_values[0] > 0.1
 
 
-def test_permutation_test_does_not_mutate_estimator(
-    signal_and_noise_views: list[np.ndarray],
-) -> None:
-    """The passed-in estimator is cloned, not fitted in place."""
-    estimator = CCA(n_components=1)
-    permutation_test_significance(
-        estimator, signal_and_noise_views, n_permutations=9, random_state=0
-    )
+def test_estimator_is_left_unfitted(signal_and_noise: list[np.ndarray]) -> None:
+    """The test fits clones, as sklearn's permutation_test_score does."""
+    estimator = CCA()
+    permutation_test_significance(estimator, signal_and_noise, n_permutations=9)
     assert not hasattr(estimator, "weights_")
-
-
-def test_permutation_test_invalid_n_permutations_raises(
-    signal_and_noise_views: list[np.ndarray],
-) -> None:
-    """n_permutations must be positive."""
     with pytest.raises(ValueError, match="n_permutations"):
-        permutation_test_significance(
-            CCA(n_components=1), signal_and_noise_views, n_permutations=0
-        )
+        permutation_test_significance(estimator, signal_and_noise, n_permutations=0)

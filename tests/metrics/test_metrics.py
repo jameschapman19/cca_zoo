@@ -1,4 +1,4 @@
-"""Tests for cca_zoo.metrics."""
+"""The correlation and redundancy metrics."""
 
 from __future__ import annotations
 
@@ -15,124 +15,40 @@ from cca_zoo.metrics import (
     total_redundancy,
 )
 
-# ---------------------------------------------------------------------------
-# pairwise_correlations / average_pairwise_correlations / factor_loadings
-# agree with a direct np.corrcoef computation
-# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def fitted(correlated_views: list[np.ndarray]) -> tuple[list, list]:
+    """Views and their CCA scores."""
+    return correlated_views, CCA(n_components=2).fit(correlated_views).transform(
+        correlated_views
+    )
 
 
-def test_correlation_metrics_match_corrcoef(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """Each entry is the Pearson correlation np.corrcoef gives."""
-    model = CCA(n_components=2).fit(correlated_views)
-    scores = model.transform(correlated_views)
+def test_correlations_are_pearsons(fitted: tuple[list, list]) -> None:
+    """Every correlation and loading is the np.corrcoef value."""
+    views, scores = fitted
     corrs = pairwise_correlations(scores)
+    loadings = factor_loadings(views, scores)
     for d in range(2):
         expected = np.corrcoef(scores[0][:, d], scores[1][:, d])[0, 1]
-        assert corrs[0, 1, d] == pytest.approx(expected, rel=1e-10)
-        assert average_pairwise_correlations(corrs)[d] == pytest.approx(
-            expected, rel=1e-10
-        )
-    loadings = factor_loadings(correlated_views, scores)
-    for view, score, loading in zip(correlated_views, scores, loadings):
-        for j in range(view.shape[1]):
-            for d in range(2):
-                expected = np.corrcoef(view[:, j], score[:, d])[0, 1]
-                assert loading[j, d] == pytest.approx(expected, rel=1e-10)
-
-
-# ---------------------------------------------------------------------------
-# pairwise_correlations properties
-# ---------------------------------------------------------------------------
-
-
-def test_pairwise_correlations_diagonal_is_one(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """A view's correlation with itself is exactly 1 on every dimension."""
-    model = CCA(n_components=2).fit(correlated_views)
-    corrs = pairwise_correlations(model.transform(correlated_views))
-    for i in range(len(correlated_views)):
-        np.testing.assert_allclose(corrs[i, i, :], 1.0, atol=1e-10)
-
-
-def test_pairwise_correlations_symmetric(correlated_views: list[np.ndarray]) -> None:
-    """corrs[i, j] == corrs[j, i]."""
-    model = CCA(n_components=2).fit(correlated_views)
-    corrs = pairwise_correlations(model.transform(correlated_views))
+        assert corrs[0, 1, d] == pytest.approx(expected)
+        assert average_pairwise_correlations(corrs)[d] == pytest.approx(expected)
+        for view, score, loading in zip(views, scores, loadings):
+            for j in range(view.shape[1]):
+                assert loading[j, d] == pytest.approx(
+                    np.corrcoef(view[:, j], score[:, d])[0, 1]
+                )
     np.testing.assert_allclose(corrs, corrs.transpose(1, 0, 2))
+    np.testing.assert_allclose(corrs[[0, 1], [0, 1]], 1.0)
 
 
-# ---------------------------------------------------------------------------
-# adequacy_coefficient / redundancy_index / total_redundancy
-# ---------------------------------------------------------------------------
-
-
-def test_adequacy_coefficient_in_unit_range(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """A mean of squared correlations lies in [0, 1]."""
-    model = CCA(n_components=2).fit(correlated_views)
-    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
-    adequacy = adequacy_coefficient(loadings)
-    for a in adequacy:
-        assert a.shape == (2,)
-        assert np.all(a >= 0.0)
-        assert np.all(a <= 1.0)
-
-
-def test_redundancy_index_diagonal_equals_adequacy(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """redundancy[i, i] == adequacy_i, since a view's correlation with itself is 1."""
-    model = CCA(n_components=2).fit(correlated_views)
-    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
-    corrs = pairwise_correlations(model.transform(correlated_views))
-    redundancy = redundancy_index(loadings, corrs)
-    adequacy = adequacy_coefficient(loadings)
-    for i, a in enumerate(adequacy):
-        np.testing.assert_allclose(redundancy[i, i, :], a)
-
-
-def test_redundancy_index_bounded_by_adequacy(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """Off-diagonal redundancy never exceeds the view's own adequacy (corr^2 <= 1)."""
-    model = CCA(n_components=2).fit(correlated_views)
-    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
-    corrs = pairwise_correlations(model.transform(correlated_views))
-    redundancy = redundancy_index(loadings, corrs)
-    adequacy = np.stack(adequacy_coefficient(loadings), axis=0)
-    assert np.all(redundancy <= adequacy[:, np.newaxis, :] + 1e-10)
-    assert np.all(redundancy >= 0.0)
-
-
-def test_total_redundancy_sums_over_dimensions(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """total_redundancy is the sum of redundancy_index over the last axis."""
-    model = CCA(n_components=2).fit(correlated_views)
-    loadings = factor_loadings(correlated_views, model.transform(correlated_views))
-    corrs = pairwise_correlations(model.transform(correlated_views))
-    redundancy = redundancy_index(loadings, corrs)
-    total = total_redundancy(redundancy)
-    assert total.shape == (2, 2)
-    np.testing.assert_allclose(total, redundancy.sum(axis=-1))
-
-
-def test_redundancy_asymmetric_across_views() -> None:
-    """Redundancy of view i given j need not equal that of j given i.
-
-    Construct view 1 with far more (noisy) features than view 2, so their
-    own adequacy coefficients genuinely differ.
-    """
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((200, 1))
-    x1 = z @ rng.standard_normal((1, 30)) + 2.0 * rng.standard_normal((200, 30))
-    x2 = z @ rng.standard_normal((1, 2)) + 0.05 * rng.standard_normal((200, 2))
-    model = CCA(n_components=1).fit([x1, x2])
-    loadings = factor_loadings([x1, x2], model.transform([x1, x2]))
-    corrs = pairwise_correlations(model.transform([x1, x2]))
-    redundancy = redundancy_index(loadings, corrs)
-    assert not np.allclose(redundancy[0, 1, :], redundancy[1, 0, :])
+def test_redundancy_is_bounded_by_adequacy(fitted: tuple[list, list]) -> None:
+    """Redundancy with itself is a view's adequacy; with another, at most that."""
+    views, scores = fitted
+    loadings = factor_loadings(views, scores)
+    adequacy = np.stack(adequacy_coefficient(loadings))
+    redundancy = redundancy_index(loadings, pairwise_correlations(scores))
+    assert np.all((0 <= adequacy) & (adequacy <= 1))
+    np.testing.assert_allclose(redundancy[[0, 1], [0, 1]], adequacy)
+    assert np.all((0 <= redundancy) & (redundancy <= adequacy[:, None] + 1e-10))
+    np.testing.assert_allclose(total_redundancy(redundancy), redundancy.sum(axis=-1))

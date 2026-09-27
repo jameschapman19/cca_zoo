@@ -88,6 +88,9 @@ class StochasticCCAEY(CCAEY):
 
         Returns:
             self.
+
+        Raises:
+            ValueError: If the updates diverge.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
@@ -123,6 +126,11 @@ class StochasticCCAEY(CCAEY):
                     weights[i] = weights[i] + velocity[i]
             full_representations = [v @ w for v, w in zip(views, weights)]
             obj = self._objective(views, full_representations, weights)
+            if not np.isfinite(obj):
+                raise ValueError(
+                    "StochasticCCAEY diverged. Lower learning_rate, or scale the "
+                    "views with StandardScaler."
+                )
             if abs(prev_obj - obj) < self.tol:
                 break
             prev_obj = obj
