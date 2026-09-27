@@ -158,7 +158,7 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `DCCA` | Deep CCA; any number of views with a multiview `objective` | Andrew et al. (2013) | 2 |
+| `DCCA` | Deep CCA | Andrew et al. (2013) | 2 |
 | `DMCCA` | Deep multiset CCA, pairwise-sum objective | Somandepalli et al. (2019) | ≥2 |
 | `DPCCA` | Deep partial CCA: correlation conditioned on a variable only needed for training | Rotman, Vulić & Reichart (2018) | ≥2 |
 | `DGCCA` | Deep generalised CCA | Benton et al. (2019) | ≥2 |

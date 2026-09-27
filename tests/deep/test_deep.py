@@ -169,8 +169,8 @@ def test_dcca_learns_shared_signal() -> None:
     assert pairwise_correlations(scores)[0, 1].min() > 0.8
 
 
-def test_dcca_default_loss_rejects_more_views() -> None:
-    """DCCA's default CCALoss is two-view, like linear CCA; it raises on more."""
+def test_dcca_rejects_more_views() -> None:
+    """DCCA is two-view, like linear CCA; DMCCA, DGCCA and DTCCA take more."""
     with pytest.raises(ValueError, match="two views"):
         DCCA(K, [nn.Linear(4, K) for _ in range(3)])
 
@@ -185,7 +185,6 @@ def _three_view_models(widths: list[int]) -> dict[str, BaseDeep]:
         return [nn.Linear(width, p) for p in widths]
 
     return {
-        "DCCA+MCCALoss": DCCA(K, enc(), objective=MCCALoss()),
         "DMCCA": DMCCA(K, enc()),
         "DGCCA": DGCCA(K, enc()),
         "DTCCA": DTCCA(K, enc()),
@@ -205,7 +204,7 @@ THREE_VIEW_NAMES = list(_three_view_models([6, 5, 4]))
 
 @pytest.mark.parametrize("name", THREE_VIEW_NAMES)
 def test_models_train_on_three_views(name: str) -> None:
-    """Every model but DCCA's default takes any number of views."""
+    """Every model but DCCA takes any number of views."""
     views = _views(n_views=3)
     model = _three_view_models([v.shape[1] for v in views])[name]
     _trainer().fit(model, _loader(views))
@@ -305,12 +304,18 @@ def _confounded_views(n: int = 1500) -> tuple[list[np.ndarray], np.ndarray, np.n
     return views, partials, p
 
 
-@pytest.mark.parametrize("partial_encoder", [None, nn.Linear(2, 2)], ids=["raw", "net"])
+@pytest.mark.parametrize("encode_partials", [False, True], ids=["raw", "net"])
+@pytest.mark.parametrize("seed", [0, 4, 5])
 def test_dpcca_finds_the_signal_the_partials_do_not_explain(
-    partial_encoder: nn.Module | None,
+    encode_partials: bool, seed: int
 ) -> None:
-    """Conditioned on the partials, DPCCA recovers the unconfounded signal."""
-    torch.manual_seed(0)
+    """Conditioned on the partials, DPCCA recovers the unconfounded signal.
+
+    Seeds 4 and 5 are those where a partial encoder trained on the correlation
+    loss collapsed.
+    """
+    torch.manual_seed(seed)
+    partial_encoder = nn.Linear(2, 2) if encode_partials else None
     views, partials, p = _confounded_views()
     model = DPCCA(
         1,

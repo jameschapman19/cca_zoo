@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from cca_zoo.deep._base import Batch
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dcca import _ObjectiveModel
 from cca_zoo.deep.objectives import MCCALoss
 
 
@@ -18,7 +18,7 @@ def _reconstruction_loss(
     return torch.stack([F.mse_loss(r, x) for x, r in zip(views, reconstructions)]).sum()
 
 
-class DCCAE(DCCA):
+class DCCAE(_ObjectiveModel):
     r"""Deep CCA with per-view autoencoder reconstruction.
 
     $$
@@ -71,10 +71,10 @@ class DCCAE(DCCA):
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=MCCALoss(eps=eps) if objective is None else objective,
             learning_rate=learning_rate,
-            eps=eps,
         )
+        self.eps = eps
+        self.objective = MCCALoss(eps=eps) if objective is None else objective
         self.lam = lam
         self.decoders = nn.ModuleList(decoders)
 

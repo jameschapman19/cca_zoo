@@ -81,11 +81,11 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 
 | Model | Views | Loss |
 |---|---|---|
-| `DCCA` | 2, or any with a multiview `objective` | Deep CCA (Andrew et al., 2013); pluggable |
+| `DCCA` | 2 | Deep CCA (Andrew et al., 2013) |
 | `DCCAEY` | any | Eckart-Young loss (Chapman et al., 2024); stable on small batches |
 | `DMCCA` | any | Sum of pairwise CCA losses |
 | `DGCCA` | any | Generalized CCA (Benton et al., 2019) |
-| `DPCCA` | any | Partial CCA: correlation conditioned on a variable seen only in training (Rotman et al., 2018) |
+| `DPCCA` | any | Partial CCA: correlation conditioned on a variable seen only in training (Rotman et al., 2018), trained on the EY loss |
 | `DTCCA` | any | Tensor CCA (Wong et al., 2021) |
 | `DCCANOI` | any | Nonlinear orthogonal iterations (Wang et al., 2015) |
 | `DCCASDL` | any | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
@@ -95,13 +95,13 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `SplitAE` | any | Every view reconstructed from all encodings |
 | `DVCCA` | any | Variational: a latent inferred from the first view generates every view (Wang et al., 2016) |
 
-As on the linear side, only `DCCA`'s default loss is two-view, like `CCA`; `DMCCA` and
-`DGCCA` generalise it as `MCCA` and `GCCA` do. Losses defined between two views
+As on the linear side, only `DCCA` is two-view, like `CCA`; `DMCCA`, `DGCCA` and
+`DTCCA` generalise it as `MCCA`, `GCCA` and `TCCA` do. Losses defined between two views
 (`BarlowTwins`, `VICReg`, `DCCASDL`, and `DCCAE`'s default `MCCALoss`) are summed over
 pairs of views, and with two views each is the published loss.
 
-`DCCA` and `DCCAE` take an `objective` from `cca_zoo.deep.objectives`, or any module
-mapping a list of encodings to a scalar:
+The correlation losses are in `cca_zoo.deep.objectives`. `DCCAE` takes one as its
+`objective` (default `MCCALoss`), or any module mapping a list of encodings to a scalar:
 
 | Objective | Loss |
 |---|---|
@@ -111,9 +111,11 @@ mapping a list of encodings to a scalar:
 | `TCCALoss` | Minus the norm of the whitened cross-moment tensor |
 
 ```python
-from cca_zoo.deep.objectives import MCCALoss
+from cca_zoo.deep.objectives import GCCALoss
 
-model = DCCA(n_components=4, encoders=[e1, e2, e3], objective=MCCALoss())
+model = DCCAE(
+    n_components=4, encoders=[e1, e2, e3], decoders=[d1, d2, d3], objective=GCCALoss()
+)
 ```
 
 The autoencoder models also take decoders. `DCCAE` decodes each view from its own
@@ -130,7 +132,17 @@ model = DCCAE(n_components=4, encoders=[e1, e2], decoders=[d1, d2], lam=0.1)
 
 `DPCCA` conditions the correlation on a variable $Z$, such as images shared by two
 languages' texts, given as `partials` and needed only for training. It uses $Z$ as given,
-or encodes it with `partial_encoder`, trained jointly (the paper's variants A and B):
+or encodes it with `partial_encoder` (the paper's variants A and B). The model is Rotman
+et al.'s, trained differently in two ways:
+
+- **Loss:** where they use nonlinear orthogonal iterations, `DPCCA` minimises the EY loss
+  of the partialled encodings, as `DCCAEY` does, which needs no whitening.
+- **Partial encoder:** they train it on the correlation loss, which rewards it for *not*
+  explaining the confound (in testing it collapsed on 2 of 8 seeds). Here it is trained
+  to explain the encodings by least squares, so partialling removes all it can.
+
+The linear CCA applied at prediction is fitted on partialled training encodings, so it
+targets the correlation $Z$ does not explain:
 
 ```python
 train = DataLoader(MultiviewDataset([X1, X2], partials=Z), batch_size=128, shuffle=True)

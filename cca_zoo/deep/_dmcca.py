@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dcca import _ObjectiveModel
 from cca_zoo.deep.objectives import MCCALoss
 
 
-class DMCCA(DCCA):
+class DMCCA(_ObjectiveModel):
     r"""Deep multiset CCA: the sum of pairwise deep CCA losses.
 
     $$
@@ -45,7 +45,7 @@ class DMCCA(DCCA):
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=MCCALoss(eps=eps),
             learning_rate=learning_rate,
-            eps=eps,
         )
+        self.eps = eps
+        self.objective = MCCALoss(eps=eps)

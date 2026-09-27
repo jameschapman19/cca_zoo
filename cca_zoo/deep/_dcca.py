@@ -9,29 +9,37 @@ from cca_zoo.deep._base import BaseDeep, Batch
 from cca_zoo.deep.objectives import CCALoss
 
 
-class DCCA(BaseDeep):
-    r"""Deep CCA: neural encoders trained to maximise canonical correlation.
+class _ObjectiveModel(BaseDeep):
+    """A deep model minimising a loss module of the encodings, ``objective``."""
 
-    By default minimises, per mini-batch,
+    objective: nn.Module
+
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """``{"objective": objective(encodings)}``."""
+        return {"objective": self.objective(self(batch["views"]))}
+
+
+class DCCA(_ObjectiveModel):
+    r"""Deep CCA of two views: encoders trained to maximise canonical correlation.
+
+    Minimises, per mini-batch,
 
     $$
     \mathcal{L} = -\bigl\| \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2} \bigr\|_F^2
     $$
 
-    (:class:`~cca_zoo.deep.objectives.CCALoss`), which is defined for two
-    views; pass ``objective`` to use another loss, such as
-    :class:`~cca_zoo.deep.objectives.MCCALoss` for more views.
+    (:class:`~cca_zoo.deep.objectives.CCALoss`). As linear CCA generalises to
+    MCCA, GCCA and TCCA, it generalises to more views as :class:`DMCCA`,
+    :class:`DGCCA` and :class:`DTCCA`.
 
     Args:
         n_components: Latent dimension.
         encoders: One module per view.
-        objective: Loss on the list of encodings; None uses ``CCALoss(eps)``.
-            Default is None.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge of the default loss. Default is 1e-6.
+        eps: Ridge of the within-view covariances. Default is 1e-6.
 
     Raises:
-        ValueError: If ``objective`` is None and there are not two encoders.
+        ValueError: If there are not two encoders.
 
     References:
         Andrew, G., Arora, R., Bilmes, J., & Livescu, K. (2013). Deep
@@ -61,14 +69,13 @@ class DCCA(BaseDeep):
         self,
         n_components: int,
         encoders: list[nn.Module],
-        objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
         eps: float = 1e-6,
     ) -> None:
-        if objective is None and len(encoders) != 2:
+        if len(encoders) != 2:
             raise ValueError(
-                f"DCCA's default CCALoss is defined for two views, got "
-                f"{len(encoders)}; use DMCCA, DGCCA or a multiview objective."
+                f"DCCA is defined for two views, got {len(encoders)}; use DMCCA, "
+                "DGCCA or DTCCA for more."
             )
         super().__init__(
             n_components=n_components,
@@ -76,8 +83,4 @@ class DCCA(BaseDeep):
             learning_rate=learning_rate,
         )
         self.eps = eps
-        self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective
-
-    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
-        """``{"objective": objective(encodings)}``."""
-        return {"objective": self.objective(self(batch["views"]))}
+        self.objective = CCALoss(eps=eps)

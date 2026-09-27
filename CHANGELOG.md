@@ -52,6 +52,7 @@ The table below gives each replacement.
 | deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
 | deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
 | deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
+| `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
 
@@ -59,8 +60,12 @@ The table below gives each replacement.
 
 - `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
   correlation conditioned on a variable given as `partials`, used as given or encoded by a
-  `partial_encoder` (the paper's variants A and B), and needed only for training.
-  `MultiviewDataset` takes `partials`.
+  `partial_encoder` (the paper's variants A and B), and needed only for training. It
+  minimises the EY loss of the partialled encodings rather than the paper's nonlinear
+  orthogonal iterations, which needs no whitening. The partial encoder is trained to
+  explain the encodings by least squares, not on the correlation loss as in the paper,
+  which rewards it for leaving the confound in. The prediction-time linear CCA is fitted
+  on partialled encodings. `MultiviewDataset` takes `partials`.
 - `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `learning_curve` and
   `validation_curve`: sklearn's functions taking a list of views, so multiview models are
   cross-validated as sklearn models are, without stacking views or building a
@@ -196,6 +201,9 @@ Removed outright, with no deprecation period; the table above gives each replace
   `SplitAE`, `DVCCA`).
 - The deep models' `max_epochs`, which was stored and never read, and their `transform`
   and `score` (see Changed).
+- `DCCA`'s `objective` argument: `DCCA(objective=MCCALoss())` duplicated `DMCCA`, and
+  likewise for `DGCCA` and `DTCCA`. `DCCA` is the two-view method, as `CCA` is; `DCCAE`
+  keeps `objective`, since no class covers its combinations.
 
 ### Fixed
 

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dcca import _ObjectiveModel
 from cca_zoo.deep.objectives import TCCALoss
 
 
-class DTCCA(DCCA):
+class DTCCA(_ObjectiveModel):
     r"""Deep tensor CCA: maximise the cross-moment tensor of whitened encodings.
 
     Minimises $-\|M\|_F$ with
@@ -43,7 +43,7 @@ class DTCCA(DCCA):
         super().__init__(
             n_components=n_components,
             encoders=encoders,
-            objective=TCCALoss(eps=eps),
             learning_rate=learning_rate,
-            eps=eps,
         )
+        self.eps = eps
+        self.objective = TCCALoss(eps=eps)
