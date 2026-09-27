@@ -23,6 +23,7 @@ from cca_zoo.deep import (
     DCCASDL,
     DGCCA,
     DMCCA,
+    DPCCA,
     DTCCA,
     DVCCA,
     BarlowTwins,
@@ -288,3 +289,45 @@ def test_objectives_are_scalars() -> None:
         assert loss(three).ndim == 0
     with pytest.raises(ValueError, match="exactly 2"):
         CCALoss()(three)
+
+
+def _confounded_views(n: int = 1500) -> tuple[list[np.ndarray], np.ndarray, np.ndarray]:
+    """Views sharing a strong signal carried by the partials and a weak one not."""
+    rng = np.random.default_rng(0)
+    s, p = rng.standard_normal(n), rng.standard_normal(n)
+    views = []
+    for width in P:
+        x = 0.3 * rng.standard_normal((n, width))
+        x[:, :2] += np.outer(2.0 * s, rng.standard_normal(2))
+        x[:, 2:4] += np.outer(p, rng.standard_normal(2))
+        views.append(x.astype(np.float32))
+    partials = np.column_stack([s, rng.standard_normal(n)]).astype(np.float32)
+    return views, partials, p
+
+
+@pytest.mark.parametrize("partial_encoder", [None, nn.Linear(2, 2)], ids=["raw", "net"])
+def test_dpcca_finds_the_signal_the_partials_do_not_explain(
+    partial_encoder: nn.Module | None,
+) -> None:
+    """Conditioned on the partials, DPCCA recovers the unconfounded signal."""
+    torch.manual_seed(0)
+    views, partials, p = _confounded_views()
+    model = DPCCA(
+        1,
+        [nn.Sequential(nn.Linear(w, 16), nn.Tanh(), nn.Linear(16, 1)) for w in P],
+        partial_encoder=partial_encoder,
+        learning_rate=1e-2,
+    )
+    train = DataLoader(
+        MultiviewDataset(views, partials=partials), batch_size=256, shuffle=True
+    )
+    _trainer(max_epochs=30).fit(model, train)
+    (z1, _) = _predict(model, _loader(views))  # no partials needed to predict
+    assert abs(np.corrcoef(z1[:, 0], p)[0, 1]) > 0.8
+
+
+def test_dpcca_needs_partials_to_train() -> None:
+    """A training batch without partials raises."""
+    model = DPCCA(K, _encoders())
+    with pytest.raises(ValueError, match="partials"):
+        model.loss({"views": [torch.randn(8, p) for p in P]})

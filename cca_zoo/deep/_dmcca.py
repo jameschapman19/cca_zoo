@@ -24,8 +24,9 @@ class DMCCA(DCCA):
         eps: Ridge of each pairwise loss. Default is 1e-6.
 
     References:
-        Kettenring, J. R. (1971). Canonical analysis of several sets of
-        variables. Biometrika, 58(3), 433-451.
+        Somandepalli, K., Kumar, N., Travadi, R., & Narayanan, S. (2019).
+        Multimodal representation learning using deep multiset canonical
+        correlation analysis. arXiv:1904.01775.
 
     Examples:
         >>> import torch.nn as nn

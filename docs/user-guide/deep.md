@@ -85,6 +85,7 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `DCCAEY` | any | Eckart-Young loss (Chapman et al., 2024); stable on small batches |
 | `DMCCA` | any | Sum of pairwise CCA losses |
 | `DGCCA` | any | Generalized CCA (Benton et al., 2019) |
+| `DPCCA` | any | Partial CCA: correlation conditioned on a variable seen only in training (Rotman et al., 2018) |
 | `DTCCA` | any | Tensor CCA (Wong et al., 2021) |
 | `DCCANOI` | any | Nonlinear orthogonal iterations (Wang et al., 2015) |
 | `DCCASDL` | any | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
@@ -125,6 +126,17 @@ the latent. Its prediction is one array, the posterior mean, with no linear CCA.
 from cca_zoo.deep import DCCAE
 
 model = DCCAE(n_components=4, encoders=[e1, e2], decoders=[d1, d2], lam=0.1)
+```
+
+`DPCCA` conditions the correlation on a variable $Z$, such as images shared by two
+languages' texts, given as `partials` and needed only for training. It uses $Z$ as given,
+or encodes it with `partial_encoder`, trained jointly (the paper's variants A and B):
+
+```python
+train = DataLoader(MultiviewDataset([X1, X2], partials=Z), batch_size=128, shuffle=True)
+model = DPCCA(n_components=4, encoders=[e1, e2])
+trainer.fit(model, train)
+z1, z2 = (torch.cat(z) for z in zip(*trainer.predict(model, test_loader)))  # no Z
 ```
 
 `DCCAEY` also accepts `"independent_views"` in a batch, an independent batch whose

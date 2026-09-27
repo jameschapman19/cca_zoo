@@ -19,6 +19,7 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._dccae import DCCAE
     from cca_zoo.deep._dgcca import DGCCA
     from cca_zoo.deep._dmcca import DMCCA
+    from cca_zoo.deep._dpcca import DPCCA
     from cca_zoo.deep._dtcca import DTCCA
     from cca_zoo.deep._dvcca import DVCCA
     from cca_zoo.deep._splitae import SplitAE
@@ -34,6 +35,7 @@ if _torch_available and _lightning_available:
         "DCCAE",
         "DGCCA",
         "DMCCA",
+        "DPCCA",
         "DTCCA",
         "DVCCA",
         "MultiviewDataset",

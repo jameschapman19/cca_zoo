@@ -57,6 +57,10 @@ The table below gives each replacement.
 
 ### Added
 
+- `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
+  correlation conditioned on a variable given as `partials`, used as given or encoded by a
+  `partial_encoder` (the paper's variants A and B), and needed only for training.
+  `MultiviewDataset` takes `partials`.
 - `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `learning_curve` and
   `validation_curve`: sklearn's functions taking a list of views, so multiview models are
   cross-validated as sklearn models are, without stacking views or building a
@@ -199,6 +203,8 @@ Removed outright, with no deprecation period; the table above gives each replace
   inferred from the first view alone, by a single `encoder`, and every view is decoded
   from $z$. It took one encoder per view and added their means and log-variances, which
   is neither the published model nor a valid posterior.
+- `DMCCA` cited Kettenring (1971), the linear method; it now cites the deep one,
+  Somandepalli et al. (2019).
 - `DCCANOI`'s whitening layer returned unwhitened encodings in eval mode, so its
   validation loss compared raw encodings; it now whitens by the running covariance, as
   batch normalisation uses its running statistics.

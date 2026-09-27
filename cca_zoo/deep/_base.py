@@ -45,7 +45,7 @@ class BaseDeep(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters(
-            ignore=["encoder", "encoders", "decoders", "objective"]
+            ignore=["encoder", "encoders", "decoders", "objective", "partial_encoder"]
         )
         self.encoders = nn.ModuleList(encoders)
         self.n_components = n_components
