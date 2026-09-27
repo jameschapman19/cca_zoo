@@ -207,9 +207,11 @@ Removed outright, with no deprecation period; the table above gives each replace
   0.14 held-out correlation on a plain linear signal where linear CCA reaches 0.91. It
   started from a unit-variance random projection and renormalised every round's gradient
   to a fixed small size, so the boosters' learned part stayed a fraction of a random
-  embedding they could not undo. It now starts from a random embedding of standard
-  deviation 0.01 and boosts on each sample's own EY gradient, so `learning_rate` is a
-  true step size and steps shrink as the fit converges. Once the steps are the right size,
+  embedding they could not undo. It now boosts on each sample's own EY gradient, so
+  `learning_rate` is a true step size and steps shrink as the fit converges; a random
+  embedding of standard deviation 0.01 breaks the symmetry for the first round only, so
+  each encoder is its trees alone. Tuned, the old procedure reaches similar held-out
+  correlation, but needs roughly 5–10 times the rounds. Once the steps are the right size,
   two tree ensembles fitted to each other overfit, so the defaults change to
   `n_estimators=200`, `max_depth=3`, `min_child_weight=20` (from 50, 5, 5). Held-out
   correlation on linear, sine and absolute-value relationships goes from 0.16 / 0.03 /

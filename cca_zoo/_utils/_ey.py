@@ -135,11 +135,11 @@ def cheap_orthonormal_projection_weights(
 
 def random_orthogonal_embedding(
     Xc: np.ndarray, k: int, rng: np.random.Generator, std: float = 1.0
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Random orthogonal embedding of a view with a given standard deviation.
 
-    Starting point for the tree encoders: the EY gradient is zero at an
-    all-zero embedding.
+    Breaks the symmetry for the tree encoders' first round: the EY gradient
+    is zero at an all-zero embedding.
 
     Args:
         Xc: Centred view, shape (n_samples, n_features).
@@ -148,16 +148,14 @@ def random_orthogonal_embedding(
         std: Standard deviation of each component. Default is 1.
 
     Returns:
-        ``(base_margin, projection)``: the embedding, shape (n_samples, k),
-        and the projection reproducing it for new data, shape (n_features, k).
+        The embedding, shape (n_samples, k), as ``float32``.
     """
     n, p = Xc.shape
     W, _ = np.linalg.qr(rng.standard_normal((p, k)))
     Z = Xc @ W
     scale = np.linalg.norm(Z, axis=0, keepdims=True) / np.sqrt(n - 1) / std
-    projection = (W / scale).astype(np.float32)
-    base_margin = (Z / scale).astype(np.float32)
-    return base_margin, projection
+    embedding: np.ndarray = (Z / scale).astype(np.float32)
+    return embedding
 
 
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:

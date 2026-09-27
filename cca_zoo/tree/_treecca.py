@@ -28,11 +28,9 @@ except ImportError:
     _CATBOOST_AVAILABLE = False
 
 
-# Standard deviation of the random starting embedding, relative to the unit
-# scale the EY optimum has: small enough that the boosters' learned signal
-# dominates the final embedding rather than a random projection they cannot
-# undo, large enough for a non-vanishing first gradient (the EY gradient is
-# zero at an all-zero embedding).
+# Standard deviation of the random embedding the first round starts from, small
+# against the unit scale of the EY optimum. It only breaks the symmetry (the EY
+# gradient is zero at an all-zero embedding); later rounds use the trees alone.
 _START_STD = 0.01
 
 
@@ -192,8 +190,9 @@ class TreeCCA(BaseModel, ABC):
     $$
 
     Each round adds one tree per component, fitted to each sample's EY
-    gradient, visiting the views in turn. Training starts from a small random
-    orthogonal embedding, since the gradient vanishes at zero. Use a backend
+    gradient, visiting the views in turn. The gradient vanishes at zero, so
+    the first round starts from a small random embedding; the encoders are the
+    trees alone. Use a backend
     subclass: :class:`XGBoostCCA`, :class:`LightGBMCCA` or
     :class:`CatBoostCCA`.
 
@@ -309,13 +308,9 @@ class TreeCCA(BaseModel, ABC):
         )
 
         rng = np.random.default_rng(self.random_state)
-        base_margins = []
-        projections = []
-        for X in views_:
-            bm, proj = random_orthogonal_embedding(X, k, rng, std=_START_STD)
-            base_margins.append(bm)
-            projections.append(proj)
-        self._projections_: list[np.ndarray] = projections
+        starts = [
+            random_orthogonal_embedding(X, k, rng, std=_START_STD) for X in views_
+        ]
         # The backends take an integer seed; drawing it from the fit's own
         # generator makes random_state=None give a fresh one each fit.
         seed = int(rng.integers(2**31 - 1))
@@ -336,9 +331,8 @@ class TreeCCA(BaseModel, ABC):
         ]
 
         for round_idx in range(max(n_estimators_)):
-            representations = [
-                bm + enc.predict() for bm, enc in zip(base_margins, encoders)
-            ]
+            offsets = starts if round_idx == 0 else [np.float32(0.0)] * n_views
+            representations = [o + enc.predict() for o, enc in zip(offsets, encoders)]
             grads = _boosting_targets(representations)
 
             for view_idx in range(n_views):
@@ -347,7 +341,7 @@ class TreeCCA(BaseModel, ABC):
                 encoders[view_idx].boost(grads[view_idx])
                 if self.gauss_seidel and view_idx < n_views - 1:
                     representations[view_idx] = (
-                        base_margins[view_idx] + encoders[view_idx].predict()
+                        offsets[view_idx] + encoders[view_idx].predict()
                     )
                     grads = _boosting_targets(representations)
 
@@ -355,10 +349,7 @@ class TreeCCA(BaseModel, ABC):
         return self
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        boosted: np.ndarray = centred @ self._projections_[
-            view
-        ] + self._predict_boosters(self.boosters_[view], centred)
-        return boosted
+        return self._predict_boosters(self.boosters_[view], centred)
 
 
 class XGBoostCCA(TreeCCA):
