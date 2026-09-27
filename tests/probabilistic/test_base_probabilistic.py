@@ -100,8 +100,8 @@ def test_transform_is_each_views_posterior_mean(
     model = ModelClass(n_components=2, **_fast_kwargs(ModelClass)).fit(two_views)
     x1, x2 = model.transform(two_views)
     np.testing.assert_allclose(
-        x1, model.posterior_mean([two_views[0], None]), rtol=1e-5
+        x1, model.posterior_mean([two_views[0], None]), atol=1e-6
     )
     np.testing.assert_allclose(
-        x2, model.posterior_mean([None, two_views[1]]), rtol=1e-5
+        x2, model.posterior_mean([None, two_views[1]]), atol=1e-6
     )
