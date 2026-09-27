@@ -10,7 +10,7 @@ import sklearn.model_selection as skms
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 
-from cca_zoo.model_selection._search import _PARAM_PREFIX, _wrap
+from cca_zoo.model_selection._search import _PARAM_PREFIX, _unwrapped_scoring, _wrap
 
 
 def cross_val_score(
@@ -24,7 +24,8 @@ def cross_val_score(
         estimator: A multiview estimator.
         views: Arrays of shape (n_samples, n_features_i), one per view.
         **kwargs: Passed to :func:`sklearn.model_selection.cross_val_score`,
-            such as ``cv``, ``scoring``, ``groups`` and ``n_jobs``.
+            such as ``cv``, ``groups`` and ``n_jobs``. A ``scoring`` callable
+            is called as ``scoring(estimator, views)``.
 
     Returns:
         The score of each fold, by default the mean canonical correlation.
@@ -39,7 +40,9 @@ def cross_val_score(
         (3,)
     """
     wrapper, X = _wrap(estimator, views)
-    scores: np.ndarray = skms.cross_val_score(wrapper, X, **kwargs)
+    scores: np.ndarray = skms.cross_val_score(
+        wrapper, X, scoring=_unwrapped_scoring(kwargs.pop("scoring", None)), **kwargs
+    )
     return scores
 
 
@@ -54,15 +57,18 @@ def cross_validate(
         estimator: A multiview estimator.
         views: Arrays of shape (n_samples, n_features_i), one per view.
         **kwargs: Passed to :func:`sklearn.model_selection.cross_validate`,
-            such as ``cv``, ``scoring``, ``return_train_score`` and
-            ``return_estimator``.
+            such as ``cv``, ``return_train_score`` and ``return_estimator``.
+            A ``scoring`` callable, or each in a dict, is called as
+            ``scoring(estimator, views)``.
 
     Returns:
         sklearn's result dictionary; with ``return_estimator``, the fitted
         multiview estimators.
     """
     wrapper, X = _wrap(estimator, views)
-    results: dict[str, Any] = skms.cross_validate(wrapper, X, **kwargs)
+    results: dict[str, Any] = skms.cross_validate(
+        wrapper, X, scoring=_unwrapped_scoring(kwargs.pop("scoring", None)), **kwargs
+    )
     if "estimator" in results:
         results["estimator"] = [fitted.estimator_ for fitted in results["estimator"]]
     return results
@@ -121,7 +127,13 @@ def learning_curve(
         sklearn's ``(train_sizes, train_scores, test_scores, ...)``.
     """
     wrapper, X = _wrap(estimator, views)
-    curve: tuple[np.ndarray, ...] = skms.learning_curve(wrapper, X, None, **kwargs)
+    curve: tuple[np.ndarray, ...] = skms.learning_curve(
+        wrapper,
+        X,
+        None,
+        scoring=_unwrapped_scoring(kwargs.pop("scoring", None)),
+        **kwargs,
+    )
     return curve
 
 
@@ -168,6 +180,7 @@ def validation_curve(
         None,
         param_name=_PARAM_PREFIX + param_name,
         param_range=param_range,
+        scoring=_unwrapped_scoring(kwargs.pop("scoring", None)),
         **kwargs,
     )
     return train_scores, test_scores

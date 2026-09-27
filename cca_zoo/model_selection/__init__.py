@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from cca_zoo.model_selection._search import (
     GridSearchCV,
-    MultiviewWrapper,
+    HalvingGridSearchCV,
+    HalvingRandomSearchCV,
     RandomizedSearchCV,
 )
 from cca_zoo.model_selection._significance import (
@@ -21,7 +22,8 @@ from cca_zoo.model_selection._validation import (
 
 __all__ = [
     "GridSearchCV",
-    "MultiviewWrapper",
+    "HalvingGridSearchCV",
+    "HalvingRandomSearchCV",
     "RandomizedSearchCV",
     "PermutationTestResult",
     "permutation_test_significance",

@@ -6,12 +6,11 @@ thing that stops sklearn's own model-selection tools (`GridSearchCV`, `cross_val
 `Pipeline`, ...) from working with it directly — they need to slice `X` by row to build
 folds, and can't do that across a Python list of differently-shaped arrays.
 
-`cca_zoo.model_selection.MultiviewWrapper` closes that gap: it horizontally stacks the
-views into one array on the way in, and splits them back before calling the wrapped
-estimator. Once wrapped, the estimator is an ordinary sklearn estimator, so *any* sklearn
-tool — not just grid search — applies unmodified. `GridSearchCV` and `RandomizedSearchCV`
-below do this wrapping for you and otherwise delegate entirely to
-`sklearn.model_selection.GridSearchCV` / `RandomizedSearchCV`.
+`cca_zoo.model_selection` closes that gap. Its searches and cross-validation functions
+are sklearn's, taking a list of views: they stack the views into one array for sklearn and
+split them back for the model, so folds, scores and results behave exactly as in sklearn.
+sklearn's `Pipeline` needs no adapter; `cca_zoo.preprocessing.PerViewTransformer` applies a
+transformer to each view within it.
 
 ---
 
@@ -114,7 +113,8 @@ gs = GridSearchCV(
 ```
 
 `cv_results_` carries the same parameter names you passed in the grid (`param_nprune`, not the
-internal `param_estimator__nprune`).
+internal `param_estimator__nprune`). The successive-halving searches choose their final
+candidate themselves and, like sklearn's, take only `refit=True`/`False`.
 
 ---
 
@@ -141,6 +141,9 @@ rs = RandomizedSearchCV(
 rs.fit([X1, X2])
 print("Best c:", rs.best_params_["c"])
 ```
+
+`HalvingGridSearchCV` and `HalvingRandomSearchCV` mirror sklearn's successive-halving
+searches in the same way.
 
 ---
 
@@ -171,31 +174,41 @@ out_of_fold = pairwise_correlations(
 )
 ```
 
-### Other sklearn tools
+---
 
-These functions and the search classes wrap the estimator in `MultiviewWrapper`, which
-stacks the views into one array and splits them back. Use it directly for any other sklearn
-tool, such as a `Pipeline` step or sklearn's successive-halving search:
+## Pipelines
+
+A `Pipeline` of `PerViewTransformer` steps and a model takes a list of views, so preprocessing
+is refitted within each fold. Per-view names reach through it as usual:
 
 ```python
-import numpy as np
-from sklearn.model_selection import cross_val_score as sk_cross_val_score
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from cca_zoo.model_selection import MultiviewWrapper
+from cca_zoo.linear import RidgeCCA
+from cca_zoo.model_selection import GridSearchCV
+from cca_zoo.preprocessing import PerViewTransformer
 
-wrapper = MultiviewWrapper(
-    CCA(n_components=2), n_features_per_view=[X1.shape[1], X2.shape[1]]
+pipeline = Pipeline(
+    [("scale", PerViewTransformer(StandardScaler())), ("cca", RidgeCCA())]
 )
-pipeline = make_pipeline(StandardScaler(), wrapper)  # scaling refitted within each fold
-scores = sk_cross_val_score(pipeline, np.hstack([X1, X2]), cv=5)
+gs = GridSearchCV(pipeline, {"cca__c__0": [0.0, 0.1, 1.0]}, cv=5).fit([X1, X2])
+```
 
-from sklearn.experimental import enable_halving_search_cv  # noqa: F401
-from sklearn.model_selection import HalvingGridSearchCV
+## Custom scoring
 
-search = HalvingGridSearchCV(wrapper, {"estimator__c__0": [0.0, 0.1, 1.0]}, cv=5)
-search.fit(np.hstack([X1, X2]))
-best = search.best_estimator_.estimator_  # the fitted multiview model
+The default score is the model's `score`, the mean canonical correlation. Any search or
+cross-validation function takes a callable `scoring(estimator, views)` instead, or a dict
+of them, called with the fitted model and the held-out views:
+
+```python
+from cca_zoo.metrics import pairwise_correlations
+
+
+def first_correlation(estimator, views):
+    return pairwise_correlations(estimator.transform(views))[0, 1, 0]
+
+
+scores = cross_val_score(CCA(n_components=2), [X1, X2], cv=5, scoring=first_correlation)
 ```
 
 ---
@@ -244,8 +257,6 @@ print("Best score: ", gs.best_score_)
 - For sparse CCA methods, tune `tau` or `alpha` just like any other hyperparameter.
 - When the grid is large, prefer `RandomizedSearchCV`, or a coarse-to-fine `GridSearchCV`:
   search a coarse grid first, then refine around the best value.
-- `MultiviewWrapper` composes with any sklearn model-selection tool, so reach for it
-  directly when nothing here wraps the tool you need.
 
 ---
 

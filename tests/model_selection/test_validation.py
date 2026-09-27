@@ -7,13 +7,13 @@ import sklearn.model_selection as skms
 
 from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import (
-    MultiviewWrapper,
     cross_val_predict,
     cross_val_score,
     cross_validate,
     learning_curve,
     validation_curve,
 )
+from cca_zoo.model_selection._search import _MultiviewWrapper
 
 
 def _views(n: int = 60) -> list[np.ndarray]:
@@ -27,7 +27,7 @@ def _views(n: int = 60) -> list[np.ndarray]:
 def test_cross_val_score_matches_sklearn_on_the_wrapper() -> None:
     """The function is sklearn's on the stacked views."""
     views = _views()
-    wrapper = MultiviewWrapper(CCA(), n_features_per_view=[5, 4])
+    wrapper = _MultiviewWrapper(CCA(), n_features_per_view=[5, 4])
     expected = skms.cross_val_score(wrapper, np.hstack(views), cv=3)
     np.testing.assert_allclose(cross_val_score(CCA(), views, cv=3), expected)
 

@@ -24,7 +24,7 @@ The table below gives each replacement.
 | deep models' `lr=` | `learning_rate=`, as for every other model |
 | `ProbabilisticCCA(num_warmup=, num_samples=)` | `n_warmup=`, `n_posterior_samples=` |
 | `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `max_iter=`, `n_posterior_samples=` |
-| `MultiviewWrapper(split_indices=)` | `n_features_per_view=` (it holds each view's feature count, not indices) |
+| `MultiviewWrapper` on stacked views | the `cca_zoo.model_selection` searches and cross-validation functions on the list of views; `Pipeline` with `cca_zoo.preprocessing.PerViewTransformer` for preprocessing |
 | `PermutationTestResult.correlations_`, `.p_values_`, and the other fields | the same names without the trailing `_` |
 | `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `MARSCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
 | `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
@@ -55,7 +55,6 @@ The table below gives each replacement.
 | `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
-| `HalvingGridSearchCV`, `HalvingRandomSearchCV` | sklearn's, on `MultiviewWrapper(model, n_features_per_view)` and the stacked views (see the model selection guide) |
 
 ### Added
 
@@ -72,9 +71,11 @@ The table below gives each replacement.
   view-specific variation. `private_means` gives the private posterior means.
 - `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `cross_val_predict`,
   `learning_curve` and `validation_curve`: sklearn's functions taking a list of views, so
-  multiview models are cross-validated as sklearn models are, without stacking views or
-  building a `MultiviewWrapper` by hand. `validation_curve` takes per-view names such as
-  `"c__0"`; `cross_val_predict` returns each view's out-of-fold scores.
+  multiview models are cross-validated as sklearn models are, without stacking views.
+  `validation_curve` takes per-view names such as `"c__0"`; `cross_val_predict` returns
+  each view's out-of-fold scores.
+- A `scoring` callable in the searches and cross-validation functions is called as
+  `scoring(estimator, views)`, with the fitted multiview model and the held-out views.
 - `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
   regression spline (Friedman, 1991) as the per-view encoder, trained on the same
   Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
@@ -194,8 +195,9 @@ The table below gives each replacement.
 Removed outright, with no deprecation period; the table above gives each replacement.
 
 - The `weights` property, which duplicated the `weights_` attribute.
-- `HalvingGridSearchCV` and `HalvingRandomSearchCV`, which mirrored sklearn's experimental
-  successive-halving searches; use sklearn's on `MultiviewWrapper` instead.
+- `MultiviewWrapper` is private. The searches and cross-validation functions cover what it
+  was used for, taking the list of views and returning multiview models; a multiview
+  `Pipeline` needs no wrapper.
 - The `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings`
   model methods, which duplicated the `cca_zoo.metrics` functions of the same names.
 - `cca_zoo.model_selection.procrustes_rotation`, which duplicated
@@ -217,6 +219,8 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- Per-view parameter names inside a `Pipeline`, such as `cca__c__0`, raised
+  `AttributeError` in the searches and `validation_curve`.
 - `CCAR3` and `ECCA` took the canonical directions from the SVD of the regression
   coefficients, which ignores the covariance of `X`, so with no penalty they did not
   recover CCA: `CCAR3` found a correlation of 0.27 where CCA finds 0.97. Both now take

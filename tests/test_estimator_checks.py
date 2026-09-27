@@ -1,6 +1,6 @@
-"""scikit-learn's estimator checks, on every model through MultiviewWrapper.
+"""scikit-learn's estimator checks, on every model through the internal wrapper.
 
-sklearn's checks fit and transform one array. MultiviewWrapper splits it into
+sklearn's checks fit and transform one array. The wrapper splits it into
 views, so the checks test the wrapper and, through it, each model: input
 validation, fitted-state errors, pickling, cloning, idempotence and
 invariance to sample order.
@@ -28,15 +28,17 @@ from cca_zoo._base import BaseModel
 from cca_zoo.linear import RidgeCCA
 from cca_zoo.model_selection import (
     GridSearchCV,
-    MultiviewWrapper,
+    HalvingGridSearchCV,
+    HalvingRandomSearchCV,
     RandomizedSearchCV,
 )
+from cca_zoo.model_selection._search import _MultiviewWrapper
 from cca_zoo.preprocessing import PerViewTransformer
 from tests._helpers import MODEL_CLASSES, SLOW_MODULES, make_model
 
 
-class TwoViewAdapter(MultiviewWrapper):
-    """MultiviewWrapper for sklearn's checks, whose data vary in width.
+class TwoViewAdapter(_MultiviewWrapper):
+    """The wrapper for sklearn's checks, whose data vary in width.
 
     Four or more features are halved into two views; fewer are used as both.
     """
@@ -100,7 +102,8 @@ def test_sklearn_estimator_checks_slow(estimator: TwoViewAdapter, check: Any) ->
 _META_ESTIMATORS = [
     GridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
     RandomizedSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
-    MultiviewWrapper(RidgeCCA(), n_features_per_view=[2, 2]),
+    HalvingGridSearchCV(RidgeCCA(), param_grid={"c": [0.1]}),
+    HalvingRandomSearchCV(RidgeCCA(), param_distributions={"c": [0.1]}),
     PerViewTransformer(StandardScaler()),
 ]
 _CONSTRUCTION_CHECKS = [

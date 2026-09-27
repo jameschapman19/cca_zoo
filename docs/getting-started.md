@@ -187,9 +187,9 @@ gs.fit(train_views)
 print("Best params:", gs.best_params_)
 ```
 
-`RandomizedSearchCV` and the underlying `MultiviewWrapper` adapter are also available for
-sampling distributions or plugging cca_zoo models into other sklearn model-selection tools
-directly — see [Model Selection](user-guide/model-selection.md).
+`RandomizedSearchCV`, the successive-halving searches and sklearn's cross-validation
+functions are also available for lists of views — see
+[Model Selection](user-guide/model-selection.md).
 
 ---
 

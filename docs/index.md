@@ -93,9 +93,10 @@ W1, W2 = model.weights_  # weight matrices
 
 Models are `sklearn.base.BaseEstimator` subclasses, so `get_params`/`set_params`/`clone`
 work out of the box. `fit`/`transform`/`score` take a *list* of per-view arrays rather than
-a single 2-D `X`, though, so sklearn's own `GridSearchCV`, `Pipeline`, and cross-validation
-utilities can't call them directly — use `cca_zoo.model_selection` (below), which adapts
-between the two.
+a single 2-D `X`, though, so sklearn's own searches and cross-validation utilities can't
+call them directly — use `cca_zoo.model_selection` (below), which provides them for lists of
+views. sklearn's `Pipeline` works as is, with `cca_zoo.preprocessing.PerViewTransformer`
+for per-view preprocessing.
 
 ---
 

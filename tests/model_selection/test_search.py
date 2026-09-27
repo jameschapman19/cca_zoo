@@ -7,13 +7,19 @@ from typing import Any
 import numpy as np
 import pytest
 import sklearn.model_selection as skms
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import (
     GridSearchCV,
-    MultiviewWrapper,
+    HalvingGridSearchCV,
+    HalvingRandomSearchCV,
     RandomizedSearchCV,
+    cross_validate,
 )
+from cca_zoo.model_selection._search import _MultiviewWrapper
+from cca_zoo.preprocessing import PerViewTransformer
 
 _GRID = {"c__0": [0.0, 0.5], "c__1": [0.1, 0.9]}
 _SEARCHES = [
@@ -21,6 +27,11 @@ _SEARCHES = [
     (
         RandomizedSearchCV,
         {"param_distributions": _GRID, "n_iter": 3, "random_state": 0},
+    ),
+    (HalvingGridSearchCV, {"param_grid": _GRID, "min_resources": 20}),
+    (
+        HalvingRandomSearchCV,
+        {"param_distributions": _GRID, "min_resources": 20, "random_state": 0},
     ),
 ]
 
@@ -46,12 +57,12 @@ def test_search_over_per_view_parameters(
 def test_grid_search_is_sklearns_on_the_stacked_views(
     two_views: list[np.ndarray],
 ) -> None:
-    """Scores and choice match sklearn's GridSearchCV on a MultiviewWrapper."""
+    """Scores and choice match sklearn's GridSearchCV on the stacked views."""
     ours = GridSearchCV(RidgeCCA(), param_grid={"c": [0.0, 0.3, 0.9]}, cv=3).fit(
         two_views
     )
     theirs = skms.GridSearchCV(
-        MultiviewWrapper(RidgeCCA(), n_features_per_view=[10, 8]),
+        _MultiviewWrapper(RidgeCCA(), n_features_per_view=[10, 8]),
         param_grid={"estimator__c": [0.0, 0.3, 0.9]},
         cv=3,
     ).fit(np.hstack(two_views))
@@ -107,9 +118,25 @@ def test_callable_refit_sees_unprefixed_cv_results(
     assert gs.best_params_["c"] == 0.0
 
 
-def test_wrapper_checks_the_view_widths(two_views: list[np.ndarray]) -> None:
-    """The view widths must add up to the stacked array's."""
-    with pytest.raises(ValueError, match="sums to 9, but X has 18"):
-        MultiviewWrapper(RidgeCCA(), n_features_per_view=[5, 4]).fit(
-            np.hstack(two_views)
-        )
+def test_per_view_names_reach_into_a_pipeline(two_views: list[np.ndarray]) -> None:
+    """A per-view name addresses a pipeline step's parameter."""
+    pipeline = Pipeline(
+        [("scale", PerViewTransformer(StandardScaler())), ("cca", RidgeCCA(c=0.3))]
+    )
+    gs = GridSearchCV(pipeline, param_grid={"cca__c__0": [0.0, 0.9]}, cv=2)
+    assert gs.fit(two_views).best_estimator_["cca"].c[1] == 0.3
+
+
+def test_scoring_gets_the_estimator_and_views(two_views: list[np.ndarray]) -> None:
+    """A scoring callable sees the multiview model and the held-out views."""
+    seen: list[tuple[type, int]] = []
+
+    def n_views(estimator: RidgeCCA, views: list[np.ndarray]) -> float:
+        seen.append((type(estimator), len(views)))
+        return 0.0
+
+    GridSearchCV(RidgeCCA(), param_grid={"c": [0.0]}, cv=2, scoring=n_views).fit(
+        two_views
+    )
+    cross_validate(RidgeCCA(), two_views, cv=2, scoring={"n": n_views})
+    assert set(seen) == {(RidgeCCA, 2)}

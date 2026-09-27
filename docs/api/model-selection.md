@@ -8,6 +8,10 @@ Cross-validation, hyperparameter search and significance testing for multiview m
 
 ::: cca_zoo.model_selection.RandomizedSearchCV
 
+::: cca_zoo.model_selection.HalvingGridSearchCV
+
+::: cca_zoo.model_selection.HalvingRandomSearchCV
+
 ::: cca_zoo.model_selection.cross_val_score
 
 ::: cca_zoo.model_selection.cross_validate
@@ -17,8 +21,6 @@ Cross-validation, hyperparameter search and significance testing for multiview m
 ::: cca_zoo.model_selection.learning_curve
 
 ::: cca_zoo.model_selection.validation_curve
-
-::: cca_zoo.model_selection.MultiviewWrapper
 
 ::: cca_zoo.model_selection.permutation_test_significance
 
