@@ -154,6 +154,7 @@ class ProjectionPursuitCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         projection_index: str = "spearman",
         mcd_support_fraction: float = 0.75,

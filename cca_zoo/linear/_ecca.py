@@ -66,7 +66,6 @@ class ECCA(BaseModel):
         alpha: Entrywise lasso strength. Default is 0.
         max_iter: Maximum Lasso iterations. Default is 10000.
         tol: Lasso tolerance. Default is 1e-4.
-        eps: Ridge added to covariances before inversion. Default is 1e-8.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -91,23 +90,23 @@ class ECCA(BaseModel):
         "alpha": [Interval(Real, 0, None, closed="left")],
         "max_iter": POSITIVE_INT,
         "tol": POSITIVE_EPS,
-        "eps": POSITIVE_EPS,
     }
+
+    _EPS: ClassVar[float] = 1e-8
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         alpha: float = 0.0,
         max_iter: int = 10_000,
         tol: float = 1e-4,
-        eps: float = 1e-8,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
-        self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ECCA:
         """Fit the model.
@@ -135,7 +134,7 @@ class ECCA(BaseModel):
             X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
         )
         U, V = _postprocess_rrr_fit(
-            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
+            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self._EPS
         )
         self.weights_: list[np.ndarray] = [U, V]
         return self._finish_fit(views_)

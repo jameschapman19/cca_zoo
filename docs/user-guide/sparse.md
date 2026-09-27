@@ -174,15 +174,16 @@ Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):
 
 $$
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
+\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq b_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
 $$
 
-`tau=1` (default) gives no sparsity; smaller values give sparser solutions.
+`l1_bound` is $b_i$: `l1_bound=1` (default) gives no sparsity; smaller values give sparser
+solutions.
 
 ```python
 from cca_zoo.sparse import PMDCCA
 
-model = PMDCCA(n_components=2, tau=0.5, random_state=0).fit([X1, X2])
+model = PMDCCA(n_components=2, l1_bound=0.5, random_state=0).fit([X1, X2])
 ```
 
 ### ADMMCCA
@@ -204,7 +205,7 @@ the identity.
 ```python
 from cca_zoo.sparse import ADMMCCA
 
-model = ADMMCCA(n_components=2, tau=0.1, random_state=0).fit([X1, X2])
+model = ADMMCCA(n_components=2, alpha=0.1, random_state=0).fit([X1, X2])
 ```
 
 ### IPLSCCA
@@ -237,12 +238,12 @@ model = WaijenborgCCA(n_components=2, alpha=0.01, l1_ratio=0.5, random_state=0).
 ### ParkhomenkoCCA
 
 Fixed soft-threshold applied after each power step (Parkhomenko 2009). Simpler than PMD
-but `tau` is a fixed threshold, not an L1 bound.
+but `alpha` is a fixed threshold, not an L1 bound.
 
 ```python
 from cca_zoo.sparse import ParkhomenkoCCA
 
-model = ParkhomenkoCCA(n_components=2, tau=0.1, random_state=0).fit([X1, X2])
+model = ParkhomenkoCCA(n_components=2, alpha=0.1, random_state=0).fit([X1, X2])
 ```
 
 ### SpanCCA
@@ -263,7 +264,7 @@ model = SpanCCA(n_components=2, span=10, random_state=0).fit([X1, X2])
 
 Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
 structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
-by BIC rather than left as a hyperparameter, so there is no `alpha`/`tau`/`span` to
+by BIC rather than left as a hyperparameter, so there is no `alpha`/`l1_bound`/`span` to
 tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
 requires and an OLS-based one does not (see the class docstring for why).
 

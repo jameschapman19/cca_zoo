@@ -42,6 +42,7 @@ class PLS(RidgeCCA):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
     ) -> None:
         super().__init__(

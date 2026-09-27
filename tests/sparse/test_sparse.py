@@ -44,10 +44,10 @@ def _signal_and_noise_columns(n: int = 200, k: int = 1) -> list[np.ndarray]:
     [
         ElasticNetCCA(alpha=0.1, l1_ratio=0.9),
         MultiTaskElasticNetCCA(alpha=0.3, l1_ratio=0.9),
-        PMDCCA(tau=0.3),
-        ParkhomenkoCCA(tau=2.0),
+        PMDCCA(l1_bound=0.3),
+        ParkhomenkoCCA(alpha=2.0),
         SpanCCA(span=3),
-        ADMMCCA(tau=1.0),
+        ADMMCCA(alpha=1.0),
         WaijenborgCCA(alpha=0.1, l1_ratio=1.0),
     ],
     ids=lambda m: type(m).__name__,
@@ -139,14 +139,14 @@ def test_omp_keeps_its_budget_of_features(
             model.set_params(n_nonzero_coefs=bad).fit(correlated_views)
 
 
-def test_pmd_tau_one_is_unconstrained(two_views: list[np.ndarray]) -> None:
-    """Sparsity falls as tau rises, and tau=1 keeps every feature."""
+def test_pmd_l1_bound_one_is_unconstrained(two_views: list[np.ndarray]) -> None:
+    """Sparsity falls as l1_bound rises, and l1_bound=1 keeps every feature."""
     active = [
         sum(
             _active_rows(w)
-            for w in PMDCCA(tau=tau, random_state=0).fit(two_views).weights_
+            for w in PMDCCA(l1_bound=b, random_state=0).fit(two_views).weights_
         )
-        for tau in (0.3, 0.5, 0.7, 1.0)
+        for b in (0.3, 0.5, 0.7, 1.0)
     ]
     assert active == sorted(active)
     assert active[-1] == 18
@@ -154,8 +154,8 @@ def test_pmd_tau_one_is_unconstrained(two_views: list[np.ndarray]) -> None:
 
 def test_pmd_ignores_the_scale_of_the_data(two_views: list[np.ndarray]) -> None:
     """Tau bounds unit-norm weights, so rescaling the data changes nothing."""
-    a = PMDCCA(tau=0.5, random_state=0).fit(two_views).weights_
-    b = PMDCCA(tau=0.5, random_state=0).fit([v * 37.0 for v in two_views]).weights_
+    a = PMDCCA(l1_bound=0.5, random_state=0).fit(two_views).weights_
+    b = PMDCCA(l1_bound=0.5, random_state=0).fit([v * 37.0 for v in two_views]).weights_
     for wa, wb in zip(a, b):
         np.testing.assert_allclose(np.abs(wa), np.abs(wb), atol=1e-6)
 
@@ -182,18 +182,20 @@ def test_sar_selects_nothing_from_noise(two_views: list[np.ndarray]) -> None:
 def test_admm_update_solves_the_papers_problem() -> None:
     """One ADMM block solve meets the KKT conditions of Suo et al. (2017).
 
-    Their problem is max_w w'X't - tau ||w||_1 subject to ||Xw|| <= 1.
+    Their problem is max_w w'X't - alpha ||w||_1 subject to ||Xw|| <= 1.
     """
     rng = np.random.default_rng(1)
-    X, target, tau = rng.standard_normal((60, 15)), rng.standard_normal(60) * 0.5, 0.2
-    model = ADMMCCA(tau=tau, max_iter=1, admm_iter=20_000, tol=1e-14, random_state=0)
+    X, target, alpha = rng.standard_normal((60, 15)), rng.standard_normal(60) * 0.5, 0.2
+    model = ADMMCCA(
+        alpha=alpha, max_iter=1, admm_iter=20_000, tol=1e-14, random_state=0
+    )
     w = [np.zeros(15), np.array([1.0])]
     model._fit_single([X, target[:, None]], w)
     score = X @ w[0]
     assert np.linalg.norm(score) > 0.99  # the constraint is active
     active = np.abs(w[0]) > 1e-6
     c, grad = X.T @ target, X.T @ score / np.linalg.norm(score)
-    duals = (c[active] - tau * np.sign(w[0][active])) / grad[active]
+    duals = (c[active] - alpha * np.sign(w[0][active])) / grad[active]
     np.testing.assert_allclose(duals, duals.mean(), rtol=1e-3)
     assert duals.mean() > 0
-    assert np.all(np.abs(c[~active] - duals.mean() * grad[~active]) <= tau + 1e-3)
+    assert np.all(np.abs(c[~active] - duals.mean() * grad[~active]) <= alpha + 1e-3)

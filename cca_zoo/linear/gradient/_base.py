@@ -44,6 +44,7 @@ class BaseFullBatchEYModel(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         max_iter: int = 1000,
         tol: float = 1e-8,

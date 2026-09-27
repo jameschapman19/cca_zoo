@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
-from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
+from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -35,7 +35,6 @@ class MCCA(BaseModel):
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         pca: Whether to solve in each view's principal components, which is
             faster and more stable for wide data. Default is True.
-        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -61,21 +60,21 @@ class MCCA(BaseModel):
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
         "pca": ["boolean"],
-        "eps": POSITIVE_EPS,
     }
+
+    _EPS: ClassVar[float] = 1e-6
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
         pca: bool = True,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
         self.pca = pca
-        self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MCCA:
         """Fit the model.
@@ -130,8 +129,8 @@ class MCCA(BaseModel):
         ]
         B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self.eps:
-            B += (self.eps - min_eig) * np.eye(B.shape[0])
+        if min_eig < self._EPS:
+            B += (self._EPS - min_eig) * np.eye(B.shape[0])
         return np.asarray(B / len(views))
 
     def _build_B_pca(
@@ -146,6 +145,6 @@ class MCCA(BaseModel):
         ]
         B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self.eps:
-            B += (self.eps - min_eig) * np.eye(B.shape[0])
+        if min_eig < self._EPS:
+            B += (self._EPS - min_eig) * np.eye(B.shape[0])
         return np.asarray(B / len(pca_models))

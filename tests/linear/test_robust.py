@@ -87,7 +87,11 @@ def _held_out(model: BaseModel, train: list, test: list) -> float:
         ),
         (
             TrimmedCCA(
-                shrinkage=0.1, h_frac=0.55, n_init=40, max_iter=30, random_state=0
+                shrinkage=0.1,
+                support_fraction=0.55,
+                n_init=40,
+                max_iter=30,
+                random_state=0,
             ),
             RANSACCCA(shrinkage=0.1, random_state=0),
             "sign",

@@ -41,8 +41,8 @@ class CCAR3(BaseModel):
 
     Whitens $Y$ by its (optionally Ledoit-Wolf) covariance, regresses
     $\tilde{Y} = Y \Sigma_Y^{-1/2}$ on $X$, and takes the canonical
-    directions from the rank-``n_components`` SVD of the fitted values. With
-    ``highdim=True`` the regression has a row-group lasso penalty,
+    directions from the rank-``n_components`` SVD of the fitted values. The
+    regression has a row-group lasso penalty,
 
     $$
     \hat{B} = \underset{B}{\mathrm{argmin}}\ \frac{1}{n}
@@ -51,24 +51,22 @@ class CCAR3(BaseModel):
     $$
 
     which drops whole features of $X$; swap the views to make the other one
-    sparse. A port of the R package ccar3.
+    sparse. ``alpha=0`` is solved by least squares. A port of the R package
+    ccar3.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        alpha: Row-group lasso strength when ``highdim=True``. Default is 0.
-        highdim: Whether to use the penalised regression rather than the
-            closed-form least-squares one. Default is True.
+        alpha: Row-group lasso strength. Default is 0.
         ledoit_wolf: Whether to shrink the covariance of ``Y``. Default is
             True.
         max_iter: Maximum MultiTaskLasso iterations. Default is 10000.
         tol: MultiTaskLasso tolerance. Default is 1e-4.
-        eps: Ridge added to covariances before inversion. Default is 1e-8.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations of the MultiTaskLasso, or None when
-            ``highdim=False`` solves directly.
+        n_iter_: Iterations of the MultiTaskLasso, or None when ``alpha=0``
+            is solved by least squares.
 
     References:
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
@@ -86,31 +84,28 @@ class CCAR3(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "alpha": [Interval(Real, 0, None, closed="left")],
-        "highdim": ["boolean"],
         "ledoit_wolf": ["boolean"],
         "max_iter": POSITIVE_INT,
         "tol": POSITIVE_EPS,
-        "eps": POSITIVE_EPS,
     }
+
+    _EPS: ClassVar[float] = 1e-8
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         alpha: float = 0.0,
-        highdim: bool = True,
         ledoit_wolf: bool = True,
         max_iter: int = 10_000,
         tol: float = 1e-4,
-        eps: float = 1e-8,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.alpha = alpha
-        self.highdim = highdim
         self.ledoit_wolf = ledoit_wolf
         self.max_iter = max_iter
         self.tol = tol
-        self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAR3:
         """Fit the model.
@@ -132,21 +127,19 @@ class CCAR3(BaseModel):
                 "Use MCCA for more than 2 views."
             )
         X, Y = views_
-        n = X.shape[0]
 
         Y_tilde, sqrt_inv_Sy = _whiten_response(Y, self.ledoit_wolf)
 
         self.n_iter_: int | None = None
-        if self.highdim:
+        if self.alpha == 0.0:
+            B = np.linalg.lstsq(X, Y_tilde, rcond=None)[0]
+        else:
             B, self.n_iter_ = _row_sparse_rrr(
                 X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
             )
-        else:
-            Sx = X.T @ X / n + self.eps * np.eye(X.shape[1])
-            B = np.linalg.solve(Sx, X.T @ Y_tilde / n)
 
         U, V = _postprocess_rrr_fit(
-            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self.eps
+            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self._EPS
         )
         self.weights_: list[np.ndarray] = [U, V]
         return self._finish_fit(views_)

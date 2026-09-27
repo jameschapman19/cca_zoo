@@ -27,7 +27,6 @@ class PartialCCA(MCCA):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
-        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -52,16 +51,15 @@ class PartialCCA(MCCA):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             center=center,
             shrinkage=shrinkage,
             pca=False,
-            eps=eps,
         )
 
     def fit(

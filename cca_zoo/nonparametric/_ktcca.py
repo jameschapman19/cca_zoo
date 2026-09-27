@@ -33,11 +33,10 @@ class KTCCA(BaseModel):
             ``"linear"``.
         gamma: Kernel coefficient for RBF, polynomial and sigmoid kernels.
             Per-view. Default is None.
-        degree: Polynomial kernel degree. Per-view. Default is 1.
+        degree: Polynomial kernel degree. Per-view. Default is 3.
         coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
         kernel_params: Extra kernel keyword arguments. Per-view. Default is
             None.
-        eps: Floor added to the within-view matrices. Default is 1e-3.
         random_state: Seed for PARAFAC. Default is None.
 
     Attributes:
@@ -66,17 +65,19 @@ class KTCCA(BaseModel):
         "random_state": RANDOM_STATE,
     }
 
+    _EPS: ClassVar[float] = 1e-3
+
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
         gamma: float | list[float | None] | None = None,
-        degree: float | list[float] = 1.0,
+        degree: float | list[float] = 3,
         coef0: float | list[float] = 1.0,
         kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
-        eps: float = 1e-3,
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
@@ -86,7 +87,6 @@ class KTCCA(BaseModel):
         self.degree = degree
         self.coef0 = coef0
         self.kernel_params = kernel_params
-        self.eps = eps
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> KTCCA:
@@ -103,7 +103,7 @@ class KTCCA(BaseModel):
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.1, self.n_views_)
         kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
         gamma_ = perview_parameter("gamma", self.gamma, None, self.n_views_)
-        degree_ = perview_parameter("degree", self.degree, 1.0, self.n_views_)
+        degree_ = perview_parameter("degree", self.degree, 3, self.n_views_)
         coef0_ = perview_parameter("coef0", self.coef0, 1.0, self.n_views_)
         kp_ = perview_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
 
@@ -167,7 +167,7 @@ class KTCCA(BaseModel):
         cov_invsqrt = []
         for i, K in enumerate(kernels):
             cov = (1.0 - c[i]) * K @ K + c[i] * K
-            invsqrt = psd_inverse_sqrt(cov, self.eps)
+            invsqrt = psd_inverse_sqrt(cov, self._EPS)
             whitened.append(K @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from numbers import Integral
 from typing import Any, ClassVar
 
 import numpy as np
 import tensorly as tl
 from numpy.typing import ArrayLike
-from sklearn.utils._param_validation import Interval
 from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
-from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
+from cca_zoo._utils._param_constraints import RANDOM_STATE, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -34,7 +32,6 @@ class TCCA(BaseModel):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
-        eps: Floor on the within-view eigenvalues. Default is 1e-6.
         random_state: Seed for PARAFAC. Default is None.
 
     Attributes:
@@ -57,21 +54,21 @@ class TCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
-        "eps": POSITIVE_EPS,
-        "random_state": [None, Interval(Integral, 0, None, closed="left")],
+        "random_state": RANDOM_STATE,
     }
+
+    _EPS: ClassVar[float] = 1e-6
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
-        eps: float = 1e-6,
-        random_state: int | None = None,
+        random_state: int | np.random.RandomState | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
-        self.eps = eps
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TCCA:
@@ -112,7 +109,7 @@ class TCCA(BaseModel):
         cov_invsqrt = []
         for i, v in enumerate(views):
             cov = (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
-            invsqrt = psd_inverse_sqrt(cov, self.eps)
+            invsqrt = psd_inverse_sqrt(cov, self._EPS)
             whitened.append(v @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

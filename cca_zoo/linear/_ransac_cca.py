@@ -96,6 +96,7 @@ class RANSACCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.1,
         min_samples: int | float = 0.25,

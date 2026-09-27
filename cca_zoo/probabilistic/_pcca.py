@@ -64,6 +64,7 @@ class ProbabilisticCCA(BaseProbabilistic):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         n_warmup: int = 500,
         n_posterior_samples: int = 1000,

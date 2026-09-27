@@ -92,6 +92,7 @@ class GFA(BaseProbabilistic):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         max_iter: int = 10000,
         tol: float = 1e-4,

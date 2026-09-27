@@ -33,11 +33,10 @@ class KCCA(BaseModel):
             ``"linear"``.
         gamma: Kernel coefficient for RBF, polynomial and sigmoid kernels.
             Per-view. Default is None.
-        degree: Polynomial kernel degree. Per-view. Default is 1.
+        degree: Polynomial kernel degree. Per-view. Default is 3.
         coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
         kernel_params: Extra kernel keyword arguments. Per-view. Default is
             None.
-        eps: Floor added to ``B``. Default is 1e-3.
 
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
@@ -64,17 +63,19 @@ class KCCA(BaseModel):
         **KERNEL_PARAMETERS,
     }
 
+    _EPS: ClassVar[float] = 1e-3
+
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.1,
         kernel: str | list[str] = "linear",
         gamma: float | list[float | None] | None = None,
-        degree: float | list[float] = 1.0,
+        degree: float | list[float] = 3,
         coef0: float | list[float] = 1.0,
         kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
-        eps: float = 1e-3,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
@@ -83,7 +84,6 @@ class KCCA(BaseModel):
         self.degree = degree
         self.coef0 = coef0
         self.kernel_params = kernel_params
-        self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> KCCA:
         """Fit the model.
@@ -99,7 +99,7 @@ class KCCA(BaseModel):
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.1, self.n_views_)
         kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
         gamma_ = perview_parameter("gamma", self.gamma, None, self.n_views_)
-        degree_ = perview_parameter("degree", self.degree, 1.0, self.n_views_)
+        degree_ = perview_parameter("degree", self.degree, 3, self.n_views_)
         coef0_ = perview_parameter("coef0", self.coef0, 1.0, self.n_views_)
         kp_ = perview_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
 
@@ -170,6 +170,6 @@ class KCCA(BaseModel):
         ]
         B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self.eps:
-            B += (self.eps - min_eig) * np.eye(B.shape[0])
+        if min_eig < self._EPS:
+            B += (self._EPS - min_eig) * np.eye(B.shape[0])
         return np.asarray(B / len(kernels))

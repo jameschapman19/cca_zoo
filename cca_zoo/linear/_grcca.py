@@ -27,7 +27,9 @@ class GRCCA(MCCA):
         center: Whether to centre each view. Default is True.
         shrinkage: Within-group shrinkage in ``[0, 1]``. Per-view. Default is 0.
         mu: Group-effect penalty. Per-view. Default is 0.
-        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
+        feature_groups: Integer group label of each feature, shape
+            (n_features_i,) per view; None puts each view in one group.
+            Default is None.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -45,46 +47,40 @@ class GRCCA(MCCA):
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> groups = [rng.integers(0, 3, size=10), rng.integers(0, 3, size=8)]
-        >>> model = GRCCA(n_components=2, shrinkage=0.5)
-        >>> model = model.fit([X1, X2], feature_groups=groups)
+        >>> model = GRCCA(n_components=2, shrinkage=0.5, feature_groups=groups)
+        >>> model = model.fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **MCCA._parameter_constraints,
         "mu": NONNEGATIVE_PER_VIEW,
+        "feature_groups": [None, list],
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
         mu: float | list[float] = 0.0,
-        eps: float = 1e-6,
+        feature_groups: list[np.ndarray] | None = None,
     ) -> None:
         super().__init__(
             n_components=n_components,
             center=center,
             shrinkage=shrinkage,
             pca=False,
-            eps=eps,
         )
         self.mu = mu
+        self.feature_groups = feature_groups
 
-    def fit(
-        self,
-        views: list[ArrayLike],
-        y: None = None,
-        feature_groups: list[np.ndarray] | None = None,
-    ) -> GRCCA:
+    def fit(self, views: list[ArrayLike], y: None = None) -> GRCCA:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            feature_groups: Integer group label of each feature, shape
-                (n_features_i,) per view; None puts each view in one group.
-                Default is None.
 
         Returns:
             self.
@@ -93,6 +89,7 @@ class GRCCA(MCCA):
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu_ = perview_parameter("mu", self.mu, 0.0, self.n_views_)
 
+        feature_groups = self.feature_groups
         if feature_groups is None:
             if any(ci > 0 for ci in c_):
                 warnings.warn(

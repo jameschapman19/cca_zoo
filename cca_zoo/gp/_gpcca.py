@@ -192,6 +192,7 @@ class GaussianProcessCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         kernel: Kernel | list[Kernel | None] | None = None,
         alpha: float | list[float] = 0.01,

@@ -70,6 +70,7 @@ class ElasticNetCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         alpha: float | list[float] = 1.0,
         l1_ratio: float | list[float] = 0.5,

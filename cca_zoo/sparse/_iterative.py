@@ -57,6 +57,7 @@ class _BaseIterative(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         max_iter: int = 500,
         tol: float = 1e-6,
@@ -151,7 +152,7 @@ def _bisect_threshold(x: np.ndarray, l1_bound: float) -> np.ndarray:
     """Soft-threshold ``x`` so its L2-normalised result has L1 norm ``l1_bound``.
 
     The search is on the L1/L2 ratio of the thresholded vector, which is
-    invariant to the scale of ``x``, so the bound depends only on ``tau``.
+    invariant to the scale of ``x``, so the result depends only on ``l1_bound``.
     """
     norm_x = np.linalg.norm(x)
     if norm_x <= 1e-12:
@@ -192,7 +193,7 @@ class PMDCCA(_BaseIterative):
     $$
     \max_{\mathbf{w}_1, \mathbf{w}_2} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
     \quad\text{subject to}\quad
-    \|\mathbf{w}_i\|_1 \le \tau_i \sqrt{p_i},\ \|\mathbf{w}_i\|_2 = 1.
+    \|\mathbf{w}_i\|_1 \le b_i \sqrt{p_i},\ \|\mathbf{w}_i\|_2 = 1.
     $$
 
     Each update soft-thresholds with the level found by bisection.
@@ -200,7 +201,8 @@ class PMDCCA(_BaseIterative):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        tau: L1 bound as a fraction of ``sqrt(n_features_i)``, in ``(0, 1]``;
+        l1_bound: Bound $b_i$ on the L1 norm, as a fraction of
+            ``sqrt(n_features_i)``, in ``(0, 1]``;
             1 imposes no sparsity. Per-view. Default is 1.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
@@ -220,19 +222,20 @@ class PMDCCA(_BaseIterative):
         >>> from cca_zoo.sparse import PMDCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
-        >>> model = PMDCCA(tau=0.5, random_state=0).fit([X1, X2])
+        >>> model = PMDCCA(l1_bound=0.5, random_state=0).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
-        "tau": FRACTION_PER_VIEW,
+        "l1_bound": FRACTION_PER_VIEW,
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
-        tau: float | list[float] = 1.0,
+        l1_bound: float | list[float] = 1.0,
         max_iter: int = 500,
         tol: float = 1e-6,
         random_state: int | None = None,
@@ -244,7 +247,7 @@ class PMDCCA(_BaseIterative):
             tol=tol,
             random_state=random_state,
         )
-        self.tau = tau
+        self.l1_bound = l1_bound
 
     def fit(self, views: list[ArrayLike], y: None = None) -> PMDCCA:
         """Fit the model.
@@ -256,15 +259,13 @@ class PMDCCA(_BaseIterative):
         Returns:
             self.
         """
-        # Store processed tau for use in _update_weight
-        self._tau: list[float] = []  # set in super().fit via _setup_fit
         super().fit(views, y)
         return self
 
-    def _setup_tau(self) -> list[float]:
-        """Per-view L1 bounds ``tau * sqrt(n_features_i)``."""
-        tau_ = perview_parameter("tau", self.tau, 1.0, self.n_views_)
-        return [t * np.sqrt(p) for t, p in zip(tau_, self.n_features_per_view_)]
+    def _setup_l1_bounds(self) -> list[float]:
+        """Per-view L1 bounds ``l1_bound * sqrt(n_features_i)``."""
+        bound_ = perview_parameter("l1_bound", self.l1_bound, 1.0, self.n_views_)
+        return [b * np.sqrt(p) for b, p in zip(bound_, self.n_features_per_view_)]
 
     def _fit_single(
         self,
@@ -272,7 +273,7 @@ class PMDCCA(_BaseIterative):
         w: list[np.ndarray],
     ) -> tuple[int, bool]:
         """Set the L1 bounds, then run the alternating updates."""
-        self._l1_bounds = self._setup_tau()
+        self._l1_bounds = self._setup_l1_bounds()
         return super()._fit_single(views, w)
 
     def _update_weight(
@@ -300,20 +301,20 @@ class ADMMCCA(_BaseIterative):
 
     $$
     \max_{\mathbf{w}_i}\ \mathbf{w}_i^\top X_i^\top \bar{\mathbf{s}}_{\neg i}
-        - \tau_i \|\mathbf{w}_i\|_1
+        - \alpha_i \|\mathbf{w}_i\|_1
     \quad\text{subject to}\quad \|X_i \mathbf{w}_i\|_2 \le 1
     $$
 
     by linearised ADMM on the split $\mathbf{z}_i = X_i \mathbf{w}_i$, so
     each step is a soft-threshold and a projection onto the unit ball, with
-    step size $1 / (\mu \|X_i\|_{\mathrm{op}}^2)$. Further components use
+    step size $1 / (\rho \|X_i\|_{\mathrm{op}}^2)$. Further components use
     deflation rather than the paper's orthogonality constraint.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        tau: L1 penalty. Per-view. Default is 0.1.
-        mu: ADMM penalty parameter. Default is 1.0.
+        alpha: L1 penalty. Per-view. Default is 0.1.
+        rho: ADMM augmented-Lagrangian penalty. Default is 1.0.
         max_iter: Maximum outer iterations per latent dimension. Default is 500.
         admm_iter: Maximum ADMM iterations per view update. Default is 50.
         tol: Convergence tolerance of both loops. Default is 1e-6.
@@ -332,22 +333,23 @@ class ADMMCCA(_BaseIterative):
         >>> from cca_zoo.sparse import ADMMCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
-        >>> model = ADMMCCA(tau=0.1, random_state=0).fit([X1, X2])
+        >>> model = ADMMCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
-        "tau": NONNEGATIVE_PER_VIEW,
-        "mu": POSITIVE_EPS,
+        "alpha": NONNEGATIVE_PER_VIEW,
+        "rho": POSITIVE_EPS,
         "admm_iter": POSITIVE_INT,
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
-        tau: float | list[float] = 0.1,
-        mu: float = 1.0,
+        alpha: float | list[float] = 0.1,
+        rho: float = 1.0,
         max_iter: int = 500,
         admm_iter: int = 50,
         tol: float = 1e-6,
@@ -360,8 +362,8 @@ class ADMMCCA(_BaseIterative):
             tol=tol,
             random_state=random_state,
         )
-        self.tau = tau
-        self.mu = mu
+        self.alpha = alpha
+        self.rho = rho
         self.admm_iter = admm_iter
 
     def _fit_single(
@@ -370,11 +372,11 @@ class ADMMCCA(_BaseIterative):
         w: list[np.ndarray],
     ) -> tuple[int, bool]:
         """Alternate over views, each update an inner linearised-ADMM solve."""
-        tau_ = perview_parameter("tau", self.tau, 0.1, len(views))
+        alpha_ = perview_parameter("alpha", self.alpha, 0.1, len(views))
         n_views = len(views)
-        # eta_i = 1/(mu * ||X_i||_op^2) is fixed for this latent dimension
+        # eta_i = 1/(rho * ||X_i||_op^2) is fixed for this latent dimension
         # (X_i doesn't change across iterations), computed once per view.
-        etas = [1.0 / (self.mu * np.linalg.norm(X, ord=2) ** 2) for X in views]
+        etas = [1.0 / (self.rho * np.linalg.norm(X, ord=2) ** 2) for X in views]
         # z_i, xi_i (score-space ADMM state) persist across outer iterations,
         # matching the paper's Algorithm 1 (they are initialised once, not
         # reset every time a view's block is revisited).
@@ -388,9 +390,9 @@ class ADMMCCA(_BaseIterative):
                 for _ in range(self.admm_iter):
                     w_before = w[i]
                     Xw = views[i] @ w[i]
-                    grad_lin = self.mu * views[i].T @ (Xw - z[i] + xi[i])
+                    grad_lin = self.rho * views[i].T @ (Xw - z[i] + xi[i])
                     a = w[i] - etas[i] * grad_lin + etas[i] * c_i
-                    w[i] = soft_threshold(a, etas[i] * tau_[i])
+                    w[i] = soft_threshold(a, etas[i] * alpha_[i])
                     Xw = views[i] @ w[i]
                     z_new = Xw + xi[i]
                     z_norm = np.linalg.norm(z_new)
@@ -468,6 +470,7 @@ class IPLSCCA(_BaseIterative):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         alpha: float | list[float] = 0.0,
         l1_ratio: float | list[float] = 1.0,
@@ -559,6 +562,7 @@ class SpanCCA(_BaseIterative):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         span: int | list[int] | None = None,
         max_iter: int = 500,
@@ -662,6 +666,7 @@ class WaijenborgCCA(_BaseIterative):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         alpha: float | list[float] = 0.0,
         l1_ratio: float | list[float] = 0.5,
@@ -715,16 +720,16 @@ class ParkhomenkoCCA(_BaseIterative):
     which amounts to standardising each feature, then iterates
 
     $$
-    \mathbf{w}_i \leftarrow S_{\tau_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i}),
+    \mathbf{w}_i \leftarrow S_{\alpha_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i}),
     $$
 
-    with $S_\tau$ the soft-threshold and $\tilde X_i$ the standardised view.
+    with $S_\alpha$ the soft-threshold and $\tilde X_i$ the standardised view.
     Weights are returned on the original feature scale.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        tau: Soft-threshold level. Per-view. Default is 0.1.
+        alpha: Soft-threshold level, an L1 penalty. Per-view. Default is 0.1.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance. Default is 1e-6.
         random_state: Seed for the random initialisation. Default is None.
@@ -743,19 +748,20 @@ class ParkhomenkoCCA(_BaseIterative):
         >>> from cca_zoo.sparse import ParkhomenkoCCA
         >>> rng = np.random.default_rng(0)
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
-        >>> model = ParkhomenkoCCA(tau=0.1, random_state=0).fit([X1, X2])
+        >>> model = ParkhomenkoCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
-        "tau": NONNEGATIVE_PER_VIEW,
+        "alpha": NONNEGATIVE_PER_VIEW,
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
-        tau: float | list[float] = 0.1,
+        alpha: float | list[float] = 0.1,
         max_iter: int = 500,
         tol: float = 1e-6,
         random_state: int | None = None,
@@ -767,7 +773,7 @@ class ParkhomenkoCCA(_BaseIterative):
             tol=tol,
             random_state=random_state,
         )
-        self.tau = tau
+        self.alpha = alpha
 
     def _fit_single(
         self,
@@ -775,7 +781,7 @@ class ParkhomenkoCCA(_BaseIterative):
         w: list[np.ndarray],
     ) -> tuple[int, bool]:
         """Standardise the views and set the thresholds, then run the updates."""
-        self._tau_vals = perview_parameter("tau", self.tau, 0.1, len(views))
+        self._alphas = perview_parameter("alpha", self.alpha, 0.1, len(views))
         scales = [v.std(axis=0, keepdims=True) for v in views]
         scales = [np.where(s < 1e-12, 1.0, s) for s in scales]
         scaled_views = [v / s for v, s in zip(views, scales)]
@@ -799,7 +805,7 @@ class ParkhomenkoCCA(_BaseIterative):
         """Soft-thresholded update of view ``i``."""
         target = _target_score(views, weights, i)
         raw = views[i].T @ target
-        result = soft_threshold(raw, self._tau_vals[i])
+        result = soft_threshold(raw, self._alphas[i])
         norm = np.linalg.norm(result)
         if norm > 1e-12:
             result /= norm
@@ -814,7 +820,7 @@ class ParkhomenkoCCA(_BaseIterative):
 def _sar_bic_lasso(
     x: np.ndarray,
     y: np.ndarray,
-    n_lambda: int,
+    n_alphas: int,
     tol: float,
 ) -> np.ndarray:
     """Lasso coefficients at the BIC-minimising point of the lasso path.
@@ -831,7 +837,7 @@ def _sar_bic_lasso(
     _, coefs, _ = lasso_path(
         x,
         y,
-        alphas=n_lambda,
+        alphas=n_alphas,
         tol=tol,
         precompute=x.T @ x if n > p else False,
         Xy=x.T @ y if n > p else None,
@@ -856,7 +862,7 @@ class SAR(_BaseIterative):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        n_lambda: Points on each lasso path. Default is 100.
+        n_alphas: Penalties on each lasso path. Default is 100.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance of the alternating loop and each lasso path.
             Default is 1e-6.
@@ -882,14 +888,15 @@ class SAR(_BaseIterative):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
-        "n_lambda": POSITIVE_INT,
+        "n_alphas": POSITIVE_INT,
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
-        n_lambda: int = 100,
+        n_alphas: int = 100,
         max_iter: int = 500,
         tol: float = 1e-6,
         random_state: int | None = None,
@@ -901,7 +908,7 @@ class SAR(_BaseIterative):
             tol=tol,
             random_state=random_state,
         )
-        self.n_lambda = n_lambda
+        self.n_alphas = n_alphas
 
     def fit(self, views: list[ArrayLike], y: None = None) -> SAR:
         """Fit the model.
@@ -945,7 +952,7 @@ class SAR(_BaseIterative):
     ) -> np.ndarray:
         """Re-fit a deflated direction's score against the original view."""
         coef = _sar_bic_lasso(
-            original_view, deflated_score.ravel(), self.n_lambda, self.tol
+            original_view, deflated_score.ravel(), self.n_alphas, self.tol
         )
         norm = np.linalg.norm(coef)
         if norm > 1e-12:
@@ -960,7 +967,7 @@ class SAR(_BaseIterative):
     ) -> np.ndarray:
         """BIC-selected lasso of view ``i`` onto the other views' score."""
         target = _target_score(views, weights, i)
-        coef = _sar_bic_lasso(views[i], target.ravel(), self.n_lambda, self.tol)
+        coef = _sar_bic_lasso(views[i], target.ravel(), self.n_alphas, self.tol)
         norm = np.linalg.norm(coef)
         if norm > 1e-12:
             coef = coef / norm

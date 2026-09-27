@@ -245,6 +245,7 @@ class TreeCCA(BaseModel, ABC):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         n_estimators: int | list[int] = 200,
         max_depth: int | list[int] = 3,

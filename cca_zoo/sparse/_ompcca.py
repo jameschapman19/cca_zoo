@@ -59,6 +59,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         n_nonzero_coefs: int | list[int] | None = None,
         max_iter: int = 10,

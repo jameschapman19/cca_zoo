@@ -150,7 +150,7 @@ class TrimmedCCA(BaseModel):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.1.
-        h_frac: Fraction of rows kept, in ``(0, 1]``; a prior on the clean
+        support_fraction: Fraction of rows kept, in ``(0, 1]``; a prior on the clean
             fraction. Default is 0.75.
         n_init: Random restarts. Default is 10.
         max_iter: Maximum concentration steps per restart. Default is 30.
@@ -173,7 +173,7 @@ class TrimmedCCA(BaseModel):
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((200, 8))
         >>> X2 = rng.standard_normal((200, 6))
-        >>> model = TrimmedCCA(h_frac=0.7, random_state=0).fit([X1, X2])
+        >>> model = TrimmedCCA(support_fraction=0.7, random_state=0).fit([X1, X2])
         >>> int(model.inlier_mask_.sum())
         140
     """
@@ -181,7 +181,7 @@ class TrimmedCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
-        "h_frac": [Interval(Real, 0, 1, closed="right")],
+        "support_fraction": [Interval(Real, 0, 1, closed="right")],
         "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": [Interval(Real, 0, None, closed="neither")],
@@ -191,9 +191,10 @@ class TrimmedCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float = 0.1,
-        h_frac: float = 0.75,
+        support_fraction: float = 0.75,
         n_init: int = 10,
         max_iter: int = 30,
         tol: float = 1e-8,
@@ -201,7 +202,7 @@ class TrimmedCCA(BaseModel):
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
-        self.h_frac = h_frac
+        self.support_fraction = support_fraction
         self.n_init = n_init
         self.max_iter = max_iter
         self.tol = tol
@@ -227,7 +228,7 @@ class TrimmedCCA(BaseModel):
                 f"got {self.n_components}."
             )
         n = self.n_samples_
-        h = max(2, int(round(self.h_frac * n)))
+        h = max(2, int(round(self.support_fraction * n)))
         rng = np.random.default_rng(self.random_state)
         # CCAEY's own _objective/_derivative back both the selection score
         # and the refit, rather than a second implementation of the loss

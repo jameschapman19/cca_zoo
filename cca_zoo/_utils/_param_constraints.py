@@ -44,5 +44,4 @@ KERNEL_PARAMETERS: dict[str, list[Any]] = {
     "degree": [Interval(Real, 0, None, closed="left"), "array-like"],
     "coef0": [Real, "array-like"],
     "kernel_params": [None, dict, list],
-    "eps": POSITIVE_EPS,
 }

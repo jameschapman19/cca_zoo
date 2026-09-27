@@ -45,7 +45,7 @@ def test_cca_variates_are_uncorrelated_and_ordered() -> None:
         MCCA(n_components=2),
         GRCCA(n_components=2, shrinkage=0.0),
         CCAR3(n_components=2),
-        CCAR3(n_components=2, highdim=False, ledoit_wolf=False),
+        CCAR3(n_components=2, ledoit_wolf=False),
         ECCA(n_components=2),
     ],
     ids=["RidgeCCA", "MCCA", "GRCCA", "CCAR3", "CCAR3-lowdim", "ECCA"],
@@ -115,7 +115,7 @@ def test_grcca_weights_are_on_the_original_features(
 ) -> None:
     """Group penalties augment the features internally, not in weights_."""
     groups = [np.arange(v.shape[1]) % 3 for v in two_views]
-    model = GRCCA(shrinkage=[0.5, 0.0]).fit(two_views, feature_groups=groups)
+    model = GRCCA(shrinkage=[0.5, 0.0], feature_groups=groups).fit(two_views)
     assert [w.shape[0] for w in model.weights_] == [10, 8]
     with pytest.warns(UserWarning, match="feature_groups"):
         GRCCA(shrinkage=0.5).fit(two_views)

@@ -657,6 +657,7 @@ class MARSCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         degree: int | list[int] = 1,
         nk: int | list[int | None] | None = None,

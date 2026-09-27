@@ -8,6 +8,7 @@ import numpy as np
 import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
+from sklearn.utils import check_random_state
 from sklearn.utils.parallel import Parallel, delayed
 
 from cca_zoo._utils._validation import validate_views
@@ -54,7 +55,7 @@ def permutation_test_significance(
     estimator: BaseEstimator,
     views: list[ArrayLike],
     n_permutations: int = 1000,
-    random_state: int | np.random.Generator | None = None,
+    random_state: int | np.random.RandomState | None = None,
     n_jobs: int | None = None,
 ) -> PermutationTestResult:
     """Permutation test of the canonical correlations and factor loadings.
@@ -102,8 +103,9 @@ def permutation_test_significance(
     true_stack = np.vstack(true_loadings)  # (sum(n_features_i), k)
     split_points = np.cumsum([loading.shape[0] for loading in true_loadings[:-1]])
 
-    rng = np.random.default_rng(random_state)
-    seeds = rng.integers(0, np.iinfo(np.int32).max, size=n_permutations)
+    seeds = check_random_state(random_state).randint(
+        np.iinfo(np.int32).max, size=n_permutations
+    )
 
     def _one_permutation(seed: int) -> tuple[np.ndarray, np.ndarray]:
         local_rng = np.random.default_rng(seed)

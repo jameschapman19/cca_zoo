@@ -61,6 +61,7 @@ class StochasticCCAEY(CCAEY):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float = 0.0,
         learning_rate: float = 1e-2,

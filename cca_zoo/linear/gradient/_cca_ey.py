@@ -72,6 +72,7 @@ class CCAEY(BaseFullBatchEYModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float = 0.0,
         max_iter: int = 1000,

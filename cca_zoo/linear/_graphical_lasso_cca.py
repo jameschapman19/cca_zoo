@@ -12,7 +12,6 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._param_constraints import (
-    POSITIVE_EPS,
     POSITIVE_INT,
     RIDGE_PARAMETER,
 )
@@ -40,7 +39,6 @@ class GraphicalLassoCCA(MCCA):
         mode: Graphical-lasso solver, ``"cd"`` or ``"lars"``. Default is
             ``"cd"``.
         max_iter: Maximum graphical-lasso iterations. Default is 100.
-        eps: Floor added to the eigenvalues of ``B``. Default is 1e-6.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -70,25 +68,23 @@ class GraphicalLassoCCA(MCCA):
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like", None],
         "mode": [StrOptions({"cd", "lars"})],
         "max_iter": POSITIVE_INT,
-        "eps": POSITIVE_EPS,
     }
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
         alpha: float | list[float | None] | None = 0.01,
         mode: str = "cd",
         max_iter: int = 100,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             center=center,
             shrinkage=shrinkage,
             pca=False,
-            eps=eps,
         )
         self.alpha = alpha
         self.mode = mode
@@ -124,6 +120,6 @@ class GraphicalLassoCCA(MCCA):
         ]
         B: np.ndarray = np.asarray(block_diag(*blocks))
         min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self.eps:
-            B += (self.eps - min_eig) * np.eye(B.shape[0])
+        if min_eig < self._EPS:
+            B += (self._EPS - min_eig) * np.eye(B.shape[0])
         return np.asarray(B / len(views))

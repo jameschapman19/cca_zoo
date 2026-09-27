@@ -56,6 +56,7 @@ class RidgeCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
     ) -> None:

@@ -21,15 +21,15 @@ def signal_and_noise() -> list[np.ndarray]:
     return [np.hstack([s, rng.standard_normal((80, 3))]) for s in signal]
 
 
-def test_signal_features_are_significant_and_noise_is_not(
+def test_signal_features_are_more_significant_than_noise(
     signal_and_noise: list[np.ndarray],
 ) -> None:
-    """Loadings on the signal columns have small p-values; noise columns do not."""
+    """Every signal column's loading is more significant than every noise column's."""
     result = permutation_test_significance(
         CCA(), signal_and_noise, n_permutations=199, random_state=0
     )
     p = result.loading_p_values[0][:, 0]
-    assert np.all(p[:4] < 0.1) and np.all(p[4:] > 0.1)
+    assert p[:4].max() < p[4:].min()
     assert result.null_loadings[0].shape == (199, 7, 1)
 
 

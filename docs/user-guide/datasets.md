@@ -71,7 +71,9 @@ Two small real-world datasets are included for quick experimentation:
 
 ### `load_linnerud`
 
-Wraps `sklearn.datasets.load_linnerud`. Returns two arrays:
+Wraps `sklearn.datasets.load_linnerud`. Like sklearn's loaders it returns a `Bunch`, with the
+views in `views` and each view's `feature_names`; `return_views=True` returns the views alone,
+as sklearn's `return_X_y`:
 
 - **View 1:** exercise measurements (chin-ups, sit-ups, jumps) — shape `(20, 3)`
 - **View 2:** physiological measurements (weight, waist, pulse) — shape `(20, 3)`
@@ -79,7 +81,7 @@ Wraps `sklearn.datasets.load_linnerud`. Returns two arrays:
 ```python
 from cca_zoo.datasets import load_linnerud
 
-exercise, physiological = load_linnerud()
+exercise, physiological = load_linnerud(return_views=True)
 print(exercise.shape)  # (20, 3)
 print(physiological.shape)  # (20, 3)
 ```
@@ -95,7 +97,7 @@ a two-view dataset:
 ```python
 from cca_zoo.datasets import load_breast_cancer
 
-view1, view2 = load_breast_cancer()
+view1, view2 = load_breast_cancer(return_views=True)
 print(view1.shape)  # (569, 15)
 print(view2.shape)  # (569, 15)
 ```

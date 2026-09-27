@@ -198,6 +198,7 @@ class GAMCCA(BaseModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         k: int | list[int] = 10,
         m: int | tuple[int, int] | list[int | tuple[int, int]] = 2,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -34,6 +36,9 @@ def test_latent_explains_the_views() -> None:
     ("loader", "shapes"),
     [(load_breast_cancer, [(569, 15)] * 2), (load_linnerud, [(20, 3)] * 2)],
 )
-def test_bundled_datasets(loader: object, shapes: list[tuple[int, int]]) -> None:
-    """The bundled sklearn datasets split into two views."""
-    assert [v.shape for v in loader()] == shapes
+def test_bundled_datasets(loader: Any, shapes: list[tuple[int, int]]) -> None:
+    """The bundled sklearn datasets load as a Bunch of views, or the views alone."""
+    bunch = loader()
+    assert [v.shape for v in bunch.views] == shapes
+    assert [len(names) for names in bunch.feature_names] == [s[1] for s in shapes]
+    assert [v.shape for v in loader(return_views=True)] == shapes

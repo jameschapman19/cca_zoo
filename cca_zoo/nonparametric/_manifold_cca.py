@@ -18,11 +18,10 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
-from cca_zoo._utils._param_constraints import POSITIVE_EPS
 from cca_zoo._utils._validation import perview_parameter
 
 #: Floor for the Laplacian Nystrom extension's 1/mu rescaling (mu = 1 -
-#: eigenvalue), independent of the class's own (much smaller) ``eps``: that
+#: eigenvalue), independent of the class's own (much smaller) ``_EPS``: that
 #: one only needs to keep _smooth_basis's B block positive-definite for the
 #: joint solve, and using it here too would let a component with eigenvalue
 #: near 1 (barely "smooth" at all -- see _LaplacianViewState) blow up its
@@ -205,13 +204,12 @@ class ManifoldCCA(BaseModel):
             Per-view. Default is ``"nearest_neighbors"``.
         gamma: RBF kernel coefficient for ``affinity="rbf"``; ``None`` uses
             ``1 / n_features``. Per-view. Default is None.
-        lle_reg: Regularisation of each local reconstruction for
+        reg: Regularisation of each local reconstruction for
             ``method="lle"``. Per-view. Default is 1e-3.
         n_operator_components: Smoothest operator eigenvectors kept per view
             before the joint solve; fewer is stronger regularisation. ``None``
             uses ``max(4 * n_components, 10)``, clipped to ``n_samples - 1``.
             Per-view. Default is None.
-        eps: Floor on the kept operator eigenvalues. Default is 1e-6.
 
     Attributes:
         embedding_: Training embedding of each view, shape (n_samples, n_components).
@@ -240,35 +238,35 @@ class ManifoldCCA(BaseModel):
         "n_neighbors": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "affinity": [StrOptions({"nearest_neighbors", "rbf"}), "array-like"],
         "gamma": [Interval(Real, 0, None, closed="neither"), None, "array-like"],
-        "lle_reg": [Interval(Real, 0, None, closed="left"), "array-like"],
+        "reg": [Interval(Real, 0, None, closed="left"), "array-like"],
         "n_operator_components": [
             Interval(Integral, 1, None, closed="left"),
             None,
             "array-like",
         ],
-        "eps": POSITIVE_EPS,
     }
+
+    _EPS: ClassVar[float] = 1e-6
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         method: str = "laplacian",
         n_neighbors: int | list[int] = 10,
         affinity: str | list[str] = "nearest_neighbors",
         gamma: float | list[float | None] | None = None,
-        lle_reg: float | list[float] = 1e-3,
+        reg: float | list[float] = 1e-3,
         n_operator_components: int | list[int | None] | None = None,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.method = method
         self.n_neighbors = n_neighbors
         self.affinity = affinity
         self.gamma = gamma
-        self.lle_reg = lle_reg
+        self.reg = reg
         self.n_operator_components = n_operator_components
-        self.eps = eps
 
     def _resolve_n_operator_components(
         self, n_operator_components: int | None, n: int
@@ -294,7 +292,7 @@ class ManifoldCCA(BaseModel):
         n_neighbors_ = perview_parameter("n_neighbors", self.n_neighbors, 10, m)
         affinity_ = perview_parameter("affinity", self.affinity, "nearest_neighbors", m)
         gamma_ = perview_parameter("gamma", self.gamma, None, m)
-        lle_reg_ = perview_parameter("lle_reg", self.lle_reg, 1e-3, m)
+        reg_ = perview_parameter("reg", self.reg, 1e-3, m)
         n_operator_components_ = perview_parameter(
             "n_operator_components", self.n_operator_components, None, m
         )
@@ -316,8 +314,8 @@ class ManifoldCCA(BaseModel):
         laplacian_gamma: list[float | None] = []
         laplacian_nn: list[NearestNeighbors | None] = []
         lle_nn: list[NearestNeighbors] = []
-        for v, nn_i, aff_i, gamma_i, lle_reg_i, k_op in zip(
-            views_, n_neighbors_, affinity_, gamma_, lle_reg_, k_ops
+        for v, nn_i, aff_i, gamma_i, reg_i, k_op in zip(
+            views_, n_neighbors_, affinity_, gamma_, reg_, k_ops
         ):
             if self.method == "laplacian":
                 W, resolved_gamma = _laplacian_affinity(v, nn_i, aff_i, gamma_i)
@@ -330,11 +328,11 @@ class ManifoldCCA(BaseModel):
                     else None
                 )
             else:
-                operator = _lle_operator(v, nn_i, lle_reg_i)
+                operator = _lle_operator(v, nn_i, reg_i)
                 lle_nn.append(NearestNeighbors(n_neighbors=nn_i + 1).fit(v))
 
             reduced_operator = P.T @ operator @ P
-            basis, eigenvalues = _smooth_basis(reduced_operator, k_op, self.eps)
+            basis, eigenvalues = _smooth_basis(reduced_operator, k_op, self._EPS)
             bases.append(basis)
             full_bases.append(P @ basis)
             eigenvalue_blocks.append(eigenvalues)
@@ -356,7 +354,7 @@ class ManifoldCCA(BaseModel):
         self.train_views_: list[np.ndarray] = views_
         self._n_neighbors_: list[int] = n_neighbors_
         self._affinity_: list[str] = affinity_
-        self._lle_reg_: list[float] = lle_reg_
+        self._reg_: list[float] = reg_
 
         if self.method == "laplacian":
             self._laplacian_state_: list[_LaplacianViewState] | None = [
@@ -384,9 +382,7 @@ class ManifoldCCA(BaseModel):
             indices = self._lle_state_[view].kneighbors(
                 centred, n_neighbors=n_neighbors, return_distance=False
             )
-            weights = _barycenter_weights(
-                centred, v_train, indices, self._lle_reg_[view]
-            )
+            weights = _barycenter_weights(centred, v_train, indices, self._reg_[view])
             embedded: np.ndarray = np.einsum(
                 "qn,qnk->qk", weights, self.embedding_[view][indices]
             )

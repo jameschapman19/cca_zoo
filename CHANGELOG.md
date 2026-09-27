@@ -56,6 +56,17 @@ The table below gives each replacement.
 | `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
 | custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
 | `c=` (`RidgeCCA`, `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA`, `GraphicalLassoCCA`, `RANSACCCA`, `TrimmedCCA`, `CCAEY`, `StochasticCCAEY`, `KCCA`, `KGCCA`, `KTCCA`), and per-view `c__0` | `shrinkage=`, `shrinkage__0`: the covariance's shrinkage towards the identity in `[0, 1]`, as sklearn's `shrinkage`; `c` read as SVM's inverse penalty `C` |
+| Positional arguments after `n_components`, e.g. `CCA(2, False)` | keywords: every other constructor parameter is keyword-only, as in sklearn |
+| `eps=` (`MCCA`, `GCCA`, `TCCA`, `PartialCCA`, `GRCCA`, `CCAR3`, `ECCA`, `GraphicalLassoCCA`, `KCCA`, `KGCCA`, `KTCCA`, `ManifoldCCA`) | removed: a numerical floor, now fixed internally at the same value |
+| `PMDCCA(tau=)` | `l1_bound=`, the L1 bound as a fraction of `sqrt(n_features)` |
+| `ADMMCCA(tau=, mu=)`, `ParkhomenkoCCA(tau=)` | `alpha=` (the L1 penalty), `rho=` (ADMM's augmented-Lagrangian penalty) |
+| `TrimmedCCA(h_frac=)` | `support_fraction=`, as sklearn's `MinCovDet` |
+| `SAR(n_lambda=)` | `n_alphas=` |
+| `ManifoldCCA(lle_reg=)` | `reg=`, as sklearn's `LocallyLinearEmbedding` |
+| `CCAR3(highdim=False)` | `alpha=0`, now solved by least squares as in `ECCA`; `highdim` is removed |
+| `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
+| `X1, X2 = load_linnerud()`, `load_breast_cancer()` | `load_linnerud(return_views=True)`; without it a `Bunch` with `views`, `feature_names` and `DESCR`, as sklearn's loaders |
+| `KCCA`/`KGCCA`/`KTCCA` `degree` default 1 | 3, sklearn's polynomial-kernel default (only `kernel="poly"` uses it) |
 | `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
 | `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
 | `VariationalBayesCCA.guide_`, `.svi_result_` | `posterior_samples_` and `losses_` |
@@ -138,6 +149,9 @@ The table below gives each replacement.
 
 ### Changed
 
+- `TCCA` and `permutation_test_significance` take `random_state` as sklearn does: an int, a
+  `RandomState` instance or None. `TCCA` rejected a `RandomState`, and the permutation test
+  took a numpy `Generator`.
 - Fitted models no longer keep their training data. `predict`, `inverse_transform` and the
   importances took it from a stored copy of the views; what they need is now computed at
   fit, so a pickled model does not carry the dataset. `KTCCA` no longer keeps an

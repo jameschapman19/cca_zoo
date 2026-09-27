@@ -261,7 +261,8 @@ print("Best score: ", gs.best_score_)
   all pairwise view combinations.
 - Cross-validation is done on the full set of views passed to `fit`; train/test splits are
   row-wise (same rows held out across all views).
-- For sparse CCA methods, tune `tau` or `alpha` just like any other hyperparameter.
+- For sparse CCA methods, tune `alpha`, `l1_bound` or `span` just like any other
+  hyperparameter.
 - When the grid is large, prefer `RandomizedSearchCV`, or a coarse-to-fine `GridSearchCV`:
   search a coarse grid first, then refine around the best value.
 

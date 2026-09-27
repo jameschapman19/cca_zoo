@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import psd_inverse_sqrt
-from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
+from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
@@ -33,7 +33,6 @@ class GCCA(BaseModel):
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
         view_weights: Weight $\mu_i$ of each view; None weights them
             equally. Default is None.
-        eps: Floor on the within-view eigenvalues. Default is 1e-6.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -55,22 +54,22 @@ class GCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
-        "eps": POSITIVE_EPS,
         "view_weights": [None, "array-like"],
     }
+
+    _EPS: ClassVar[float] = 1e-6
 
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
         view_weights: list[float] | None = None,
-        eps: float = 1e-6,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
         self.view_weights = view_weights
-        self.eps = eps
 
     def fit(self, views: list[ArrayLike], y: None = None) -> GCCA:
         """Fit the model.
@@ -96,7 +95,7 @@ class GCCA(BaseModel):
                 * v
                 @ psd_inverse_sqrt(
                     (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1]),
-                    self.eps,
+                    self._EPS,
                 )
                 for v, ci, mi in zip(views_, c_, mu)
             ]

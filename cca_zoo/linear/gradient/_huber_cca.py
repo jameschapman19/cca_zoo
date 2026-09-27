@@ -122,6 +122,7 @@ class HuberCCA(BaseFullBatchEYModel):
     def __init__(
         self,
         n_components: int = 1,
+        *,
         center: bool = True,
         delta: float = 4.0,
         max_iter: int = 1000,

@@ -34,7 +34,7 @@ _FAST: dict[str, dict[str, Any]] = {
     "CatBoostCCA": {"n_estimators": 3},
     "ProjectionPursuitCCA": {"n_init": 1, "max_iter": 5},
     "StochasticCCAEY": {"max_iter": 5},
-    "SAR": {"n_lambda": 10, "max_iter": 20},
+    "SAR": {"n_alphas": 10, "max_iter": 20},
     "MultiTaskElasticNetCCA": {"max_iter": 20},
     "ElasticNetCCA": {"max_iter": 20},
     "TrimmedCCA": {"n_init": 2},

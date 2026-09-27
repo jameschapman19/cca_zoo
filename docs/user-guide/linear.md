@@ -224,22 +224,22 @@ where this helps and where the problem becomes too ambiguous for any method to r
 breakdown point, a random `min_samples`-sized draw becomes close to a coin flip on being usably
 clean, however many trials are tried. `TrimmedCCA` takes a different approach borrowed from
 Rousseeuw's Least Trimmed Squares / Minimum Covariance Determinant: rather than gambling on a lucky
-small draw, it starts from a large random subset of `h_frac * n` rows and alternates *concentration
+small draw, it starts from a large random subset of `support_fraction * n` rows and alternates *concentration
 steps* — rank every row by its own contribution to `CCAEY`'s exact loss and keep the best `h`, then
-re-fit on exactly those rows — each step provably non-increasing in the real loss. With `h_frac` set
+re-fit on exactly those rows — each step provably non-increasing in the real loss. With `support_fraction` set
 close to the true clean fraction, this holds up where `RANSACCCA`'s search degrades:
 
 ```python
 from cca_zoo.linear import TrimmedCCA
 
-model = TrimmedCCA(h_frac=0.55, n_init=40, random_state=0)
+model = TrimmedCCA(support_fraction=0.55, n_init=40, random_state=0)
 model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
 
-`h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
+`support_fraction` is a prior on the contamination rate, not something fit from the data — set it too high and
 good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
-once true contamination exceeds `1 - h_frac`. `TrimmedCCA` supports any number of views (2 or more)
+once true contamination exceeds `1 - support_fraction`. `TrimmedCCA` supports any number of views (2 or more)
 but only `n_components=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
 penalty being the square of a *single* linear functional of the selection, which holds for any
 number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
