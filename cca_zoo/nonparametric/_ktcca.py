@@ -5,29 +5,25 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 import numpy as np
-import tensorly as tl
 from numpy.typing import ArrayLike
-from sklearn.metrics import pairwise_kernels
-from tensorly.decomposition import parafac
 
-from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
-from cca_zoo._utils._param_constraints import KERNEL_PARAMETERS, RANDOM_STATE
-from cca_zoo._utils._validation import perview_parameter
+from cca_zoo._utils._param_constraints import RANDOM_STATE
+from cca_zoo.linear import TCCA
+from cca_zoo.nonparametric._kernel import _BaseKernelModel
 
 
-class KTCCA(BaseModel):
+class KTCCA(_BaseKernelModel):
     """Kernel tensor CCA.
 
-    :class:`~cca_zoo.linear.TCCA` on whitened kernel matrices: PARAFAC of
-    their cross-moment tensor gives the dual coefficients.
+    :class:`~cca_zoo.linear.TCCA` in each view's kernel feature space:
+    PARAFAC of the cross-moment tensor of the whitened feature maps.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        shrinkage: Shrinkage of each view's kernel covariance towards the
-            kernel, in ``[0, 1]``: 0 is kernel CCA and 1 is kernel PLS.
-            Per-view. Default is 0.1.
+        shrinkage: Shrinkage of each view's covariance in the kernel feature
+            space towards the identity, in ``[0, 1]``: 0 is kernel CCA and 1
+            is kernel PLS. Per-view. Default is 0.1.
         kernel: Kernel name or callable for
             :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
             ``"linear"``.
@@ -43,7 +39,7 @@ class KTCCA(BaseModel):
         weights_: Dual coefficients of each view, shape (n_samples,
             n_components).
         train_views_: The centred training views, against which the kernel
-            of a new view is evaluated.
+            of a new view is evaluated and centred.
 
     References:
         Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
@@ -59,14 +55,10 @@ class KTCCA(BaseModel):
         >>> model = KTCCA(random_state=0).fit([X1, X2, X3])
     """
 
-    _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseModel._parameter_constraints,
-        **KERNEL_PARAMETERS,
+        **_BaseKernelModel._parameter_constraints,
         "random_state": RANDOM_STATE,
     }
-
-    _EPS: ClassVar[float] = 1e-3
 
     def __init__(
         self,
@@ -101,74 +93,11 @@ class KTCCA(BaseModel):
             self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("shrinkage", self.shrinkage, 0.1, self.n_views_)
-        kernel_ = perview_parameter("kernel", self.kernel, "linear", self.n_views_)
-        gamma_ = perview_parameter("gamma", self.gamma, None, self.n_views_)
-        degree_ = perview_parameter("degree", self.degree, 3, self.n_views_)
-        coef0_ = perview_parameter("coef0", self.coef0, 1.0, self.n_views_)
-        kp_ = perview_parameter("kernel_params", self.kernel_params, {}, self.n_views_)
-
-        self.train_views_: list[np.ndarray] = views_
-        # Store parameters for transform
-        self._kernel = kernel_
-        self._gamma = gamma_
-        self._degree = degree_
-        self._coef0 = coef0_
-        self._kp = kp_
-
-        kernels = [
-            pairwise_kernels(
-                v,
-                metric=kernel_[i],
-                gamma=gamma_[i],
-                degree=degree_[i],
-                coef0=coef0_[i],
-                filter_params=True,
-                **(kp_[i] if kp_[i] else {}),
-            )
-            for i, v in enumerate(views_)
-        ]
-        whitened, cov_invsqrt = self._whiten_kernels(kernels, c_)
-
-        M = cross_moment_tensor(whitened)
-
-        tl.set_backend("numpy")
-        parafac_result = parafac(
-            M,
+        linear = TCCA(
             self.n_components,
-            verbose=False,
+            center=False,
+            shrinkage=self.shrinkage,
             random_state=self.random_state,
         )
-        self.weights_: list[np.ndarray] = [
-            cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
-        ]
+        self._set_weights(linear.fit(self._feature_maps(views_)).weights_)
         return self._finish_fit(views_)
-
-    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        kernel = pairwise_kernels(
-            centred,
-            self.train_views_[view],
-            metric=self._kernel[view],
-            gamma=self._gamma[view],
-            degree=self._degree[view],
-            coef0=self._coef0[view],
-            filter_params=True,
-            **(self._kp[view] if self._kp[view] else {}),
-        )
-        scores: np.ndarray = kernel @ self.weights_[view]
-        return scores
-
-    def _whiten_kernels(
-        self,
-        kernels: list[np.ndarray],
-        c: list[float],
-    ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-        """Whitened kernels and each view's inverse square-root matrix."""
-        whitened = []
-        cov_invsqrt = []
-        for i, K in enumerate(kernels):
-            cov = (1.0 - c[i]) * K @ K + c[i] * K
-            invsqrt = psd_inverse_sqrt(cov, self._EPS)
-            whitened.append(K @ invsqrt)
-            cov_invsqrt.append(invsqrt)
-        return whitened, cov_invsqrt

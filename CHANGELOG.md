@@ -264,6 +264,16 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `KCCA`, `KGCCA` and `KTCCA` never centred the kernel in feature space, and their
+  within-view constraint was the uncentred `c K + (1 - c) K^2`, missing the `1 / (n - 1)`
+  that the between-view covariance carried. The two halves of the eigenproblem were on
+  different scales, so `shrinkage` did not mean what it means for the linear models and
+  the solution drifted from kernel CCA, most at small and large `shrinkage`. Kernels are
+  now centred with `KernelCenterer` (new rows with the training statistics) and each model
+  is fitted as its linear counterpart on the kernel feature map. `KCCA` now equals `MCCA`
+  on `Nystroem` features using every training row as a landmark to machine precision,
+  and with a linear kernel the three models are `MCCA`, `GCCA` and `TCCA`. The fit no
+  longer adds an arbitrary floor to the constraint's spectrum.
 - `TrimmedCCA` accepted a per-view `shrinkage` list and then failed with a `TypeError`;
   like the `CCAEY` it wraps it takes one value, and a list is rejected when fitting.
 - Per-view parameter names inside a `Pipeline`, such as `cca__shrinkage__0`, raised

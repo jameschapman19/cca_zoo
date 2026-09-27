@@ -28,7 +28,10 @@ in that RKHS and expressed via the *dual* (kernel coefficient) representation.
 
 **When to use:** Nonlinear two-view CCA. The kernel generalises MCCA.
 
-KCCA finds dual variables $\boldsymbol{\alpha}_i$ (one set per view) by solving:
+Each view's kernel $K_i$ is centred in feature space (sklearn's `KernelCenterer`), and a
+new row's kernel against the training rows is centred with the training statistics. KCCA
+is then exactly `MCCA` on each view's kernel feature map: with dual variables
+$\boldsymbol{\alpha}_i$ it solves
 
 $$
 A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
@@ -36,10 +39,15 @@ $$
 
 where:
 
-- $A$ is the block off-diagonal kernel cross-covariance matrix
-- $B = \mathrm{block\_diag}(c_i K_i + (1-c_i) K_i^2)$ regularises the within-view kernel matrices
+- $A$ has off-diagonal blocks $K_i K_j / (n-1)$, the covariances between views' scores
+- $B$ has diagonal blocks $(1-c_i) K_i^2 / (n-1) + c_i K_i$: the variance of the scores
+  $K_i \boldsymbol{\alpha}_i$, shrunk towards the squared norm of the feature-space direction
 
-The parameter `shrinkage` controls regularisation: larger `shrinkage` → stronger regularisation.
+`shrinkage` ($c_i$) means what it does for `MCCA`: 0 is kernel CCA and 1 kernel PLS. With
+`kernel="linear"`, `KCCA`, `KGCCA` and `KTCCA` are `MCCA`, `GCCA` and `TCCA`, and with any
+kernel `KCCA` equals `MCCA` on `Nystroem` features that use every training row as a
+landmark. For large $n$, a `Nystroem` approximation with fewer landmarks followed by the
+linear model is the scalable form of the same estimator.
 
 ```python
 from cca_zoo.nonparametric import KCCA
@@ -84,7 +92,7 @@ $$
 Q = \sum_i \mu_i K_i \, B_i^{-1} \, K_i
 $$
 
-where $B_i = c_i K_i + (1-c_i) K_i^2$.
+with centred kernels and $B_i = (1-c_i) K_i^2 / (n-1) + c_i K_i$; it is `GCCA` on each view's kernel feature map.
 
 ```python
 from cca_zoo.nonparametric import KGCCA
@@ -98,8 +106,8 @@ model = KGCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit([X1, 
 
 **When to use:** Captures higher-order correlations in the kernel space for three or more views.
 
-KTCCA whitens the kernel matrices and builds a cross-moment tensor in the RKHS, then applies
-PARAFAC decomposition:
+KTCCA is `TCCA` on each view's kernel feature map: it whitens the feature maps, builds their
+cross-moment tensor and applies PARAFAC decomposition:
 
 ```python
 from cca_zoo.nonparametric import KTCCA
