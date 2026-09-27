@@ -25,12 +25,13 @@ def test_captures_an_interaction_additive_models_miss() -> None:
 
 
 @pytest.mark.parametrize("n_inducing", [None, 15])
-def test_return_std_gives_positive_uncertainty(
+def test_posterior_std_is_positive(
     two_views_small: list[np.ndarray], n_inducing: int | None
 ) -> None:
     """Exact and sparse posteriors give a positive std for every score."""
     model = GaussianProcessCCA(n_components=2, n_inducing=n_inducing, random_state=0)
-    means, stds = model.fit(two_views_small).transform(two_views_small, return_std=True)
+    model.fit(two_views_small)
+    means, stds = model.transform(two_views_small), model.posterior_std(two_views_small)
     for mean, std in zip(means, stds):
         assert std.shape == mean.shape
         assert np.all(std > 0)

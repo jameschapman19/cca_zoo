@@ -69,11 +69,11 @@ model3 = GaussianProcessCCA(n_components=1).fit([X1, X2, X3])
 
 ## Predictive uncertainty
 
-Because each per-component encoder is a Gaussian process, `transform` can return each latent
-component's posterior standard deviation alongside its mean:
+Because each per-component encoder is a Gaussian process, `posterior_std` gives each latent
+component's posterior standard deviation, the uncertainty of `transform`'s scores:
 
 ```python
-means, stds = model.transform([X1, X2], return_std=True)
+means, stds = model.transform([X1, X2]), model.posterior_std([X1, X2])
 ```
 
 `stds[i]` has the same shape as `means[i]` (`(n_samples, n_components)`) and is the posterior

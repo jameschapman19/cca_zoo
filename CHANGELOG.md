@@ -66,6 +66,7 @@ The table below gives each replacement.
 | `CCAR3(highdim=False)` | `alpha=0`, now solved by least squares as in `ECCA`; `highdim` is removed |
 | `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
 | `X1, X2 = load_linnerud()`, `load_breast_cancer()` | `load_linnerud(return_views=True)`; without it a `Bunch` with `views`, `feature_names` and `DESCR`, as sklearn's loaders |
+| `GaussianProcessCCA.transform(views, return_std=True)` | `transform(views)` and `posterior_std(views)`, as the probabilistic models' `posterior_mean`: `transform` takes views alone on every model |
 | `KCCA`/`KGCCA`/`KTCCA` `degree` default 1 | 3, sklearn's polynomial-kernel default (only `kernel="poly"` uses it) |
 | `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
 | `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
@@ -258,6 +259,8 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `TrimmedCCA` accepted a per-view `shrinkage` list and then failed with a `TypeError`;
+  like the `CCAEY` it wraps it takes one value, and a list is rejected when fitting.
 - Per-view parameter names inside a `Pipeline`, such as `cca__shrinkage__0`, raised
   `AttributeError` in the searches and `validation_curve`.
 - `CCAR3` and `ECCA` took the canonical directions from the SVD of the regression

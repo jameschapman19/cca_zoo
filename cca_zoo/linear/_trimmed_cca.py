@@ -16,7 +16,6 @@ from cca_zoo._utils._ey import weight_gram_mean
 from cca_zoo._utils._param_constraints import (
     POSITIVE_INT,
     RANDOM_STATE,
-    RIDGE_PARAMETER,
 )
 from cca_zoo.linear.gradient import CCAEY
 
@@ -148,8 +147,9 @@ class TrimmedCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions; must be 1. Default is 1.
         center: Whether to centre each view. Default is True.
-        shrinkage: Shrinkage of each view's covariance towards the identity,
-            in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.1.
+        shrinkage: Shrinkage of the covariances towards the identity, one value
+            for every view as in ``CCAEY``, in ``[0, 1]``: 0 is CCA and 1 is PLS.
+            Default is 0.1.
         support_fraction: Fraction of rows kept, in ``(0, 1]``; a prior on the clean
             fraction. Default is 0.75.
         n_init: Random restarts. Default is 10.
@@ -180,7 +180,7 @@ class TrimmedCCA(BaseModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "shrinkage": RIDGE_PARAMETER,
+        "shrinkage": [Interval(Real, 0, 1, closed="both")],
         "support_fraction": [Interval(Real, 0, 1, closed="right")],
         "n_init": POSITIVE_INT,
         "max_iter": POSITIVE_INT,

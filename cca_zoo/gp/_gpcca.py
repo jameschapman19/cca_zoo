@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from numbers import Integral, Real
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -111,24 +111,15 @@ class _GpEncoder:
         """The centred kernel of the inducing points, the RKHS-norm metric."""
         return self.basis(self.inducing_)
 
-    def predict_new(
-        self, X: np.ndarray, return_std: bool = False
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        """Encoder output for new data, shape (n, k), optionally with its std.
-
-        Args:
-            X: Input data, shape (n, n_features).
-            return_std: Whether to also return the posterior standard deviation,
-                the same for every component.
-
-        Returns:
-            The output, or ``(mean, std)``, each of shape (n, k).
-        """
+    def predict_new(self, X: np.ndarray) -> np.ndarray:
+        """Encoder output for new data, shape (n, k)."""
         mean: np.ndarray = self.basis(X) @ self.coef_
-        if not return_std:
-            return mean
+        return mean
+
+    def predict_std(self, X: np.ndarray) -> np.ndarray:
+        """Posterior standard deviation of the output, the same for every component."""
         _, std = self._variance_model.predict(X, return_std=True)
-        return mean, np.tile(std[:, None], (1, self.k))
+        return np.tile(std[:, None], (1, self.k))
 
 
 class GaussianProcessCCA(BaseModel):
@@ -176,7 +167,7 @@ class GaussianProcessCCA(BaseModel):
         >>> X1 = rng.standard_normal((100, 3))
         >>> X2 = rng.standard_normal((100, 3))
         >>> model = GaussianProcessCCA(alpha=[0.01, 0.1]).fit([X1, X2])
-        >>> means, stds = model.transform([X1, X2], return_std=True)
+        >>> means, stds = model.transform([X1, X2]), model.posterior_std([X1, X2])
     """
 
     _components_bounded_by_features: ClassVar[bool] = False
@@ -277,31 +268,23 @@ class GaussianProcessCCA(BaseModel):
         self.encoders_: list[_GpEncoder] = encoders
         return self._finish_fit(views_)
 
-    def transform(  # type: ignore[override]
-        self, views: list[ArrayLike], return_std: bool = False
-    ) -> list[np.ndarray] | tuple[list[np.ndarray], list[np.ndarray]]:
-        """Project views into the latent space.
+    def posterior_std(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """Posterior standard deviation of each view's latent scores.
+
+        The uncertainty of :meth:`transform`'s scores, larger away from the
+        training data.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
-            return_std: Whether to also return the posterior standard deviations.
-                Default is False.
 
         Returns:
-            One array of shape (n_samples, n_components) per view, or
-            ``(means, stds)`` of two such lists.
+            One array of shape (n_samples, n_components) per view.
         """
-        if not return_std:
-            return super().transform(views)
         validated = self._check_views(views)
-        centred = [v - m for v, m in zip(validated, self.means_)]
-        means = []
-        stds = []
-        for v, enc in zip(centred, self.encoders_):
-            mean, std = enc.predict_new(v, return_std=True)
-            means.append(mean)
-            stds.append(std)
-        return means, stds
+        return [
+            enc.predict_std(v - m)
+            for v, m, enc in zip(validated, self.means_, self.encoders_)
+        ]
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        return cast(np.ndarray, self.encoders_[view].predict_new(centred))
+        return self.encoders_[view].predict_new(centred)
