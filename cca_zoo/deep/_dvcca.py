@@ -134,9 +134,6 @@ class DVCCA(BaseDeep):
         """The posterior mean of a batch, as a one-element list."""
         return self.forward(batch["views"])
 
-    def on_train_end(self) -> None:
-        """Nothing to fit: the posterior mean is the output."""
-
 
 class DVCCAPrivate(DVCCA):
     r"""DVCCA with a private latent variable per view as well as the shared one.

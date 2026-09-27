@@ -107,10 +107,11 @@ TRAINABLE: dict[str, Callable[[], BaseDeep]] = {
 
 @pytest.mark.parametrize("name", MODELS)
 def test_predict_returns_canonical_variates(name: str) -> None:
-    """Training ends with a linear CCA, so predictions are canonical variates."""
+    """After fit_cca, predictions are canonical variates."""
     model = MODELS[name]()
     views = _views()
     _trainer().fit(model, _loader(views, shuffle=True))
+    model.fit_cca(_loader(views))
     scores = _predict(model, _loader(views))
     assert [s.shape for s in scores] == [(64, K), (64, K)]
     for s in scores:
@@ -152,6 +153,8 @@ def test_checkpoint_round_trip(name: str, tmp_path: Path) -> None:
     model = TRAINABLE[name]()
     trainer = _trainer()
     trainer.fit(model, _loader(_views()))
+    if not isinstance(model, DVCCA):
+        model.fit_cca(_loader(_views()))
     path = tmp_path / "model.ckpt"
     trainer.save_checkpoint(path)
     fresh = TRAINABLE[name]()
@@ -175,7 +178,9 @@ def test_dcca_learns_shared_signal() -> None:
     torch.manual_seed(0)
     views = _views(n=400)
     model = DCCA(K, _encoders(), learning_rate=1e-2)
-    _trainer(max_epochs=30).fit(model, _loader([v[:300] for v in views], shuffle=True))
+    train = _loader([v[:300] for v in views], shuffle=True)
+    _trainer(max_epochs=30).fit(model, train)
+    model.fit_cca(train)
     scores = _predict(model, _loader([v[300:] for v in views]))
     assert pairwise_correlations(scores)[0, 1].min() > 0.8
 
@@ -220,6 +225,8 @@ def test_models_train_on_three_views(name: str) -> None:
     views = _views(n_views=3)
     model = _three_view_models([v.shape[1] for v in views])[name]
     _trainer().fit(model, _loader(views))
+    if not name.startswith("DVCCA"):
+        model.fit_cca(_loader(views))
     expected = 1 if name.startswith("DVCCA") else 3
     assert len(_predict(model, _loader(views))) == expected
 
@@ -350,6 +357,7 @@ def test_dpcca_finds_the_signal_the_partials_do_not_explain(
         MultiviewDataset(views, partials=partials), batch_size=256, shuffle=True
     )
     _trainer(max_epochs=30).fit(model, train)
+    model.fit_cca(train)
     (z1, _) = _predict(model, _loader(views))  # no partials needed to predict
     assert abs(np.corrcoef(z1[:, 0], p)[0, 1]) > 0.8
 

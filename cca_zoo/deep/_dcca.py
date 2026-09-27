@@ -60,6 +60,7 @@ class DCCA(_ObjectiveModel):
         >>> trainer = pl.Trainer(max_epochs=2, logger=False, enable_progress_bar=False,
         ...                      enable_checkpointing=False, enable_model_summary=False)
         >>> trainer.fit(model, loader)
+        >>> model.fit_cca(loader)
         >>> Z1, Z2 = (torch.cat(z) for z in zip(*trainer.predict(model, loader)))
         >>> Z1.shape
         torch.Size([64, 2])

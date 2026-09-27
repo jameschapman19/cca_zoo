@@ -49,7 +49,7 @@ The table below gives each replacement.
 | `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
 | `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
 | `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_per_view_` |
-| deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
+| deep `model.transform(loader)` | `model.fit_cca(train_loader)` after training, then `trainer.predict(model, loader)`, returning canonical variates per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them |
 | deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
 | deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
 | `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
@@ -209,10 +209,15 @@ The table below gives each replacement.
 - `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
   use, rather than `weights_`, which elsewhere means weight matrices.
 - **Breaking:** the deep models are Lightning-native throughout.
-  - **Prediction:** `trainer.predict` returns canonical variates. A linear CCA is fitted
-    to the training encodings when training ends (`fit_cca`) and stored as buffers, so it
-    is saved in checkpoints. The old `transform` returned raw encodings, unordered and
-    correlated within a view.
+  - **Prediction:** `model.fit_cca(train_loader)`, called after training, fits a linear
+    CCA to the training encodings, and `trainer.predict` then returns canonical variates.
+    The projection is held in buffers, so a checkpoint saved after `fit_cca` restores it.
+    It is an explicit call rather than a training hook: fitted in `on_train_end`, it ran
+    after `ModelCheckpoint` had written its files, fitted each GPU's shard separately
+    under DDP, and bypassed the Trainer's device and precision handling. The old
+    `transform` returned raw encodings, unordered and correlated within a view.
+  - **Multi-GPU:** the covariance-based losses see each process's batch, not the global
+    one; the guide says so.
   - **Scoring:** the old `score`, which fitted a CCA to the very data it scored, is
     removed; use `cca_zoo.metrics` on the predictions.
   - **Losses:** `loss(batch)` takes the whole batch, so the autoencoder models' validation

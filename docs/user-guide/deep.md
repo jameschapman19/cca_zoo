@@ -37,6 +37,7 @@ test_loader = DataLoader(MultiviewDataset([X1_test, X2_test]), batch_size=256)
 
 trainer = L.Trainer(max_epochs=50)
 trainer.fit(model, train_loader, val_loader)
+model.fit_cca(train_loader)  # the linear CCA applied at prediction
 
 # Canonical variates, one array per view
 z1, z2 = (torch.cat(z).numpy() for z in zip(*trainer.predict(model, test_loader)))
@@ -52,11 +53,19 @@ Every loss term is logged under `train/`, `val/` and `test/`, so callbacks such 
 ### Outputs
 
 Calling the model, `model([x1, x2])`, returns each view's raw encoding.
-`trainer.predict` returns **canonical variates**: when training ends, a linear CCA is
-fitted to the training encodings and applied to every prediction, so each view's outputs
+`model.fit_cca(train_loader)`, called after training, fits a linear CCA to the training
+encodings; `trainer.predict` then returns **canonical variates**, so each view's outputs
 are uncorrelated with unit variance and ordered by canonical correlation, as `transform`
-gives for the other models. Call `model.fit_cca(loader)` to refit that projection on
-other data, or to predict from a model that was not trained with `trainer.fit`.
+gives for the other models. It is a separate call rather than a training hook so that it
+sees the whole training set once, outside the Trainer's per-GPU sharding. The projection is
+held in buffers: a checkpoint saved after `fit_cca` (`trainer.save_checkpoint(path)`)
+restores it, while those `ModelCheckpoint` writes during training hold only the encoders,
+so call `fit_cca` again after loading one. `DVCCA` needs no `fit_cca`: it predicts its
+posterior mean.
+
+The covariance-based losses (`DCCA` and its multiview forms, `DCCASDL`, `BarlowTwins`,
+`VICReg`) are estimated from each process's batch, so under multi-GPU (DDP) training they
+see the per-GPU batch rather than the global one; size the batch per GPU accordingly.
 
 Evaluate with `cca_zoo.metrics` on the predicted arrays:
 
@@ -154,6 +163,7 @@ targets the correlation $Z$ does not explain:
 train = DataLoader(MultiviewDataset([X1, X2], partials=Z), batch_size=128, shuffle=True)
 model = DPCCA(n_components=4, encoders=[e1, e2])
 trainer.fit(model, train)
+model.fit_cca(train)
 z1, z2 = (torch.cat(z) for z in zip(*trainer.predict(model, test_loader)))  # no Z
 ```
 

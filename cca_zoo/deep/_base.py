@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterable
 from typing import Any
 
@@ -20,9 +21,15 @@ class BaseDeep(pl.LightningModule):
     """Base class for deep multiview models, as Lightning modules.
 
     Train with a :class:`lightning.pytorch.Trainer`. Calling the model returns
-    each view's raw encoding. ``trainer.predict`` returns canonical variates:
-    the encodings projected by a linear CCA fitted on the training encodings
-    when training ends (:meth:`fit_cca`). Subclasses implement :meth:`loss`.
+    each view's raw encoding. After training, :meth:`fit_cca` fits a linear
+    CCA to the training encodings, and ``trainer.predict`` then returns
+    canonical variates. The projection is held in buffers, so a checkpoint
+    saved after :meth:`fit_cca` restores it. Subclasses implement
+    :meth:`loss`.
+
+    The covariance-based losses are estimated from each process's batch, so
+    under multi-GPU (DDP) training they see the per-GPU batch, not the global
+    one.
 
     Args:
         n_components: Latent dimension.
@@ -44,14 +51,15 @@ class BaseDeep(pl.LightningModule):
         learning_rate: float = 1e-3,
     ) -> None:
         super().__init__()
+        # Modules are not hyperparameters: they are saved in the state dict and
+        # passed back to load_from_checkpoint.
         self.save_hyperparameters(
             ignore=[
-                "encoder",
-                "encoders",
-                "decoders",
-                "objective",
-                "partial_encoder",
-                "private_encoders",
+                name
+                for cls in type(self).__mro__
+                if "__init__" in vars(cls)
+                for name, param in inspect.signature(cls.__init__).parameters.items()
+                if "Module" in str(param.annotation)
             ]
         )
         self.encoders = nn.ModuleList(encoders)
@@ -126,8 +134,8 @@ class BaseDeep(pl.LightningModule):
         """
         if not self.cca_fitted:
             raise RuntimeError(
-                "The linear CCA is not fitted; train with trainer.fit or call "
-                "fit_cca(dataloader) first."
+                "The linear CCA is not fitted; call model.fit_cca(train_loader) "
+                "after training."
             )
         return [
             (z - mean) @ weights
@@ -140,7 +148,7 @@ class BaseDeep(pl.LightningModule):
     def fit_cca(self, dataloader: Iterable[Batch]) -> None:
         """Fit the linear CCA that ``predict_step`` applies, on ``dataloader``.
 
-        Called on the training data when training ends.
+        Call after training, usually on the training data.
 
         Args:
             dataloader: Batches with a ``"views"`` key.
@@ -158,12 +166,6 @@ class BaseDeep(pl.LightningModule):
         self.cca_weights.copy_(torch.as_tensor(np.stack(cca.weights_)))
         self.cca_means.copy_(torch.as_tensor(np.stack(cca.means_)))
         self.cca_fitted.fill_(True)
-
-    def on_train_end(self) -> None:
-        """Fit the linear CCA on the training data."""
-        dataloader = self.trainer.train_dataloader
-        assert dataloader is not None
-        self.fit_cca(dataloader)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Adam with ``learning_rate``."""
