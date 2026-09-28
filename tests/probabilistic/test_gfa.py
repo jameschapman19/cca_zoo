@@ -7,8 +7,10 @@ import sys
 
 import numpy as np
 import pytest
+from sklearn.decomposition import PCA
 
 from cca_zoo.probabilistic import GFA
+from tests._helpers import principal_cosines
 
 
 def _views(n: int = 150, shared: int = 2, private: int = 0) -> list[np.ndarray]:
@@ -22,6 +24,17 @@ def _views(n: int = 150, shared: int = 2, private: int = 0) -> list[np.ndarray]:
         + 0.1 * rng.standard_normal((n, 5)),
         z @ rng.standard_normal((shared, 4)) + 0.1 * rng.standard_normal((n, 4)),
     ]
+
+
+def test_equal_noise_views_give_ppca_of_their_concatenation() -> None:
+    """With equal noise in each view, GFA is PPCA of the stacked views.
+
+    Probabilistic PCA's latent space is the top principal components.
+    """
+    views = _views(n=500)
+    latent = GFA(2, random_state=0).fit(views).posterior_mean(views)
+    pcs = PCA(2).fit_transform(np.hstack(views))
+    assert np.all(principal_cosines(latent, pcs) > 1 - 1e-4)
 
 
 @pytest.mark.parametrize(("drop_k", "kept"), [(True, range(1, 4)), (False, [4])])

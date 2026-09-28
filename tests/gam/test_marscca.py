@@ -57,6 +57,22 @@ def test_thresh_stops_the_forward_pass(correlated_views: list[np.ndarray]) -> No
     assert [len(e.terms_) for e in stopped.encoders_] == [4, 4]
 
 
+def test_flat_where_the_other_view_is_uninformative() -> None:
+    """Against h(x - 0.5), perfect correlation needs x's encoding flat below 0.5."""
+    rng = np.random.default_rng(0)
+
+    def hinge_views(n: int) -> list[np.ndarray]:
+        x = rng.uniform(-2, 2, n)
+        noise = rng.standard_normal((2, n))
+        return [np.c_[x, noise[0]], np.c_[np.maximum(0, x - 0.5), noise[1]]]
+
+    train, test = hinge_views(400), hinge_views(200)
+    model = MARSCCA(random_state=0).fit(train)
+    encoding, x = model.transform(test)[0][:, 0], test[0][:, 0]
+    assert model.score(test) > 0.99
+    assert encoding[x < 0.5].var() < 0.01 * encoding[x >= 0.5].var()
+
+
 def test_friedman_knot_spacing() -> None:
     """minspan=0 is Friedman's rule; the default caps knots at 20 per feature."""
     # 3000 samples, 10 features: minspan floor(18.3 / 2.5) = 7, endspan 10.

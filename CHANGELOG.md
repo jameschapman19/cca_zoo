@@ -67,6 +67,7 @@ The table below gives each replacement.
 | `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
 | `X1, X2 = load_linnerud()`, `load_breast_cancer()` | `load_linnerud(return_views=True)`; without it a `Bunch` with `views`, `feature_names` and `DESCR`, as sklearn's loaders |
 | `GaussianProcessCCA.transform(views, return_std=True)` | `transform(views)` and `posterior_std(views)`, as the probabilistic models' `posterior_mean`: `transform` takes views alone on every model |
+| `GaussianProcessCCA(max_iter=..., tol=...)`, `n_iter_` | removed: the fit is solved in closed form (see Changed) |
 | `KCCA`/`KGCCA`/`KTCCA` `degree` default 1 | 3, sklearn's polynomial-kernel default (only `kernel="poly"` uses it) |
 | `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
 | `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
@@ -155,6 +156,12 @@ The table below gives each replacement.
 
 ### Changed
 
+- `GaussianProcessCCA` is solved in closed form. Its objective, the EY loss plus the
+  RKHS-norm penalty, is a ridge-penalised EY loss on the Nyström features of its inducing
+  points, whose global minimiser is a generalized eigenproblem. It replaces an L-BFGS-B
+  run of 100-300 iterations that stopped short of that minimum. `max_iter`, `tol` and
+  `n_iter_` are removed. With a linear kernel and no penalty it is exactly `CCA`.
+- `ProbabilisticCCA` no longer prints NumPyro's progress bar while fitting.
 - Every model whose embedding projects the features (the linear, sparse, gradient, tree and
   MARS models) raises a `ValueError` when `n_components` exceeds the narrowest view's
   features, as sklearn's `CCA` does. `CCA`, `RidgeCCA` and `PLS` silently returned fewer
@@ -264,6 +271,13 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `GAMCCA` lost the linear fit at large `sp`: the penalised eigenproblem mixed penalty
+  eigenvalues of order `sp` with rewards of order 1, so rounding in the penalty's null
+  space (the linear functions) swamped the answer. At `sp=1e8` held-out scores agreed with
+  linear CCA's only to 0.96, at `1e12` to 0.2. The solver now works in the Demmler-Reinsch
+  basis, from the penalty's square-root factor, and drops only directions whose weight
+  would be below `sqrt(eps)`. `GAMCCA` now equals linear CCA at every large `sp`, and the
+  solver shared with `MARSCCA` and `GaussianProcessCCA` is stable at any penalty.
 - `KCCA`, `KGCCA` and `KTCCA` never centred the kernel in feature space, and their
   within-view constraint was the uncentred `c K + (1 - c) K^2`, missing the `1 / (n - 1)`
   that the between-view covariance carried. The two halves of the eigenproblem were on

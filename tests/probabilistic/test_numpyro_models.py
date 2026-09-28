@@ -9,6 +9,7 @@ pytest.importorskip("numpyro")
 
 from cca_zoo.linear import CCA
 from cca_zoo.probabilistic import ProbabilisticCCA, VariationalBayesCCA
+from tests._helpers import linear_views, principal_cosines
 
 pytestmark = pytest.mark.slow
 
@@ -30,6 +31,27 @@ def _views(
         for s in sd
     ]
     return views, z
+
+
+@pytest.mark.parametrize(
+    ("cls", "settings"),
+    [
+        (ProbabilisticCCA, {"n_warmup": 300, "n_posterior_samples": 300}),
+        (VariationalBayesCCA, {"n_iter": 3000}),
+    ],
+)
+def test_each_views_posterior_mean_spans_its_canonical_variates(
+    cls: type, settings: dict[str, int]
+) -> None:
+    """Each view's posterior mean spans its canonical variates.
+
+    At the maximum likelihood (Bach & Jordan, 2005), E[z | x_i] is a linear
+    map of view i's canonical variates.
+    """
+    views = linear_views(0, 500)
+    scores = cls(2, random_state=0, **settings).fit(views).transform(views)
+    for z, variates in zip(scores, CCA(2).fit(views).transform(views)):
+        assert np.all(principal_cosines(z, variates) > 0.99)
 
 
 @pytest.mark.parametrize("cls", [ProbabilisticCCA, VariationalBayesCCA])

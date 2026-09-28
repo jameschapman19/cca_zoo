@@ -67,3 +67,29 @@ def make_model(cls: type[BaseModel]) -> BaseModel:
 def canonical_correlations(model: object, views: list[np.ndarray]) -> np.ndarray:
     """Per-dimension mean pairwise canonical correlation of a fitted model."""
     return average_pairwise_correlations(pairwise_correlations(model.transform(views)))  # type: ignore[attr-defined]
+
+
+def linear_views(seed: int, n: int) -> list[np.ndarray]:
+    """Two views of two shared Gaussian factors, with noise of mixed scale."""
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal((n, 2))
+    return [
+        z @ rng.standard_normal((2, 6)) + rng.standard_normal((n, 6)),
+        z @ rng.standard_normal((2, 5)) + rng.standard_normal((n, 5)),
+    ]
+
+
+def assert_same_scores_as(
+    scores: list[np.ndarray], reference: list[np.ndarray], atol: float = 1e-6
+) -> None:
+    """Each component is perfectly correlated with the reference's, up to sign."""
+    for a, b in zip(scores, reference):
+        for j in range(b.shape[1]):
+            assert abs(np.corrcoef(a[:, j], b[:, j])[0, 1]) > 1 - atol
+
+
+def principal_cosines(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Cosines of the principal angles between the column spans of a and b."""
+    qa = np.linalg.qr(a - a.mean(axis=0))[0]
+    qb = np.linalg.qr(b - b.mean(axis=0))[0]
+    return np.linalg.svd(qa.T @ qb, compute_uv=False)

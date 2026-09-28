@@ -3,26 +3,27 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.linalg import eigh
-from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.manifold import LocallyLinearEmbedding, SpectralEmbedding
 
 from cca_zoo.linear import MCCA
 from cca_zoo.nonparametric import ManifoldCCA
-from cca_zoo.nonparametric._manifold_cca import _laplacian_operator
-
-
-def _principal_cosines(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return np.linalg.svd(np.linalg.qr(a)[0].T @ np.linalg.qr(b)[0], compute_uv=False)
+from tests._helpers import principal_cosines
 
 
 def test_duplicated_views_give_spectral_embedding() -> None:
-    """Two copies of one view recover that view's Laplacian eigenmap."""
+    """Two copies of one view recover sklearn's Laplacian eigenmap of that view.
+
+    SpectralEmbedding returns the normalised Laplacian's eigenvectors scaled by
+    D^{-1/2}; rescaling by the square-root degree recovers them.
+    """
     x = np.random.default_rng(0).standard_normal((120, 6))
     model = ManifoldCCA(n_neighbors=10, n_components=3).fit([x, x.copy()])
-    laplacian = _laplacian_operator(x - x.mean(0), 10, "nearest_neighbors", None)
-    eigenmap = eigh(laplacian)[1][:, 1:4]
+    se = SpectralEmbedding(n_components=3, n_neighbors=10, random_state=0)
+    se.fit(x - x.mean(0))
+    degree = np.asarray(se.affinity_matrix_.sum(axis=1)).ravel()
+    eigenmap = np.sqrt(degree)[:, None] * se.embedding_
     for z in model.embedding_:
-        assert np.all(_principal_cosines(z, eigenmap) > 1 - 1e-3)
+        assert np.all(principal_cosines(z, eigenmap) > 1 - 1e-3)
 
 
 def test_duplicated_views_extend_as_lle() -> None:
@@ -33,7 +34,7 @@ def test_duplicated_views_extend_as_lle() -> None:
     lle = LocallyLinearEmbedding(n_neighbors=10, n_components=3).fit(x - x.mean(0))
     expected = lle.transform(new - x.mean(0))
     for z in model.transform([new, new.copy()]):
-        assert np.all(_principal_cosines(z, expected) > 1 - 1e-2)
+        assert np.all(principal_cosines(z, expected) > 1 - 1e-2)
 
 
 def test_transform_of_training_data_follows_the_embedding(

@@ -690,12 +690,18 @@ def omp_coordinate_descent_ey(
     return coefficients, max_iter, False
 
 
-def _penalty_matrix(penalty: float | np.ndarray, size: int) -> np.ndarray:
-    """A view's penalty as a matrix: a scalar ridge, per-column ridges, or a matrix."""
+def _penalty_factor(penalty: float | np.ndarray, size: int) -> np.ndarray:
+    """A view's penalty as its factor ``F``, with penalty ``F' F``.
+
+    A scalar ridge or per-column ridges give ``diag(sqrt(ridge))``; a 2-D
+    array is the factor itself. Penalties are carried as factors because
+    squaring one squares its condition number, blurring the null space of a
+    heavily weighted penalty.
+    """
     penalty = np.asarray(penalty, dtype=float)
     if penalty.ndim == 2:
         return penalty
-    return np.diag(np.broadcast_to(penalty, size))
+    return np.diag(np.sqrt(np.broadcast_to(penalty, size)))
 
 
 def penalised_gram_ey_gep(
@@ -715,7 +721,7 @@ def penalised_gram_ey_gep(
         gram: ``A``, shape (D, D), positive definite on each view's block.
         view: View index of each stacked column.
         penalties: One per view: a scalar ridge, one ridge per column, or a
-            symmetric positive semi-definite matrix.
+            factor ``F`` of shape (q, d_i) for the penalty ``F' F``.
 
     Returns:
         ``(A - R/4, B)``.
@@ -723,7 +729,12 @@ def penalised_gram_ey_gep(
     b = np.where(view[:, None] == view[None, :], gram, 0.0)
     sizes = np.bincount(view)
     penalty = scipy.linalg.block_diag(
-        *[_penalty_matrix(p, int(size)) for p, size in zip(penalties, sizes)]
+        *[
+            factor.T @ factor
+            for factor in (
+                _penalty_factor(p, int(size)) for p, size in zip(penalties, sizes)
+            )
+        ]
     )
     return gram - penalty / 4, b
 
@@ -762,46 +773,55 @@ def _jacobi_scaled(
     per_view = np.split(scale, split)
     return (
         [b * sv for b, sv in zip(bases, per_view)],
-        [
-            _penalty_matrix(p, len(sv)) * np.outer(sv, sv)
-            for p, sv in zip(penalties, per_view)
-        ],
+        [_penalty_factor(p, len(sv)) * sv for p, sv in zip(penalties, per_view)],
     )
 
 
-def _jacobi(
-    lhs: np.ndarray, rhs: np.ndarray
+def _demmler_reinsch(
+    gram: np.ndarray, view: np.ndarray, penalties: Sequence[float | np.ndarray]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """``(lhs, rhs)`` scaled by ``1/sqrt(diag(rhs))`` on both sides, and the scale."""
-    scale = 1.0 / np.sqrt(np.diag(rhs))
-    outer = np.outer(scale, scale)
-    return lhs * outer, rhs * outer, scale
+    r"""The penalised EY eigenproblem as a well-conditioned standard one.
 
+    Each view's coordinates are whitened by its Gram block and rotated to
+    diagonalise its penalty (the Demmler-Reinsch basis), so the problem
+    becomes the symmetric eigenproblem of $T^\top A T - \operatorname{diag}(d)/4$
+    with $w = T u$. A direction whose penalty eigenvalue $d$ exceeds the
+    largest possible reward by $1/\sqrt{\epsilon}$ takes a weight below
+    $\sqrt{\epsilon}$ of the others and is dropped: kept, its $d$ would set
+    the eigensolver's absolute error, and a large smoothing parameter would
+    swamp the eigenvalues that matter.
 
-def _top_eigenpairs(
-    lhs: np.ndarray, rhs: np.ndarray, k: int
-) -> tuple[np.ndarray, np.ndarray]:
-    """Top ``k`` eigenpairs of ``(lhs, rhs)``, largest first."""
-    size = lhs.shape[0]
-    lhs_s, rhs_s, scale = _jacobi(lhs, rhs)
-    mu, u = scipy.linalg.eigh(
-        lhs_s, rhs_s, subset_by_index=(max(size - k, 0), size - 1)
-    )
-    return mu[::-1], u[:, ::-1] * scale[:, None]
-
-
-def _top_eigenvalues(lhs: np.ndarray, rhs: np.ndarray, k: int) -> np.ndarray:
-    """Top ``k`` eigenvalues of ``(lhs, rhs)``, largest first."""
-    size = lhs.shape[0]
-    lhs_s, rhs_s, _ = _jacobi(lhs, rhs)
-    mu = scipy.linalg.eigh(
-        lhs_s,
-        rhs_s,
-        eigvals_only=True,
-        subset_by_index=(max(size - k, 0), size - 1),
-    )
-    result: np.ndarray = mu[::-1]
-    return result
+    Returns:
+        ``(lhs, transform, view)``: the reduced symmetric matrix, the map from
+        its coordinates to the stacked coefficients, and each kept
+        coordinate's view.
+    """
+    n_views = int(view.max()) + 1
+    # Whitened, the stacked Gram has unit diagonal blocks and norm at most
+    # the number of views; no reward exceeds that.
+    cutoff = 4 * n_views / np.sqrt(np.finfo(float).eps)
+    blocks, kept_view = [], []
+    for i, penalty in enumerate(penalties):
+        block = view == i
+        lam, vectors = np.linalg.eigh(gram[np.ix_(block, block)])
+        whiten = vectors / np.sqrt(lam)
+        size = int(block.sum())
+        # The SVD of the factor resolves the penalty's null space to
+        # eps * sqrt(|penalty|), where an eigendecomposition of the penalty
+        # itself would give eps * |penalty|.
+        _, singular, vt = np.linalg.svd(_penalty_factor(penalty, size) @ whiten)
+        d = np.zeros(size)
+        d[: singular.size] = singular**2
+        rotation = vt.T
+        keep = d < cutoff
+        transform_i = np.zeros((view.size, int(keep.sum())))
+        transform_i[block] = whiten @ rotation[:, keep]
+        blocks.append((transform_i, d[keep]))
+        kept_view.append(np.full(int(keep.sum()), i))
+    transform = np.hstack([t for t, _ in blocks])
+    d = np.concatenate([di for _, di in blocks])
+    lhs = transform.T @ gram @ transform - np.diag(d) / 4
+    return (lhs + lhs.T) / 2, transform, np.concatenate(kept_view)
 
 
 def penalised_gram_ey_closed_form(
@@ -819,10 +839,11 @@ def penalised_gram_ey_closed_form(
         Coefficients of shape (d_i, k) per view; components with no positive
         eigenvalue are zero.
     """
-    lhs, rhs = penalised_gram_ey_gep(gram, view, penalties)
-    mu, u = _top_eigenpairs(lhs, rhs, k)
-    w = np.zeros((lhs.shape[0], k))
-    w[:, : len(mu)] = u * np.sqrt(np.maximum(mu, 0.0))
+    lhs, transform, _ = _demmler_reinsch(gram, view, penalties)
+    size = lhs.shape[0]
+    mu, u = scipy.linalg.eigh(lhs, subset_by_index=(max(size - k, 0), size - 1))
+    w = np.zeros((gram.shape[0], k))
+    w[:, : len(mu)] = transform @ (u[:, ::-1] * np.sqrt(np.maximum(mu[::-1], 0.0)))
     return [w[view == i] for i in range(int(view.max()) + 1)]
 
 
@@ -846,8 +867,11 @@ def penalised_basis_ey_min_loss(
     bases: list[np.ndarray], k: int, penalties: Sequence[float | np.ndarray]
 ) -> float:
     """Minimum penalised-EY loss on fixed bases, ``-sum(mu**2)`` over the top ``k``."""
-    gram, view = _stacked_gram(bases)
-    mu = _top_eigenvalues(*penalised_gram_ey_gep(gram, view, penalties), k)
+    lhs, _, _ = _demmler_reinsch(*_stacked_gram(bases), penalties)
+    size = lhs.shape[0]
+    mu = scipy.linalg.eigh(
+        lhs, eigvals_only=True, subset_by_index=(max(size - k, 0), size - 1)
+    )
     return -float(np.sum(np.maximum(mu, 0.0) ** 2))
 
 
@@ -892,9 +916,10 @@ def full_rank_reparametrisation(
         penalty_norm: Spectral norm of ``F``.
 
     Returns:
-        ``(lift, row, reduced_penalty)`` of shapes (d, r), (d, r) and (r, r):
-        the reduced Gram is ``row.T @ gram @ row`` and coefficients map back
-        as ``lift @ a``.
+        ``(lift, row, reduced_factor)`` of shapes (d, r), (d, r) and (q, r):
+        the reduced Gram is ``row.T @ gram @ row``, the reduced penalty
+        ``reduced_factor.T @ reduced_factor``, and coefficients map back as
+        ``lift @ a``.
     """
     eigenvalues, vectors = np.linalg.eigh(gram)
     row_mask = eigenvalues > eigenvalues[-1] * _GRAM_RANK_TOL
@@ -911,4 +936,4 @@ def full_rank_reparametrisation(
     )
     lift = row - null @ correction
     factor_lift = penalty_factor @ lift
-    return lift, row, factor_lift.T @ factor_lift
+    return lift, row, factor_lift

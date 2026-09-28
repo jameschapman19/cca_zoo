@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 
 from cca_zoo.gam import GAMCCA
-from cca_zoo.linear import RidgeCCA
+from cca_zoo.linear import CCA, RidgeCCA
+from tests._helpers import assert_same_scores_as, linear_views
 
 
 def test_recovers_a_smooth_nonmonotonic_relationship() -> None:
@@ -21,6 +22,14 @@ def test_recovers_a_smooth_nonmonotonic_relationship() -> None:
     gam = GAMCCA().fit(train).score(test)
     assert gam > 0.9
     assert gam > RidgeCCA(shrinkage=0.3).fit(train).score(test) + 0.5
+
+
+@pytest.mark.parametrize("sp", [1e4, 1e8, 1e12])
+def test_large_sp_is_cca(sp: float) -> None:
+    """A large sp leaves the penalty's null space, the linear maps: linear CCA."""
+    train, test = linear_views(0, 200), linear_views(1, 50)
+    model = GAMCCA(2, sp=sp).fit(train)
+    assert_same_scores_as(model.transform(test), CCA(2).fit(train).transform(test))
 
 
 def test_k_sets_each_views_basis_size(two_views_small: list[np.ndarray]) -> None:

@@ -142,6 +142,7 @@ class ProbabilisticCCA(BaseProbabilistic):
             nuts_kernel,
             num_warmup=self.n_warmup,
             num_samples=self.n_posterior_samples,
+            progress_bar=False,
         )
         rng_key = jax.random.PRNGKey(_integer_seed(self.random_state))
         mcmc.run(rng_key, validated)

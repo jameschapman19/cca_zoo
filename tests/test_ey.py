@@ -54,12 +54,11 @@ def test_closed_form_is_the_penalised_optimum(k: int, difference_penalty: bool) 
     bases = [b - b.mean(axis=0) for b in bases]
     dims = [b.shape[1] for b in bases]
     shapes = [
-        np.diff(np.eye(d), n=2, axis=0).T @ np.diff(np.eye(d), n=2, axis=0)
-        if difference_penalty
-        else np.eye(d)
+        np.diff(np.eye(d), n=2, axis=0) if difference_penalty else np.eye(d)
         for d in dims
     ]
-    penalties = [s * p for s, p in zip((0.1, 2.0, 0.0), shapes)]
+    factors = [np.sqrt(s) * f for s, f in zip((0.1, 2.0, 0.0), shapes)]
+    penalties = [f.T @ f for f in factors]
     split = np.cumsum([d * k for d in dims])[:-1]
 
     def objective(x: np.ndarray) -> tuple[float, np.ndarray]:
@@ -76,7 +75,7 @@ def test_closed_form_is_the_penalised_optimum(k: int, difference_penalty: bool) 
 
     closed = objective(
         np.concatenate(
-            [c.ravel() for c in penalised_basis_ey_closed_form(bases, k, penalties)]
+            [c.ravel() for c in penalised_basis_ey_closed_form(bases, k, factors)]
         )
     )[0]
     iterative = min(
@@ -100,7 +99,7 @@ def test_reparametrisation_is_full_rank_and_keeps_the_penalty() -> None:
     raw[:, :4] /= raw[:, :4].sum(axis=1, keepdims=True)
     basis = raw - raw.mean(axis=0)
     factor = np.diff(np.eye(8), n=2, axis=0)
-    lift, _, reduced_penalty = full_rank_reparametrisation(
+    lift, _, reduced_factor = full_rank_reparametrisation(
         basis, basis.T @ basis, factor, np.linalg.norm(factor, 2)
     )
     rank = np.linalg.matrix_rank(basis)
@@ -108,7 +107,7 @@ def test_reparametrisation_is_full_rank_and_keeps_the_penalty() -> None:
     a = rng.standard_normal(rank)
     w = lift @ a
     np.testing.assert_allclose(
-        a @ reduced_penalty @ a, np.sum((factor @ w) ** 2), rtol=1e-10
+        np.sum((reduced_factor @ a) ** 2), np.sum((factor @ w) ** 2), rtol=1e-10
     )
     null = np.linalg.svd(basis)[2][rank:].T
     others = w[:, None] + null @ rng.standard_normal((null.shape[1], 20))

@@ -8,6 +8,15 @@ from sklearn.gaussian_process.kernels import RBF, DotProduct
 
 from cca_zoo.gam import GAMCCA
 from cca_zoo.gp import GaussianProcessCCA
+from cca_zoo.linear import CCA
+from tests._helpers import assert_same_scores_as, linear_views
+
+
+def test_linear_kernel_without_penalty_is_cca() -> None:
+    """A linear kernel's RKHS is the linear maps: with no penalty, CCA."""
+    train, test = linear_views(0, 200), linear_views(1, 50)
+    model = GaussianProcessCCA(2, kernel=DotProduct(), alpha=1e-10).fit(train)
+    assert_same_scores_as(model.transform(test), CCA(2).fit(train).transform(test))
 
 
 def test_captures_an_interaction_additive_models_miss() -> None:
