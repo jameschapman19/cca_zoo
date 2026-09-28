@@ -7,10 +7,10 @@ from numpy.typing import ArrayLike
 
 from cca_zoo._utils._linalg import gevp
 from cca_zoo._utils._validation import perview_parameter
-from cca_zoo.linear._mcca import _BaseMCCA
+from cca_zoo.linear._mcca import MCCA
 
 
-class PartialCCA(_BaseMCCA):
+class PartialCCA(MCCA):
     r"""CCA of the views after regressing out confounds.
 
     $$

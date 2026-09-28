@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from numbers import Real
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import block_diag
-from sklearn.covariance import GraphicalLasso, GraphicalLassoCV
+from sklearn.covariance import GraphicalLassoCV, graphical_lasso
 from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
@@ -17,10 +17,10 @@ from cca_zoo._utils._param_constraints import (
     RIDGE_PARAMETER,
 )
 from cca_zoo._utils._validation import perview_parameter
-from cca_zoo.linear._mcca import _BaseMCCA
+from cca_zoo.linear._mcca import MCCA
 
 
-class GraphicalLassoCCA(_BaseMCCA):
+class GraphicalLassoCCA(MCCA):
     """MCCA with each within-view covariance estimated by the graphical lasso.
 
     Replaces each view's block of :class:`~cca_zoo.linear.MCCA`'s $B$ with
@@ -91,20 +91,34 @@ class GraphicalLassoCCA(_BaseMCCA):
         self.mode = mode
         self.max_iter = max_iter
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> GraphicalLassoCCA:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> GraphicalLassoCCA:
         """Fit the model.
-
-        The graphical lasso estimates each covariance from the rows, so the
-        model takes no ``sample_weight``.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
+
+        Raises:
+            ValueError: If ``sample_weight`` is given with ``alpha=None``:
+                cross-validating the penalty splits the rows themselves.
         """
-        return self._solve(self._setup_fit(views))
+        alpha_ = perview_parameter("alpha", self.alpha, None, len(views))
+        if sample_weight is not None and None in alpha_:
+            raise ValueError(
+                "alpha=None selects the penalty by cross-validating over the "
+                "rows, which cannot use sample_weight; pass alpha."
+            )
+        return cast(GraphicalLassoCCA, super().fit(views, y, sample_weight))
 
     def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
         """Block-diagonal ``B`` from each view's graphical-lasso covariance."""
@@ -117,16 +131,24 @@ class GraphicalLassoCCA(_BaseMCCA):
                 estimator = GraphicalLassoCV(
                     mode=self.mode, max_iter=self.max_iter
                 ).fit(v)
+                covariance, precision, n_iter = (
+                    estimator.covariance_,
+                    estimator.precision_,
+                    estimator.n_iter_,
+                )
             else:
-                estimator = GraphicalLasso(
+                # The views are centred when center=True, so this is their
+                # covariance, weighted when fit was given sample_weight.
+                covariance, precision, n_iter = graphical_lasso(
+                    v.T @ v / (len(v) - 1),
                     alpha=a,
                     mode=self.mode,
                     max_iter=self.max_iter,
-                    assume_centered=self.center,
-                ).fit(v)
-            covariances.append(estimator.covariance_)
-            precisions.append(estimator.precision_)
-            self.n_iter_.append(estimator.n_iter_)
+                    return_n_iter=True,
+                )
+            covariances.append(covariance)
+            precisions.append(precision)
+            self.n_iter_.append(n_iter)
         self.covariance_: list[np.ndarray] = covariances
         self.precision_: list[np.ndarray] = precisions
 

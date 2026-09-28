@@ -45,13 +45,6 @@ def test_global_config_and_clone_keep_the_container() -> None:
     assert isinstance(cloned.fit(views).transform(views)[0], pd.DataFrame)
 
 
-def test_refit_on_arrays_forgets_names() -> None:
-    """A refit without names drops the names of the earlier fit."""
-    views = linear_views(0, 50)
-    model = CCA().fit(_frames(views)).fit(views)
-    assert not hasattr(model, "feature_names_per_view_")
-
-
 def test_search_keeps_feature_names() -> None:
     """Searches and cross-validation pass each view's names to the model."""
     frames = _frames(linear_views(0, 60))

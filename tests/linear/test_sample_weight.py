@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from sklearn.utils.validation import has_fit_parameter
 
 from cca_zoo._base import BaseModel
 from cca_zoo.linear import (
@@ -14,7 +13,6 @@ from cca_zoo.linear import (
     MCCA,
     PLS,
     GraphicalLassoCCA,
-    PartialCCA,
     RidgeCCA,
 )
 from cca_zoo.model_selection import GridSearchCV
@@ -27,6 +25,7 @@ _WEIGHTED = [
     MCCA(2, shrinkage=0.2),
     GCCA(2, shrinkage=0.2),
     GRCCA(2),
+    GraphicalLassoCCA(2, alpha=0.1),
 ]
 _IDS = [type(m).__name__ for m in _WEIGHTED]
 
@@ -58,18 +57,14 @@ def test_unit_weights_change_nothing(model: BaseModel) -> None:
 
 
 def test_weights_are_validated() -> None:
-    """Negative weights, or too little total weight for a covariance, raise."""
+    """Weights that cannot define a weighted covariance raise."""
     views = linear_views(0, 40)
     with pytest.raises(ValueError, match="Negative values"):
         CCA().fit(views, sample_weight=-np.ones(40))
     with pytest.raises(ValueError, match="sum to more than 1"):
         CCA().fit(views, sample_weight=np.full(40, 0.02))
-
-
-def test_row_based_estimators_take_no_weights() -> None:
-    """The graphical lasso and the partials' regression use the rows themselves."""
-    assert not has_fit_parameter(GraphicalLassoCCA(), "sample_weight")
-    assert not has_fit_parameter(PartialCCA(), "sample_weight")
+    with pytest.raises(ValueError, match="cross-validating over the rows"):
+        GraphicalLassoCCA(alpha=None).fit(views, sample_weight=np.ones(40))
 
 
 def test_search_routes_weights_to_each_fold() -> None:

@@ -76,10 +76,11 @@ The table below gives each replacement.
 ### Added
 
 - `sample_weight` in `fit` for the models fitted from second moments: `CCA`,
-  `RidgeCCA`, `PLS`, `MCCA`, `GCCA` and `GRCCA`. As in sklearn, an integer weight is the
-  same as repeating the sample, exactly, with or without centring. The searches and
-  cross-validation slice it with the views. `TCCA` (third moments), the kernel models,
-  `GraphicalLassoCCA` and `PartialCCA` (which use the rows themselves) take none.
+  `RidgeCCA`, `PLS`, `MCCA`, `GCCA`, `GRCCA` and `GraphicalLassoCCA` (with a fixed
+  `alpha`; `alpha=None` cross-validates over the rows and raises). As in sklearn, an
+  integer weight is the same as repeating the sample, exactly, with or without
+  centring. The searches and cross-validation slice it with the views. `TCCA` (third
+  moments), the kernel models and `PartialCCA` take none.
 - Feature names, as in sklearn: views fitted as DataFrames with string columns are
   recorded in `feature_names_per_view_`; a new view whose names differ raises, and one
   with names on only one side of fit and transform warns. `get_feature_names_out()`
@@ -172,8 +173,8 @@ The table below gives each replacement.
 
 - `GCCA`'s shared latent has unit variance, so the scale of its scores no longer
   shrinks with the number of samples. Correlations are unchanged.
-- `GraphicalLassoCCA` and `PartialCCA` share `MCCA`'s solver but are no longer its
-  subclasses, since they cannot take its `sample_weight`.
+- `GraphicalLassoCCA` with a fixed `alpha` penalises the covariance with denominator
+  `n - 1`, as every other model's covariance, rather than sklearn's `n`.
 - `VariationalBayesCCA.posterior_samples_` holds numpy arrays, as
   `ProbabilisticCCA`'s does, rather than JAX arrays, which pinned device memory and
   could not be serialised by skops.
