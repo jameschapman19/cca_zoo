@@ -13,8 +13,8 @@ if "PYTEST_XDIST_WORKER" in os.environ:
         "--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1"
     )
 
-import numpy as np  # noqa: E402
-import pytest  # noqa: E402
+import numpy as np
+import pytest
 
 
 @pytest.fixture

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, ClassVar
 
 import numpy as np
@@ -20,6 +21,144 @@ _TAU_BETA_0 = 1e-14
 _INIT_TAU = 1e3
 _DROP_TOL = 1e-7
 _PATIENCE = 1000
+
+
+@dataclass
+class _VariationalPosterior:
+    """Klami et al.'s factorised posterior q(Z) q(W) q(alpha) q(tau).
+
+    Each ``update_*`` method is one closed-form coordinate-ascent step,
+    following ``CCAGFA::GFA()``.
+    """
+
+    z: np.ndarray
+    cov_z: np.ndarray
+    w: list[np.ndarray]
+    cov_w: list[np.ndarray]
+    alpha: list[np.ndarray]
+    tau: np.ndarray
+    a_ard: np.ndarray
+    b_ard: list[np.ndarray]
+    a_tau: np.ndarray
+    b_tau: np.ndarray
+    sum_squares: np.ndarray
+
+    @classmethod
+    def initialise(
+        cls, views: list[np.ndarray], k: int, rng: np.random.Generator
+    ) -> _VariationalPosterior:
+        """CCAGFA's initialisation, with its ``getDefaultOpts()`` priors."""
+        n = views[0].shape[0]
+        d = np.array([v.shape[1] for v in views])
+        tau = np.full(len(views), _INIT_TAU)
+        total_variance = np.array([np.var(v, axis=0, ddof=1).sum() for v in views])
+        return cls(
+            z=rng.standard_normal((n, k)),
+            cov_z=np.eye(k),
+            w=[np.zeros((p, k)) for p in d],
+            cov_w=[np.eye(k) for _ in d],
+            alpha=[
+                np.full(k, k * p / max(var - 1.0 / t, 1e-8))
+                for p, var, t in zip(d, total_variance, tau)
+            ],
+            tau=tau,
+            a_ard=_ARD_ALPHA_0 + d / 2.0,
+            b_ard=[np.full(k, _ARD_BETA_0) for _ in d],
+            a_tau=_TAU_ALPHA_0 + n * d / 2.0,
+            b_tau=np.full(len(views), _TAU_BETA_0),
+            sum_squares=np.array([np.sum(v**2) for v in views]),
+        )
+
+    @property
+    def zz(self) -> np.ndarray:
+        """E[Z'Z]."""
+        zz: np.ndarray = self.z.T @ self.z + len(self.z) * self.cov_z
+        return zz
+
+    def ww(self, m: int) -> np.ndarray:
+        """E[W_m' W_m]."""
+        ww: np.ndarray = self.w[m].T @ self.w[m] + len(self.w[m]) * self.cov_w[m]
+        return ww
+
+    def update_loadings(self, views: list[np.ndarray]) -> None:
+        """q(W_m) for each view, given q(Z)."""
+        k = self.z.shape[1]
+        zz = self.zz
+        for m, x in enumerate(views):
+            scale = 1.0 / np.sqrt(self.alpha[m])
+            inner = np.outer(scale, scale) * zz + np.eye(k) / self.tau[m]
+            cho = np.linalg.cholesky(inner)
+            inv_inner = np.linalg.solve(cho.T, np.linalg.solve(cho, np.eye(k)))
+            self.cov_w[m] = np.outer(scale, scale) * inv_inner / self.tau[m]
+            self.w[m] = x.T @ self.z @ self.cov_w[m] * self.tau[m]
+
+    def update_factors(self, views: list[np.ndarray]) -> None:
+        """q(Z), given every view's q(W)."""
+        k = self.z.shape[1]
+        precision = np.eye(k) + sum(t * self.ww(m) for m, t in enumerate(self.tau))
+        cho = np.linalg.cholesky(precision)
+        self.cov_z = np.linalg.solve(cho.T, np.linalg.solve(cho, np.eye(k)))
+        self.z = sum(x @ w * t for x, w, t in zip(views, self.w, self.tau)) @ self.cov_z
+
+    def update_ard(self) -> None:
+        """q(alpha_m), the ARD precision of each view's loadings."""
+        for m in range(len(self.w)):
+            self.b_ard[m] = _ARD_BETA_0 + np.diag(self.ww(m)) / 2.0
+            self.alpha[m] = self.a_ard[m] / self.b_ard[m]
+
+    def update_noise(self, views: list[np.ndarray]) -> None:
+        """q(tau_m), the noise precision of each view."""
+        zz = self.zz
+        for m, x in enumerate(views):
+            residual = (
+                self.sum_squares[m]
+                + np.sum(self.ww(m) * zz)
+                - 2.0 * np.sum(self.z * (x @ self.w[m]))
+            )
+            self.b_tau[m] = _TAU_BETA_0 + residual / 2.0
+            self.tau[m] = self.a_tau[m] / self.b_tau[m]
+
+    def prune(self) -> bool:
+        """Drop dimensions whose factors have vanished, as CCAGFA's ``dropK``."""
+        keep = np.where(np.mean(self.z**2, axis=0) > _DROP_TOL)[0]
+        if not 0 < len(keep) < self.z.shape[1]:
+            return False
+        square = np.ix_(keep, keep)
+        self.z = self.z[:, keep]
+        self.cov_z = self.cov_z[square]
+        for m in range(len(self.w)):
+            self.w[m] = self.w[m][:, keep]
+            self.cov_w[m] = self.cov_w[m][square]
+            self.alpha[m] = self.alpha[m][keep]
+            self.b_ard[m] = self.b_ard[m][keep]
+        return True
+
+    def sample(self, rng: np.random.Generator, s: int) -> dict[str, np.ndarray]:
+        """Draws from q, keyed as the other probabilistic models' samples.
+
+        Each view's scalar noise is broadcast to every feature, matching their
+        ``log_psi_{i}`` convention.
+        """
+        k = self.z.shape[1]
+        noise = (
+            rng.standard_normal((s, *self.z.shape)) @ np.linalg.cholesky(self.cov_z).T
+        )
+        samples = {
+            "z": self.z[np.newaxis] + noise,
+            "alpha": np.stack(
+                [
+                    rng.gamma(a, 1.0 / b, size=(s, k))
+                    for a, b in zip(self.a_ard, self.b_ard)
+                ],
+                axis=1,
+            ),
+        }
+        for m, (w, cov) in enumerate(zip(self.w, self.cov_w)):
+            noise = rng.standard_normal((s, *w.shape)) @ np.linalg.cholesky(cov).T
+            samples[f"W_{m}"] = w[np.newaxis] + noise
+            tau = rng.gamma(self.a_tau[m], 1.0 / self.b_tau[m], size=s)
+            samples[f"log_psi_{m}"] = np.repeat(-np.log(tau)[:, None], len(w), axis=1)
+        return samples
 
 
 class GFA(BaseProbabilistic):
@@ -107,10 +246,6 @@ class GFA(BaseProbabilistic):
         self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
-    # ------------------------------------------------------------------
-    # Public fit
-    # ------------------------------------------------------------------
-
     def fit(self, views: list[ArrayLike], y: None = None) -> GFA:
         """Fit the model.
 
@@ -121,178 +256,32 @@ class GFA(BaseProbabilistic):
         Returns:
             self.
         """
-        validated = self._setup_fit(views)
+        views_ = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-
-        views_arr = [np.asarray(v, dtype=float) for v in validated]
-        m_views = len(views_arr)
-        n = views_arr[0].shape[0]
-        d = [v.shape[1] for v in views_arr]
-        k = self.n_components
-
-        # --- initialization (CCAGFA::GFA(), matching getDefaultOpts()) ---
-        z = rng.standard_normal((n, k))
-        cov_z = np.eye(k)
-        w = [np.zeros((d[m], k)) for m in range(m_views)]
-        cov_w = [np.eye(k) for m in range(m_views)]
-        tau = np.full(m_views, _INIT_TAU)
-        datavar = np.array(
-            [np.var(views_arr[m], axis=0, ddof=1).sum() for m in range(m_views)]
-        )
-        alpha = [
-            np.full(k, k * d[m] / max(datavar[m] - 1.0 / tau[m], 1e-8))
-            for m in range(m_views)
-        ]
-
-        y_const = np.array([np.sum(views_arr[m] ** 2) for m in range(m_views)])
-        a_ard = _ARD_ALPHA_0 + np.array(d) / 2.0  # (M,), constant across iters
-        a_tau = _TAU_ALPHA_0 + n * np.array(d) / 2.0  # (M,), constant
-
-        ww = [w[m].T @ w[m] + d[m] * cov_w[m] for m in range(m_views)]
-        zz = z.T @ z + n * cov_z
-        b_ard = [np.full(k, _ARD_BETA_0) for _ in range(m_views)]
-        b_tau = np.full(m_views, _TAU_BETA_0)
-
-        # Requires `_PATIENCE` consecutive iterations with small relative
-        # change AND no pruning event, not just one: rel_change can dip
-        # below tol for a few hundred iterations in the middle of a slow
-        # ARD-driven pruning process (one dimension's decay temporarily
-        # dominated by a faster-settling one finishing first) before
-        # rising again once that's the only signal left. A single-iteration
-        # check was caught declaring convergence during exactly such a lull,
-        # 2500+ iterations before the pruning it was still waiting on.
-        prev_z: np.ndarray | None = None
-        n_iter = self.max_iter
-        stable_count = 0
-        converged = False
+        q = _VariationalPosterior.initialise(views_, self.n_components, rng)
+        # Convergence needs `_PATIENCE` consecutive small changes in Z and no
+        # pruning: the change can dip below tol for hundreds of iterations
+        # while one dimension's ARD decay waits on another's.
+        previous: np.ndarray | None = None
+        stable, converged, self.n_iter_ = 0, False, self.max_iter
         for iteration in range(self.max_iter):
-            # --- W update (per view), using the current zz ---
-            for m in range(m_views):
-                tmp = 1.0 / np.sqrt(alpha[m])
-                inner = np.outer(tmp, tmp) * zz + np.eye(k) / tau[m]
-                cho_w = np.linalg.cholesky(inner)
-                inv_inner = np.linalg.solve(cho_w.T, np.linalg.solve(cho_w, np.eye(k)))
-                cov_w[m] = (1.0 / tau[m]) * np.outer(tmp, tmp) * inv_inner
-                w[m] = views_arr[m].T @ z @ cov_w[m] * tau[m]
-                ww[m] = w[m].T @ w[m] + d[m] * cov_w[m]
-
-            # --- Z update, using the just-updated W ---
-            precision_z = np.eye(k)
-            for m in range(m_views):
-                precision_z = precision_z + tau[m] * ww[m]
-            cho_z = np.linalg.cholesky(precision_z)
-            cov_z = np.linalg.solve(cho_z.T, np.linalg.solve(cho_z, np.eye(k)))
-            rhs = np.zeros((n, k))
-            for m in range(m_views):
-                rhs = rhs + views_arr[m] @ w[m] * tau[m]
-            z = rhs @ cov_z
-            zz = z.T @ z + n * cov_z
-
-            # --- alpha update (per view), using the just-updated ww ---
-            for m in range(m_views):
-                b_ard[m] = _ARD_BETA_0 + np.diag(ww[m]) / 2.0
-                alpha[m] = a_ard[m] / b_ard[m]
-
-            # --- tau update (per view) ---
-            for m in range(m_views):
-                b_tau[m] = (
-                    _TAU_BETA_0
-                    + (
-                        y_const[m]
-                        + np.sum(ww[m] * zz)
-                        - 2.0 * np.sum(z * (views_arr[m] @ w[m]))
-                    )
-                    / 2.0
-                )
-                tau[m] = a_tau[m] / b_tau[m]
-
-            # --- dynamic component pruning (dropK) ---
-            pruned = False
-            if self.drop_k:
-                keep = np.where(np.mean(z**2, axis=0) > _DROP_TOL)[0]
-                if 0 < len(keep) != k:
-                    pruned = True
-                    k = len(keep)
-                    z = z[:, keep]
-                    cov_z = cov_z[np.ix_(keep, keep)]
-                    zz = zz[np.ix_(keep, keep)]
-                    for m in range(m_views):
-                        w[m] = w[m][:, keep]
-                        cov_w[m] = cov_w[m][np.ix_(keep, keep)]
-                        ww[m] = ww[m][np.ix_(keep, keep)]
-                        alpha[m] = alpha[m][keep]
-                        b_ard[m] = b_ard[m][keep]
-
-            # --- convergence check (sustained small relative change in z) ---
-            if pruned:
-                stable_count = 0
-            elif prev_z is not None and prev_z.shape == z.shape:
-                rel_change = np.linalg.norm(z - prev_z) / max(
-                    np.linalg.norm(prev_z), 1e-300
-                )
-                stable_count = stable_count + 1 if rel_change < self.tol else 0
-            prev_z = z.copy()
-            if stable_count >= _PATIENCE:
-                n_iter = iteration + 1
-                converged = True
+            q.update_loadings(views_)
+            q.update_factors(views_)
+            q.update_ard()
+            q.update_noise(views_)
+            if self.drop_k and q.prune():
+                stable = 0
+            elif previous is not None and previous.shape == q.z.shape:
+                change = np.linalg.norm(q.z - previous) / np.linalg.norm(previous)
+                stable = stable + 1 if change < self.tol else 0
+            previous = q.z.copy()
+            if stable >= _PATIENCE:
+                converged, self.n_iter_ = True, iteration + 1
                 break
-
         warn_if_not_converged(self, converged)
-        self.n_iter_ = n_iter
-        self.n_components_ = k
-        self._draw_posterior_samples(
-            rng, z, cov_z, w, cov_w, a_ard, b_ard, a_tau, b_tau, d
-        )
-        self.weights_: list[np.ndarray] = list(w)
-        self.view_relevance_: np.ndarray = np.array(alpha)
-        return self._finish_fit(validated)
 
-    # ------------------------------------------------------------------
-    # Posterior sampling
-    # ------------------------------------------------------------------
-
-    def _draw_posterior_samples(
-        self,
-        rng: np.random.Generator,
-        z: np.ndarray,
-        cov_z: np.ndarray,
-        w: list[np.ndarray],
-        cov_w: list[np.ndarray],
-        a_ard: np.ndarray,
-        b_ard: list[np.ndarray],
-        a_tau: np.ndarray,
-        b_tau: np.ndarray,
-        d: list[int],
-    ) -> None:
-        """Draw ``posterior_samples_`` from the fitted variational posterior.
-
-        Each view's scalar noise is broadcast to every feature, matching the
-        ``log_psi_{i}`` convention of the other probabilistic models.
-        """
-        s = self.n_posterior_samples
-        m_views = len(w)
-        k = z.shape[1]
-        samples: dict[str, np.ndarray] = {}
-
-        chol_z = np.linalg.cholesky(cov_z)
-        z_noise = rng.standard_normal((s, *z.shape)) @ chol_z.T
-        samples["z"] = z[np.newaxis, :, :] + z_noise
-
-        tau_samples = np.stack(
-            [rng.gamma(a_tau[m], 1.0 / b_tau[m], size=s) for m in range(m_views)],
-            axis=1,
-        )  # (S, M)
-        alpha_samples = np.stack(
-            [rng.gamma(a_ard[m], 1.0 / b_ard[m], size=(s, k)) for m in range(m_views)],
-            axis=1,
-        )  # (S, M, K)
-        samples["alpha"] = alpha_samples
-
-        for m in range(m_views):
-            chol_w = np.linalg.cholesky(cov_w[m])
-            w_noise = rng.standard_normal((s, d[m], k)) @ chol_w.T
-            samples[f"W_{m}"] = w[m][np.newaxis, :, :] + w_noise
-            psi_m = 1.0 / tau_samples[:, m]  # (S,)
-            samples[f"log_psi_{m}"] = np.log(psi_m)[:, np.newaxis] * np.ones((1, d[m]))
-
-        self.posterior_samples_ = samples
+        self.n_components_ = q.z.shape[1]
+        self.weights_: list[np.ndarray] = q.w
+        self.view_relevance_: np.ndarray = np.array(q.alpha)
+        self.posterior_samples_ = q.sample(rng, self.n_posterior_samples)
+        return self._finish_fit(views_)

@@ -338,18 +338,13 @@ class ManifoldCCA(BaseModel):
             full_bases.append(P @ basis)
             eigenvalue_blocks.append(eigenvalues)
 
-        offsets = np.concatenate([[0], np.cumsum(k_ops)])
-        B = np.asarray(block_diag(*[np.diag(ev) for ev in eigenvalue_blocks])) / m
-        A = np.zeros((offsets[-1], offsets[-1]))
-        for i in range(m):
-            for j in range(m):
-                if i != j:
-                    block = bases[i].T @ C_reduced @ bases[j]
-                    A[offsets[i] : offsets[i + 1], offsets[j] : offsets[j + 1]] = block
-        A /= m
-
-        _, eigvecs = gevp(A, B, self.n_components)
-        blocks = list(np.split(eigvecs, offsets[1:-1], axis=0))
+        # Between-view covariances of the smooth bases, as MCCA's A.
+        stacked = np.hstack(bases)
+        A = stacked.T @ C_reduced @ stacked
+        A -= block_diag(*[b.T @ C_reduced @ b for b in bases])
+        B = block_diag(*[np.diag(ev) for ev in eigenvalue_blocks])
+        _, eigvecs = gevp(A / m, B / m, self.n_components)
+        blocks = np.split(eigvecs, np.cumsum(k_ops)[:-1], axis=0)
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
         self.embedding_: list[np.ndarray] = embedding
         self.train_views_: list[np.ndarray] = views_
@@ -357,8 +352,8 @@ class ManifoldCCA(BaseModel):
         self._affinity_: list[str] = affinity_
         self._reg_: list[float] = reg_
 
-        if self.method == "laplacian":
-            self._laplacian_state_: list[_LaplacianViewState] | None = [
+        self._laplacian_state_: list[_LaplacianViewState] | None = (
+            [
                 _LaplacianViewState(
                     full_basis=full_bases[i],
                     mu=np.maximum(1.0 - eigenvalue_blocks[i], _NYSTROM_MU_FLOOR),
@@ -369,10 +364,12 @@ class ManifoldCCA(BaseModel):
                 )
                 for i in range(m)
             ]
-            self._lle_state_: list[NearestNeighbors] | None = None
-        else:
-            self._laplacian_state_ = None
-            self._lle_state_ = lle_nn
+            if self.method == "laplacian"
+            else None
+        )
+        self._lle_state_: list[NearestNeighbors] | None = (
+            lle_nn if self.method == "lle" else None
+        )
         return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:

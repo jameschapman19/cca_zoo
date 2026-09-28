@@ -63,7 +63,13 @@ line-length = 88
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "ANN", "N", "D"]
+# PEP 20 where a linter can check it: flat (C90, PLR0915), simple (SIM, RET,
+# PIE, C4, PERF), errors never pass silently (BLE, S110), no dead code (ERA).
+select = [
+    "E", "F", "I", "UP", "ANN", "N", "D",
+    "C90", "SIM", "RET", "PIE", "C4", "PERF", "BLE", "S110", "ERA",
+    "PLR0915", "PLW", "RUF",
+]
 ignore = [
     "D203", "D212",
     # Scientific naming conventions: uppercase matrices (A, B, W, X, U, V, K, Q, T)
@@ -75,12 +81,17 @@ ignore = [
     "ANN401",
     # __init__ docstrings not required (class docstring covers it)
     "D107",
+    # __all__ is grouped by model family, which reads better than sorted
+    "RUF022",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/__init__.py" = ["D104"]  # test packages don't need docstrings
 "tests/deep/test_deep.py" = ["E402"]  # torch imports must follow importorskip
 "tests/tree/test_treecca.py" = ["E402"]  # xgboost import must follow importorskip
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

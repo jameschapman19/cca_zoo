@@ -10,7 +10,7 @@ if _xgboost_available:
     from cca_zoo.tree._treecca import CatBoostCCA, LightGBMCCA, XGBoostCCA
     from cca_zoo.tree._treecca import TreeCCA as TreeCCA
 
-    __all__ = ["XGBoostCCA", "LightGBMCCA", "CatBoostCCA"]
+    __all__ = ["CatBoostCCA", "LightGBMCCA", "XGBoostCCA"]
 else:
     __all__ = []
 # TreeCCA (the abstract base shared by XGBoostCCA/LightGBMCCA/CatBoostCCA) stays

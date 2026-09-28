@@ -118,7 +118,7 @@ class RANSACCCA(BaseModel):
         if isinstance(self.min_samples, Integral):
             resolved = int(self.min_samples)
         else:
-            resolved = max(1, int(round(self.min_samples * n)))
+            resolved = max(1, round(self.min_samples * n))
         return min(resolved, n)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> RANSACCCA:

@@ -26,18 +26,18 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._vicreg import VICReg
 
     __all__ = [
-        "BaseDeep",
-        "BarlowTwins",
         "DCCA",
+        "DCCAE",
         "DCCAEY",
         "DCCANOI",
         "DCCASDL",
-        "DCCAE",
         "DGCCA",
         "DMCCA",
         "DPCCA",
         "DTCCA",
         "DVCCA",
+        "BarlowTwins",
+        "BaseDeep",
         "DVCCAPrivate",
         "MultiviewDataset",
         "SplitAE",

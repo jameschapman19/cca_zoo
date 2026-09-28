@@ -25,13 +25,13 @@ __all__ = [
     "GridSearchCV",
     "HalvingGridSearchCV",
     "HalvingRandomSearchCV",
-    "RandomizedSearchCV",
     "PermutationTestResult",
-    "permutation_test_significance",
+    "RandomizedSearchCV",
     "cross_val_predict",
     "cross_val_score",
     "cross_validate",
     "learning_curve",
+    "permutation_test_significance",
     "validation_curve",
 ]
 

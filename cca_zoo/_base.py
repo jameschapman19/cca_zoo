@@ -197,9 +197,11 @@ class BaseModel(BaseEstimator, ABC):
         self._predict_maps_ = [_least_squares_map(latent, v) for v in views]
         self.feature_importances_per_view_: list[np.ndarray] = []
         for raw in self._feature_importances(views):
-            raw = np.maximum(raw, 0.0)
-            total = raw.sum()
-            self.feature_importances_per_view_.append(raw / total if total > 0 else raw)
+            positive = np.maximum(raw, 0.0)
+            total = positive.sum()
+            self.feature_importances_per_view_.append(
+                positive / total if total > 0 else positive
+            )
         return self
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
@@ -233,12 +235,15 @@ class BaseModel(BaseEstimator, ABC):
                 UserWarning,
                 stacklevel=4,
             )
-        elif fitted is not None and names is not None:
-            if len(names) != len(fitted[i]) or np.any(names != fitted[i]):
-                raise ValueError(
-                    f"The feature names of view {i} should match those passed "
-                    f"during fit. Expected {list(fitted[i])}, got {list(names)}."
-                )
+        elif (
+            fitted is not None
+            and names is not None
+            and (len(names) != len(fitted[i]) or np.any(names != fitted[i]))
+        ):
+            raise ValueError(
+                f"The feature names of view {i} should match those passed "
+                f"during fit. Expected {list(fitted[i])}, got {list(names)}."
+            )
 
     def _check_views(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Validate views passed after fitting against the fitted shapes."""
@@ -509,7 +514,7 @@ class BaseModel(BaseEstimator, ABC):
             raise ValueError("At least one view must be observed to predict.")
         first_i = next(iter(observed))
         n_samples = observed[first_i].shape[0]
-        for i, v in observed.items():
+        for v in observed.values():
             if v.shape[0] != n_samples:
                 raise ValueError(
                     "All observed views must have the same number of "

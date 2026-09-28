@@ -142,7 +142,7 @@ def deflate(
         w_col = w.reshape(-1, 1) if w.ndim == 1 else w[:, :1]
         score = view @ w_col  # (n, 1)
         norm_sq = float(np.squeeze(score.T @ score))
-        if norm_sq > 1e-12:
-            view = view - score @ (score.T @ view) / norm_sq
-        deflated.append(view)
+        deflated.append(
+            view - score @ (score.T @ view) / norm_sq if norm_sq > 1e-12 else view
+        )
     return deflated

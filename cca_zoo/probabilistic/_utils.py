@@ -71,7 +71,7 @@ def marginal_log_likelihood(
     w_full = np.concatenate(weights, axis=0)  # (P, k)
     psi_full = np.concatenate(psi, axis=0)  # (P,)
     x_full = np.concatenate(centered_views, axis=1)  # (n, P)
-    n_samples, n_features = x_full.shape
+    n_features = x_full.shape[1]
     k = w_full.shape[1]
 
     psi_inv = 1.0 / np.maximum(psi_full, 1e-8)  # (P,)

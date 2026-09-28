@@ -197,9 +197,9 @@ def _solve_quartic_coordinate(
     branches = ((1.0, lasso),) if positive else ((1.0, lasso), (-1.0, -lasso))
     for sign, l1 in branches:
         roots = np.roots([4 * c4, 3 * c3, 2 * c2, c1 + l1])
-        for r in roots:
-            if abs(r.imag) < 1e-8 and sign * r.real > 0:
-                candidates.append(float(r.real))
+        candidates.extend(
+            float(r.real) for r in roots if abs(r.imag) < 1e-8 and sign * r.real > 0
+        )
 
     def _f(w: float) -> float:
         return c4 * w**4 + c3 * w**3 + c2 * w**2 + c1 * w + lasso * abs(w)
@@ -547,11 +547,10 @@ def _group_sweeps(
                     u = (lipschitz * w0_row - grads) / denom
                     w_new_row = _group_prox(u, lasso[i], denom)
                     delta = w_new_row - w0_row
-                    if np.any(delta != 0.0):
-                        for c in range(k):
-                            zi[:, c] += xj * delta[c]
-                            total[:, c] += xj * delta[c]
-                        coef[j, :] = w_new_row
+                    step = np.outer(xj, delta)
+                    zi += step
+                    total += step
+                    coef[j, :] = w_new_row
 
                     trial_loss = ey_loss(representations)["objective"]
                     bound = cur_loss + grads @ delta + 0.5 * lipschitz * (delta @ delta)
@@ -559,11 +558,10 @@ def _group_sweeps(
                         cur_loss = trial_loss
                         break
 
-                    if np.any(delta != 0.0):
-                        for c in range(k):
-                            zi[:, c] -= xj * delta[c]
-                            total[:, c] -= xj * delta[c]
-                        coef[j, :] = w0_row
+                    # Reject the step and backtrack with a larger curvature.
+                    zi -= step
+                    total -= step
+                    coef[j, :] = w0_row
                     lipschitz *= 2.0
 
         cur_obj = cur_loss + _group_penalty(coefficients, alpha, l1_ratio)
@@ -633,28 +631,33 @@ def omp_coordinate_descent_ey(
                 * a0
             )
 
+            zero_row = np.zeros(k)
+
+            def gradient_norm(j: int) -> float:
+                """Norm of the EY gradient in feature j's (zero) coefficients."""
+                return float(
+                    np.linalg.norm(
+                        [
+                            _ey_coordinate_smooth_quartic(
+                                basis[:, j],
+                                col_sq_norms[i][j],
+                                a0,
+                                zi,
+                                total,
+                                v_other,
+                                zero_row,
+                                c,
+                                k,
+                            )[3]
+                            for c in range(k)
+                        ]
+                    )
+                )
+
             active: list[int] = []
             inactive = [j for j in range(n_features[i]) if col_sq_norms[i][j] >= 1e-12]
-            zero_row = np.zeros(k)
-            for _step in range(target):
-                if not inactive:
-                    break
-                best_j, best_score = inactive[0], -1.0
-                for j in inactive:
-                    a = col_sq_norms[i][j]
-                    xj = basis[:, j]
-                    score = float(
-                        np.linalg.norm(
-                            [
-                                _ey_coordinate_smooth_quartic(
-                                    xj, a, a0, zi, total, v_other, zero_row, c, k
-                                )[3]
-                                for c in range(k)
-                            ]
-                        )
-                    )
-                    if score > best_score:
-                        best_score, best_j = score, j
+            for _step in range(min(target, len(inactive))):
+                best_j = max(inactive, key=gradient_norm)
                 active.append(best_j)
                 inactive.remove(best_j)
 
@@ -673,11 +676,9 @@ def omp_coordinate_descent_ey(
                             w_new = _solve_quartic_coordinate(
                                 c4=p4, c3=p3, c2=smooth_c2, c1=smooth_c1, lasso=0.0
                             )
-                            delta = w_new - w0
-                            if delta != 0.0:
-                                coef[j, c] = w_new
-                                zi[:, c] += xj * delta
-                                total[:, c] += xj * delta
+                            coef[j, c] = w_new
+                            zi[:, c] += xj * (w_new - w0)
+                            total[:, c] += xj * (w_new - w0)
                     refit_obj = ey_loss(representations)["objective"]
                     if abs(refit_prev - refit_obj) < tol:
                         break

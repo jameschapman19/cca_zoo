@@ -228,7 +228,7 @@ class TrimmedCCA(BaseModel):
                 f"got {self.n_components}."
             )
         n = self.n_samples_
-        h = max(2, int(round(self.support_fraction * n)))
+        h = max(2, round(self.support_fraction * n))
         rng = np.random.default_rng(self.random_state)
         # CCAEY's own _objective/_derivative back both the selection score
         # and the refit, rather than a second implementation of the loss

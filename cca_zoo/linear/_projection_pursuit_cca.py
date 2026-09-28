@@ -193,7 +193,7 @@ class ProjectionPursuitCCA(BaseModel):
         """
         ps = [v.shape[1] for v in views]
         sizes = [max(p - 1, 0) for p in ps]
-        offsets = np.cumsum([0] + sizes)
+        offsets = np.cumsum([0, *sizes])
 
         def unpack(theta: np.ndarray) -> list[np.ndarray]:
             return [

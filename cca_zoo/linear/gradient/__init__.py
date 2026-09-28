@@ -4,4 +4,4 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 from cca_zoo.linear.gradient._huber_cca import HuberCCA
 from cca_zoo.linear.gradient._pls_ey import PLSEY
 
-__all__ = ["PLSEY", "CCAEY", "HuberCCA"]
+__all__ = ["CCAEY", "PLSEY", "HuberCCA"]

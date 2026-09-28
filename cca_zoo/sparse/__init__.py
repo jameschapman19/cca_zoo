@@ -24,14 +24,14 @@ from cca_zoo.sparse._multitaskelasticnetcca import MultiTaskElasticNetCCA
 from cca_zoo.sparse._ompcca import OrthogonalMatchingPursuitCCA
 
 __all__ = [
+    "ADMMCCA",
+    "IPLSCCA",
+    "PMDCCA",
+    "SAR",
     "ElasticNetCCA",
     "MultiTaskElasticNetCCA",
     "OrthogonalMatchingPursuitCCA",
-    "PMDCCA",
-    "ADMMCCA",
-    "IPLSCCA",
+    "ParkhomenkoCCA",
     "SpanCCA",
     "WaijenborgCCA",
-    "ParkhomenkoCCA",
-    "SAR",
 ]

@@ -14,10 +14,10 @@ from cca_zoo.metrics._redundancy import (
 )
 
 __all__ = [
-    "pairwise_correlations",
+    "adequacy_coefficient",
     "average_pairwise_correlations",
     "factor_loadings",
-    "adequacy_coefficient",
+    "pairwise_correlations",
     "redundancy_index",
     "total_redundancy",
 ]

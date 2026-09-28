@@ -338,9 +338,11 @@ class _HingeScorer:
         new_q: list[np.ndarray] = []
         for col in (columns - columns.mean(axis=0)).T:
             basis = np.column_stack([self.q, *new_q])
+            # Gram-Schmidt, twice for orthogonality to rounding.
+            orthogonal = col
             for _ in range(2):
-                col = col - basis @ (basis.T @ col)
-            new_q.append(col / np.linalg.norm(col))
+                orthogonal = orthogonal - basis @ (basis.T @ orthogonal)
+            new_q.append(orthogonal / np.linalg.norm(orthogonal))
         new_q_arr = np.column_stack(new_q)
         self._stats[..., 5:] += self._projection_stats(
             self._stacked, self._parents, self.knots, new_q_arr
@@ -586,6 +588,11 @@ class _MarsEncoder:
         return result
 
 
+def _centred(raw_bases: list[np.ndarray]) -> list[np.ndarray]:
+    """Each view's basis with its training column means removed."""
+    return [raw - raw.mean(axis=0) for raw in raw_bases]
+
+
 class MARSCCA(BaseModel):
     r"""Nonlinear CCA with multivariate adaptive regression spline encoders.
 
@@ -679,7 +686,7 @@ class MARSCCA(BaseModel):
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
-        """Fit the model.
+        """Fit the model: earth's forward pass, backward pass and final refit.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
@@ -687,51 +694,96 @@ class MARSCCA(BaseModel):
 
         Returns:
             self.
+
+        Raises:
+            ValueError: If ``nprune`` is below the number of views, or a view
+                has no admissible knot.
         """
         views_ = self._setup_fit(views)
-        k = self.n_components
         m = self.n_views_
-        max_degree_ = perview_parameter("degree", self.degree, 1, m)
-        nk_: list[int | None] = perview_parameter("nk", self.nk, None, m)
-        max_terms_ = [
-            _default_nk(X.shape[1]) if nk is None else nk for X, nk in zip(views_, nk_)
-        ]
+        if self.nprune is not None and self.nprune < m:
+            raise ValueError(
+                f"nprune={self.nprune} is fewer than the number of views "
+                f"({m}); every view keeps at least one term."
+            )
+        k = self.n_components
         alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
-        minspan_: list[int | None] = perview_parameter("minspan", self.minspan, None, m)
-        endspan_: list[int | None] = perview_parameter("endspan", self.endspan, None, m)
-        scorers = [
-            _HingeScorer(X, minspan, endspan)
-            for X, minspan, endspan in zip(views_, minspan_, endspan_)
+        terms, raw_bases = self._forward_pass(views_, alpha_)
+
+        removed, path_loss = _backward_path(_centred(raw_bases), k, alpha_)
+        view_of = np.repeat(np.arange(m), [len(t) for t in terms])
+        column_of = np.concatenate([np.arange(len(t)) for t in terms])
+        self.backward_path_: list[tuple[int, _Term]] = [
+            (int(view_of[c]), terms[view_of[c]][column_of[c]]) for c in removed
         ]
+        self.backward_loss_: np.ndarray = path_loss
+        n_removed = 0 if self.nprune is None else max(len(view_of) - self.nprune, 0)
+        gone = set(removed[:n_removed].tolist())
+        keep = [
+            np.array([c not in gone for c in np.flatnonzero(view_of == i)])
+            for i in range(m)
+        ]
+        terms = [
+            [t for t, kept in zip(ts, mask) if kept] for ts, mask in zip(terms, keep)
+        ]
+        raw_bases = [raw[:, mask] for raw, mask in zip(raw_bases, keep)]
+        self.n_removed_: int = n_removed
+
+        coefficients = penalised_basis_ey_closed_form(_centred(raw_bases), k, alpha_)
+        self.encoders_: list[_MarsEncoder] = [
+            _MarsEncoder(t, raw.mean(axis=0), coef)
+            for t, raw, coef in zip(terms, raw_bases, coefficients)
+        ]
+        return self._finish_fit(views_)
+
+    def _forward_pass(
+        self, views: list[np.ndarray], alpha: list[float]
+    ) -> tuple[list[list[_Term]], list[np.ndarray]]:
+        """Earth's forward pass: grow each view's basis a hinge pair at a time.
+
+        Each round adds, to every view still growing, the pair that most
+        lowers the penalised EY loss given the other views' current fit, then
+        refits every view in closed form. It stops at ``nk`` terms, or once a
+        round lowers the loss by less than ``thresh``.
+
+        Returns:
+            Each view's terms and their raw (uncentred) basis columns.
+        """
+        k, m = self.n_components, len(views)
+        max_degree = perview_parameter("degree", self.degree, 1, m)
+        nk: list[int | None] = perview_parameter("nk", self.nk, None, m)
+        max_terms = [
+            _default_nk(X.shape[1]) if n is None else n for X, n in zip(views, nk)
+        ]
+        minspan: list[int | None] = perview_parameter("minspan", self.minspan, None, m)
+        endspan: list[int | None] = perview_parameter("endspan", self.endspan, None, m)
+        scorers = [_HingeScorer(X, a, b) for X, a, b in zip(views, minspan, endspan)]
 
         rng = np.random.default_rng(self.random_state)
-        warm_start = cheap_orthonormal_projection_weights(views_, k, None, rng)
-        representations = [X @ w for X, w in zip(views_, warm_start)]
-        terms: list[list[_Term]] = [[] for _ in views_]
-        raw_bases = [np.zeros((X.shape[0], 0)) for X in views_]
-        parent_terms: list[list[_Term]] = [[()] for _ in views_]
+        warm_start = cheap_orthonormal_projection_weights(views, k, None, rng)
+        representations = [X @ w for X, w in zip(views, warm_start)]
+        terms: list[list[_Term]] = [[] for _ in views]
+        raw_bases = [np.zeros((X.shape[0], 0)) for X in views]
+        parent_terms: list[list[_Term]] = [[()] for _ in views]
         growing = [True] * m
         previous_loss = None
-
         while any(growing):
             grads = ey_grad_z(representations)
-            for i in range(m):
-                if not growing[i]:
-                    continue
+            for i in [j for j in range(m) if growing[j]]:
                 added = self._add_best_pair(
                     scorers[i],
                     terms[i],
                     parent_terms[i],
                     grads[i],
-                    max_degree_[i],
-                    max_terms_[i],
-                    _exact_loss(raw_bases, i, k, alpha_),
+                    max_degree[i],
+                    max_terms[i],
+                    _exact_loss(raw_bases, i, k, alpha),
                 )
                 if added is None:
                     growing[i] = False
-                    continue
-                raw_bases[i] = np.column_stack([raw_bases[i], added])
-                growing[i] = len(terms[i]) < max_terms_[i]
+                else:
+                    raw_bases[i] = np.column_stack([raw_bases[i], added])
+                    growing[i] = len(terms[i]) < max_terms[i]
 
             empty = [i for i, raw in enumerate(raw_bases) if raw.shape[1] == 0]
             if empty:
@@ -742,54 +794,18 @@ class MARSCCA(BaseModel):
                     "keeps ~9-12 points free at each end) or its features are "
                     "constant; lower endspan or minspan for that view."
                 )
-            bases = [raw - raw.mean(axis=0) for raw in raw_bases]
-            coefficients = penalised_basis_ey_closed_form(bases, k, alpha_)
+            bases = _centred(raw_bases)
+            coefficients = penalised_basis_ey_closed_form(bases, k, alpha)
             representations = [b @ c for b, c in zip(bases, coefficients)]
-            # earth's thresh: stop once a round's terms barely lower the loss.
             loss = ey_loss(representations)["objective"] + 0.5 * sum(
-                a * float(np.sum(c**2)) for a, c in zip(alpha_, coefficients)
+                a * float(np.sum(c**2)) for a, c in zip(alpha, coefficients)
             )
             if previous_loss is not None and previous_loss - loss < self.thresh * abs(
                 loss
             ):
                 break
             previous_loss = loss
-
-        if self.nprune is not None and self.nprune < m:
-            raise ValueError(
-                f"nprune={self.nprune} is fewer than the number of views "
-                f"({m}); every view keeps at least one term."
-            )
-        removed, path_loss = _backward_path(bases, k, alpha_)
-        view_of = np.repeat(np.arange(m), [len(t) for t in terms])
-        column_of = np.concatenate([np.arange(len(t)) for t in terms])
-        self.backward_path_: list[tuple[int, _Term]] = [
-            (int(view_of[c]), terms[view_of[c]][column_of[c]]) for c in removed
-        ]
-        self.backward_loss_: np.ndarray = path_loss
-        n_total = len(view_of)
-        n_removed = 0 if self.nprune is None else max(n_total - self.nprune, 0)
-        if n_removed:
-            gone = set(removed[:n_removed].tolist())
-            keep = [
-                np.array([c not in gone for c in np.flatnonzero(view_of == i)])
-                for i in range(m)
-            ]
-            terms = [
-                [t for t, kept in zip(ts, mask) if kept]
-                for ts, mask in zip(terms, keep)
-            ]
-            raw_bases = [raw[:, mask] for raw, mask in zip(raw_bases, keep)]
-            bases = [raw - raw.mean(axis=0) for raw in raw_bases]
-            coefficients = penalised_basis_ey_closed_form(bases, k, alpha_)
-            representations = [b @ c for b, c in zip(bases, coefficients)]
-        self.n_removed_: int = n_removed
-
-        self.encoders_: list[_MarsEncoder] = [
-            _MarsEncoder(t, raw.mean(axis=0), coef)
-            for t, raw, coef in zip(terms, raw_bases, coefficients)
-        ]
-        return self._finish_fit(views_)
+        return terms, raw_bases
 
     @staticmethod
     def _add_best_pair(
@@ -815,11 +831,12 @@ class MARSCCA(BaseModel):
             return None
         options = []
         for _, parent, j, knot, keep in candidates:
-            if len(terms) + sum(keep) > max_terms:
-                keep = (True, False) if keep[0] else keep
+            # With room for one more term only, a pair keeps its positive hinge.
+            over_budget = len(terms) + sum(keep) > max_terms
+            fitting = (True, False) if over_budget and keep[0] else keep
             new = [
                 (*parent_terms[parent], (j, knot, sign))
-                for sign, kept in zip((1, -1), keep)
+                for sign, kept in zip((1, -1), fitting)
                 if kept
             ]
             options.append((new, _evaluate_terms(scorer.X, new)))
@@ -855,7 +872,7 @@ class MARSCCA(BaseModel):
         ]
         for view, term in self.backward_path_[self.n_removed_ :]:
             members.append(members[-1] - {(view, term)})
-        losses = list(self.backward_loss_[self.n_removed_ :]) + [0.0]
+        losses = [*self.backward_loss_[self.n_removed_ :], 0.0]
         importance = [np.zeros(p) for p in self.n_features_per_view_]
         for s, subset in enumerate(members):
             used = {(view, f) for view, term in subset for f, _, _ in term}
