@@ -190,8 +190,8 @@ class QuantileCCA(BaseModel):
         views_ = self._setup_fit(views)
         if self.n_views_ != 2:
             raise ValueError(
-                f"QuantileCCA relates covariates to responses: it takes exactly "
-                f"2 views, got {self.n_views_}."
+                f"QuantileCCA requires exactly 2 views, covariates and responses, "
+                f"got {self.n_views_}."
             )
         X, Y = views_
         ridge = RidgeCCA(self.n_components, center=False, shrinkage=0.1)
