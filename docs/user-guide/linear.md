@@ -308,6 +308,28 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 
 ---
 
+## Quantile CCA
+
+CCA relates the mean of one view to the other. `QuantileCCA` (canonical quantile
+regression, Portnoy 2022) relates a quantile: for covariates $X$ and responses $Y$, it
+finds the combination $Y a$ that a linear function of $X$ predicts best at quantile
+$\tau$, minimising quantile regression's check loss with $\operatorname{Var}(Y a) = 1$.
+For Gaussian data every quantile gives CCA's directions. Where the relationship changes
+across the distribution, as when the noise grows with a covariate, the directions do
+too, and comparing `quantile=0.1`, `0.5` and `0.9` shows how. The median is also robust
+to outlying responses.
+
+Each iteration is one exact linear program, sklearn's `QuantileRegressor` with the
+variance constraint linearised at the current solution, started from ridge CCA.
+
+```python
+from cca_zoo.linear import QuantileCCA
+
+upper = QuantileCCA(n_components=2, quantile=0.9).fit([X, Y])
+```
+
+The views are ordered: covariates first, responses second.
+
 ## GPUs and the Array API
 
 `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA` compute in the namespace of their inputs

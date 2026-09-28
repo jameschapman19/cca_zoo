@@ -87,6 +87,8 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
 
 ::: cca_zoo.linear.ProjectionPursuitCCA
 
+::: cca_zoo.linear.QuantileCCA
+
 ---
 
 ## EY-loss methods
