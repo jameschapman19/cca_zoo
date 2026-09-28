@@ -148,7 +148,7 @@ class RANSACCCA(BaseModel):
                 [v[idx] for v in views_]
             )
             agreement = _cross_view_agreement(
-                candidate.transform(cast("list[ArrayLike]", views_))
+                candidate._transform_arrays(cast("list[ArrayLike]", views_))
             )
             score = float(np.clip(agreement, 0.0, None).sum())
             if score > best_score:

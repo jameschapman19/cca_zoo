@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from numbers import Integral
 from typing import Any, ClassVar, TypeVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn import get_config
 from sklearn.base import BaseEstimator
 from sklearn.utils import Tags, TransformerTags, check_random_state
-from sklearn.utils._param_validation import Interval
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils._param_validation import Interval, StrOptions, validate_params
+from sklearn.utils.validation import _get_feature_names, check_is_fitted
 
 from cca_zoo._utils._validation import validate_views
 from cca_zoo.metrics._correlation import (
@@ -50,6 +52,8 @@ class BaseModel(BaseEstimator, ABC):
     Attributes:
         means_: Per-view feature means subtracted before fitting.
         n_features_per_view_: Number of features in each view.
+        feature_names_per_view_: Each view's feature names, set when every
+            view was fitted as a DataFrame with string column names.
         n_samples_: Number of training samples.
         n_views_: Number of views.
         feature_importances_per_view_: Each feature's share of its view's
@@ -100,6 +104,11 @@ class BaseModel(BaseEstimator, ABC):
     def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Validate parameters and views, record their shapes and centre them."""
         self._validate_params()
+        names = [_get_feature_names(v) for v in views]
+        if all(n is not None for n in names):
+            self.feature_names_per_view_: list[np.ndarray] = names
+        elif hasattr(self, "feature_names_per_view_"):
+            del self.feature_names_per_view_
         validated = validate_views(
             views, ensure_min_samples=2, dtype=self._preserved_dtypes
         )
@@ -140,7 +149,8 @@ class BaseModel(BaseEstimator, ABC):
         return self
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
-        """View ``i`` as a validated array with the width seen in fit."""
+        """View ``i`` as a validated array with the width and names seen in fit."""
+        self._check_feature_names(i, view)
         (checked,) = validate_views([view], min_views=1, dtype=self._preserved_dtypes)
         if checked.shape[1] != self.n_features_per_view_[i]:
             raise ValueError(
@@ -149,6 +159,32 @@ class BaseModel(BaseEstimator, ABC):
                 f"{self.n_features_per_view_[i]} features."
             )
         return checked
+
+    def _check_feature_names(self, i: int, view: ArrayLike) -> None:
+        """Check view ``i``'s feature names against fit's, as sklearn checks ``X``'s."""
+        fitted = getattr(self, "feature_names_per_view_", None)
+        names = _get_feature_names(view)
+        name = type(self).__name__
+        if fitted is None and names is not None:
+            warnings.warn(
+                f"View {i} has feature names, but {name} was fitted without "
+                "feature names.",
+                UserWarning,
+                stacklevel=4,
+            )
+        elif fitted is not None and names is None:
+            warnings.warn(
+                f"View {i} does not have valid feature names, but {name} was "
+                "fitted with feature names.",
+                UserWarning,
+                stacklevel=4,
+            )
+        elif fitted is not None and names is not None:
+            if len(names) != len(fitted[i]) or np.any(names != fitted[i]):
+                raise ValueError(
+                    f"The feature names of view {i} should match those passed "
+                    f"during fit. Expected {list(fitted[i])}, got {list(names)}."
+                )
 
     def _check_views(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Validate views passed after fitting against the fitted shapes."""
@@ -167,19 +203,95 @@ class BaseModel(BaseEstimator, ABC):
     # Public API
     # ------------------------------------------------------------------
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
+    def transform(self, views: list[ArrayLike]) -> list[Any]:
         """Project each view into the latent space.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
 
         Returns:
-            List of arrays, each of shape (n_samples, n_components).
+            List of arrays, each of shape (n_samples, n_components), or of
+            DataFrames under :meth:`set_output`.
         """
+        return self._wrap_output(self._transform_arrays(views), views)
+
+    def _transform_arrays(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """:meth:`transform` as arrays, whatever the output container."""
         validated = self._check_views(views)
         return [
             self._transform_view(i, v - self.means_[i]) for i, v in enumerate(validated)
         ]
+
+    def get_feature_names_out(
+        self, input_features: list[list[str]] | None = None
+    ) -> list[np.ndarray]:
+        """Names of each view's latent dimensions, ``<model><k>`` as in sklearn.
+
+        Args:
+            input_features: Ignored, unless given: then each view's must match
+                the names seen in fit.
+
+        Returns:
+            One array of names per view, of length n_components.
+
+        Raises:
+            ValueError: If ``input_features`` differ from the fitted names.
+        """
+        check_is_fitted(self)
+        if input_features is not None:
+            fitted = getattr(self, "feature_names_per_view_", None)
+            if fitted is None or any(
+                len(given) != len(names) or np.any(np.asarray(given) != names)
+                for given, names in zip(input_features, fitted, strict=True)
+            ):
+                raise ValueError("input_features do not match the fitted names.")
+        prefix = type(self).__name__.lower()
+        n_components = getattr(self, "n_components_", self.n_components)
+        names = np.asarray([f"{prefix}{k}" for k in range(n_components)], dtype=object)
+        return [names.copy() for _ in range(self.n_views_)]
+
+    @validate_params(
+        {"transform": [StrOptions({"default", "pandas", "polars"}), None]},
+        prefer_skip_nested_validation=True,
+    )
+    def set_output(self: _Model, *, transform: str | None = None) -> _Model:
+        """Set the container :meth:`transform` returns, as sklearn's ``set_output``.
+
+        Args:
+            transform: ``"pandas"`` or ``"polars"`` for one DataFrame per view,
+                indexed as the input view when it is a pandas DataFrame;
+                ``"default"`` for sklearn's global ``transform_output``
+                configuration; None leaves the setting unchanged.
+
+        Returns:
+            self.
+        """
+        if transform is not None:
+            self._sklearn_output_config = {"transform": transform}
+        return self
+
+    def _wrap_output(
+        self, arrays: list[np.ndarray], views: list[ArrayLike]
+    ) -> list[Any]:
+        """Each view's scores in the container chosen by :meth:`set_output`."""
+        container = getattr(self, "_sklearn_output_config", {}).get(
+            "transform", "default"
+        )
+        if container == "default":
+            container = get_config()["transform_output"]
+        if container == "default":
+            return arrays
+        names = self.get_feature_names_out()
+        if container == "pandas":
+            import pandas as pd
+
+            return [
+                pd.DataFrame(z, columns=n, index=getattr(v, "index", None))
+                for z, n, v in zip(arrays, names, views)
+            ]
+        import polars as pl
+
+        return [pl.DataFrame(z, schema=list(n)) for z, n in zip(arrays, names)]
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         """Latent scores of one centred view, shape (n_samples, n_components).
@@ -298,7 +410,7 @@ class BaseModel(BaseEstimator, ABC):
             The mean canonical correlation.
         """
         per_dimension = _average_pairwise_correlations(
-            _pairwise_correlations(self.transform(views))
+            _pairwise_correlations(self._transform_arrays(views))
         )
         return float(np.mean(per_dimension))
 

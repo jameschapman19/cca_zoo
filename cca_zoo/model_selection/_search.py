@@ -18,7 +18,12 @@ from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.experimental import enable_halving_search_cv  # noqa: F401
 from sklearn.utils import Tags
-from sklearn.utils.validation import check_array, check_is_fitted, validate_data
+from sklearn.utils.validation import (
+    _get_feature_names,
+    check_array,
+    check_is_fitted,
+    validate_data,
+)
 
 _PARAM_PREFIX = "estimator__"
 _Scoring = Callable[..., float] | dict[str, Callable[..., float]] | None
@@ -47,18 +52,20 @@ class _MultiviewWrapper(TransformerMixin, BaseEstimator):
         self.estimator = estimator
         self.n_features_per_view = n_features_per_view
 
-    def _split_views(self, X: ArrayLike, reset: bool) -> list[np.ndarray]:
+    def _split_views(self, X: ArrayLike, reset: bool) -> list[Any]:
         """Split a stacked array back into its views.
 
-        Only the shape is checked here; the estimator validates the views.
+        Only the shape and feature names are checked here; the estimator
+        validates the views. A DataFrame is split into DataFrames, so each
+        view keeps its feature names.
         """
         stacked: np.ndarray = check_array(X, dtype=None, ensure_all_finite=False)
-        if reset:
-            self.n_features_in_ = stacked.shape[1]
-        else:
-            validate_data(self, stacked, reset=False, skip_check_array=True)
-        edges = np.cumsum(self._view_widths(stacked.shape[1]))[:-1]
-        return np.split(stacked, edges, axis=1)
+        validate_data(self, X, reset=reset, skip_check_array=True)
+        edges = np.cumsum(self._view_widths(stacked.shape[1]))
+        if hasattr(X, "iloc"):
+            starts = np.concatenate([[0], edges[:-1]])
+            return [X.iloc[:, a:b] for a, b in zip(starts, edges)]
+        return np.split(stacked, edges[:-1], axis=1)
 
     def _view_widths(self, n_features: int) -> list[int]:
         """The width of each view."""
@@ -142,13 +149,32 @@ class _MultiviewWrapper(TransformerMixin, BaseEstimator):
         return np.hstack(self.estimator_.transform(self._split_views(X, reset=False)))
 
 
+def _stack(views: list[ArrayLike]) -> Any:
+    """The views side by side: a DataFrame if every view has feature names.
+
+    sklearn indexes one 2-D ``X``; a pandas DataFrame carries each view's
+    names through its splits, whatever DataFrame library the views came
+    from. Without pandas the names are dropped.
+    """
+    arrays = [np.asarray(v) for v in views]
+    names = [_get_feature_names(v) for v in views]
+    if all(n is not None for n in names) and importlib.util.find_spec("pandas"):
+        import pandas as pd
+
+        return pd.DataFrame(
+            np.hstack(arrays),
+            columns=np.concatenate(names),
+            index=getattr(views[0], "index", None),
+        )
+    return np.hstack(arrays)
+
+
 def _wrap(
     estimator: BaseEstimator, views: list[ArrayLike]
-) -> tuple[_MultiviewWrapper, np.ndarray]:
-    """``estimator`` wrapped for sklearn, and the views stacked into one array."""
-    arrays = [np.asarray(v) for v in views]
-    wrapper = _MultiviewWrapper(estimator, [a.shape[1] for a in arrays])
-    return wrapper, np.hstack(arrays)
+) -> tuple[_MultiviewWrapper, Any]:
+    """``estimator`` wrapped for sklearn, and the views stacked by :func:`_stack`."""
+    wrapper = _MultiviewWrapper(estimator, [np.shape(v)[1] for v in views])
+    return wrapper, _stack(views)
 
 
 def _unwrapped_scoring(scoring: Any) -> Any:
@@ -274,7 +300,7 @@ class _MultiviewSearch:
 
     def score(self, views: list[ArrayLike], y: None = None) -> float:
         """Score the best estimator on held-out multiview data."""
-        return float(self._search.score(np.hstack([np.asarray(v) for v in views]), y))
+        return float(self._search.score(_stack(views), y))
 
 
 class GridSearchCV(_MultiviewSearch, skms.GridSearchCV):

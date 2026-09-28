@@ -178,16 +178,16 @@ class VariationalBayesCCA(BaseProbabilistic):
         predictive = Predictive(
             guide, params=svi_result.params, num_samples=self.n_posterior_samples
         )
-        self.posterior_samples_: dict[str, Any] = predictive(predictive_key, validated)
+        self.posterior_samples_: dict[str, np.ndarray] = {
+            site: np.array(draws)
+            for site, draws in predictive(predictive_key, validated).items()
+        }
 
         # Set weights_ to variational posterior mean W matrices (p_i x k)
         self.weights_: list[np.ndarray] = [
-            np.array(self.posterior_samples_[f"W_{i}"].mean(axis=0))
-            for i in range(self.n_views_)
+            self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
         # Posterior mean ARD precision per latent dimension: larger means
         # "more shrunk / less relevant".
-        self.ard_relevance_: np.ndarray = np.array(
-            self.posterior_samples_["alpha"].mean(axis=0)
-        )
+        self.ard_relevance_: np.ndarray = self.posterior_samples_["alpha"].mean(axis=0)
         return self._finish_fit(validated)

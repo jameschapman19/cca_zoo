@@ -9,8 +9,12 @@ per-view encoder, the number and shapes of views, parameter validation and
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
+import pandas as pd
 import pytest
+import skops.io
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._param_validation import InvalidParameterError
 
@@ -33,10 +37,12 @@ def _views(
     ]
 
 
+_PARTIALS = np.random.default_rng(1).standard_normal((60, 1))
+
+
 def _fit(model: BaseModel, views: list[np.ndarray]) -> BaseModel:
     if type(model).__name__ == "PartialCCA":
-        partials = np.random.default_rng(1).standard_normal((len(views[0]), 1))
-        return model.fit(views, partials=partials)
+        return model.fit(views, partials=_PARTIALS[: len(views[0])])
     return model.fit(views)
 
 
@@ -270,3 +276,51 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
         model.set_params(random_state=0)
     importances = model.fit(_signal_in_first_feature(300)).feature_importances_per_view_
     assert [int(np.argmax(imp)) for imp in importances] == [0, 0]
+
+
+def _frames(views: list[np.ndarray]) -> list[pd.DataFrame]:
+    return [
+        pd.DataFrame(v, columns=[f"v{i}_{j}" for j in range(v.shape[1])])
+        for i, v in enumerate(views)
+    ]
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_feature_names_are_recorded_and_checked(cls: type[BaseModel]) -> None:
+    """Views' column names are kept at fit and checked on new views, as in sklearn."""
+    frames = _frames(_views(0))
+    model = _fit(make_model(cls), frames)
+    assert [list(n) for n in model.feature_names_per_view_] == [
+        list(f.columns) for f in frames
+    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        model.transform(frames)
+    renamed = [frames[0].rename(columns=str.upper), frames[1]]
+    with pytest.raises(ValueError, match="feature names of view 0"):
+        model.transform(renamed)
+    with pytest.warns(UserWarning, match="does not have valid feature names"):
+        model.transform([f.to_numpy() for f in frames])
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_set_output_returns_named_frames(cls: type[BaseModel]) -> None:
+    """set_output(transform="pandas") gives one DataFrame per view, input-indexed."""
+    frames = [f.set_axis(range(100, 160)) for f in _frames(_views(0))]
+    model = _fit(make_model(cls), frames).set_output(transform="pandas")
+    for scores, names, frame in zip(
+        model.transform(frames), model.get_feature_names_out(), frames
+    ):
+        assert list(scores.columns) == list(names)
+        assert scores.index.equals(frame.index)
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_skops_round_trip(cls: type[BaseModel]) -> None:
+    """Every fitted model survives skops, sklearn's safe alternative to pickle."""
+    views = _views(0)
+    model = _fit(make_model(cls), views)
+    data = skops.io.dumps(model)
+    loaded = skops.io.loads(data, trusted=skops.io.get_untrusted_types(data=data))
+    for a, b in zip(model.transform(views), loaded.transform(views)):
+        np.testing.assert_array_equal(a, b)

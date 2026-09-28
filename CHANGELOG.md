@@ -75,6 +75,15 @@ The table below gives each replacement.
 
 ### Added
 
+- Feature names, as in sklearn: views fitted as DataFrames with string columns are
+  recorded in `feature_names_per_view_`; a new view whose names differ raises, and one
+  with names on only one side of fit and transform warns. `get_feature_names_out()`
+  names each view's latent dimensions `<model><k>` (`cca0`, `cca1`, ...), and
+  `set_output(transform="pandas" | "polars")`, or sklearn's global `transform_output`,
+  makes `transform` return one DataFrame per view, indexed as the input. Searches and
+  cross-validation carry each view's names through to the fitted models.
+- Every model round-trips through `skops.io`, sklearn's safe alternative to pickle,
+  and is tested to.
 - `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
   correlation conditioned on a variable given as `partials`, used as given or encoded by a
   `partial_encoder` (the paper's variants A and B), and needed only for training. It
@@ -156,6 +165,9 @@ The table below gives each replacement.
 
 ### Changed
 
+- `VariationalBayesCCA.posterior_samples_` holds numpy arrays, as
+  `ProbabilisticCCA`'s does, rather than JAX arrays, which pinned device memory and
+  could not be serialised by skops.
 - `GaussianProcessCCA` is solved in closed form. Its objective, the EY loss plus the
   RKHS-norm penalty, is a ridge-penalised EY loss on the Nyström features of its inducing
   points, whose global minimiser is a generalized eigenproblem. It replaces an L-BFGS-B

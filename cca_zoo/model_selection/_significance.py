@@ -46,7 +46,8 @@ def _correlations_and_loadings(
     model: BaseEstimator, views: list[np.ndarray]
 ) -> tuple[np.ndarray, list[np.ndarray]]:
     """Per-dimension canonical correlations and factor loadings of a fit."""
-    scores = model.transform(views)
+    # Arrays whatever the output container set by set_output or set_config.
+    scores = [np.asarray(s) for s in model.transform(views)]
     correlations = average_pairwise_correlations(pairwise_correlations(scores))
     return correlations, factor_loadings(views, scores)
 
