@@ -51,12 +51,19 @@ class PLS(RidgeCCA):
             shrinkage=1.0,
         )
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> PLS:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> PLS:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
@@ -64,4 +71,4 @@ class PLS(RidgeCCA):
         Raises:
             ValueError: If there are not exactly two views.
         """
-        return super().fit(views, y)
+        return super().fit(views, y, sample_weight)

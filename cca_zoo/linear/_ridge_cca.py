@@ -63,12 +63,19 @@ class RidgeCCA(BaseModel):
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> RidgeCCA:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> RidgeCCA:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
@@ -76,7 +83,7 @@ class RidgeCCA(BaseModel):
         Raises:
             ValueError: If there are not exactly two views.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views, sample_weight)
         if self.n_views_ != 2:
             raise ValueError(
                 f"{type(self).__name__} requires exactly 2 views, got "

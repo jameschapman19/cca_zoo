@@ -75,17 +75,24 @@ class GRCCA(MCCA):
         self.mu = mu
         self.feature_groups = feature_groups
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> GRCCA:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> GRCCA:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
         """
-        views_ = self._setup_fit(views)
+        views_ = self._setup_fit(views, sample_weight)
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu_ = perview_parameter("mu", self.mu, 0.0, self.n_views_)
 

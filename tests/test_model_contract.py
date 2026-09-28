@@ -37,12 +37,10 @@ def _views(
     ]
 
 
-_PARTIALS = np.random.default_rng(1).standard_normal((60, 1))
-
-
 def _fit(model: BaseModel, views: list[np.ndarray]) -> BaseModel:
     if type(model).__name__ == "PartialCCA":
-        return model.fit(views, partials=_PARTIALS[: len(views[0])])
+        partials = np.random.default_rng(1).standard_normal((len(views[0]), 1))
+        return model.fit(views, partials=partials)
     return model.fit(views)
 
 

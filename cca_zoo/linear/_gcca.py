@@ -71,17 +71,24 @@ class GCCA(BaseModel):
         self.shrinkage = shrinkage
         self.view_weights = view_weights
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> GCCA:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> GCCA:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
+        views_: list[np.ndarray] = self._setup_fit(views, sample_weight)
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
@@ -100,6 +107,9 @@ class GCCA(BaseModel):
                 for v, ci, mi in zip(views_, c_, mu)
             ]
         )
+        # Unit-variance shared latent, so the scores' scale does not depend on
+        # the number of samples.
         T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.n_components]
+        T *= np.sqrt(self.n_samples_ - 1)
         self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
         return self._finish_fit(views_)

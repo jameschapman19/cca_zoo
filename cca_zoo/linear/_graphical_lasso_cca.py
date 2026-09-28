@@ -6,6 +6,7 @@ from numbers import Real
 from typing import Any, ClassVar
 
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.linalg import block_diag
 from sklearn.covariance import GraphicalLasso, GraphicalLassoCV
 from sklearn.utils._param_validation import Interval, StrOptions
@@ -16,10 +17,10 @@ from cca_zoo._utils._param_constraints import (
     RIDGE_PARAMETER,
 )
 from cca_zoo._utils._validation import perview_parameter
-from cca_zoo.linear._mcca import MCCA
+from cca_zoo.linear._mcca import _BaseMCCA
 
 
-class GraphicalLassoCCA(MCCA):
+class GraphicalLassoCCA(_BaseMCCA):
     """MCCA with each within-view covariance estimated by the graphical lasso.
 
     Replaces each view's block of :class:`~cca_zoo.linear.MCCA`'s $B$ with
@@ -89,6 +90,21 @@ class GraphicalLassoCCA(MCCA):
         self.alpha = alpha
         self.mode = mode
         self.max_iter = max_iter
+
+    def fit(self, views: list[ArrayLike], y: None = None) -> GraphicalLassoCCA:
+        """Fit the model.
+
+        The graphical lasso estimates each covariance from the rows, so the
+        model takes no ``sample_weight``.
+
+        Args:
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
+
+        Returns:
+            self.
+        """
+        return self._solve(self._setup_fit(views))
 
     def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
         """Block-diagonal ``B`` from each view's graphical-lasso covariance."""

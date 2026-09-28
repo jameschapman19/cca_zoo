@@ -49,12 +49,19 @@ class CCA(RidgeCCA):
             shrinkage=0.0,
         )
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> CCA:
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> CCA:
         """Fit the model.
 
         Args:
             views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
             self.
@@ -62,4 +69,4 @@ class CCA(RidgeCCA):
         Raises:
             ValueError: If there are not exactly two views.
         """
-        return super().fit(views, y)
+        return super().fit(views, y, sample_weight)

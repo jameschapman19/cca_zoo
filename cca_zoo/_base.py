@@ -13,7 +13,11 @@ from sklearn import get_config
 from sklearn.base import BaseEstimator
 from sklearn.utils import Tags, TransformerTags, check_random_state
 from sklearn.utils._param_validation import Interval, StrOptions, validate_params
-from sklearn.utils.validation import _get_feature_names, check_is_fitted
+from sklearn.utils.validation import (
+    _check_sample_weight,
+    _get_feature_names,
+    check_is_fitted,
+)
 
 from cca_zoo._utils._validation import validate_views
 from cca_zoo.metrics._correlation import (
@@ -27,6 +31,33 @@ _Model = TypeVar("_Model", bound="BaseModel")
 # rows, as sklearn's ``permutation_importance(max_samples=...)``, so that they
 # add a small fraction to the fit of the models that need them.
 _PERMUTATION_SAMPLES = 500
+
+
+def _weighted_pseudo_rows(
+    views: list[np.ndarray], sample_weight: np.ndarray
+) -> list[np.ndarray]:
+    """Rows whose unweighted moments are the views' weighted moments.
+
+    Each row is scaled by the square root of its weight, and one Householder
+    reflection maps the square-root weights onto the constant vector. The
+    rows' column sums, centred Gram and ``n - 1`` denominators then give the
+    weighted mean and covariance with denominator ``sum(w) - 1``: for integer
+    weights, those of the views with each row repeated. A model whose fit
+    depends on the views only through their centred second moments is thereby
+    fitted with the weights unchanged.
+    """
+    n = len(sample_weight)
+    root = np.sqrt(sample_weight)
+    reflector = root / np.linalg.norm(root) - 1.0 / np.sqrt(n)
+    norm2 = float(reflector @ reflector)
+    scale = np.sqrt((n - 1) / (sample_weight.sum() - 1))
+    rows = []
+    for v in views:
+        scaled = root[:, None] * v
+        if norm2 > 0:
+            scaled -= np.outer(reflector, (2 / norm2) * (reflector @ scaled))
+        rows.append((scale * scaled).astype(v.dtype, copy=False))
+    return rows
 
 
 def _least_squares_map(scores: np.ndarray, data: np.ndarray) -> np.ndarray:
@@ -101,8 +132,15 @@ class BaseModel(BaseEstimator, ABC):
     # Shared sklearn-compatible helpers
     # ------------------------------------------------------------------
 
-    def _setup_fit(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Validate parameters and views, record their shapes and centre them."""
+    def _setup_fit(
+        self, views: list[ArrayLike], sample_weight: ArrayLike | None = None
+    ) -> list[np.ndarray]:
+        """Validate parameters and views, record their shapes and centre them.
+
+        With ``sample_weight``, the views are centred on their weighted means
+        and returned as :func:`_weighted_pseudo_rows`, for the models whose fit
+        uses only the centred second moments.
+        """
         self._validate_params()
         names = [_get_feature_names(v) for v in views]
         if all(n is not None for n in names):
@@ -121,11 +159,27 @@ class BaseModel(BaseEstimator, ABC):
                 f"{max_components}, the number of features in the narrowest view."
             )
         self.n_samples_: int = validated[0].shape[0]
+        weights = (
+            None
+            if sample_weight is None
+            else _check_sample_weight(
+                sample_weight, validated[0], ensure_non_negative=True
+            )
+        )
+        if weights is not None and weights.sum() <= 1:
+            raise ValueError(
+                "sample_weight must sum to more than 1: a covariance needs more "
+                f"than one sample's weight, got a sum of {weights.sum()}."
+            )
         if self.center:
-            self.means_: list[np.ndarray] = [v.mean(axis=0) for v in validated]
+            self.means_: list[np.ndarray] = [
+                np.average(v, axis=0, weights=weights) for v in validated
+            ]
             validated = [v - m for v, m in zip(validated, self.means_)]
         else:
             self.means_ = [np.zeros(p) for p in self.n_features_per_view_]
+        if weights is not None:
+            validated = _weighted_pseudo_rows(validated, weights)
         return validated
 
     def _finish_fit(self: _Model, views: list[np.ndarray]) -> _Model:
