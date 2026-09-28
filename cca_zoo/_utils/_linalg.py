@@ -55,11 +55,11 @@ def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
     n, p = X.shape
     if n >= p:
         lam, V = xp.linalg.eigh(X.T @ X / (n - 1))
-        rank = int(xp.sum(lam > xp.max(lam) * p * xp.finfo(lam.dtype).eps))
+        rank = int(xp.count_nonzero(lam > xp.max(lam) * p * xp.finfo(lam.dtype).eps))
         lam, V = lam[p - rank :], V[:, p - rank :]
     else:
         _, s, Vt = xp.linalg.svd(X, full_matrices=False)
-        rank = int(xp.sum(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
+        rank = int(xp.count_nonzero(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
         lam, V = s[:rank] ** 2 / (n - 1), Vt[:rank, :].T
     W = V / xp.sqrt((1.0 - regularization) * lam + regularization)
     return X @ W, W

@@ -137,6 +137,10 @@ class GraphicalLassoCCA(MCCA):
                     estimator.precision_,
                     estimator.n_iter_,
                 )
+            elif v.shape[1] == 1:
+                # The lasso penalises partial correlations: one feature has none.
+                covariance = v.T @ v / (len(v) - 1)
+                precision, n_iter = 1.0 / covariance, 0
             else:
                 # The views are centred when center=True, so this is their
                 # covariance, weighted when fit was given sample_weight.

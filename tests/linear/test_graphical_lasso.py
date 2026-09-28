@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.linalg import block_diag
-from sklearn.covariance import GraphicalLasso
+from sklearn.covariance import graphical_lasso
 
 from cca_zoo.linear import MCCA, GraphicalLassoCCA
 
@@ -16,14 +16,11 @@ def _offdiagonal_nonzeros(precision: np.ndarray) -> int:
 def test_covariance_is_sklearns_graphical_lasso(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """The within-view covariances are GraphicalLasso's."""
+    """The within-view covariances are sklearn's graphical lasso of each covariance."""
     model = GraphicalLassoCCA(alpha=0.2)
     views = model._setup_fit(two_views_small)
     expected = block_diag(
-        *(
-            GraphicalLasso(alpha=0.2, assume_centered=True).fit(v).covariance_
-            for v in views
-        )
+        *(graphical_lasso(np.cov(v, rowvar=False), alpha=0.2)[0] for v in views)
     )
     np.testing.assert_allclose(
         model._build_B(views, c=[0.0, 0.0]), expected / 2, atol=1e-8
