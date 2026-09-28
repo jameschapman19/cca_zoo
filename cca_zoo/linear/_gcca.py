@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any, ClassVar
 
-import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._array_api import device, get_namespace
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import psd_inverse_sqrt
+from cca_zoo._utils._linalg import covariance, psd_inverse_sqrt
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -58,6 +59,7 @@ class GCCA(BaseModel):
     }
 
     _EPS: ClassVar[float] = 1e-6
+    _supports_array_api: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -88,7 +90,8 @@ class GCCA(BaseModel):
         Returns:
             self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views, sample_weight)
+        views_ = self._setup_fit(views, sample_weight)
+        xp, _ = get_namespace(*views_)
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
@@ -96,20 +99,14 @@ class GCCA(BaseModel):
         # whitened views H = [sqrt(mu_i) X_i cov_i^{-1/2}], so its top
         # eigenvectors are H's top left singular vectors: an n x sum(p_i)
         # SVD in place of an n x n eigenproblem.
-        stacked = np.hstack(
-            [
-                np.sqrt(mi)
-                * v
-                @ psd_inverse_sqrt(
-                    (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1]),
-                    self._EPS,
-                )
-                for v, ci, mi in zip(views_, c_, mu)
-            ]
-        )
+        whitened = []
+        for v, ci, mi in zip(views_, c_, mu):
+            identity = xp.eye(v.shape[1], dtype=v.dtype, device=device(v))
+            cov = (1.0 - ci) * covariance(v) + ci * identity
+            whitened.append(math.sqrt(mi) * v @ psd_inverse_sqrt(cov, self._EPS))
+        U = xp.linalg.svd(xp.concat(whitened, axis=1), full_matrices=False)[0]
         # Unit-variance shared latent, so the scores' scale does not depend on
         # the number of samples.
-        T = np.linalg.svd(stacked, full_matrices=False)[0][:, : self.n_components]
-        T *= np.sqrt(self.n_samples_ - 1)
-        self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
+        T = U[:, : self.n_components] * math.sqrt(self.n_samples_ - 1)
+        self.weights_: list[Any] = [xp.linalg.pinv(v) @ T for v in views_]
         return self._finish_fit(views_)

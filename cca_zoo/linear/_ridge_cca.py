@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._array_api import get_namespace
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import svd_whiten
@@ -52,6 +53,7 @@ class RidgeCCA(BaseModel):
         "shrinkage": RIDGE_PARAMETER,
     }
     _preserved_dtypes: ClassVar[list[type]] = [np.float64, np.float32]
+    _supports_array_api: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -90,15 +92,13 @@ class RidgeCCA(BaseModel):
                 f"{self.n_views_}. Use MCCA for more than 2 views."
             )
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, 2)
+        xp, _ = get_namespace(*views_)
         X1, X2 = views_
-        # Whiten each view with its regularised covariance
+        # Whiten each view with its regularised covariance, then take the SVD
+        # of the whitened views' cross-covariance.
         X1_w, W1 = svd_whiten(X1, c_[0])
         X2_w, W2 = svd_whiten(X2, c_[1])
-        # SVD of the cross-covariance of whitened views
         k = min(self.n_components, X1_w.shape[1], X2_w.shape[1])
-        cross_cov = X1_w.T @ X2_w / (X1.shape[0] - 1)
-        U, _, Vt = np.linalg.svd(cross_cov, full_matrices=False)
-        U = U[:, :k]
-        Vt = Vt[:k, :]
-        self.weights_: list[np.ndarray] = [W1 @ U, W2 @ Vt.T]
+        U, _, Vt = xp.linalg.svd(X1_w.T @ X2_w / (X1.shape[0] - 1), full_matrices=False)
+        self.weights_: list[Any] = [W1 @ U[:, :k], W2 @ Vt[:k, :].T]
         return self._finish_fit(views_)

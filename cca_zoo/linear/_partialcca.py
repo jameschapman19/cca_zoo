@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -47,6 +49,8 @@ class PartialCCA(MCCA):
         >>> model = PartialCCA(n_components=2).fit([X1, X2], partials=Z)
         >>> Z1, Z2 = model.transform([X1, X2], partials=Z)
     """
+
+    _supports_array_api: ClassVar[bool] = False
 
     def __init__(
         self,

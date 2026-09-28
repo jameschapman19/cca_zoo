@@ -51,6 +51,7 @@ class GRCCA(MCCA):
         >>> model = model.fit([X1, X2])
     """
 
+    _supports_array_api: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **MCCA._parameter_constraints,
         "mu": NONNEGATIVE_PER_VIEW,

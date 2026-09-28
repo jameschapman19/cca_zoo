@@ -196,6 +196,20 @@ wheels = [
 ]
 
 [[package]]
+name = "array-api-strict"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cd/05/f338cb02b0ce864c567d756b865fd38b522fde9cf3523d02aed270145a0f/array_api_strict-2.6.1.tar.gz", hash = "sha256:27485fd687c678894fb193e8f9f5116651a0bfc19dccea164d7d5df83b4e9a82", size = 91482, upload-time = "2026-07-27T10:46:27.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/23/0b70060007470e1c3c3f74a2e362e11efdaa68d8d657793014e6a860638b/array_api_strict-2.6.1-py3-none-any.whl", hash = "sha256:84548915c11265f4b87070731bd26edf46b202a04e7491194abcb46f4986c88f", size = 78619, upload-time = "2026-07-27T10:46:26.771Z" },
+]
+
+[[package]]
 name = "arviz"
 version = "0.23.4"
 source = { registry = "https://pypi.org/simple" }
@@ -468,6 +482,7 @@ deep = [
     { name = "torch" },
 ]
 dev = [
+    { name = "array-api-strict" },
     { name = "mypy" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -512,6 +527,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "array-api-strict", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "arviz", marker = "extra == 'all'", specifier = ">=0.17" },
     { name = "arviz", marker = "extra == 'probabilistic'", specifier = ">=0.17" },
     { name = "catboost", marker = "extra == 'all'", specifier = ">=1.2" },

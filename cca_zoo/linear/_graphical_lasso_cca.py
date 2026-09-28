@@ -63,6 +63,7 @@ class GraphicalLassoCCA(MCCA):
         (12, 12)
     """
 
+    _supports_array_api: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,

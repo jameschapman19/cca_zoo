@@ -308,6 +308,32 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 
 ---
 
+## GPUs and the Array API
+
+`CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA` compute in the namespace of their inputs
+under scikit-learn's [Array API dispatch](https://scikit-learn.org/stable/modules/array_api.html),
+so PyTorch or CuPy arrays on a GPU are fitted and transformed on the GPU. Their cost is
+the covariance products and one eigendecomposition, both of which a GPU accelerates.
+scipy must be told before it is imported:
+
+```python
+import os
+
+os.environ["SCIPY_ARRAY_API"] = "1"
+
+import sklearn
+import torch
+from cca_zoo.linear import MCCA
+
+views = [torch.asarray(X1, device="cuda"), torch.asarray(X2, device="cuda")]
+with sklearn.config_context(array_api_dispatch=True):
+    model = MCCA(n_components=2, shrinkage=0.1).fit(views)
+    z1, z2 = model.transform(views)  # torch tensors on the GPU
+```
+
+The other models compute with numpy and raise a `TypeError` on other arrays under
+dispatch.
+
 ## Choosing a method
 
 | Scenario | Recommended |

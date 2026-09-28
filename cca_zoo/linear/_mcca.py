@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+from itertools import accumulate, pairwise
 from typing import Any, ClassVar
 
-import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import block_diag
 from sklearn.decomposition import PCA
+from sklearn.utils._array_api import device, get_namespace
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._linalg import block_diag, covariance, gevp
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
+
+
+def _eye(n: int, like: Any) -> Any:
+    """The n-by-n identity in the namespace, dtype and device of ``like``."""
+    xp, _ = get_namespace(like)
+    return xp.eye(n, dtype=like.dtype, device=device(like))
 
 
 class MCCA(BaseModel):
@@ -63,6 +69,7 @@ class MCCA(BaseModel):
     }
 
     _EPS: ClassVar[float] = 1e-6
+    _supports_array_api: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -93,65 +100,57 @@ class MCCA(BaseModel):
         Returns:
             self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views, sample_weight)
+        views_ = self._setup_fit(views, sample_weight)
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
 
         if self.pca:
             pca_models = [PCA().fit(v) for v in views_]
-            views_pca = [m.transform(v) for m, v in zip(pca_models, views_)]
-            A = self._build_A(views_pca)
+            solved_views = [m.transform(v) for m, v in zip(pca_models, views_)]
+            A = self._build_A(solved_views)
             B = self._build_B_pca(pca_models, c_)
         else:
+            solved_views = views_
             A = self._build_A(views_)
             B = self._build_B(views_, c_)
-
-        splits = np.cumsum([v.shape[1] for v in (views_pca if self.pca else views_)])
         _, eigvecs = gevp(A, B, self.n_components)
 
-        raw_weights = np.split(eigvecs, splits[:-1], axis=0)
+        edges = list(accumulate((v.shape[1] for v in solved_views), initial=0))
+        weights = [eigvecs[a:b, :] for a, b in pairwise(edges)]
         if self.pca:
-            self.weights_: list[np.ndarray] = [
-                m.components_.T @ w for m, w in zip(pca_models, raw_weights)
-            ]
-        else:
-            self.weights_ = raw_weights
+            weights = [m.components_.T @ w for m, w in zip(pca_models, weights)]
+        self.weights_: list[Any] = weights
         return self._finish_fit(views_)
 
     # ------------------------------------------------------------------
     # Matrix construction helpers (overridable by subclasses)
     # ------------------------------------------------------------------
 
-    def _build_A(self, views: list[np.ndarray]) -> np.ndarray:
+    def _build_A(self, views: list[Any]) -> Any:
         """Between-view covariance block matrix, with zero diagonal blocks."""
-        all_views = np.hstack(views)
-        A = np.cov(all_views, rowvar=False)
-        A -= block_diag(*[np.cov(v, rowvar=False) for v in views])
+        xp, _ = get_namespace(*views)
+        A = covariance(xp.concat(views, axis=1))
+        A = A - block_diag([covariance(v) for v in views])
         return A / len(views)
 
-    def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
+    def _build_B(self, views: list[Any], c: list[float]) -> Any:
         """Block-diagonal ridge-blended within-view covariance."""
         blocks = [
-            (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
-            for i, v in enumerate(views)
+            (1.0 - ci) * covariance(v) + ci * _eye(v.shape[1], v)
+            for v, ci in zip(views, c)
         ]
-        B: np.ndarray = np.asarray(block_diag(*blocks))
-        min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self._EPS:
-            B += (self._EPS - min_eig) * np.eye(B.shape[0])
-        return np.asarray(B / len(views))
+        return self._floored(block_diag(blocks) / len(views))
 
-    def _build_B_pca(
-        self,
-        pca_models: list[PCA],
-        c: list[float],
-    ) -> np.ndarray:
+    def _build_B_pca(self, pca_models: list[PCA], c: list[float]) -> Any:
         """Diagonal ``B`` from the PCA explained variances."""
         blocks = [
-            np.diag((1.0 - c[i]) * m.explained_variance_ + c[i])
-            for i, m in enumerate(pca_models)
+            _eye(v.shape[0], v) * ((1.0 - ci) * v + ci)
+            for v, ci in zip((m.explained_variance_ for m in pca_models), c)
         ]
-        B: np.ndarray = np.asarray(block_diag(*blocks))
-        min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self._EPS:
-            B += (self._EPS - min_eig) * np.eye(B.shape[0])
-        return np.asarray(B / len(pca_models))
+        return self._floored(block_diag(blocks) / len(pca_models))
+
+    def _floored(self, B: Any) -> Any:
+        """``B`` with its spectrum raised to at least ``_EPS / n_views``."""
+        xp, _ = get_namespace(B)
+        floor = self._EPS / self.n_views_
+        min_eig = float(xp.min(xp.linalg.eigvalsh(B)))
+        return B + max(0.0, floor - min_eig) * _eye(B.shape[0], B)

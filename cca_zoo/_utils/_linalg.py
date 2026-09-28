@@ -1,21 +1,47 @@
-"""Linear algebra utilities: whitening, eigendecomposition, deflation."""
+"""Linear algebra utilities: whitening, eigendecomposition, deflation.
+
+The functions used by the Array API models (``covariance``, ``block_diag``,
+``svd_whiten``, ``psd_inverse_sqrt`` and ``gevp``) work in the namespace of
+their inputs, through scikit-learn's ``array_api_dispatch``.
+"""
 
 from __future__ import annotations
 
 import string
+from typing import Any
 
 import numpy as np
-import scipy.linalg
+from sklearn.utils._array_api import device, get_namespace
 
 
-def svd_whiten(
-    X: np.ndarray,
-    regularization: float = 0.0,
-) -> tuple[np.ndarray, np.ndarray]:
+def covariance(X: Any) -> Any:
+    """Sample covariance of the columns of ``X``, shape (p, p)."""
+    xp, _ = get_namespace(X)
+    centred = X - xp.mean(X, axis=0)
+    return centred.T @ centred / (X.shape[0] - 1)
+
+
+def block_diag(blocks: list[Any]) -> Any:
+    """The square ``blocks`` along the diagonal of one matrix."""
+    xp, _ = get_namespace(*blocks)
+    total = sum(b.shape[0] for b in blocks)
+    matrix = xp.zeros((total, total), dtype=blocks[0].dtype, device=device(blocks[0]))
+    start = 0
+    for b in blocks:
+        end = start + b.shape[0]
+        matrix[start:end, start:end] = b
+        start = end
+    return matrix
+
+
+def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
     """Whiten ``X`` with a ridge-regularised covariance.
 
     Uses an eigendecomposition of the covariance when ``n >= p`` and an SVD
-    of ``X`` otherwise.
+    of ``X`` otherwise. Directions below the numerical rank are dropped, with
+    ``numpy.linalg.matrix_rank``'s relative tolerance: centred data always has
+    a null direction, and a strict zero threshold would keep it with an
+    enormous weight.
 
     Args:
         X: Centred array of shape (n_samples, n_features).
@@ -25,42 +51,21 @@ def svd_whiten(
     Returns:
         ``(X @ W, W)``, with ``W`` of shape (n_features, rank).
     """
+    xp, _ = get_namespace(X)
     n, p = X.shape
     if n >= p:
-        # Covariance path -- avoids the large n x p matrix U from thin SVD.
-        C = X.T @ X / (n - 1)
-        lam, V = np.linalg.eigh(C)
-        # A strict ``lam > 0`` is not numerically safe here: forming X.T @ X
-        # squares the condition number, so near-zero eigenvalues of
-        # rank-deficient data can carry noise of either sign and slip
-        # through a zero threshold. Use a relative tolerance instead,
-        # matching numpy.linalg.matrix_rank's convention.
-        tol = lam.max() * p * np.finfo(lam.dtype).eps
-        pos = lam > tol
-        lam, V = lam[pos], V[:, pos]
-        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
-        W = V * inv_sqrt
-        X_white = X @ W
+        lam, V = xp.linalg.eigh(X.T @ X / (n - 1))
+        rank = int(xp.sum(lam > xp.max(lam) * p * xp.finfo(lam.dtype).eps))
+        lam, V = lam[p - rank :], V[:, p - rank :]
     else:
-        # SVD path -- avoids forming the p x p covariance matrix.
-        U, s, Vt = np.linalg.svd(X, full_matrices=False)
-        # Centred data always has a numerically null direction; as above, a
-        # strict ``s > 0`` would keep it with an enormous weight.
-        pos = s > s.max() * max(n, p) * np.finfo(s.dtype).eps
-        s = s[pos]
-        U = U[:, pos]
-        Vt = Vt[pos, :]
-        # Eigenvalues of the sample covariance
-        lam = s**2 / (n - 1)
-        # Regularised inverse square root: ((1 - c) * lam + c)^{-1/2}
-        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
-        # Whitening matrix: shape (n_features, rank)
-        W = Vt.T * inv_sqrt
-        X_white = U * (s * inv_sqrt)
-    return X_white, W
+        _, s, Vt = xp.linalg.svd(X, full_matrices=False)
+        rank = int(xp.sum(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
+        lam, V = s[:rank] ** 2 / (n - 1), Vt[:rank, :].T
+    W = V / xp.sqrt((1.0 - regularization) * lam + regularization)
+    return X @ W, W
 
 
-def psd_inverse_sqrt(matrix: np.ndarray, floor: float) -> np.ndarray:
+def psd_inverse_sqrt(matrix: Any, floor: float) -> Any:
     """Inverse square root of a symmetric matrix, shifted to be positive definite.
 
     The spectrum is raised so its smallest eigenvalue is at least ``floor``.
@@ -72,10 +77,10 @@ def psd_inverse_sqrt(matrix: np.ndarray, floor: float) -> np.ndarray:
     Returns:
         Symmetric matrix of shape (p, p).
     """
-    eigenvalues, vectors = np.linalg.eigh(matrix)
-    eigenvalues = eigenvalues + max(0.0, floor - eigenvalues[0])
-    result: np.ndarray = (vectors / np.sqrt(eigenvalues)) @ vectors.T
-    return result
+    xp, _ = get_namespace(matrix)
+    eigenvalues, vectors = xp.linalg.eigh(matrix)
+    eigenvalues = eigenvalues + max(0.0, floor - float(eigenvalues[0]))
+    return (vectors / xp.sqrt(eigenvalues)) @ vectors.T
 
 
 def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:
@@ -95,12 +100,11 @@ def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:
     return moment
 
 
-def gevp(
-    A: np.ndarray,
-    B: np.ndarray | None,
-    k: int,
-) -> tuple[np.ndarray, np.ndarray]:
+def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
     """Top ``k`` eigenpairs of ``A v = lambda B v``, or of ``A`` when ``B`` is None.
+
+    The generalized problem is reduced by the Cholesky factor ``B = L L'`` to
+    the symmetric ``L^{-1} A L^{-T} u = lambda u``, with ``v = L^{-T} u``.
 
     Args:
         A: Symmetric matrix of shape (p, p).
@@ -110,11 +114,16 @@ def gevp(
     Returns:
         ``(eigvals, eigvecs)`` of shapes (k,) and (p, k), in descending order.
     """
-    p = A.shape[0]
-    k_clamped = min(k, p)
-    eigvals, eigvecs = scipy.linalg.eigh(A, B, subset_by_index=[p - k_clamped, p - 1])
-    idx = np.argsort(eigvals)[::-1]
-    return eigvals[idx].real, eigvecs[:, idx].real
+    xp, _ = get_namespace(A)
+    if B is None:
+        eigvals, eigvecs = xp.linalg.eigh(A)
+    else:
+        L = xp.linalg.cholesky(B)
+        reduced = xp.linalg.solve(L, xp.linalg.solve(L, A).T)
+        eigvals, u = xp.linalg.eigh((reduced + reduced.T) / 2)
+        eigvecs = xp.linalg.solve(L.T, u)
+    k = min(k, A.shape[0])
+    return xp.flip(eigvals[-k:], axis=0), xp.flip(eigvecs[:, -k:], axis=1)
 
 
 def soft_threshold(x: np.ndarray, threshold: float) -> np.ndarray:

@@ -75,6 +75,11 @@ The table below gives each replacement.
 
 ### Added
 
+- Array API support in `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA`: under
+  scikit-learn's `array_api_dispatch`, PyTorch or CuPy inputs are fitted and
+  transformed in their own namespace and on their own device, such as a GPU. The
+  generalized eigenproblem is solved by a Cholesky reduction on every backend. Models
+  without support raise a `TypeError` on such inputs.
 - `sample_weight` in `fit` for the models fitted from second moments: `CCA`,
   `RidgeCCA`, `PLS`, `MCCA`, `GCCA`, `GRCCA` and `GraphicalLassoCCA` (with a fixed
   `alpha`; `alpha=None` cross-validates over the rows and raises). As in sklearn, an

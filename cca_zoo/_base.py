@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import warnings
 from abc import ABC, abstractmethod
 from numbers import Integral
@@ -12,6 +13,12 @@ from numpy.typing import ArrayLike
 from sklearn import get_config
 from sklearn.base import BaseEstimator
 from sklearn.utils import Tags, TransformerTags, check_random_state
+from sklearn.utils._array_api import (
+    _convert_to_numpy,
+    _is_numpy_namespace,
+    device,
+    get_namespace,
+)
 from sklearn.utils._param_validation import Interval, StrOptions, validate_params
 from sklearn.utils.validation import (
     _check_sample_weight,
@@ -33,9 +40,7 @@ _Model = TypeVar("_Model", bound="BaseModel")
 _PERMUTATION_SAMPLES = 500
 
 
-def _weighted_pseudo_rows(
-    views: list[np.ndarray], sample_weight: np.ndarray
-) -> list[np.ndarray]:
+def _weighted_pseudo_rows(views: list[Any], sample_weight: Any) -> list[Any]:
     """Rows whose unweighted moments are the views' weighted moments.
 
     Each row is scaled by the square root of its weight, and one Householder
@@ -46,24 +51,32 @@ def _weighted_pseudo_rows(
     depends on the views only through their centred second moments is thereby
     fitted with the weights unchanged.
     """
-    n = len(sample_weight)
-    root = np.sqrt(sample_weight)
-    reflector = root / np.linalg.norm(root) - 1.0 / np.sqrt(n)
-    norm2 = float(reflector @ reflector)
-    scale = np.sqrt((n - 1) / (sample_weight.sum() - 1))
+    xp, _ = get_namespace(sample_weight)
+    n = sample_weight.shape[0]
+    root = xp.sqrt(sample_weight)
+    reflector = root / xp.linalg.vector_norm(root) - 1.0 / math.sqrt(n)
+    norm2 = float(xp.sum(reflector**2))
+    scale = math.sqrt((n - 1) / (float(xp.sum(sample_weight)) - 1))
     rows = []
     for v in views:
         scaled = root[:, None] * v
         if norm2 > 0:
-            scaled -= np.outer(reflector, (2 / norm2) * (reflector @ scaled))
-        rows.append((scale * scaled).astype(v.dtype, copy=False))
+            scaled = scaled - reflector[:, None] * ((2 / norm2) * (reflector @ scaled))
+        rows.append(xp.astype(scale * scaled, v.dtype))
     return rows
 
 
-def _least_squares_map(scores: np.ndarray, data: np.ndarray) -> np.ndarray:
+def _to_numpy(array: Any) -> np.ndarray:
+    """``array`` as a numpy array, from any Array API namespace."""
+    xp, _ = get_namespace(array)
+    converted: np.ndarray = _convert_to_numpy(array, xp)
+    return converted
+
+
+def _least_squares_map(scores: Any, data: Any) -> Any:
     """The (k, p) matrix ``B`` minimising ``||scores @ B - data||``."""
-    mapping: np.ndarray = np.linalg.lstsq(scores, data, rcond=None)[0]
-    return mapping
+    xp, _ = get_namespace(scores, data)
+    return xp.linalg.pinv(scores) @ data
 
 
 class BaseModel(BaseEstimator, ABC):
@@ -107,6 +120,9 @@ class BaseModel(BaseEstimator, ABC):
     # Whether n_components is bounded by the narrowest view's features, as for
     # any model whose embedding is a projection of the features.
     _components_bounded_by_features: ClassVar[bool] = True
+    # Whether fit and transform compute in the namespace of Array API inputs
+    # (with sklearn's array_api_dispatch), rather than only with numpy.
+    _supports_array_api: ClassVar[bool] = False
 
     def __init__(self, n_components: int = 1, center: bool = True) -> None:
         self.n_components = n_components
@@ -147,6 +163,12 @@ class BaseModel(BaseEstimator, ABC):
             self.feature_names_per_view_: list[np.ndarray] = names
         elif hasattr(self, "feature_names_per_view_"):
             del self.feature_names_per_view_
+        xp, _ = get_namespace(*views)
+        if not (self._supports_array_api or _is_numpy_namespace(xp)):
+            raise TypeError(
+                f"{type(self).__name__} computes with numpy; pass numpy arrays, "
+                "or use a model that supports the Array API (see the user guide)."
+            )
         validated = validate_views(
             views, ensure_min_samples=2, dtype=self._preserved_dtypes
         )
@@ -166,18 +188,25 @@ class BaseModel(BaseEstimator, ABC):
                 sample_weight, validated[0], ensure_non_negative=True
             )
         )
-        if weights is not None and weights.sum() <= 1:
+        if weights is not None and float(xp.sum(weights)) <= 1:
             raise ValueError(
                 "sample_weight must sum to more than 1: a covariance needs more "
-                f"than one sample's weight, got a sum of {weights.sum()}."
+                f"than one sample's weight, got a sum of {float(xp.sum(weights))}."
             )
-        if self.center:
-            self.means_: list[np.ndarray] = [
-                np.average(v, axis=0, weights=weights) for v in validated
+        if not self.center:
+            self.means_: list[Any] = [
+                xp.zeros(v.shape[1], dtype=v.dtype, device=device(v)) for v in validated
             ]
-            validated = [v - m for v, m in zip(validated, self.means_)]
+        elif weights is None:
+            self.means_ = [xp.mean(v, axis=0) for v in validated]
         else:
-            self.means_ = [np.zeros(p) for p in self.n_features_per_view_]
+            self.means_ = [
+                xp.astype(
+                    xp.sum(v * weights[:, None], axis=0) / xp.sum(weights), v.dtype
+                )
+                for v in validated
+            ]
+        validated = [v - m for v, m in zip(validated, self.means_)]
         if weights is not None:
             validated = _weighted_pseudo_rows(validated, weights)
         return validated
@@ -195,10 +224,11 @@ class BaseModel(BaseEstimator, ABC):
         ]
         latent = self._shared_latent(dict(enumerate(views)))
         self._predict_maps_ = [_least_squares_map(latent, v) for v in views]
-        self.feature_importances_per_view_: list[np.ndarray] = []
+        self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
-            positive = np.maximum(raw, 0.0)
-            total = positive.sum()
+            xp, _ = get_namespace(raw)
+            positive = xp.clip(raw, min=0.0)
+            total = float(xp.sum(positive))
             self.feature_importances_per_view_.append(
                 positive / total if total > 0 else positive
             )
@@ -341,6 +371,7 @@ class BaseModel(BaseEstimator, ABC):
         if container == "default":
             return arrays
         names = self.get_feature_names_out()
+        arrays = [_to_numpy(z) for z in arrays]
         if container == "pandas":
             import pandas as pd
 
@@ -367,9 +398,10 @@ class BaseModel(BaseEstimator, ABC):
 
         See ``feature_importances_per_view_``.
         """
+        xp, _ = get_namespace(*views)
         if type(self)._transform_view is BaseModel._transform_view:
             return [
-                v.var(axis=0) * np.sum(w**2, axis=1)
+                xp.var(v, axis=0) * xp.sum(w**2, axis=1)
                 for v, w in zip(views, self.weights_)
             ]
         return self._permutation_importances(views)
@@ -396,16 +428,15 @@ class BaseModel(BaseEstimator, ABC):
             importances.append(changes)
         return importances
 
-    def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
+    def _shared_latent(self, observed: dict[int, Any]) -> Any:
         """Shared latent scores estimated from the observed centred views.
 
         The mean of their own scores; the probabilistic models use the posterior
         mean instead.
         """
-        latent: np.ndarray = np.mean(
-            [self._transform_view(i, v) for i, v in observed.items()], axis=0
-        )
-        return latent
+        xp, _ = get_namespace(*observed.values())
+        scores = [self._transform_view(i, v) for i, v in observed.items()]
+        return xp.mean(xp.stack(scores), axis=0)
 
     def inverse_transform(self, scores: list[ArrayLike]) -> list[np.ndarray]:
         """Map each view's latent scores back to that view's feature space.
@@ -429,7 +460,8 @@ class BaseModel(BaseEstimator, ABC):
             raise ValueError(
                 f"Expected {self.n_views_} score arrays, got {len(scores)}."
             )
-        arrays = [np.asarray(s) for s in scores]
+        xp, _ = get_namespace(*scores)
+        arrays = [xp.asarray(s) for s in scores]
         # Models that prune dimensions, such as GFA, record the number kept.
         n_components = getattr(self, "n_components_", self.n_components)
         for i, s in enumerate(arrays):
@@ -468,9 +500,8 @@ class BaseModel(BaseEstimator, ABC):
         Returns:
             The mean canonical correlation.
         """
-        per_dimension = _average_pairwise_correlations(
-            _pairwise_correlations(self._transform_arrays(views))
-        )
+        scores = [_to_numpy(z) for z in self._transform_arrays(views)]
+        per_dimension = _average_pairwise_correlations(_pairwise_correlations(scores))
         return float(np.mean(per_dimension))
 
     def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
@@ -536,6 +567,7 @@ class BaseModel(BaseEstimator, ABC):
         tags.transformer_tags = TransformerTags(
             preserves_dtype=[np.dtype(t).name for t in self._preserved_dtypes]
         )
+        tags.array_api_support = self._supports_array_api
         tags.no_validation = True
         tags.input_tags.two_d_array = False
         tags._skip_test = True
