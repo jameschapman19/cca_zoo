@@ -75,10 +75,10 @@ The table below gives each replacement.
 
 ### Added
 
-- `QuantileCCA`: canonical quantile regression (Portnoy, 2022), CCA with quantile
-  regression's check loss. It finds the response combination best predicted by the
-  covariates at a chosen quantile, each step an exact `QuantileRegressor` fit. For
-  Gaussian data it recovers CCA at every quantile.
+- `QuantileCCA`: canonical quantile regression, CCA for a quantile rather than the
+  mean. It finds the response combination whose quantile the covariates explain best,
+  maximising Koenker and Machado's `R1(tau)`, each step an exact `QuantileRegressor`
+  fit. For Gaussian data it recovers CCA at every quantile.
 - Array API support in `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA`: under
   scikit-learn's `array_api_dispatch`, PyTorch or CuPy inputs are fitted and
   transformed in their own namespace and on their own device, such as a GPU. The
