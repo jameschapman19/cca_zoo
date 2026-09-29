@@ -35,8 +35,8 @@ pip install cca-zoo[all]           # Everything above
 CCA-Zoo expects data as a **list of arrays**, one per view:
 
 ```python
-views = [X1, X2]  # two views
 views = [X1, X2, X3]  # three views
+views = [X1, X2]  # two views
 ```
 
 Each array has shape `(n_samples, n_features_i)`. All views must share the same number of rows.

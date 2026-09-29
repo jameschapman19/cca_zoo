@@ -72,9 +72,14 @@ import pandas as pd
 # Full CV results table
 df = pd.DataFrame(gs.cv_results_)
 print(
-    df[["param_shrinkage", "mean_test_score", "std_test_score"]].sort_values(
-        "mean_test_score"
-    )
+    df[
+        [
+            "param_shrinkage__0",
+            "param_shrinkage__1",
+            "mean_test_score",
+            "std_test_score",
+        ]
+    ].sort_values("mean_test_score")
 )
 
 # Best parameters and score

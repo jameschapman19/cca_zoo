@@ -80,3 +80,14 @@ def test_training_scores_are_centred(cls: type) -> None:
     train = _views(0, 40)
     for scores in cls(n_components=2, kernel="rbf").fit(train).transform(train):
         np.testing.assert_allclose(scores.mean(axis=0), 0.0, atol=1e-10)
+
+
+def test_a_callable_kernel_takes_only_its_kernel_params() -> None:
+    """A custom kernel is called with kernel_params alone, as the linear kernel."""
+
+    def scaled_linear(X: np.ndarray, Y: np.ndarray, *, scale: float) -> np.ndarray:
+        return np.asarray(scale * X @ Y.T)
+
+    train = _views(0, 40)
+    custom = KCCA(kernel=scaled_linear, kernel_params={"scale": 1.0}).fit(train)
+    _assert_same_scores(custom.transform(train), KCCA().fit(train).transform(train))

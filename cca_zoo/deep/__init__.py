@@ -46,3 +46,28 @@ if _torch_available and _lightning_available:
     ]
 else:
     __all__ = []
+
+    def __getattr__(name: str) -> object:
+        if name in {
+            "DCCA",
+            "DCCAE",
+            "DCCAEY",
+            "DCCANOI",
+            "DCCASDL",
+            "DGCCA",
+            "DMCCA",
+            "DPCCA",
+            "DTCCA",
+            "DVCCA",
+            "BarlowTwins",
+            "BaseDeep",
+            "DVCCAPrivate",
+            "MultiviewDataset",
+            "SplitAE",
+            "VICReg",
+            "objectives",
+        }:
+            raise ImportError(
+                f"{name} requires the deep extra: pip install 'cca-zoo[deep]'."
+            )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

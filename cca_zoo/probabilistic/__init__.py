@@ -20,3 +20,11 @@ if _numpyro_available and _jax_available:
     __all__ = ["GFA", "ProbabilisticCCA", "VariationalBayesCCA"]
 else:
     __all__ = ["GFA"]
+
+    def __getattr__(name: str) -> object:
+        if name in {"VariationalBayesCCA", "ProbabilisticCCA"}:
+            raise ImportError(
+                f"{name} requires the probabilistic extra: "
+                "pip install 'cca-zoo[probabilistic]'."
+            )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

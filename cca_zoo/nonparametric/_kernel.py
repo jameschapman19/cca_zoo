@@ -58,8 +58,13 @@ class _BaseKernelModel(BaseModel):
             to feature-space coordinates that :meth:`_set_weights` needs.
         """
         m = self.n_views_
+        # sklearn drops gamma, degree and coef0 for the kernels they do not
+        # apply to, but passes them to a callable, which takes only its own
+        # kernel_params.
         self._kernel_kwargs_ = [
-            {"metric": k, "gamma": g, "degree": d, "coef0": c, **(extra or {})}
+            {"metric": k, **(extra or {})}
+            if callable(k)
+            else {"metric": k, "gamma": g, "degree": d, "coef0": c, **(extra or {})}
             for k, g, d, c, extra in zip(
                 perview_parameter("kernel", self.kernel, "linear", m),
                 perview_parameter("gamma", self.gamma, None, m),

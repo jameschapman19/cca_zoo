@@ -368,6 +368,13 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- A callable `kernel` in `KCCA`, `KGCCA` and `KTCCA` was called with `gamma`, `degree`
+  and `coef0` as well as its `kernel_params`, so a custom kernel not accepting them,
+  such as the user guide's own example, raised `TypeError`. It now receives only its
+  `kernel_params`.
+- Importing a model whose optional extra is missing (`cca_zoo.tree`,
+  `cca_zoo.probabilistic`, `cca_zoo.deep`) raised a bare "cannot import name"; it now
+  names the extra to install, as `OptunaSearchCV` already did.
 - `CCAEY`, `PLSEY` and `HuberCCA` stopped short on views in different units: L-BFGS-B
   stops on an absolute gradient, which a view in small units reaches early. The search
   now runs in each view's natural weight scale, the root mean eigenvalue of its
