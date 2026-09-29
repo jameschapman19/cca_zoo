@@ -26,7 +26,6 @@ from cca_zoo.deep import (
     DPCCA,
     DTCCA,
     DVCCA,
-    NRDCCA,
     BarlowTwins,
     BaseDeep,
     DVCCAPrivate,
@@ -37,7 +36,6 @@ from cca_zoo.deep import (
 )
 from cca_zoo.deep._dcca_ey import _cca_cv
 from cca_zoo.deep._lejepa import _sigreg
-from cca_zoo.deep._nrdcca import _mean_canonical_correlation
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
 from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
 from cca_zoo.metrics import pairwise_correlations
@@ -96,7 +94,6 @@ MODELS: dict[str, Callable[[], BaseDeep]] = {
     "BarlowTwins": lambda: BarlowTwins(K, _encoders()),
     "VICReg": lambda: VICReg(K, _encoders()),
     "LeJEPA": lambda: LeJEPA(K, _encoders(), n_slices=16),
-    "NRDCCA": lambda: NRDCCA(K, _encoders()),
     "DCCAE": lambda: DCCAE(K, _encoders(), [nn.Linear(K, p) for p in P]),
     "SplitAE": lambda: SplitAE(K, _encoders(), [nn.Linear(2 * K, p) for p in P]),
 }
@@ -194,7 +191,6 @@ def _three_view_models(widths: list[int]) -> dict[str, BaseDeep]:
         "BarlowTwins": BarlowTwins(K, enc()),
         "VICReg": VICReg(K, enc()),
         "LeJEPA": LeJEPA(K, enc(), n_slices=16),
-        "NRDCCA": NRDCCA(K, enc()),
         "DCCAE": DCCAE(K, enc(), dec(K)),
         "SplitAE": SplitAE(K, enc(), dec(3 * K)),
         "DVCCA": DVCCA(K, nn.Linear(widths[0], 2 * K), dec(K)),
@@ -518,26 +514,3 @@ def test_lejepa_views_that_agree_leave_only_sigreg() -> None:
     terms = model.loss({"views": [z, z.clone()]})
     assert float(terms["sim_loss"]) == 0.0
     torch.testing.assert_close(terms["objective"], 0.3 * terms["sigreg"])
-
-
-def test_noise_correlation_is_invariant_to_an_invertible_linear_map() -> None:
-    """NR-DCCA's Theorem 1: Corr(X, A) = Corr(XW, AW) for linear CCA."""
-    torch.manual_seed(0)
-    x = torch.randn(200, 6, dtype=torch.float64) @ torch.randn(
-        6, 6, dtype=torch.float64
-    )
-    a = torch.randn(200, 6, dtype=torch.float64)
-    w = torch.randn(6, 6, dtype=torch.float64)
-    torch.testing.assert_close(
-        _mean_canonical_correlation(x @ w, a @ w, 1e-12),
-        _mean_canonical_correlation(x, a, 1e-12),
-    )
-
-
-def test_nrdcca_without_regularisation_is_dmcca() -> None:
-    """At alpha=0 the objective is DMCCA's."""
-    views = [torch.randn(32, p) for p in P]
-    encoders = _encoders()
-    nr = NRDCCA(K, encoders, alpha=0.0).loss({"views": views})
-    dmcca = DMCCA(K, encoders).loss({"views": views})
-    torch.testing.assert_close(nr["objective"], dmcca["objective"])

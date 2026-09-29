@@ -80,11 +80,6 @@ The table below gives each replacement.
 
 ### Added
 
-- `cca_zoo.deep.NRDCCA` (He et al., 2024): `DMCCA`'s loss plus noise regularisation,
-  which holds each encoder to linear CCA's invariance of a view's correlation with
-  independent Gaussian noise, against the model collapse of long DCCA training.
-  `Corr` in the regulariser is the mean canonical correlation, and the noise is
-  redrawn every batch.
 - `cca_zoo.deep.LeJEPA` (Balestriero & LeCun, 2025): every view's embedding predicts
   the views' centre, and SIGReg, the Epps-Pulley statistic of random 1-D projections
   of each view's embedding against a standard normal with the directions resampled
