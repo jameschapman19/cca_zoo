@@ -198,7 +198,12 @@ The table below gives each replacement.
 - `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
   `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
   one default (now 0.02) suits views in any units; the old default diverged on
-  unscaled data.
+  unscaled data. `L_i` is measured on a mini-batch, whose curvature exceeds the full
+  data's when the batch is small next to the view.
+- `StochasticCCAEY` stops as sklearn's SGD estimators do, after `n_iter_no_change`
+  (new, default 5) epochs without an improvement of `tol` on the best loss. Comparing
+  consecutive epochs never stopped a mini-batch fit, whose loss is noisy, so every one
+  ran all `max_iter` epochs and warned.
 - `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than
   the norm of per-component standardised scores, so it does not depend on how the
   components are rotated, and its components are ordered as `CCAEY`'s. On clean data

@@ -36,8 +36,11 @@ class StochasticCCAEY(CCAEY):
         momentum: Momentum in ``[0, 1)``. Default is 0.9.
         batch_size: Mini-batch size; None uses all samples. Default is None.
         max_iter: Number of epochs. Default is 1000.
-        tol: Tolerance on the change in the full-data loss between epochs.
-            Default is 1e-6.
+        n_iter_no_change: Epochs without an improvement of ``tol`` on the
+            best full-data loss before stopping, as in sklearn's SGD
+            estimators. Default is 5.
+        tol: Improvement in the full-data loss that counts, as for
+            ``n_iter_no_change``. Default is 1e-6.
         random_state: Seed for the shuffling and initial weights. Default is
             None.
 
@@ -60,6 +63,7 @@ class StochasticCCAEY(CCAEY):
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
         "momentum": [Interval(Real, 0, 1, closed="left")],
         "batch_size": [None, Interval(Integral, 1, None, closed="left")],
+        "n_iter_no_change": [Interval(Integral, 1, None, closed="left")],
     }
 
     def __init__(
@@ -72,6 +76,7 @@ class StochasticCCAEY(CCAEY):
         momentum: float = 0.9,
         batch_size: int | None = None,
         max_iter: int = 1000,
+        n_iter_no_change: int = 5,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -86,6 +91,7 @@ class StochasticCCAEY(CCAEY):
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
+        self.n_iter_no_change = n_iter_no_change
 
     def fit(self, views: list[ArrayLike], y: None = None) -> StochasticCCAEY:
         """Fit the model.
@@ -119,15 +125,19 @@ class StochasticCCAEY(CCAEY):
         """Weights from mini-batch momentum SGD."""
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
+        # Each view's step is set by the curvature a mini-batch sees, which
+        # exceeds the full data's when the batch is small next to the view.
+        rows = rng.choice(n, bs, replace=False)
         c = self.shrinkage
-        steps = [
-            self.learning_rate
-            / ((1 - c) * randomized_svd(v, 1, random_state=0)[1][0] ** 2 / (n - 1) + c)
+        curvatures = [
+            (1 - c) * randomized_svd(v[rows], 1, random_state=0)[1][0] ** 2 / (bs - 1)
+            + c
             for v in views
         ]
+        steps = [self.learning_rate / curvature for curvature in curvatures]
         weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
-        prev_obj = np.inf
+        best_obj, stalled = np.inf, 0
         converged = False
         for n_iter in range(1, self.max_iter + 1):
             perm = rng.permutation(n)
@@ -146,10 +156,11 @@ class StochasticCCAEY(CCAEY):
                     "StochasticCCAEY diverged. Lower learning_rate, or scale the "
                     "views with StandardScaler."
                 )
-            if abs(prev_obj - obj) < self.tol:
+            stalled = stalled + 1 if obj > best_obj - self.tol else 0
+            best_obj = min(best_obj, obj)
+            if stalled >= self.n_iter_no_change:
                 converged = True
                 break
-            prev_obj = obj
         self.n_iter_: int = n_iter
         warn_if_not_converged(self, converged)
         return weights
