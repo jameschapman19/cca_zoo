@@ -12,7 +12,10 @@ from sklearn.utils._param_validation import Interval
 from sklearn.utils.extmath import randomized_svd
 
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
+from cca_zoo._utils._ey import (
+    canonical_directions,
+    cheap_orthonormal_projection_weights,
+)
 from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
@@ -108,8 +111,8 @@ class StochasticCCAEY(CCAEY):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._in_canonical_order(views_, self._fit_sgd(views_, rng))
-        self._normalise_weights(views_, self.shrinkage)
+        weights = self._fit_sgd(views_, rng)
+        self.weights_ = canonical_directions(views_, weights, self.shrinkage)
         return self._finish_fit(views_)
 
     def _initial_weights(

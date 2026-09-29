@@ -113,10 +113,13 @@ class ElasticNetCCA(BaseModel):
             positive=self.positive,
         )
         warn_if_not_converged(self, converged)
-        # The elementwise penalty rules out canonical_rotation, but reordering
-        # the components by their reward changes neither loss nor penalty.
-        reward, _ = ey_cross_covariance([v @ w for v, w in zip(views_, weights)])
+        # The elementwise penalty rules out rotating the components, as
+        # canonical_directions does, but not ordering them by reward and
+        # dividing each by the root of its variance, which undoes EY's scale.
+        reward, auto = ey_cross_covariance([v @ w for v, w in zip(views_, weights)])
         order = np.argsort(-np.diag(reward), kind="stable")
-        self.weights_: list[np.ndarray] = [w[:, order] for w in weights]
-        self._normalise_weights(views_, shrinkage=0.0)
+        scale = np.sqrt(np.diag(auto))[order]
+        self.weights_: list[np.ndarray] = [
+            w[:, order] / np.where(scale > 0, scale, 1.0) for w in weights
+        ]
         return self._finish_fit(views_)

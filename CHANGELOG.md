@@ -182,12 +182,15 @@ The table below gives each replacement.
 
 ### Changed
 
-- Every linear solver scales its weights to its problem's constraint,
-  `w' ((1 - shrinkage) cov + shrinkage I) w = 1`, as MCCA's already were: unit-variance
-  scores for the CCA models and unit-norm weights for the PLS ones. The EY-fitted CCA
-  models had returned scores of variance `1 + rho`, `ADMMCCA` and `WaijenborgCCA` of
-  about `1 / n`, and `SAR` unit-norm weights, so one problem's solvers disagreed on
-  scale. `CCAR3` and `ECCA` normalise with `n - 1`, as everything else does.
+- Solvers of one problem return one scale, each through its own constraint, as MCCA's
+  eigenvectors meet `w' ((1 - shrinkage) cov + shrinkage I) w = 1`: unit-variance scores
+  for CCA, unit-norm weights for PLS. The EY models recover the canonical directions
+  from the EY solution `W = U Lambda^(1/2) Q` (`canonical_directions`), where they had
+  returned `U Lambda^(1/2)`, scores of variance `1 + rho`. `IPLSCCA`, `WaijenborgCCA`,
+  `SAR` and `ProjectionPursuitCCA` scale each update to a unit-variance score, where
+  they had used `ddof=0`, no scaling (variance about `1 / n`), and unit norm;
+  `ADMMCCA`'s constraint is `||X w||^2 <= n - 1`, which rescales the paper's solution
+  without changing it. `CCAR3` and `ECCA` whiten with `n - 1`, as everything else does.
 - `GaussianProcessCCA`'s default kernel takes its length scale from the data,
   `sqrt(n_features * X.var() / 2)`, as sklearn's `gamma="scale"`, rather than 1. On data
   in larger units the unit length scale made the kernel near the identity: at the

@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._utils._ey import (
-    canonical_rotation,
+    canonical_directions,
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
     weight_gram_mean,
@@ -101,22 +101,14 @@ class CCAEY(BaseFullBatchEYModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._in_canonical_order(views_, self._fit_lbfgsb(views_, rng))
-        self._normalise_weights(views_, self.shrinkage)
+        weights = self._fit_lbfgsb(views_, rng)
+        self.weights_ = canonical_directions(views_, weights, self.shrinkage)
         return self._finish_fit(views_)
 
     def _weight_scale(self, view: np.ndarray) -> float:
         """Root mean eigenvalue of ``(1 - shrinkage) cov + shrinkage I``."""
         variance = float(np.mean(view.var(axis=0, ddof=1)))
         return float(np.sqrt((1 - self.shrinkage) * variance + self.shrinkage))
-
-    def _in_canonical_order(
-        self, views: list[np.ndarray], weights: list[np.ndarray]
-    ) -> list[np.ndarray]:
-        """Weights rotated by :func:`canonical_rotation`."""
-        scores = [v @ w for v, w in zip(views, weights)]
-        rotation = canonical_rotation(scores, self.shrinkage)
-        return [w @ rotation for w in weights]
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator

@@ -9,7 +9,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import canonical_rotation, cheap_orthonormal_projection_weights
+from cca_zoo._utils._ey import (
+    canonical_directions,
+    cheap_orthonormal_projection_weights,
+)
 from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
 
 
@@ -154,11 +157,9 @@ class HuberCCA(BaseFullBatchEYModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         weights = self._fit_lbfgsb(views_, rng)
-        # The weighted EY loss ignores how the components are rotated, so
-        # any orthogonal rotation is free; order them by reward, as CCAEY does.
-        rotation = canonical_rotation([v @ w for v, w in zip(views_, weights)])
-        self.weights_ = [w @ rotation for w in weights]
-        self._normalise_weights(views_, shrinkage=0.0)
+        # The weighted EY loss, like CCAEY's, ignores how the components are
+        # rotated, so its weights are recovered as CCAEY's are.
+        self.weights_ = canonical_directions(views_, weights)
         return self._finish_fit(views_)
 
     def _initial_weights(
