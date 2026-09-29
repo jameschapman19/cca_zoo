@@ -422,7 +422,8 @@ Removed outright, with no deprecation period; the table above gives each replace
 - A callable `kernel` in `KCCA`, `KGCCA` and `KTCCA` was called with `gamma`, `degree`
   and `coef0` as well as its `kernel_params`, so a custom kernel not accepting them,
   such as the user guide's own example, raised `TypeError`. It now receives only its
-  `kernel_params`.
+  `kernel_params`. The example itself took whole matrices; like sklearn's
+  `pairwise_kernels`, the models call a kernel on one pair of samples at a time.
 - Importing a model whose optional extra is missing (`cca_zoo.tree`,
   `cca_zoo.probabilistic`, `cca_zoo.deep`) raised a bare "cannot import name"; it now
   names the extra to install, as `OptunaSearchCV` already did.

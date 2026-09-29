@@ -206,17 +206,18 @@ best_model = gs.best_estimator_
 
 ## Custom kernels
 
-Pass any callable with signature `k(X, Y, **params) -> np.ndarray`:
+Pass any callable with signature `k(x, y, **params) -> float`. As with sklearn's
+`pairwise_kernels`, it is called on one pair of samples at a time, and `kernel_params`
+supplies its keyword arguments:
 
 ```python
 import numpy as np
 from cca_zoo.nonparametric import KCCA
 
 
-def my_kernel(X, Y, sigma=1.0):
-    """Gaussian kernel with explicit sigma."""
-    diff = X[:, None, :] - Y[None, :, :]
-    return np.exp(-np.sum(diff**2, axis=-1) / (2 * sigma**2))
+def my_kernel(x, y, sigma=1.0):
+    """Gaussian kernel of two samples, with explicit sigma."""
+    return np.exp(-np.sum((x - y) ** 2) / (2 * sigma**2))
 
 
 model = KCCA(
