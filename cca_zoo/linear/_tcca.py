@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._param_validation import StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
@@ -30,7 +31,12 @@ class TCCA(BaseModel):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
-        random_state: Seed for PARAFAC. Default is None.
+        init: PARAFAC's initialisation: ``"svd"``, deterministic, or
+            ``"random"``, seeded by ``random_state``; random starts show
+            whether the SVD start found the best of the tensor's local optima.
+            Default is ``"svd"``.
+        random_state: Seed for ``init="random"``, as sklearn's NMF uses it.
+            Default is None.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -52,6 +58,7 @@ class TCCA(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": RIDGE_PARAMETER,
+        "init": [StrOptions({"svd", "random"})],
         "random_state": RANDOM_STATE,
     }
 
@@ -63,10 +70,12 @@ class TCCA(BaseModel):
         *,
         center: bool = True,
         shrinkage: float | list[float] = 0.0,
+        init: str = "svd",
         random_state: int | np.random.RandomState | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
+        self.init = init
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TCCA:
@@ -92,7 +101,11 @@ class TCCA(BaseModel):
 
         with tl.backend_context("numpy"):
             parafac_result = parafac(
-                M, self.n_components, verbose=False, random_state=self.random_state
+                M,
+                self.n_components,
+                init=self.init,
+                random_state=self.random_state,
+                verbose=False,
             )
         self.weights_: list[np.ndarray] = [
             cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)

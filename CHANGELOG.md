@@ -79,6 +79,11 @@ The table below gives each replacement.
 
 ### Added
 
+- `TCCA` and `KTCCA` take `init`, PARAFAC's initialisation: `"svd"` (the default, and
+  the only start before, which never used `random_state`) or `"random"`, seeded by
+  `random_state`, as sklearn's `NMF` uses its seed only for its random
+  initialisations. Random starts show whether the SVD start found the best of the
+  tensor's local optima.
 - `n_components_` on every model, the number of latent dimensions fitted, as sklearn's
   `PCA.n_components_`: `n_components`, or fewer where a model prunes dimensions (`GFA`)
   or the data have too few.

@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._param_validation import StrOptions
 
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo.linear import TCCA
@@ -33,7 +34,9 @@ class KTCCA(_BaseKernelModel):
         coef0: Polynomial and sigmoid kernel constant. Per-view. Default is 1.
         kernel_params: Extra kernel keyword arguments. Per-view. Default is
             None.
-        random_state: Seed for PARAFAC. Default is None.
+        init: PARAFAC's initialisation, ``"svd"`` or ``"random"``, as for
+            :class:`~cca_zoo.linear.TCCA`. Default is ``"svd"``.
+        random_state: Seed for ``init="random"``. Default is None.
 
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
@@ -57,6 +60,7 @@ class KTCCA(_BaseKernelModel):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseKernelModel._parameter_constraints,
+        "init": [StrOptions({"svd", "random"})],
         "random_state": RANDOM_STATE,
     }
 
@@ -71,6 +75,7 @@ class KTCCA(_BaseKernelModel):
         degree: float | list[float] = 3,
         coef0: float | list[float] = 1.0,
         kernel_params: dict[str, object] | list[dict[str, object]] | None = None,
+        init: str = "svd",
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
@@ -80,6 +85,7 @@ class KTCCA(_BaseKernelModel):
         self.degree = degree
         self.coef0 = coef0
         self.kernel_params = kernel_params
+        self.init = init
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> KTCCA:
@@ -97,6 +103,7 @@ class KTCCA(_BaseKernelModel):
             self.n_components,
             center=False,
             shrinkage=self.shrinkage,
+            init=self.init,
             random_state=self.random_state,
         )
         features, projections = self._feature_maps(views_)
