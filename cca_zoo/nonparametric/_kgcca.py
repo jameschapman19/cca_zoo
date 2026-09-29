@@ -101,5 +101,6 @@ class KGCCA(_BaseKernelModel):
             shrinkage=self.shrinkage,
             view_weights=self.view_weights,
         )
-        self._set_weights(linear.fit(self._feature_maps(views_)).weights_)
+        features, projections = self._feature_maps(views_)
+        self._set_weights(projections, linear.fit(features).weights_)
         return self._finish_fit(views_)

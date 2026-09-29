@@ -86,5 +86,6 @@ class KCCA(_BaseKernelModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         linear = MCCA(self.n_components, center=False, shrinkage=self.shrinkage)
-        self._set_weights(linear.fit(self._feature_maps(views_)).weights_)
+        features, projections = self._feature_maps(views_)
+        self._set_weights(projections, linear.fit(features).weights_)
         return self._finish_fit(views_)

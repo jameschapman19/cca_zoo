@@ -329,6 +329,13 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `CCAR3` and `ECCA` returned a rotation of the canonical subspace rather than the
+  canonical pairs: whitening each view's side separately left the pairs mixed, so
+  unpenalised their second and third correlations came out as 0.701 and 0.697 where
+  CCA's are 0.710 and 0.688. An SVD of the whitened cross-covariance now gives the
+  pairs themselves, in order. They also returned all-zero weights for a response view
+  in small units (variance below 1e-4), which the whitening floored to nothing; the
+  floor is now relative to the largest variance.
 - The deflation models' (and `ProjectionPursuitCCA`'s) later components did not
   reproduce their fitted scores:
   component d's weights were found on views deflated by the earlier scores but applied

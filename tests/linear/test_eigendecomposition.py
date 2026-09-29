@@ -60,6 +60,37 @@ def test_reduces_to_cca_without_regularisation(model: object) -> None:
     )
 
 
+def _three_signals() -> list[np.ndarray]:
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 3)) * [3, 2, 1]
+    return [
+        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
+    ]
+
+
+@pytest.mark.parametrize("cls", [CCAR3, ECCA])
+def test_regression_cca_gives_the_canonical_pairs_in_order(cls: type) -> None:
+    """Unpenalised, each component is CCA's, not a rotation of CCA's subspace."""
+    views = _three_signals()
+    np.testing.assert_allclose(
+        canonical_correlations(cls(n_components=3).fit(views), views),
+        canonical_correlations(CCA(n_components=3).fit(views), views),
+        atol=2e-3,
+    )
+
+
+@pytest.mark.parametrize("cls", [CCAR3, ECCA])
+def test_regression_cca_ignores_the_units_of_a_view(cls: type) -> None:
+    """Measuring a view in smaller units leaves the correlations unchanged."""
+    views = _three_signals()
+    rescaled = [views[0], views[1] * 1e-3]
+    np.testing.assert_allclose(
+        canonical_correlations(cls(n_components=3).fit(rescaled), rescaled),
+        canonical_correlations(cls(n_components=3).fit(views), views),
+        atol=1e-6,
+    )
+
+
 def test_ccar3_penalty_drops_whole_features(two_views: list[np.ndarray]) -> None:
     """The row-group penalty removes some features from every component."""
     weights = (

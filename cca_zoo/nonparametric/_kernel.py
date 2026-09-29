@@ -42,35 +42,35 @@ class _BaseKernelModel(BaseModel):
 
     def _kernel(self, view: int, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         kernel: np.ndarray = pairwise_kernels(
-            X,
-            Y,
-            metric=self._kernels[view],
-            gamma=self._gammas[view],
-            degree=self._degrees[view],
-            coef0=self._coef0s[view],
-            filter_params=True,
-            **self._kernel_params[view],
+            X, Y, filter_params=True, **self._kernel_kwargs_[view]
         )
         return kernel
 
-    def _feature_maps(self, views: list[np.ndarray]) -> list[ArrayLike]:
+    def _feature_maps(
+        self, views: list[np.ndarray]
+    ) -> tuple[list[ArrayLike], list[np.ndarray]]:
         """Each training view's coordinates in its centred kernel feature space.
 
-        Records ``views_fit_``, the kernel centerers and ``_projections``,
-        the maps from a centred kernel row to feature-space coordinates.
+        Records ``views_fit_`` and each view's kernel and centerer.
+
+        Returns:
+            The feature maps, and the projections from a centred kernel row
+            to feature-space coordinates that :meth:`_set_weights` needs.
         """
         m = self.n_views_
-        self._kernels = perview_parameter("kernel", self.kernel, "linear", m)
-        self._gammas = perview_parameter("gamma", self.gamma, None, m)
-        self._degrees = perview_parameter("degree", self.degree, 3, m)
-        self._coef0s = perview_parameter("coef0", self.coef0, 1.0, m)
-        self._kernel_params = [
-            kp or {}
-            for kp in perview_parameter("kernel_params", self.kernel_params, {}, m)
+        self._kernel_kwargs_ = [
+            {"metric": k, "gamma": g, "degree": d, "coef0": c, **(extra or {})}
+            for k, g, d, c, extra in zip(
+                perview_parameter("kernel", self.kernel, "linear", m),
+                perview_parameter("gamma", self.gamma, None, m),
+                perview_parameter("degree", self.degree, 3, m),
+                perview_parameter("coef0", self.coef0, 1.0, m),
+                perview_parameter("kernel_params", self.kernel_params, {}, m),
+            )
         ]
         self.views_fit_: list[np.ndarray] = views
-        self._centerers: list[KernelCenterer] = []
-        self._projections: list[np.ndarray] = []
+        self._centerers_: list[KernelCenterer] = []
+        projections: list[np.ndarray] = []
         features: list[ArrayLike] = []
         for i, v in enumerate(views):
             kernel = self._kernel(i, v, v)
@@ -81,17 +81,19 @@ class _BaseKernelModel(BaseModel):
             # spectrum, as numpy.linalg.matrix_rank does.
             keep = lam > lam.max() * len(lam) * np.finfo(lam.dtype).eps
             lam, U = lam[keep], U[:, keep]
-            self._centerers.append(centerer)
-            self._projections.append(U / np.sqrt(lam))
+            self._centerers_.append(centerer)
+            projections.append(U / np.sqrt(lam))
             features.append(U * np.sqrt(lam))
-        return features
+        return features, projections
 
-    def _set_weights(self, feature_weights: list[np.ndarray]) -> None:
+    def _set_weights(
+        self, projections: list[np.ndarray], feature_weights: list[np.ndarray]
+    ) -> None:
         """Dual weights from the linear model's weights on the feature maps."""
-        self.weights_ = [P @ w for P, w in zip(self._projections, feature_weights)]
+        self.weights_ = [P @ w for P, w in zip(projections, feature_weights)]
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        kernel = self._centerers[view].transform(
+        kernel = self._centerers_[view].transform(
             self._kernel(view, centred, self.views_fit_[view])
         )
         scores: np.ndarray = kernel @ self.weights_[view]

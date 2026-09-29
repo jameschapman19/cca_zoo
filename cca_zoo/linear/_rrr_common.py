@@ -7,9 +7,14 @@ from sklearn.covariance import LedoitWolf
 
 
 def _sqrt_inv_psd(S: np.ndarray, threshold: float = 1e-4) -> np.ndarray:
-    """Symmetric inverse square root of a PSD matrix, zeroing small eigenvalues."""
+    """Symmetric inverse square root of a PSD matrix.
+
+    Eigenvalues below ``threshold`` times the largest are zeroed, so the
+    result does not depend on the units of the data.
+    """
     vals, vecs = np.linalg.eigh(S)
-    inv_sqrt_vals = np.where(vals > threshold, 1.0 / np.sqrt(np.abs(vals)), 0.0)
+    keep = vals > threshold * vals.max()
+    inv_sqrt_vals = np.where(keep, 1.0 / np.sqrt(np.abs(vals)), 0.0)
     return (vecs * inv_sqrt_vals) @ vecs.T
 
 
@@ -63,17 +68,11 @@ def _postprocess_rrr_fit(
 
     U = U0 @ _whiten_factor(GX, ridge)
     V = V0 @ _whiten_factor(GY, ridge)
-
-    XU = X @ U
-    YV = Y @ V
-    cor = np.diag(XU.T @ YV / n).copy()
-
-    neg = cor < 0
-    V[:, neg] *= -1
-    cor[neg] *= -1
-
-    order = np.argsort(-cor)
-    U, V, cor = U[:, order], V[:, order], cor[order]
+    # Whitening each side separately leaves the pairs mixed; the SVD of the
+    # whitened cross-covariance gives the canonical pairs, in order of their
+    # correlations, all positive.
+    left, _, right_t = np.linalg.svd((X @ U).T @ (Y @ V) / n)
+    U, V = U @ left, V @ right_t.T
 
     if r_eff < r:
         U = np.hstack([U, np.zeros((p, r - r_eff))])
