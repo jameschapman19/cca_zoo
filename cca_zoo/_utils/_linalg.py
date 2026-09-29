@@ -126,15 +126,6 @@ def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
     return xp.flip(eigvals[-k:], axis=0), xp.flip(eigvecs[:, -k:], axis=1)
 
 
-def unit_variance(view: np.ndarray, weight: np.ndarray) -> np.ndarray:
-    """``weight`` scaled to give ``view`` a unit-variance score, CCA's constraint.
-
-    A weight giving a constant score is returned unchanged.
-    """
-    sd = float((view @ weight).std(ddof=1))
-    return weight / sd if sd > 1e-12 else weight
-
-
 def loading(view: np.ndarray, weight: np.ndarray) -> np.ndarray:
     """Regression of a view's columns on its score, ``X' X w / ||X w||^2``.
 

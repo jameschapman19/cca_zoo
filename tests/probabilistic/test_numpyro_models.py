@@ -7,7 +7,6 @@ import pytest
 
 pytest.importorskip("numpyro")
 
-from cca_zoo._utils._ey import ey_cross_covariance
 from cca_zoo.linear import CCA
 from cca_zoo.probabilistic import ProbabilisticCCA, VariationalBayesCCA
 from tests._helpers import linear_views, principal_cosines
@@ -98,25 +97,12 @@ def test_vb_recovers_the_latent_subspace() -> None:
 
 
 def test_ard_shrinks_an_unsupported_dimension() -> None:
-    """Of three dimensions for two factors, the spare one is last and most shrunk."""
+    """Of three dimensions for two factors, the spare one gets the largest precision."""
     views, _ = _views()
-    precision = (
+    relevance = np.sort(
         VariationalBayesCCA(3, n_iter=2000, random_state=0).fit(views).ard_precision_
     )
-    assert precision[2] > 2 * max(precision[:2])
-
-
-@pytest.mark.parametrize(
-    ("cls", "rotated"), [(ProbabilisticCCA, True), (VariationalBayesCCA, False)]
-)
-def test_components_come_in_order_of_reward(cls: type, rotated: bool) -> None:
-    """Components descend in EY reward; with an isotropic prior it is diagonal."""
-    views, _ = _views(k=3)
-    model = cls(3, random_state=0, **_QUICK[cls]).fit(views)
-    reward, _ = ey_cross_covariance(model.transform(views))
-    assert np.all(np.diff(np.diag(reward)) <= 1e-8)
-    if rotated:  # to the single precision of the JAX draws
-        np.testing.assert_allclose(reward - np.diag(np.diag(reward)), 0.0, atol=1e-5)
+    assert relevance[2] > 2 * relevance[1]
 
 
 def test_nuts_draws_share_one_rotation() -> None:

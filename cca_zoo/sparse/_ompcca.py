@@ -11,7 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import canonical_directions, omp_coordinate_descent_ey
+from cca_zoo._utils._ey import omp_coordinate_descent_ey
 from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
 
 
@@ -125,5 +125,5 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             rng=rng,
         )
         warn_if_not_converged(self, converged)
-        self.weights_: list[np.ndarray] = canonical_directions(views_, weights)
+        self.weights_: list[np.ndarray] = weights
         return self._finish_fit(views_)

@@ -11,7 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import coordinate_descent_ey, ey_cross_covariance
+from cca_zoo._utils._ey import coordinate_descent_ey
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
@@ -113,13 +113,5 @@ class ElasticNetCCA(BaseModel):
             positive=self.positive,
         )
         warn_if_not_converged(self, converged)
-        # The elementwise penalty rules out rotating the components, as
-        # canonical_directions does, but not ordering them by reward and
-        # dividing each by the root of its variance, which undoes EY's scale.
-        reward, auto = ey_cross_covariance([v @ w for v, w in zip(views_, weights)])
-        order = np.argsort(-np.diag(reward), kind="stable")
-        scale = np.sqrt(np.diag(auto))[order]
-        self.weights_: list[np.ndarray] = [
-            w[:, order] / np.where(scale > 0, scale, 1.0) for w in weights
-        ]
+        self.weights_: list[np.ndarray] = weights
         return self._finish_fit(views_)

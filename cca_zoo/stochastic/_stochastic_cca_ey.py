@@ -12,10 +12,7 @@ from sklearn.utils._param_validation import Interval
 from sklearn.utils.extmath import randomized_svd
 
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import (
-    canonical_directions,
-    cheap_orthonormal_projection_weights,
-)
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
 from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
@@ -40,9 +37,9 @@ class StochasticCCAEY(CCAEY):
         batch_size: Mini-batch size; None uses all samples. Default is None.
         max_iter: Number of epochs. Default is 1000.
         n_iter_no_change: Epochs without an improvement of ``tol`` on the
-            best full-data loss before stopping, as in sklearn's SGD
-            estimators. Default is 5.
-        tol: Improvement in the full-data loss that counts, as for
+            best epoch loss, the mean of its mini-batches' losses, before
+            stopping, as in sklearn's SGD estimators. Default is 5.
+        tol: Improvement in the epoch loss that counts, as for
             ``n_iter_no_change``. Default is 1e-6.
         random_state: Seed for the shuffling and initial weights. Default is
             None.
@@ -111,8 +108,7 @@ class StochasticCCAEY(CCAEY):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        weights = self._fit_sgd(views_, rng)
-        self.weights_ = canonical_directions(views_, weights, self.shrinkage)
+        self.weights_ = self._fit_sgd(views_, rng)
         return self._finish_fit(views_)
 
     def _initial_weights(
@@ -146,15 +142,19 @@ class StochasticCCAEY(CCAEY):
         for n_iter in range(1, self.max_iter + 1):
             perm = rng.permutation(n)
             shuffled = [v[perm] for v in views]
+            # The epoch's loss is the mean of its mini-batches' losses, as in
+            # sklearn's SGD, so the fit never needs a pass over all the data.
+            obj = 0.0
             for sl in gen_batches(n, bs):
                 batch = [v[sl] for v in shuffled]
                 representations = [b @ w for b, w in zip(batch, weights)]
+                obj += (
+                    self._objective(batch, representations, weights) * len(batch[0]) / n
+                )
                 grads = self._derivative(batch, representations, weights)
                 for i, g in enumerate(grads):
                     velocity[i] = self.momentum * velocity[i] - steps[i] * g
                     weights[i] = weights[i] + velocity[i]
-            full_representations = [v @ w for v, w in zip(views, weights)]
-            obj = self._objective(views, full_representations, weights)
             if not np.isfinite(obj):
                 raise ValueError(
                     "StochasticCCAEY diverged. Lower learning_rate, or scale the "

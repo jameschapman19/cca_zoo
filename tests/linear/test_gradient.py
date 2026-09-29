@@ -41,11 +41,11 @@ def _views(n_views: int) -> list[np.ndarray]:
 def test_converges_to_the_closed_form(
     model: object, exact: object, n_views: int
 ) -> None:
-    """The EY optimum has the closed-form solution's correlations, in order."""
+    """The EY optimum has the closed-form solution's correlations, in some order."""
     views = _views(n_views)
     np.testing.assert_allclose(
-        canonical_correlations(model.fit(views), views),
-        canonical_correlations(exact.fit(views), views),
+        np.sort(canonical_correlations(model.fit(views), views)),
+        np.sort(canonical_correlations(exact.fit(views), views)),
         atol=0.05,
     )
 

@@ -18,7 +18,6 @@ from cca_zoo._utils._linalg import (
     loading,
     soft_threshold,
     undeflated_weights,
-    unit_variance,
 )
 from cca_zoo._utils._param_constraints import (
     FRACTION_PER_VIEW,
@@ -333,7 +332,7 @@ class ADMMCCA(_BaseIterative):
     $$
     \max_{\mathbf{w}_i}\ \mathbf{w}_i^\top X_i^\top \bar{\mathbf{s}}_{\neg i}
         - \alpha_i \|\mathbf{w}_i\|_1
-    \quad\text{subject to}\quad \|X_i \mathbf{w}_i\|_2^2 \le n - 1
+    \quad\text{subject to}\quad \|X_i \mathbf{w}_i\|_2 \le 1
     $$
 
     by linearised ADMM on the split $\mathbf{z}_i = X_i \mathbf{w}_i$, so
@@ -408,9 +407,6 @@ class ADMMCCA(_BaseIterative):
         # eta_i = 1/(rho * ||X_i||_op^2) is fixed for this latent dimension
         # (X_i doesn't change across iterations), computed once per view.
         etas = [1.0 / (self.rho * np.linalg.norm(X, ord=2) ** 2) for X in views]
-        # The constraint ||X_i w_i|| <= sqrt(n - 1) is unit variance; the
-        # objective is 1-homogeneous, so the radius scales the solution only.
-        radius = np.sqrt(views[0].shape[0] - 1)
         # z_i, xi_i (score-space ADMM state) persist across outer iterations,
         # matching the paper's Algorithm 1 (they are initialised once, not
         # reset every time a view's block is revisited).
@@ -430,8 +426,8 @@ class ADMMCCA(_BaseIterative):
                     Xw = views[i] @ w[i]
                     z_new = Xw + xi[i]
                     z_norm = np.linalg.norm(z_new)
-                    if z_norm > radius:
-                        z_new = z_new * (radius / z_norm)
+                    if z_norm > 1.0:
+                        z_new = z_new / z_norm
                     z[i] = z_new
                     xi[i] = xi[i] + Xw - z[i]
                     if np.linalg.norm(w[i] - w_before) < self.tol:
@@ -543,7 +539,12 @@ class IPLSCCA(_BaseIterative):
         target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
-        return unit_variance(views[i], np.asarray(reg.coef_))
+        w_new: np.ndarray = np.asarray(reg.coef_).copy()
+        score = views[i] @ w_new
+        score_std = score.std()
+        if score_std > 1e-12:
+            w_new /= score_std
+        return w_new
 
 
 # ---------------------------------------------------------------------------
@@ -734,7 +735,7 @@ class WaijenborgCCA(_BaseIterative):
         target = _target_score(views, weights, i)
         reg = self._regressors[i]
         reg.fit(views[i], target)
-        return unit_variance(views[i], np.atleast_1d(reg.coef_).ravel())
+        return cast(np.ndarray, np.atleast_1d(reg.coef_).ravel())
 
 
 # ---------------------------------------------------------------------------
@@ -982,7 +983,10 @@ class SAR(_BaseIterative):
         coef = _sar_bic_lasso(
             original_view, deflated_score.ravel(), self.n_alphas, self.tol
         )
-        return unit_variance(original_view, coef)
+        norm = np.linalg.norm(coef)
+        if norm > 1e-12:
+            coef = coef / norm
+        return coef
 
     def _update_weight(
         self,
@@ -993,7 +997,10 @@ class SAR(_BaseIterative):
         """BIC-selected lasso of view ``i`` onto the other views' score."""
         target = _target_score(views, weights, i)
         coef = _sar_bic_lasso(views[i], target.ravel(), self.n_alphas, self.tol)
-        return unit_variance(views[i], coef)
+        norm = np.linalg.norm(coef)
+        if norm > 1e-12:
+            coef = coef / norm
+        return coef
 
 
 # ---------------------------------------------------------------------------

@@ -8,7 +8,6 @@ import pytest
 pytest.importorskip("xgboost")
 
 import cca_zoo.tree._treecca as treecca
-from cca_zoo._utils._ey import ey_cross_covariance
 from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
 
 pytestmark = pytest.mark.slow
@@ -30,19 +29,6 @@ def _views(seed: int) -> list[np.ndarray]:
 def test_recovers_a_nonlinear_signal_at_its_defaults(cls: type) -> None:
     """At its defaults the model relates sin(2z) to z on held-out data."""
     assert cls(random_state=0).fit(_views(0)).score(_views(1)) > 0.6
-
-
-def test_components_come_in_order_of_reward() -> None:
-    """The rotated outputs have a diagonal, descending EY reward."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((300, 3)) * [3, 2, 1]
-    views = [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
-    ]
-    model = XGBoostCCA(n_components=3, n_estimators=20, random_state=0).fit(views)
-    reward, _ = ey_cross_covariance(model.transform(views))
-    assert np.all(np.diff(np.diag(reward)) <= 1e-8)
-    np.testing.assert_allclose(reward - np.diag(np.diag(reward)), 0.0, atol=1e-8)
 
 
 def test_n_estimators_per_view(two_views_small: list[np.ndarray]) -> None:

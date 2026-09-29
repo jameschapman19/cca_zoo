@@ -91,10 +91,8 @@ model = XGBoostCCA(n_components=2).fit([X1, X2])
 imp1, imp2 = model.feature_importances_per_view_  # each shape (n_features_i,)
 ```
 
-The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed `[view][output]`,
-for backend-specific inspection. The EY loss leaves the outputs in an arbitrary rotation, so
-the component scores are the outputs times `rotation_`, which orders them as the linear
-models' components are ordered.
+The boosters themselves are in `boosters_`, a `list[list[Booster]]` indexed
+`[view][component]`, for per-component importances or any other backend-specific inspection.
 
 ---
 

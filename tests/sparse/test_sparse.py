@@ -203,8 +203,7 @@ def test_sar_selects_nothing_from_noise() -> None:
 def test_admm_update_solves_the_papers_problem() -> None:
     """One ADMM block solve meets the KKT conditions of Suo et al. (2017).
 
-    Their problem is max_w w'X't - alpha ||w||_1 subject to ||Xw|| <= 1, here
-    sqrt(n - 1), which rescales the solution without changing it.
+    Their problem is max_w w'X't - alpha ||w||_1 subject to ||Xw|| <= 1.
     """
     rng = np.random.default_rng(1)
     X, target, alpha = rng.standard_normal((60, 15)), rng.standard_normal(60) * 0.5, 0.2
@@ -214,7 +213,7 @@ def test_admm_update_solves_the_papers_problem() -> None:
     w = [np.zeros(15), np.array([1.0])]
     model._fit_single([X, target[:, None]], w)
     score = X @ w[0]
-    assert np.linalg.norm(score) > 0.99 * np.sqrt(59)  # unit variance: active
+    assert np.linalg.norm(score) > 0.99  # the constraint is active
     active = np.abs(w[0]) > 1e-6
     c, grad = X.T @ target, X.T @ score / np.linalg.norm(score)
     duals = (c[active] - alpha * np.sign(w[0][active])) / grad[active]

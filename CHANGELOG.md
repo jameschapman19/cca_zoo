@@ -182,31 +182,13 @@ The table below gives each replacement.
 
 ### Changed
 
-- Solvers of one problem return one scale, each through its own constraint, as MCCA's
-  eigenvectors meet `w' ((1 - shrinkage) cov + shrinkage I) w = 1`: unit-variance scores
-  for CCA, unit-norm weights for PLS. The EY models recover the canonical directions
-  from the EY solution `W = U Lambda^(1/2) Q` (`canonical_directions`), where they had
-  returned `U Lambda^(1/2)`, scores of variance `1 + rho`. `IPLSCCA`, `WaijenborgCCA`,
-  `SAR` and `ProjectionPursuitCCA` scale each update to a unit-variance score, where
-  they had used `ddof=0`, no scaling (variance about `1 / n`), and unit norm;
-  `ADMMCCA`'s constraint is `||X w||^2 <= n - 1`, which rescales the paper's solution
-  without changing it. `CCAR3` and `ECCA` whiten with `n - 1`, as everything else does.
+- `CCAR3` and `ECCA` whiten with `n - 1`, as every other model's covariance does.
 - `GaussianProcessCCA`'s default kernel takes its length scale from the data,
   `sqrt(n_features * X.var() / 2)`, as sklearn's `gamma="scale"`, rather than 1. On data
   in larger units the unit length scale made the kernel near the identity: at the
   default `alpha` the model memorised (training correlations 0.97, held-out 0.30), and
   at `alpha >= 0.1` it returned zeros. It now holds out at 0.94, 0.91 and 0.87 where
   CCA gets 0.97, 0.91 and 0.71, and its default fit ignores the data's units.
-- EY-fitted models return their components in the closed form's order. The EY loss is
-  unchanged by rotating the weights, so `CCAEY`, `PLSEY`, `StochasticCCAEY`,
-  `OrthogonalMatchingPursuitCCA` and `MultiTaskElasticNetCCA` found the right subspace in
-  an arbitrary rotation, with components unordered and of either sign; they now rotate
-  onto the eigenvectors of the k x k reward, which leaves the loss (and row-wise
-  penalties) unchanged. The tree models do the same, keeping the rotation in `rotation_`,
-  and so does `ProbabilisticCCA`, whose likelihood and isotropic prior are equally
-  invariant. `ElasticNetCCA`, whose elementwise penalty rules out a rotation, and
-  `VariationalBayesCCA`, whose ARD prior tells components apart, order theirs by reward
-  (the latter with `ard_precision_`).
 - The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `WaijenborgCCA`,
   `ParkhomenkoCCA`, `SAR`) start each component at the leading cross-covariance (PLS)
   direction of the deflated views, as sklearn's PLS does, rather than at random weights.
@@ -216,13 +198,13 @@ The table below gives each replacement.
   unscaled data. `L_i` is measured on a mini-batch, whose curvature exceeds the full
   data's when the batch is small next to the view.
 - `StochasticCCAEY` stops as sklearn's SGD estimators do, after `n_iter_no_change`
-  (new, default 5) epochs without an improvement of `tol` on the best loss. Comparing
-  consecutive epochs never stopped a mini-batch fit, whose loss is noisy, so every one
-  ran all `max_iter` epochs and warned.
+  (new, default 5) epochs without an improvement of `tol` on the best epoch loss, the
+  mean of its mini-batches' losses, so the fit never passes over all the data at once.
+  Comparing consecutive full-data losses never stopped a mini-batch fit, whose loss is
+  noisy, so every one ran all `max_iter` epochs and warned.
 - `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than
-  the norm of per-component standardised scores, so it does not depend on how the
-  components are rotated, and its components are ordered as `CCAEY`'s. On clean data
-  it now matches CCA; its first correlation had been 0.90 against CCA's 0.96.
+  the norm of per-component standardised scores, so a sample's weight does not depend
+  on how the fit happens to rotate the components.
 - `OrthogonalMatchingPursuitCCA`'s `n_nonzero_coefs` defaults to
   `max(n_components, n_features // 10)` and must be at least `n_components`; the
   components share the active set, so a smaller one made them linearly dependent. Its

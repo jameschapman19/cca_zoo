@@ -10,7 +10,6 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._utils._ey import (
-    canonical_directions,
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
     weight_gram_mean,
@@ -101,8 +100,7 @@ class CCAEY(BaseFullBatchEYModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        weights = self._fit_lbfgsb(views_, rng)
-        self.weights_ = canonical_directions(views_, weights, self.shrinkage)
+        self.weights_ = self._fit_lbfgsb(views_, rng)
         return self._finish_fit(views_)
 
     def _weight_scale(self, view: np.ndarray) -> float:

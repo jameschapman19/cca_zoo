@@ -55,59 +55,6 @@ def ey_cross_covariance(
     return C / m, V / m
 
 
-def canonical_rotation(
-    representations: list[np.ndarray], shrinkage: float = 0.0
-) -> np.ndarray:
-    """Orthogonal k x k rotation ordering EY components by their reward.
-
-    The EY loss is unchanged by ``W -> W Q`` for orthogonal ``Q``, as are
-    penalties on whole rows of ``W``, so a fit finds its subspace in an
-    arbitrary rotation, with components unordered and of either sign.
-    Rotating onto the eigenvectors of the k x k reward ``C - shrinkage V``,
-    in descending order, orders the components as the closed form does.
-
-    Args:
-        representations: Each view's scores, shape (n_samples, k).
-        shrinkage: Weight of the auto-covariance taken off the reward.
-
-    Returns:
-        The rotation, shape (k, k).
-    """
-    C, V = ey_cross_covariance(representations)
-    _, rotation = np.linalg.eigh(C - shrinkage * V)
-    return np.flip(rotation, axis=1)
-
-
-def canonical_directions(
-    views: list[np.ndarray], weights: list[np.ndarray], shrinkage: float = 0.0
-) -> list[np.ndarray]:
-    r"""The canonical directions from weights minimising the EY loss.
-
-    The EY loss is minimised by $W = U \Lambda^{1/2} Q$ for any orthogonal
-    $Q$, where $U$ holds the canonical directions, normalised to the
-    constraint $U^\top B U = I$. Rotating by :func:`canonical_rotation`
-    undoes $Q$, ordering the components, and dividing each by the square
-    root of its constraint undoes $\Lambda^{1/2}$, as the closed form's
-    eigenvectors are normalised.
-
-    Args:
-        views: Each view's design matrix.
-        weights: Each view's EY weights, shape (n_features_i, k).
-        shrinkage: The constraint's weight on the identity,
-            ``B = (1 - shrinkage) cov + shrinkage I``.
-
-    Returns:
-        Each view's canonical directions, shape (n_features_i, k).
-    """
-    scores = [v @ w for v, w in zip(views, weights)]
-    rotation = canonical_rotation(scores, shrinkage)
-    rotated = [w @ rotation for w in weights]
-    _, auto = ey_cross_covariance([z @ rotation for z in scores])
-    constraint = (1 - shrinkage) * auto + shrinkage * weight_gram_mean(rotated)
-    scale = np.sqrt(np.diag(constraint))
-    return [w / np.where(scale > 0, scale, 1.0) for w in rotated]
-
-
 def ey_loss(representations: list[np.ndarray]) -> dict[str, float]:
     """The EY loss and its terms.
 

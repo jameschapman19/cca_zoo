@@ -16,12 +16,7 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._linalg import (
-    deflate,
-    loading,
-    undeflated_weights,
-    unit_variance,
-)
+from cca_zoo._utils._linalg import deflate, loading, undeflated_weights
 from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 
 IndexFn = Callable[[np.ndarray, np.ndarray], float]
@@ -260,9 +255,6 @@ class ProjectionPursuitCCA(BaseModel):
         for d in range(self.n_components):
             directions, n_iter = self._fit_directions(deflated, pairs, index_fn, rng)
             self.n_iter_ = max(self.n_iter_, n_iter)
-            # The index is scale-free, so report each direction's score with
-            # unit variance, as the other CCA models do.
-            directions = [unit_variance(v, a) for v, a in zip(deflated, directions)]
             for i, (view, a) in enumerate(zip(deflated, directions)):
                 deflated_weights[i][:, d] = a
                 loadings[i][:, d] = loading(view, a)
