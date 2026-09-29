@@ -84,9 +84,10 @@ decrease the exact penalised objective — so fitting is still provably monotoni
 Where `ElasticNetCCA`/`MultiTaskElasticNetCCA` reach a sparsity level indirectly, by tuning a
 continuous penalty strength, `OrthogonalMatchingPursuitCCA` (the EY-loss analogue of
 `sklearn.linear_model.OrthogonalMatchingPursuit`) fixes it directly: specify how many features
-each view is allowed to use, and features are added one at a time — by the same residual-
-correlation criterion classical OMP uses — with the active coefficients re-solved to their exact
-joint (unpenalised) optimum after every addition.
+each view is allowed to use, and features are added one at a time, by the largest EY gradient,
+the analogue of the residual correlation classical OMP uses. Once the active sets settle, the
+weights are the exact joint (unpenalised) EY optimum on them, CCA on the selected features, as
+classical OMP's coefficients are the least-squares fit on its support.
 
 ```python
 from cca_zoo.sparse import OrthogonalMatchingPursuitCCA

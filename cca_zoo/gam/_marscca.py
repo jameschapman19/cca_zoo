@@ -16,14 +16,12 @@ from sklearn.utils.validation import check_is_fitted
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import (
     _jacobi_scaled,
-    cheap_orthonormal_projection_weights,
     ey_grad_z,
     ey_loss,
     penalised_basis_ey_closed_form,
     penalised_basis_ey_gep,
     penalised_basis_ey_min_loss,
 )
-from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
 # A hinge factor (feature, knot, sign) is max(0, sign * (x[feature] - knot)).
@@ -559,9 +557,7 @@ def _exact_loss(
             np.column_stack([raw, columns]) if i == view else raw
             for i, raw in enumerate(raw_bases)
         ]
-        return penalised_basis_ey_min_loss(
-            [b - b.mean(axis=0) for b in bases], k, ridge
-        )
+        return penalised_basis_ey_min_loss(_standardised(bases), k, ridge)
 
     return loss
 
@@ -588,9 +584,30 @@ class _MarsEncoder:
         return result
 
 
-def _centred(raw_bases: list[np.ndarray]) -> list[np.ndarray]:
-    """Each view's basis with its training column means removed."""
-    return [raw - raw.mean(axis=0) for raw in raw_bases]
+def _standardised(raw_bases: list[np.ndarray]) -> list[np.ndarray]:
+    """Each view's basis at zero mean and unit variance, for the ridge."""
+    return [(raw - raw.mean(axis=0)) / _nonzero(raw.std(axis=0)) for raw in raw_bases]
+
+
+def _nonzero(scale: np.ndarray) -> np.ndarray:
+    """``scale`` with zeros, a constant column's, replaced by one."""
+    return np.where(scale > 0, scale, 1.0)
+
+
+def _pls_scores(views: list[np.ndarray], k: int) -> list[np.ndarray]:
+    """Each view's scores on the top ``k`` PLS directions of centred views.
+
+    The leading eigenvectors of the between-view blocks of the stacked
+    cross-product, as in multiview PLS.
+    """
+    splits = np.cumsum([v.shape[1] for v in views])[:-1]
+    stacked = np.hstack(views)
+    cross = stacked.T @ stacked
+    for block in np.split(np.arange(stacked.shape[1]), splits):
+        cross[np.ix_(block, block)] = 0.0
+    size = cross.shape[0]
+    _, vectors = scipy.linalg.eigh(cross, subset_by_index=(size - k, size - 1))
+    return [v @ w for v, w in zip(views, np.split(vectors, splits))]
 
 
 class MARSCCA(BaseModel):
@@ -621,11 +638,11 @@ class MARSCCA(BaseModel):
         endspan: Support points at either end that may not carry a knot,
             doubled for interactions; None is Friedman's rule. Per-view.
             Default is None.
-        alpha: Ridge penalty on every basis coefficient. Per-view. Default
-            is 0.1.
+        alpha: Ridge penalty on the coefficient of every basis function at
+            unit variance, so that it ignores each feature's units. Per-view.
+            Default is 0.01.
         nprune: Total terms, across views, kept by the backward pass; None
             keeps them all. Default is None.
-        random_state: Seed for the linear warm start. Default is None.
 
     Attributes:
         encoders_: Fitted per-view encoders; ``encoders_[i].coef_`` has one
@@ -660,7 +677,6 @@ class MARSCCA(BaseModel):
         "endspan": [Interval(Integral, 0, None, closed="left"), "array-like", None],
         "alpha": [Interval(Real, 0, None, closed="left"), "array-like"],
         "nprune": [Interval(Integral, 1, None, closed="left"), None],
-        "random_state": RANDOM_STATE,
     }
 
     def __init__(
@@ -673,9 +689,8 @@ class MARSCCA(BaseModel):
         thresh: float = 0.001,
         minspan: int | list[int | None] | None = None,
         endspan: int | list[int | None] | None = None,
-        alpha: float | list[float] = 0.1,
+        alpha: float | list[float] = 0.01,
         nprune: int | None = None,
-        random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.degree = degree
@@ -685,7 +700,6 @@ class MARSCCA(BaseModel):
         self.endspan = endspan
         self.alpha = alpha
         self.nprune = nprune
-        self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> MARSCCA:
         """Fit the model: earth's forward pass, backward pass and final refit.
@@ -709,10 +723,10 @@ class MARSCCA(BaseModel):
                 f"({m}); every view keeps at least one term."
             )
         k = self.n_components
-        alpha_ = perview_parameter("alpha", self.alpha, 0.1, m)
+        alpha_ = perview_parameter("alpha", self.alpha, 0.01, m)
         terms, raw_bases = self._forward_pass(views_, alpha_)
 
-        removed, path_loss = _backward_path(_centred(raw_bases), k, alpha_)
+        removed, path_loss = _backward_path(_standardised(raw_bases), k, alpha_)
         view_of = np.repeat(np.arange(m), [len(t) for t in terms])
         column_of = np.concatenate([np.arange(len(t)) for t in terms])
         self.backward_path_: list[tuple[int, _Term]] = [
@@ -731,9 +745,11 @@ class MARSCCA(BaseModel):
         raw_bases = [raw[:, mask] for raw, mask in zip(raw_bases, keep)]
         self.n_removed_: int = n_removed
 
-        coefficients = penalised_basis_ey_closed_form(_centred(raw_bases), k, alpha_)
+        coefficients = penalised_basis_ey_closed_form(
+            _standardised(raw_bases), k, alpha_
+        )
         self.encoders_: list[_MarsEncoder] = [
-            _MarsEncoder(t, raw.mean(axis=0), coef)
+            _MarsEncoder(t, raw.mean(axis=0), coef / raw.std(axis=0)[:, None])
             for t, raw, coef in zip(terms, raw_bases, coefficients)
         ]
         self._fit_maps_and_importances(views_)
@@ -762,9 +778,12 @@ class MARSCCA(BaseModel):
         endspan: list[int | None] = perview_parameter("endspan", self.endspan, None, m)
         scorers = [_HingeScorer(X, a, b) for X, a, b in zip(views, minspan, endspan)]
 
-        rng = np.random.default_rng(self.random_state)
-        warm_start = cheap_orthonormal_projection_weights(views, k, None, rng)
-        representations = [X @ w for X, w in zip(views, warm_start)]
+        # earth starts from the intercept alone, where the EY gradient is
+        # zero; start instead from linear PLS on the standardised views,
+        # which, like earth, ignores each feature's units and the rows' order.
+        representations = _pls_scores(
+            [(X - X.mean(axis=0)) / _nonzero(X.std(axis=0)) for X in views], k
+        )
         terms: list[list[_Term]] = [[] for _ in views]
         raw_bases = [np.zeros((X.shape[0], 0)) for X in views]
         parent_terms: list[list[_Term]] = [[()] for _ in views]
@@ -797,7 +816,7 @@ class MARSCCA(BaseModel):
                     "keeps ~9-12 points free at each end) or its features are "
                     "constant; lower endspan or minspan for that view."
                 )
-            bases = _centred(raw_bases)
+            bases = _standardised(raw_bases)
             coefficients = penalised_basis_ey_closed_form(bases, k, alpha)
             representations = [b @ c for b, c in zip(bases, coefficients)]
             loss = ey_loss(representations)["objective"] + 0.5 * sum(

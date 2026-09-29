@@ -115,7 +115,7 @@ def one_standard_error(cv_results):
 
 
 gs = GridSearchCV(
-    MARSCCA(degree=2, nk=40, random_state=0),
+    MARSCCA(degree=2, nk=40),
     {"nprune": [2, 4, 8, 12, 16, 24, 32, 48, 80]},
     cv=5,
     refit=one_standard_error,

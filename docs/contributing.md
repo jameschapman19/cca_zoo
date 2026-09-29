@@ -125,8 +125,12 @@ All contributions must comply with the following:
      parameter is validated, `center=False`, `feature_importances_per_view_`,
      convergence warnings, and that the model
      recovers a strong shared signal at its defaults.
-   If a check cannot apply to the model, add it to that file's expected failures with
-   the reason.
+   - `tests/test_invariances.py` checks what the fit must not depend on: stacking the
+     data on itself, the order of the rows and columns, and a whole view's units.
+   If a check cannot apply to the model, add it to that file's expected failures or
+   exemptions with the reason. A model with a hyperparameter that reduces it to another
+   model (no penalty to CCA, no sparsity to `PLSCanonical`) belongs in
+   `tests/test_limits.py`.
 6. Test only what is specific to the model in `tests/<subpackage>/test_mymodel.py`:
    agreement with a known answer where one exists (a closed form, another model it
    reduces to, a brute-force optimum), what its parameters do, and the behaviour that

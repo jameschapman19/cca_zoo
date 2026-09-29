@@ -26,7 +26,7 @@ The table below gives each replacement.
 | `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `n_iter=` (a fixed number of SVI steps), `n_posterior_samples=` |
 | `MultiviewWrapper` on stacked views | the `cca_zoo.model_selection` searches and cross-validation functions on the list of views; `Pipeline` with `cca_zoo.preprocessing.PerViewTransformer` for preprocessing |
 | `PermutationTestResult.correlations_`, `.p_values_`, and the other fields | the same names without the trailing `_` |
-| `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `MARSCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
+| `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
 | `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
 | `model.weights` | `model.weights_` |
 | `model.pairwise_correlations(views)` | `cca_zoo.metrics.pairwise_correlations(model.transform(views))` |
@@ -132,7 +132,10 @@ The table below gives each replacement.
   represent. As in `earth`, a backward pass (`nprune`) then deletes, one at a time, the
   term whose removal raises the refit training EY loss least; the size is chosen by
   searching `nprune` with `GridSearchCV`, `earth`'s `pmethod="cv"` (its default, GCV, has
-  no EY-loss counterpart). Every refit is the
+  no EY-loss counterpart). Like `earth`, the fit is deterministic and ignores each
+  feature's units and the order of the rows: it starts from linear PLS on the
+  standardised views, and `alpha` (default 0.01) is a ridge on each basis function's
+  coefficient at unit variance. Every refit is the
   closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
   one linear constraint, so each backward step scores every candidate exactly from one
   eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
@@ -369,6 +372,19 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `OrthogonalMatchingPursuitCCA` stopped as soon as its active sets repeated, after as
+  few as two rounds of alternating refits, so with every feature active it spanned a
+  subspace at 0.40 of CCA's. Its final weights are now the exact EY optimum on the
+  active sets, CCA on the selected features, as sklearn's OMP coefficients are the
+  least-squares fit on its support; a selected feature in the span of the others takes
+  no weight.
+- `ParkhomenkoCCA` restandardised the deflated views for each component, so at
+  `alpha=0` its later components differed from sklearn's `PLSCanonical(scale=True)`.
+  It now standardises once, and matches `PLSCanonical`.
+- `StochasticCCAEY` diverged at `shrinkage=1` unless the views were scaled: its step
+  assumed the loss's curvature is the constraint's, which holds for CCA but not PLS,
+  whose curvature grows with the covariance. The step now allows for it, and is
+  unchanged at `shrinkage=0`.
 - `StochasticCCAEY` raised "diverged" whenever the last mini-batch of an epoch had one
   row, which has no covariance, such as 101 samples in batches of 10. The remainder now
   joins the last full batch, and `batch_size` must be at least 2.

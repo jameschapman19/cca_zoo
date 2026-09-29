@@ -131,12 +131,16 @@ class StochasticCCAEY(CCAEY):
         # exceeds the full data's when the batch is small next to the view.
         rows = rng.choice(n, bs, replace=False)
         c = self.shrinkage
-        curvatures = [
-            (1 - c) * randomized_svd(v[rows], 1, random_state=0)[1][0] ** 2 / (bs - 1)
-            + c
+        variances = [
+            randomized_svd(v[rows], 1, random_state=0)[1][0] ** 2 / (bs - 1)
             for v in views
         ]
-        steps = [self.learning_rate / curvature for curvature in curvatures]
+        constraints = [(1 - c) * s + c for s in variances]
+        # The loss's curvature is the constraint's times the largest canonical
+        # value, which is at most 1 for CCA but a covariance for PLS; the
+        # variance over the constraint bounds it, 1 at shrinkage 0.
+        canonical = max(s / t for s, t in zip(variances, constraints))
+        steps = [self.learning_rate / (t * canonical) for t in constraints]
         weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
         best_obj, stalled = np.inf, 0

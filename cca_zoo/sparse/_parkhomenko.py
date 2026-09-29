@@ -34,7 +34,9 @@ class ParkhomenkoCCA(BaseModel):
     with $S_\alpha$ the soft-threshold, $\tilde X_i$ the standardised view and
     $\bar{\mathbf{s}}_{\neg i}$ the other views' summed score at unit variance:
     each feature's correlation with that score is soft-thresholded at
-    $\alpha_i$. Weights are returned on the original feature scale.
+    $\alpha_i$. Later components deflate the standardised views, so that at
+    ``alpha=0`` this is :class:`~sklearn.cross_decomposition.PLSCanonical`
+    with ``scale=True``. Weights are returned on the original feature scale.
 
     One of three sparse PLS power iterations, with :class:`PMDCCA` and
     :class:`SpanCCA`: each multiplies by the other views' summed score, then
@@ -106,31 +108,32 @@ class ParkhomenkoCCA(BaseModel):
         alphas = perview_parameter("alpha", self.alpha, 0.1, self.n_views_)
         self.n_iter_: int = 0
         converged = True
-        deflation = Deflation(views_, self.n_components)
+        # The diagonal approximation to each covariance: standardise, once,
+        # as sklearn's PLSCanonical(scale=True) does.
+        scales = [np.where(s < 1e-12, 1.0, s) for s in (v.std(axis=0) for v in views_)]
+        deflation = Deflation(
+            [v / s for v, s in zip(views_, scales)], self.n_components
+        )
         for deflated in deflation:
-            # The diagonal approximation to each covariance: standardise.
-            scales = [
-                np.where(s < 1e-12, 1.0, s) for s in (v.std(axis=0) for v in deflated)
-            ]
-            standardised = [v / s for v, s in zip(deflated, scales)]
-            w = pls_direction(standardised, rng)
+            w = pls_direction(deflated, rng)
             for n_iter in range(1, self.max_iter + 1):
                 previous = [wi.copy() for wi in w]
-                # Each feature's correlation with the others' score,
-                # soft-thresholded at the view's alpha.
-                for i, (view, alpha) in enumerate(zip(standardised, alphas)):
-                    correlations = view.T @ others_score(standardised, w, i) / len(view)
-                    raw = soft_threshold(correlations, alpha)
+                # Each feature's covariance with the others' score, its
+                # correlation on the first component, soft-thresholded.
+                for i, (view, alpha) in enumerate(zip(deflated, alphas)):
+                    covariances = view.T @ others_score(deflated, w, i) / len(view)
+                    raw = soft_threshold(covariances, alpha)
                     w[i] = raw / max(np.linalg.norm(raw), 1e-12)
                 if max(np.linalg.norm(a - b) for a, b in zip(w, previous)) < self.tol:
                     break
             else:
                 converged = False
             self.n_iter_ = max(self.n_iter_, n_iter)
-            # Back to the original feature scale, at unit norm.
-            w = [wi / s for wi, s in zip(w, scales)]
-            deflation.record([wi / max(np.linalg.norm(wi), 1e-12) for wi in w])
+            deflation.record(w)
         warn_if_not_converged(self, converged)
-        self.weights_: list[np.ndarray] = deflation.weights()
+        # Back to the original feature scale.
+        self.weights_: list[np.ndarray] = [
+            w / s[:, None] for w, s in zip(deflation.weights(), scales)
+        ]
         self._fit_maps_and_importances(views_)
         return self

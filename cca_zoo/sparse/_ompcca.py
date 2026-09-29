@@ -6,12 +6,17 @@ from numbers import Integral, Real
 from typing import Any, ClassVar
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, ey_loss
+from cca_zoo._utils._ey import (
+    cheap_orthonormal_projection_weights,
+    ey_loss,
+    penalised_basis_ey_closed_form,
+)
 from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
 from cca_zoo.sparse._coordinate_descent import (
     ey_quartic,
@@ -25,8 +30,10 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
 
     The EY analogue of :class:`~sklearn.linear_model.OrthogonalMatchingPursuit`:
     each view's active set grows one feature at a time, choosing the feature
-    with the largest EY gradient norm, and the active weights are refitted
-    exactly after each addition. Features outside the active set are zero.
+    with the largest EY gradient norm, and the active weights are refitted by
+    coordinate descent after each addition. Once the active sets settle, the
+    weights are the exact EY optimum on them, as OMP's coefficients are the
+    least-squares fit on its support. Features outside the active set are zero.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -142,6 +149,17 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
                 break
         self.n_iter_: int = n_iter
         warn_if_not_converged(self, converged)
+        # The EY optimum on the active sets: CCA on the selected features, of
+        # which one in the span of the others takes no weight.
+        independent = [_independent(v, a) for v, a in zip(views_, active_sets)]
+        coefficients = penalised_basis_ey_closed_form(
+            [v[:, a] - v[:, a].mean(axis=0) for v, a in zip(views_, independent)],
+            self.n_components,
+            [0.0] * self.n_views_,
+        )
+        for w, a, c in zip(weights, independent, coefficients):
+            w[:] = 0.0
+            w[a] = c
         self.weights_: list[np.ndarray] = weights
         self._fit_maps_and_importances(views_)
         return self
@@ -209,6 +227,18 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
                 previous = loss
         return sorted(active)
 
+
+def _independent(view: np.ndarray, active: list[int]) -> list[int]:
+    """The columns of ``active`` that are not in the span of the others."""
+    centred = view[:, active] - view[:, active].mean(axis=0)
+    _, r, pivots = scipy.linalg.qr(centred, mode="economic", pivoting=True)
+    rank = int(np.sum(np.abs(np.diag(r)) > _RANK_TOL * abs(r[0, 0])))
+    return sorted(np.asarray(active)[pivots[:rank]].tolist())
+
+
+# A column whose QR diagonal is below this fraction of the largest is in the
+# span of the others.
+_RANK_TOL = 1e-10
 
 # Most coordinate-descent sweeps refitting the active set after each addition.
 _REFIT_SWEEPS = 20
