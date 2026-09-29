@@ -17,12 +17,14 @@ from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
 class StochasticCCAEY(CCAEY):
-    """Multiview CCA by mini-batch momentum SGD on the Eckart-Young loss.
+    """Multiview CCA by mini-batch SGD on the Eckart-Young loss.
 
     The loss of :class:`~cca_zoo.linear.gradient.CCAEY`, minimised as
-    :class:`~sklearn.linear_model.SGDRegressor` does: each epoch shuffles the
-    data and takes one momentum step per mini-batch. For data too large for
-    full-batch gradients.
+    :class:`~sklearn.linear_model.SGDRegressor` does with
+    ``learning_rate="adaptive"``: each epoch shuffles the data and takes one
+    step per mini-batch, and whenever the epoch loss stalls the step is
+    divided by 5, so that the fit settles rather than hovering at the noise
+    of its mini-batches. For data too large for full-batch gradients.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -32,14 +34,13 @@ class StochasticCCAEY(CCAEY):
         learning_rate: Step size as a fraction of ``1 / L_i`` for view i,
             where ``L_i`` is the largest eigenvalue of its constraint matrix
             ``(1 - shrinkage) cov_i + shrinkage I``, so that the default suits
-            views in any units. Default is 0.02.
-        momentum: Momentum in ``[0, 1)``. Default is 0.9.
+            views in any units. The initial step. Default is 0.2.
         batch_size: Mini-batch size; None uses all samples. Default is None.
         max_iter: Number of epochs. Default is 1000.
         n_iter_no_change: Epochs without an improvement of ``tol`` on the
-            best epoch loss, the mean of its mini-batches' losses, before
-            stopping, as in sklearn's MLP, whose default of 10 outlasts the
-            momentum's overshoot. Default is 10.
+            best epoch loss, the mean of its mini-batches' losses, before the
+            step is divided by 5; the fit stops once the step is below 1e-6.
+            Default is 5, as in sklearn's SGD.
         tol: Improvement in the epoch loss that counts, as for
             ``n_iter_no_change``. Default is 1e-6.
         random_state: Seed for the shuffling and initial weights. Default is
@@ -62,7 +63,6 @@ class StochasticCCAEY(CCAEY):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **CCAEY._parameter_constraints,
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
-        "momentum": [Interval(Real, 0, 1, closed="left")],
         "batch_size": [None, Interval(Integral, 2, None, closed="left")],
         "n_iter_no_change": [Interval(Integral, 1, None, closed="left")],
     }
@@ -73,11 +73,10 @@ class StochasticCCAEY(CCAEY):
         *,
         center: bool = True,
         shrinkage: float = 0.0,
-        learning_rate: float = 0.02,
-        momentum: float = 0.9,
+        learning_rate: float = 0.2,
         batch_size: int | None = None,
         max_iter: int = 1000,
-        n_iter_no_change: int = 10,
+        n_iter_no_change: int = 5,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -90,7 +89,6 @@ class StochasticCCAEY(CCAEY):
             random_state=random_state,
         )
         self.learning_rate = learning_rate
-        self.momentum = momentum
         self.batch_size = batch_size
         self.n_iter_no_change = n_iter_no_change
 
@@ -124,7 +122,7 @@ class StochasticCCAEY(CCAEY):
     def _fit_sgd(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Weights from mini-batch momentum SGD."""
+        """Weights from mini-batch SGD with sklearn's adaptive step."""
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
         # Each view's step is set by the curvature a mini-batch sees, which
@@ -140,10 +138,9 @@ class StochasticCCAEY(CCAEY):
         # value, which is at most 1 for CCA but a covariance for PLS; the
         # variance over the constraint bounds it, 1 at shrinkage 0.
         canonical = max(s / t for s, t in zip(variances, constraints))
-        steps = [self.learning_rate / (t * canonical) for t in constraints]
+        scales = [1.0 / (t * canonical) for t in constraints]
         weights = self._initial_weights(views, rng)
-        velocity = [np.zeros_like(w) for w in weights]
-        best_obj, stalled = np.inf, 0
+        eta, best_obj, stalled = self.learning_rate, np.inf, 0
         converged = False
         for n_iter in range(1, self.max_iter + 1):
             perm = rng.permutation(n)
@@ -160,9 +157,7 @@ class StochasticCCAEY(CCAEY):
                     self._objective(batch, representations, weights) * len(batch[0]) / n
                 )
                 grads = self._derivative(batch, representations, weights)
-                for i, g in enumerate(grads):
-                    velocity[i] = self.momentum * velocity[i] - steps[i] * g
-                    weights[i] = weights[i] + velocity[i]
+                weights = [w - eta * s * g for w, s, g in zip(weights, scales, grads)]
             if not np.isfinite(obj):
                 raise ValueError(
                     "StochasticCCAEY diverged. Lower learning_rate, or scale the "
@@ -170,9 +165,13 @@ class StochasticCCAEY(CCAEY):
                 )
             stalled = stalled + 1 if obj > best_obj - self.tol else 0
             best_obj = min(best_obj, obj)
+            # As sklearn's SGD with learning_rate="adaptive": a stall divides
+            # the step by 5, and a stall at a negligible step is convergence.
             if stalled >= self.n_iter_no_change:
-                converged = True
-                break
+                if eta <= 1e-6:
+                    converged = True
+                    break
+                eta, stalled = eta / 5, 0
         self.n_iter_: int = n_iter
         warn_if_not_converged(self, converged)
         return weights

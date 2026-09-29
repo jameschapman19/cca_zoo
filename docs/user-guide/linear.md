@@ -150,7 +150,7 @@ directions on its own.
 
 For datasets too large to fit comfortably in memory, see
 [`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md), which fits the same
-objective as `CCAEY` with mini-batch momentum SGD instead.
+objective as `CCAEY` with mini-batch SGD instead.
 
 `CCAEY`'s `shrinkage` parameter (default `0`) blends its loss towards `PLSEY`'s (`shrinkage=1`) — in fact
 `PLSEY` is implemented as `CCAEY` with `shrinkage` fixed at `1`. Optimising the raw, unregularised

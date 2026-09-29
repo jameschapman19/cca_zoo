@@ -18,6 +18,7 @@ The table below gives each replacement.
 |---|---|
 | `latent_dimensions=` (every model) | `n_components=`, sklearn's name (as in its `CCA`, `PLSCanonical` and `PCA`) |
 | `rCCA` | `RidgeCCA` (CapWords, like every other class) |
+| `StochasticCCAEY(momentum=)` | removed: plain SGD with sklearn's adaptive step, as `SGDRegressor(learning_rate="adaptive")`, converges where momentum at a fixed step hovered |
 | `JointData(...).sample()` | `make_joint_data(...)`, an sklearn-style `make_*` generator; for train and test sets, split its output with `sklearn.model_selection.train_test_split(*views)` |
 | `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
 | `TrimmedCCA(n_starts=)`, `ProjectionPursuitCCA(n_restarts=)` | `n_init=`, sklearn's name for random restarts |
@@ -224,13 +225,18 @@ The table below gives each replacement.
   direction of the deflated views, as sklearn's PLS does, rather than at random weights.
 - `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
   `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
-  one default (now 0.02) suits views in any units; the old default diverged on
+  one default (now 0.2) suits views in any units; the old default diverged on
   unscaled data. `L_i` is measured on a mini-batch, whose curvature exceeds the full
   data's when the batch is small next to the view.
-- `StochasticCCAEY` stops as sklearn's SGD estimators do, after `n_iter_no_change`
-  (new, default 10 as in sklearn's MLP, which also uses momentum) epochs without an
-  improvement of `tol` on the best epoch loss, the mean of its mini-batches' losses, so
-  the fit never passes over all the data at once.
+- `StochasticCCAEY` is plain mini-batch SGD with the adaptive step of sklearn's
+  `SGDRegressor(learning_rate="adaptive")`, in place of momentum SGD at a fixed step:
+  after `n_iter_no_change` (new, default 5) epochs without an improvement of `tol` on
+  the best epoch loss, the mean of its mini-batches' losses, the step is divided by 5,
+  and the fit stops once it is negligible. A fixed step hovers at the noise of its
+  mini-batches rather than converging, and stopping on a stalled loss returned fits
+  far from the optimum without a warning; with the adaptive step the full-batch fit
+  reaches CCA's subspace and mini-batch fits settle within their noise. The epoch loss
+  never needs a pass over all the data at once.
   Comparing consecutive full-data losses never stopped a mini-batch fit, whose loss is
   noisy, so every one ran all `max_iter` epochs and warned.
 - `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than

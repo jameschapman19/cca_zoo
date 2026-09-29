@@ -86,6 +86,32 @@ def test_full_shrinkage_is_pls(cls: type, units: float) -> None:
 
 
 @pytest.mark.parametrize(
+    ("batch_size", "atol"), [(None, 1e-3), (128, 0.01), (32, 0.01)]
+)
+def test_stochastic_reaches_cca_at_any_batch_size(
+    batch_size: int | None, atol: float
+) -> None:
+    """At its defaults, SGD settles on CCA's subspace rather than near it.
+
+    Full-batch it converges; mini-batches settle within their noise. The
+    views are ill-conditioned, and their canonical correlations (0.98, 0.91,
+    0.77) leave the two-dimensional subspace identifiable.
+    """
+    rng = np.random.default_rng(1)
+    z = rng.standard_normal((1000, 3)) * [2.0, 1.0, 0.5]
+    views = [
+        z @ rng.standard_normal((3, p)) + rng.standard_normal((1000, p))
+        for p in (20, 15)
+    ]
+    model = StochasticCCAEY(2, batch_size=batch_size, random_state=0).fit(views)
+    np.testing.assert_allclose(
+        _subspace_cosines(model.transform(views), CCA(2).fit(views).transform(views)),
+        1.0,
+        atol=atol,
+    )
+
+
+@pytest.mark.parametrize(
     ("model", "scale"),
     [
         (PMDCCA(3, l1_bound=1.0, random_state=0), False),

@@ -91,8 +91,8 @@ def test_ignores_the_units_of_a_view(cls: type) -> None:
     )
 
 
-def test_stochastic_momentum_overshoot_is_not_convergence() -> None:
-    """Full-batch SGD runs through momentum's overshoot to CCA's optimum."""
+def test_stochastic_full_batch_reaches_cca() -> None:
+    """A stall shrinks the step rather than stopping short of CCA's optimum."""
     rng = np.random.default_rng(0)
     x = rng.standard_normal((101, 5))
     views = [x, x[:, :3] + rng.standard_normal((101, 3))]

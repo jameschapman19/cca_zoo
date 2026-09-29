@@ -148,7 +148,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `StochasticCCAEY` | `CCAEY`, fit by mini-batch momentum SGD | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `StochasticCCAEY` | `CCAEY`, fit by mini-batch SGD | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 
 ### `cca_zoo.deep` *(requires `[deep]`)*
 
