@@ -10,6 +10,7 @@ per-view encoder, the number and shapes of views, parameter validation and
 from __future__ import annotations
 
 import warnings
+from numbers import Integral
 
 import numpy as np
 import pandas as pd
@@ -51,6 +52,7 @@ def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
     model = _fit(make_model(cls), views)
     scores = model.transform(views)
     assert all(s.shape == (60, 1) and np.all(np.isfinite(s)) for s in scores)
+    assert model.n_components_ == 1
     for missing in range(len(views)):
         observed: list[np.ndarray | None] = list(views)
         observed[missing] = None
@@ -141,11 +143,12 @@ _ITERATING = {"ECCA": {"alpha": 0.1}, "CCAR3": {"alpha": 0.1}}
 
 @pytest.mark.parametrize("cls", _ITERATIVE, ids=[c.__name__ for c in _ITERATIVE])
 def test_stopping_at_max_iter_warns(cls: type[BaseModel]) -> None:
-    """A fit cut short by max_iter warns, and n_iter_ reports the iterations run."""
+    """A fit cut short by max_iter warns, and n_iter_ is the one int it ran."""
     model = make_model(cls).set_params(max_iter=1, **_ITERATING.get(cls.__name__, {}))
     with pytest.warns(ConvergenceWarning):
         _fit(model, _views(0))
-    assert np.max(model.n_iter_) == 1
+    assert isinstance(model.n_iter_, Integral)
+    assert model.n_iter_ == 1
 
 
 @pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)

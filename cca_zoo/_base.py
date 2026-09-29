@@ -96,6 +96,9 @@ class BaseModel(BaseEstimator, ABC):
     Attributes:
         means_: Per-view feature means subtracted before fitting.
         n_features_per_view_: Number of features in each view.
+        n_components_: Number of latent dimensions fitted: ``n_components``,
+            or fewer where the model prunes dimensions or the data have too
+            few, as sklearn's ``PCA.n_components_``.
         feature_names_per_view_: Each view's feature names, set when every
             view was fitted as a DataFrame with string column names.
         n_samples_: Number of training samples.
@@ -219,6 +222,7 @@ class BaseModel(BaseEstimator, ABC):
         that the fitted model does not keep the training data.
         """
         own_scores = [self._transform_view(i, v) for i, v in enumerate(views)]
+        self.n_components_: int = own_scores[0].shape[1]
         self._inverse_maps_ = [
             _least_squares_map(s, v) for s, v in zip(own_scores, views)
         ]
@@ -335,8 +339,9 @@ class BaseModel(BaseEstimator, ABC):
             ):
                 raise ValueError("input_features do not match the fitted names.")
         prefix = type(self).__name__.lower()
-        n_components = getattr(self, "n_components_", self.n_components)
-        names = np.asarray([f"{prefix}{k}" for k in range(n_components)], dtype=object)
+        names = np.asarray(
+            [f"{prefix}{k}" for k in range(self.n_components_)], dtype=object
+        )
         return [names.copy() for _ in range(self.n_views_)]
 
     @validate_params(
@@ -462,12 +467,11 @@ class BaseModel(BaseEstimator, ABC):
             )
         xp, _ = get_namespace(*scores)
         arrays = [xp.asarray(s) for s in scores]
-        # Models that prune dimensions, such as GFA, record the number kept.
-        n_components = getattr(self, "n_components_", self.n_components)
         for i, s in enumerate(arrays):
-            if s.shape[1] != n_components:
+            if s.shape[1] != self.n_components_:
                 raise ValueError(
-                    f"scores[{i}] has {s.shape[1]} columns, expected {n_components}."
+                    f"scores[{i}] has {s.shape[1]} columns, "
+                    f"expected {self.n_components_}."
                 )
         return [
             s @ m + mean for s, m, mean in zip(arrays, self._inverse_maps_, self.means_)

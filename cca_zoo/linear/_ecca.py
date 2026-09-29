@@ -17,19 +17,19 @@ from cca_zoo.linear._rrr_common import _postprocess_rrr_fit, _whiten_response
 
 def _entrywise_sparse_rrr(
     X: np.ndarray, Y: np.ndarray, alpha: float, max_iter: int, tol: float
-) -> tuple[np.ndarray, int | None]:
+) -> tuple[np.ndarray, int]:
     """Solve ``min_B ||Y - XB||^2 / n + alpha * sum |B|`` by one Lasso per column.
 
     sklearn's Lasso scales the loss by ``1 / (2n)``, so its ``alpha`` is half
     of this one. ``alpha=0`` is solved by least squares.
 
     Returns:
-        ``B``, and the most iterations any column's Lasso ran (``None`` for
-        least squares).
+        ``B``, and the most iterations any column's Lasso ran (0 for least
+        squares).
     """
     if alpha == 0.0:
         B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
-        return np.asarray(B), None
+        return np.asarray(B), 0
     q = Y.shape[1]
     B = np.zeros((X.shape[1], q))
     n_iter = 0
@@ -69,8 +69,8 @@ class ECCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Most iterations of any column's Lasso, or None when
-            ``alpha=0`` is solved by least squares.
+        n_iter_: Most iterations of any column's Lasso; 0 when ``alpha=0``
+            is solved by least squares.
 
     References:
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis

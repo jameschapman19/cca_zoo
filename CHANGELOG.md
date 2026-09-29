@@ -70,11 +70,17 @@ The table below gives each replacement.
 | `GaussianProcessCCA(max_iter=..., tol=...)`, `n_iter_` | removed: the fit is solved in closed form (see Changed) |
 | `KCCA`/`KGCCA`/`KTCCA` `degree` default 1 | 3, sklearn's polynomial-kernel default (only `kernel="poly"` uses it) |
 | `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
+| `GFA.view_relevance_`, `VariationalBayesCCA.ard_relevance_` | `ard_precision_` on both: the ARD precision, where large means shrunk away ("relevance" read backwards) |
+| `KCCA`/`KGCCA`/`KTCCA`/`ManifoldCCA` `train_views_` | `views_fit_`, as sklearn's `KernelPCA.X_fit_` |
+| `n_iter_` as a list (sparse iterative models, `ProjectionPursuitCCA`, `GraphicalLassoCCA`) or `None` (`CCAR3`/`ECCA` at `alpha=0`) | an int on every model: the most iterations any component or view ran, 0 when nothing iterates |
 | `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
 | `VariationalBayesCCA.guide_`, `.svi_result_` | `posterior_samples_` and `losses_` |
 
 ### Added
 
+- `n_components_` on every model, the number of latent dimensions fitted, as sklearn's
+  `PCA.n_components_`: `n_components`, or fewer where a model prunes dimensions (`GFA`)
+  or the data have too few.
 - Array API support in `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA`: under
   scikit-learn's `array_api_dispatch`, PyTorch or CuPy inputs are fitted and
   transformed in their own namespace and on their own device, such as a GPU. The
@@ -204,7 +210,7 @@ The table below gives each replacement.
   n-by-n whitening matrix, `GaussianProcessCCA`'s encoders an n-by-m training basis,
   `GAMCCA`'s its training spline basis, and the probabilistic models their samplers, which
   held the views. Only the kernel and manifold models, whose out-of-sample map is built
-  from the training rows, keep them, as `train_views_`; `GaussianProcessCCA` keeps its
+  from the training rows, keep them, as `views_fit_`; `GaussianProcessCCA` keeps its
   inducing points, every row by default.
 - Every constructor parameter of every model is validated when fitting, as sklearn's are;
   the kernel, tree, probabilistic and iterative sparse models, and `random_state`

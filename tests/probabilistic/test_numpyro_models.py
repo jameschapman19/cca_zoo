@@ -100,7 +100,7 @@ def test_ard_shrinks_an_unsupported_dimension() -> None:
     """Of three dimensions for two factors, the spare one gets the largest precision."""
     views, _ = _views()
     relevance = np.sort(
-        VariationalBayesCCA(3, n_iter=2000, random_state=0).fit(views).ard_relevance_
+        VariationalBayesCCA(3, n_iter=2000, random_state=0).fit(views).ard_precision_
     )
     assert relevance[2] > 2 * relevance[1]
 

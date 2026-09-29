@@ -45,7 +45,7 @@ class GraphicalLassoCCA(MCCA):
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
         covariance_: Estimated covariance of each view.
         precision_: Estimated sparse precision of each view.
-        n_iter_: Graphical-lasso iterations of each view.
+        n_iter_: Most graphical-lasso iterations of any view.
 
     References:
         Friedman, J., Hastie, T., & Tibshirani, R. (2008). Sparse inverse
@@ -126,7 +126,7 @@ class GraphicalLassoCCA(MCCA):
         alpha_ = perview_parameter("alpha", self.alpha, None, len(views))
         covariances = []
         precisions = []
-        self.n_iter_: list[int] = []
+        self.n_iter_: int = 0
         for v, a in zip(views, alpha_):
             if a is None:
                 estimator = GraphicalLassoCV(
@@ -153,7 +153,7 @@ class GraphicalLassoCCA(MCCA):
                 )
             covariances.append(covariance)
             precisions.append(precision)
-            self.n_iter_.append(n_iter)
+            self.n_iter_ = max(self.n_iter_, n_iter)
         self.covariance_: list[np.ndarray] = covariances
         self.precision_: list[np.ndarray] = precisions
 

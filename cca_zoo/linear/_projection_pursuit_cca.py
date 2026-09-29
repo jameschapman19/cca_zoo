@@ -121,7 +121,7 @@ class ProjectionPursuitCCA(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Powell iterations of each component's best restart.
+        n_iter_: Most Powell iterations of any component's best restart.
 
     References:
         Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
@@ -251,13 +251,13 @@ class ProjectionPursuitCCA(BaseModel):
             np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
-        self.n_iter_: list[int] = []
+        self.n_iter_: int = 0
         for d in range(self.n_components):
             directions, n_iter = self._fit_directions(deflated, pairs, index_fn, rng)
-            self.n_iter_.append(n_iter)
+            self.n_iter_ = max(self.n_iter_, n_iter)
             for i, a in enumerate(directions):
                 weights[i][:, d] = a
             deflated = deflate(deflated, directions)
-        warn_if_not_converged(self, max(self.n_iter_) < self.max_iter)
+        warn_if_not_converged(self, self.n_iter_ < self.max_iter)
         self.weights_ = weights
         return self._finish_fit(views_)

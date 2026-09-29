@@ -64,10 +64,10 @@ def test_scores_are_centred_kernel_expansions(cls: type) -> None:
     model = cls(kernel="rbf").fit(train)
     for i, scores in enumerate(model.transform(test)):
         centerer = KernelCenterer().fit(
-            pairwise_kernels(model.train_views_[i], metric="rbf")
+            pairwise_kernels(model.views_fit_[i], metric="rbf")
         )
         kernel = pairwise_kernels(
-            test[i] - model.means_[i], model.train_views_[i], metric="rbf"
+            test[i] - model.means_[i], model.views_fit_[i], metric="rbf"
         )
         np.testing.assert_allclose(
             scores, centerer.transform(kernel) @ model.weights_[i], atol=1e-10

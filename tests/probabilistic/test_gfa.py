@@ -49,7 +49,7 @@ def test_ard_finds_a_factor_private_to_one_view() -> None:
     relevance = (
         GFA(n_components=4, random_state=0)
         .fit(_views(shared=1, private=1))
-        .view_relevance_
+        .ard_precision_
     )
     assert np.max(relevance[1] / relevance[0]) > 1e4
 

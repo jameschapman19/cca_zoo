@@ -95,10 +95,10 @@ model = GFA(n_components=5, random_state=0)
 model.fit([X1, X2])
 
 print(model.n_components_)  # <= 5: how many components survived pruning
-print(model.view_relevance_)  # (n_views, n_components_) posterior mean alpha
+print(model.ard_precision_)  # (n_views, n_components_) posterior mean alpha
 ```
 
-`view_relevance_[i, k]` large means "dimension k is shrunk away in view i" — a component with a
+`ard_precision_[i, k]` large means "dimension k is shrunk away in view i" — a component with a
 small value in one view and a huge one in every other view is private to that view; a component
 with small values everywhere is shared.
 
@@ -186,7 +186,7 @@ $$
 
 Because $\alpha_k$ ties every view's $k$-th loading column together, a shared latent dimension
 is only retained if some view actually uses it — irrelevant dimensions get shrunk toward zero in
-every view at once. The posterior mean of $\alpha_k$ (`model.ard_relevance_`) is a direct
+every view at once. The posterior mean of $\alpha_k$ (`model.ard_precision_`) is a direct
 usefulness score per dimension: large values mean "shrunk away, safe to drop". This gives
 automatic latent-dimensionality selection, as an alternative to sweeping `n_components` with
 `GridSearchCV`.
@@ -209,7 +209,7 @@ model = VariationalBayesCCA(
 )
 model.fit([X1, X2])
 
-print(model.ard_relevance_)  # one score per dimension; large = pruned
+print(model.ard_precision_)  # one score per dimension; large = pruned
 ```
 
 `model.transform` and `model.weights_` behave identically to `ProbabilisticCCA`. `model.losses_`
@@ -237,7 +237,7 @@ views = make_joint_data(
 gfa_model = GFA(n_components=4, random_state=42)
 gfa_model.fit(views)
 print("GFA n_components_ after pruning:", gfa_model.n_components_)
-print("Per-view relevance:", gfa_model.view_relevance_)
+print("Per-view relevance:", gfa_model.ard_precision_)
 
 # Fit with MCMC (reduce warmup/samples for speed in examples)
 mcmc_model = ProbabilisticCCA(
@@ -257,7 +257,7 @@ vb_model = VariationalBayesCCA(
     random_state=42,
 )
 vb_model.fit(views)
-print("ARD relevance per dimension:", vb_model.ard_relevance_)
+print("ARD relevance per dimension:", vb_model.ard_precision_)
 
 z = vb_model.posterior_mean(views)
 print("Latent shape:", z.shape)  # (100, 4)

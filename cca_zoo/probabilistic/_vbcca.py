@@ -32,7 +32,7 @@ class VariationalBayesCCA(BaseProbabilistic):
     $$
 
     Dimensions no view supports are shrunk away, so set ``n_components``
-    generously and read ``ard_relevance_``. Inference is mean-field SVI in
+    generously and read ``ard_precision_``. Inference is mean-field SVI in
     numpyro, cheaper than :class:`ProbabilisticCCA`'s NUTS. Requires the
     ``probabilistic`` extra.
 
@@ -49,7 +49,7 @@ class VariationalBayesCCA(BaseProbabilistic):
     Attributes:
         weights_: Posterior mean loadings of each view, shape
             (n_features_i, n_components).
-        ard_relevance_: Posterior mean ARD precision of each dimension;
+        ard_precision_: Posterior mean ARD precision of each dimension;
             large means shrunk away.
         posterior_samples_: Posterior draws keyed by site name.
         losses_: SVI loss at each step.
@@ -189,5 +189,5 @@ class VariationalBayesCCA(BaseProbabilistic):
         ]
         # Posterior mean ARD precision per latent dimension: larger means
         # "more shrunk / less relevant".
-        self.ard_relevance_: np.ndarray = self.posterior_samples_["alpha"].mean(axis=0)
+        self.ard_precision_: np.ndarray = self.posterior_samples_["alpha"].mean(axis=0)
         return self._finish_fit(validated)

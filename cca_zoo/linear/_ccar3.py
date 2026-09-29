@@ -65,8 +65,8 @@ class CCAR3(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations of the MultiTaskLasso, or None when ``alpha=0``
-            is solved by least squares.
+        n_iter_: Iterations of the MultiTaskLasso; 0 when ``alpha=0`` is
+            solved by least squares.
 
     References:
         Donnat, C., & Tuzhilina, E. (2024). Canonical Correlation Analysis
@@ -130,7 +130,7 @@ class CCAR3(BaseModel):
 
         Y_tilde, sqrt_inv_Sy = _whiten_response(Y, self.ledoit_wolf)
 
-        self.n_iter_: int | None = None
+        self.n_iter_: int = 0
         if self.alpha == 0.0:
             B = np.linalg.lstsq(X, Y_tilde, rcond=None)[0]
         else:

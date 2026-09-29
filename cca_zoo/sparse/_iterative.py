@@ -44,7 +44,7 @@ class _BaseIterative(BaseModel):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -85,14 +85,14 @@ class _BaseIterative(BaseModel):
             np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
-        self.n_iter_: list[int] = []
+        self.n_iter_: int = 0
         all_converged = True
         for d in range(self.n_components):
             # Random initialisation for this dimension
             w = [rng.standard_normal(p) for p in self.n_features_per_view_]
             w = [wi / np.linalg.norm(wi) for wi in w]
             n_iter, converged = self._fit_single(deflated, w)
-            self.n_iter_.append(n_iter)
+            self.n_iter_ = max(self.n_iter_, n_iter)
             all_converged = all_converged and converged
             for i in range(self.n_views_):
                 self.weights_[i][:, d] = w[i]
@@ -210,7 +210,7 @@ class PMDCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Witten, D. M., Tibshirani, R., & Hastie, T. (2009). A penalized matrix
@@ -322,7 +322,7 @@ class ADMMCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
@@ -446,7 +446,7 @@ class IPLSCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Mai, Q., & Zhang, X. (2019). An iterative penalized least squares
@@ -540,7 +540,7 @@ class SpanCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Asteris, M., Kyrillidis, A., Koyejo, O., & Poldrack, R. (2016). A simple
@@ -641,7 +641,7 @@ class WaijenborgCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H. (2008).
@@ -736,7 +736,7 @@ class ParkhomenkoCCA(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Parkhomenko, E., Tritchler, D., & Beyene, J. (2009). Sparse canonical
@@ -870,7 +870,7 @@ class SAR(_BaseIterative):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        n_iter_: Iterations run for each component.
+        n_iter_: Most iterations run by any component.
 
     References:
         Wilms, I., & Croux, C. (2015). Sparse canonical correlation analysis
@@ -926,13 +926,13 @@ class SAR(_BaseIterative):
             np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
         deflated = [v.copy() for v in views_]
-        self.n_iter_: list[int] = []
+        self.n_iter_: int = 0
         all_converged = True
         for d in range(self.n_components):
             w = [rng.standard_normal(p) for p in self.n_features_per_view_]
             w = [wi / np.linalg.norm(wi) for wi in w]
             n_iter, converged = self._fit_single(deflated, w)
-            self.n_iter_.append(n_iter)
+            self.n_iter_ = max(self.n_iter_, n_iter)
             all_converged = all_converged and converged
             if d == 0:
                 w_final = w

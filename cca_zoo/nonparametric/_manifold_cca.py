@@ -213,7 +213,7 @@ class ManifoldCCA(BaseModel):
 
     Attributes:
         embedding_: Training embedding of each view, shape (n_samples, n_components).
-        train_views_: The centred training views, from which a new view's
+        views_fit_: The centred training views, from which a new view's
             embedding is interpolated.
 
     References:
@@ -347,7 +347,7 @@ class ManifoldCCA(BaseModel):
         blocks = np.split(eigvecs, np.cumsum(k_ops)[:-1], axis=0)
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
         self.embedding_: list[np.ndarray] = embedding
-        self.train_views_: list[np.ndarray] = views_
+        self.views_fit_: list[np.ndarray] = views_
         self._n_neighbors_: list[int] = n_neighbors_
         self._affinity_: list[str] = affinity_
         self._reg_: list[float] = reg_
@@ -373,7 +373,7 @@ class ManifoldCCA(BaseModel):
         return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        v_train = self.train_views_[view]
+        v_train = self.views_fit_[view]
         n_neighbors = self._n_neighbors_[view]
         if self.method == "lle":
             assert self._lle_state_ is not None

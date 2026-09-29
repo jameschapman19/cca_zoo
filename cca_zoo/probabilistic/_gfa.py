@@ -198,7 +198,7 @@ class GFA(BaseProbabilistic):
     Attributes:
         weights_: Posterior mean loadings of each view, shape
             (n_features_i, n_components_).
-        view_relevance_: Posterior mean ARD precisions, shape
+        ard_precision_: Posterior mean ARD precisions, shape
             (n_views, n_components_); large means shrunk away.
         n_components_: Number of dimensions kept.
         posterior_samples_: Posterior draws keyed ``W_{i}``, ``log_psi_{i}``
@@ -280,8 +280,7 @@ class GFA(BaseProbabilistic):
                 break
         warn_if_not_converged(self, converged)
 
-        self.n_components_ = q.z.shape[1]
         self.weights_: list[np.ndarray] = q.w
-        self.view_relevance_: np.ndarray = np.array(q.alpha)
+        self.ard_precision_: np.ndarray = np.array(q.alpha)
         self.posterior_samples_ = q.sample(rng, self.n_posterior_samples)
         return self._finish_fit(views_)

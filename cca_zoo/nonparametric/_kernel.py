@@ -56,7 +56,7 @@ class _BaseKernelModel(BaseModel):
     def _feature_maps(self, views: list[np.ndarray]) -> list[ArrayLike]:
         """Each training view's coordinates in its centred kernel feature space.
 
-        Records ``train_views_``, the kernel centerers and ``_projections``,
+        Records ``views_fit_``, the kernel centerers and ``_projections``,
         the maps from a centred kernel row to feature-space coordinates.
         """
         m = self.n_views_
@@ -68,7 +68,7 @@ class _BaseKernelModel(BaseModel):
             kp or {}
             for kp in perview_parameter("kernel_params", self.kernel_params, {}, m)
         ]
-        self.train_views_: list[np.ndarray] = views
+        self.views_fit_: list[np.ndarray] = views
         self._centerers: list[KernelCenterer] = []
         self._projections: list[np.ndarray] = []
         features: list[ArrayLike] = []
@@ -92,7 +92,7 @@ class _BaseKernelModel(BaseModel):
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         kernel = self._centerers[view].transform(
-            self._kernel(view, centred, self.train_views_[view])
+            self._kernel(view, centred, self.views_fit_[view])
         )
         scores: np.ndarray = kernel @ self.weights_[view]
         return scores

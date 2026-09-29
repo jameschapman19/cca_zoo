@@ -38,7 +38,7 @@ class KTCCA(_BaseKernelModel):
     Attributes:
         weights_: Dual coefficients of each view, shape (n_samples,
             n_components).
-        train_views_: The centred training views, against which the kernel
+        views_fit_: The centred training views, against which the kernel
             of a new view is evaluated and centred.
 
     References:
