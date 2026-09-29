@@ -16,7 +16,6 @@ from ._mcca import MCCA
 from ._partialcca import PartialCCA
 from ._pls import PLS
 from ._projection_pursuit_cca import ProjectionPursuitCCA
-from ._quantile_cca import QuantileCCA
 from ._ransac_cca import RANSACCCA
 from ._ridge_cca import RidgeCCA
 from ._tcca import TCCA
@@ -43,8 +42,6 @@ __all__ = [
     "RANSACCCA",
     "TrimmedCCA",
     "ProjectionPursuitCCA",
-    # Quantiles of the response rather than its mean
-    "QuantileCCA",
     # EY-loss (high-dimensional data)
     "PLSEY",
     "CCAEY",

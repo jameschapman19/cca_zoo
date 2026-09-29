@@ -308,31 +308,6 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 
 ---
 
-## Quantile CCA
-
-CCA finds the combinations whose means are most correlated, maximising $R^2$.
-`QuantileCCA` (canonical quantile regression) does the same for a quantile: for
-covariates $X$ and responses $Y$, it finds the combination $Y a$ whose $\tau$-quantile
-a linear function of $X$ explains best, maximising Koenker and Machado's
-$R^1(\tau) = 1 - V_1 / V_0$, the check loss given $X$ over the check loss of the plain
-quantile. For Gaussian data every quantile gives CCA's directions. Where the
-relationship changes across the distribution, as when the noise grows with a
-covariate, the directions do too: comparing `quantile=0.1`, `0.5` and `0.9` shows
-how, and `r1_` gives each component's $R^1(\tau)$.
-
-Each iteration is one exact linear program, sklearn's `QuantileRegressor`, with the
-normalisation $V_0 = 1$ replaced by its tangent plane. The problem is not convex, so
-each component keeps the best of `n_init` starts.
-
-```python
-from cca_zoo.linear import QuantileCCA
-
-upper = QuantileCCA(n_components=2, quantile=0.9, random_state=0).fit([X, Y])
-upper.r1_
-```
-
-The views are ordered: covariates first, responses second.
-
 ## GPUs and the Array API
 
 `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA` compute in the namespace of their inputs

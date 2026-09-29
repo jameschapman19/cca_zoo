@@ -23,7 +23,7 @@ from cca_zoo._base import BaseModel
 from tests._helpers import MODEL_CLASSES, make_model
 
 _IDS = [c.__name__ for c in MODEL_CLASSES]
-_TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA", "QuantileCCA"}
+_TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA"}
 
 
 def _views(
