@@ -3,25 +3,28 @@
 from __future__ import annotations
 
 import importlib
-import importlib.util
 
 import pytest
 
 
 @pytest.mark.parametrize(
-    ("module", "name", "package", "extra"),
+    ("module", "name", "extra"),
     [
-        ("cca_zoo.tree", "XGBoostCCA", "xgboost", "tree"),
-        ("cca_zoo.probabilistic", "ProbabilisticCCA", "numpyro", "probabilistic"),
-        ("cca_zoo.deep", "DCCA", "lightning", "deep"),
-        ("cca_zoo.model_selection", "OptunaSearchCV", "optuna_integration", "optuna"),
+        ("cca_zoo.tree", "XGBoostCCA", "tree"),
+        ("cca_zoo.probabilistic", "ProbabilisticCCA", "probabilistic"),
+        ("cca_zoo.deep", "DCCA", "deep"),
+        ("cca_zoo.model_selection", "OptunaSearchCV", "optuna"),
     ],
 )
-def test_a_missing_extra_is_named(
-    module: str, name: str, package: str, extra: str
-) -> None:
-    """Importing a model without its extra says which extra to install."""
-    if importlib.util.find_spec(package) is not None:
-        pytest.skip(f"{package} is installed")
-    with pytest.raises(ImportError, match=rf"cca-zoo\[{extra}\]"):
+def test_a_missing_extra_is_named(module: str, name: str, extra: str) -> None:
+    """Importing a model without its extra says which extra to install.
+
+    Decided by the import itself: optuna_integration's lazy module has no
+    ``__spec__``, so ``find_spec`` fails once anything has imported it.
+    """
+    try:
         getattr(importlib.import_module(module), name)
+    except ImportError as error:
+        assert f"cca-zoo[{extra}]" in str(error)
+    else:
+        pytest.skip(f"the {extra} extra is installed")
