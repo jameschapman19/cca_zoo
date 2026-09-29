@@ -24,7 +24,8 @@ class KTCCA(_BaseKernelModel):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance in the kernel feature
             space towards the identity, in ``[0, 1]``: 0 is kernel CCA and 1
-            is kernel PLS. Per-view. Default is 0.1.
+            is kernel PLS. Per-view. Default is 0.1, as for
+            :class:`~cca_zoo.nonparametric.KCCA`.
         kernel: Kernel name or callable for
             :func:`~sklearn.metrics.pairwise_kernels`. Per-view. Default is
             ``"linear"``.

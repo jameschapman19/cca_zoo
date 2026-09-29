@@ -389,6 +389,47 @@ def test_tcca_attains_the_minimum_of_its_loss() -> None:
     assert float(loss(tcca)) <= float(loss(descended)) + 1e-8
 
 
+@pytest.mark.parametrize("batch_size", [16, 256])
+def test_gcca_loss_is_minus_k_per_view_when_the_encodings_agree(
+    batch_size: int,
+) -> None:
+    """Every view's projection is the same, so the top k eigenvalues are M each."""
+    z = torch.randn(batch_size, 2, dtype=torch.float64)
+    loss = GCCALoss(eps=1e-10)(
+        [
+            z,
+            2.0 * z + 1.0,
+            z @ torch.tensor([[1.0, 1.0], [0.0, 1.0]], dtype=torch.float64),
+        ]
+    )
+    assert float(loss) == pytest.approx(-2 * 3)
+
+
+@pytest.mark.parametrize("cls", [DCCANOI, DCCASDL])
+def test_trained_linear_encoders_reach_cca(cls: type[BaseDeep]) -> None:
+    """With linear encoders, full-batch training converges to CCA's subspace."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((500, 2)) * [1.0, 0.6]
+    views = [
+        (z @ rng.standard_normal((2, p)) + 0.5 * rng.standard_normal((500, p))).astype(
+            np.float32
+        )
+        for p in P
+    ]
+    torch.manual_seed(0)
+    model = cls(K, _encoders(), learning_rate=1e-2)
+    full_batch = DataLoader(MultiviewDataset(views), batch_size=len(views[0]))
+    _trainer(max_epochs=300).fit(model, full_batch)
+    for ours, cca in zip(
+        _predict(model, full_batch), CCA(K).fit(views).transform(views)
+    ):
+        qx = np.linalg.qr(ours - ours.mean(axis=0))[0]
+        qy = np.linalg.qr(cca - cca.mean(axis=0))[0]
+        np.testing.assert_allclose(
+            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=5e-3
+        )
+
+
 def test_cca_loss_is_minus_the_squared_canonical_correlations() -> None:
     """At CCA's scores, whatever each view's invertible mixing of them."""
     views = _linear_views(2)

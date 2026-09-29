@@ -113,7 +113,8 @@ class TrimmedCCA(CCAEY):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of the covariances towards the identity, one value
             for every view as in ``CCAEY``, in ``[0, 1]``: 0 is CCA and 1 is PLS.
-            Default is 0.1.
+            Default is 0.1, since each fit sees only ``support_fraction`` of
+            the rows.
         support_fraction: Fraction of rows kept, in ``(0, 1]``; a prior on the clean
             fraction. Default is 0.75.
         n_init: Random restarts. Default is 10.

@@ -12,7 +12,10 @@ from cca_zoo.deep.objectives import _inv_sqrtm
 
 
 class _BatchWhiten(nn.Module):
-    """Whitening layer by a running covariance, updated in training mode.
+    """Whitening layer by a running mean and covariance, updated in training mode.
+
+    As :class:`~torch.nn.BatchNorm1d` keeps a running mean, so that an
+    encoder's bias does not leak into the whitened target.
 
     Args:
         num_features: Input dimension.
@@ -30,6 +33,7 @@ class _BatchWhiten(nn.Module):
         self.num_features = num_features
         self.momentum = momentum
         self.eps = eps
+        self.register_buffer("running_mean", torch.zeros(num_features))
         self.register_buffer(
             "running_covar",
             torch.eye(num_features),
@@ -38,19 +42,24 @@ class _BatchWhiten(nn.Module):
             "num_batches_tracked",
             torch.tensor(0, dtype=torch.long),
         )
+        self.running_mean: torch.Tensor
         self.running_covar: torch.Tensor
         self.num_batches_tracked: torch.Tensor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Whiten a batch of shape (batch_size, num_features) by the running covariance.
+        """Whiten a batch of shape (batch_size, num_features) by the running moments.
 
-        In training mode the batch first updates the running covariance.
+        In training mode the batch first updates the running mean and covariance.
         """
         if self.training:
             with torch.no_grad():
-                self.running_covar.lerp_((x.T @ x) / x.shape[0], self.momentum)
+                centred = x - x.mean(dim=0)
+                self.running_mean.lerp_(x.mean(dim=0), self.momentum)
+                self.running_covar.lerp_(
+                    centred.T @ centred / (x.shape[0] - 1), self.momentum
+                )
                 self.num_batches_tracked.add_(1)
-        return x @ _inv_sqrtm(self.running_covar, self.eps)
+        return (x - self.running_mean) @ _inv_sqrtm(self.running_covar, self.eps)
 
 
 class DCCANOI(BaseDeep):

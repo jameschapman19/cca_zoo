@@ -383,6 +383,13 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `DCCANOI` whitened each view's target by its running second moment, not its
+  covariance, so an encoder's bias leaked into the target: with linear encoders its
+  fit reached only 0.11 of CCA's subspace. The whitening now keeps a running mean,
+  as `BatchNorm1d` does, and reaches CCA.
+- `GCCALoss` grew with the batch size. It is now the sum of each view's projection
+  onto its encodings, in `[-k M, 0]` at any batch size, so logged losses compare
+  across batch sizes and a batch size no longer changes an SGD step.
 - Importing `cca_zoo` imported tensorly, which prints SyntaxWarnings on Python 3.12;
   `TCCA` now imports it when it fits. `TCCA` also switched tensorly's global backend to
   numpy for every other user of tensorly in the process; it now does so only for its

@@ -56,7 +56,9 @@ class RANSACCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        shrinkage: Shrinkage of every internal MCCA fit. Default is 0.1.
+        shrinkage: Shrinkage of every internal MCCA fit. Default is 0.1:
+            each trial fits a quarter of the rows, often fewer than the
+            features.
         min_samples: Subset size, as a fraction in ``(0, 1]`` or a count.
             Default is 0.25.
         residual_threshold: Minimum agreement of an inlier; None is 0.

@@ -128,10 +128,13 @@ class GCCALoss(nn.Module):
     r"""Generalized CCA loss: minus the top eigenvalues of the summed projections.
 
     $$
-    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\Bigl(\sum_i H_i H_i^\top\Bigr),
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\Bigl(\sum_i P_i\Bigr), \qquad
+    P_i = \frac{H_i H_i^\top}{n - 1},
     $$
 
-    for ridge-whitened, centred encodings $H_i$.
+    for ridge-whitened, centred encodings $H_i$, so that $P_i$ projects onto
+    view $i$'s encodings. The loss lies in $[-kM, 0]$ for $M$ views at any
+    batch size, and is $-kM$ when every view's encodings agree.
 
     Args:
         eps: Whitening ridge. Default is 1e-5.
@@ -170,12 +173,8 @@ class GCCALoss(nn.Module):
             )
             whitened.append(z_c @ _inv_sqrtm(cov, self.eps))
 
-        # M = sum_i H_i H_i^T, shape (n, n)
-        m = torch.zeros(n, n, device=representations[0].device)
-        for h in whitened:
-            m = m + h @ h.T
-
-        # Objective is trace of top singular values of M
+        # The summed projections onto each view's encodings, shape (n, n).
+        m = sum(h @ h.T for h in whitened) / (n - 1)
         eigvals = torch.linalg.eigvalsh(m)
         k = representations[0].shape[1]
         top_eigvals = eigvals[-k:]
