@@ -195,9 +195,14 @@ The table below gives each replacement.
 - The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `WaijenborgCCA`,
   `ParkhomenkoCCA`, `SAR`) start each component at the leading cross-covariance (PLS)
   direction of the deflated views, as sklearn's PLS does, rather than at random weights.
-- `StochasticCCAEY`'s `learning_rate` is relative to `1 / L`, with `L` the largest
-  variance of any view, so one default (now 0.05) suits data at any scale; the old
-  default diverged on unscaled data.
+- `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
+  `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
+  one default (now 0.02) suits views in any units; the old default diverged on
+  unscaled data.
+- `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than
+  the norm of per-component standardised scores, so it does not depend on how the
+  components are rotated, and its components are ordered as `CCAEY`'s. On clean data
+  it now matches CCA; its first correlation had been 0.90 against CCA's 0.96.
 - `OrthogonalMatchingPursuitCCA`'s `n_nonzero_coefs` defaults to
   `max(n_components, n_features // 10)` and must be at least `n_components`; the
   components share the active set, so a smaller one made them linearly dependent. Its
@@ -329,6 +334,10 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `CCAEY`, `PLSEY` and `HuberCCA` stopped short on views in different units: L-BFGS-B
+  stops on an absolute gradient, which a view in small units reaches early. The search
+  now runs in each view's natural weight scale, the root mean eigenvalue of its
+  constraint matrix, so the fit no longer depends on units.
 - `CCAR3` and `ECCA` returned a rotation of the canonical subspace rather than the
   canonical pairs: whitening each view's side separately left the pairs mixed, so
   unpenalised their second and third correlations came out as 0.701 and 0.697 where

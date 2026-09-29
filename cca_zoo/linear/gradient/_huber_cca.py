@@ -9,16 +9,17 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
+from cca_zoo._utils._ey import canonical_rotation, cheap_orthonormal_projection_weights
 from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
 
 
 def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.ndarray:
     """Huber weights capping each sample's leverage.
 
-    A sample's leverage is the norm of its standardised embeddings over every
-    view and component. Samples within ``delta`` times the median leverage
-    keep weight 1; the rest are weighted by ``cutoff / leverage``.
+    A sample's leverage is the Mahalanobis norm of its embeddings, summed in
+    square over views, so it does not depend on how the components are
+    rotated. Samples within ``delta`` times the median leverage keep weight
+    1; the rest are weighted by ``cutoff / leverage``.
 
     Args:
         representations: One array of shape (n_samples, k) per view.
@@ -27,10 +28,12 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
     Returns:
         Weights in ``(0, 1]``, shape (n_samples,).
     """
-    standardised = [
-        (z - z.mean(axis=0)) / (z.std(axis=0) + 1e-12) for z in representations
-    ]
-    leverage = np.sqrt(sum((s**2).sum(axis=1) for s in standardised))
+    leverage_sq = np.zeros(len(representations[0]))
+    for z in representations:
+        centred = z - z.mean(axis=0)
+        precision = np.linalg.pinv(centred.T @ centred / len(z))
+        leverage_sq += np.sum((centred @ precision) * centred, axis=1)
+    leverage = np.sqrt(leverage_sq)
     cutoff = delta * np.median(leverage) + 1e-12
     result: np.ndarray = np.minimum(1.0, cutoff / (leverage + 1e-12))
     return result
@@ -150,7 +153,11 @@ class HuberCCA(BaseFullBatchEYModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_lbfgsb(views_, rng)
+        weights = self._fit_lbfgsb(views_, rng)
+        # The weighted EY loss ignores how the components are rotated, so
+        # any orthogonal rotation is free; order them by reward, as CCAEY does.
+        rotation = canonical_rotation([v @ w for v, w in zip(views_, weights)])
+        self.weights_ = [w @ rotation for w in weights]
         return self._finish_fit(views_)
 
     def _initial_weights(

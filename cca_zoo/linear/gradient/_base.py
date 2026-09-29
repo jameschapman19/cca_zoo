@@ -79,38 +79,47 @@ class BaseFullBatchEYModel(BaseModel):
     ) -> list[np.ndarray]:
         """Starting weights, one matrix per view."""
 
+    def _weight_scale(self, view: np.ndarray) -> float:
+        """Root mean eigenvalue of the view's constraint matrix, its covariance."""
+        return float(np.sqrt(np.mean(view.var(axis=0, ddof=1))))
+
     def _fit_lbfgsb(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """Weights minimising the loss by full-batch L-BFGS-B."""
+        """Weights minimising the loss by full-batch L-BFGS-B.
+
+        L-BFGS-B stops on an absolute gradient, and a view's gradient scales
+        with its units, so the search runs over ``u_i = s_i w_i``, with
+        ``s_i`` from :meth:`_weight_scale`: the same loss, but in units where
+        every view's gradient is comparable.
+        """
+        scales = [self._weight_scale(v) or 1.0 for v in views]
         weights0 = self._initial_weights(views, rng)
         shapes = [w.shape for w in weights0]
-        sizes = [w.size for w in weights0]
+        splits = np.cumsum([w.size for w in weights0])[:-1]
 
-        def _unflatten(x: np.ndarray) -> list[np.ndarray]:
-            arrays = []
-            offset = 0
-            for shape, size in zip(shapes, sizes):
-                arrays.append(x[offset : offset + size].reshape(shape))
-                offset += size
-            return arrays
+        def _weights(u: np.ndarray) -> list[np.ndarray]:
+            return [
+                part.reshape(shape) / s
+                for part, shape, s in zip(np.split(u, splits), shapes, scales)
+            ]
 
-        def _fun(x: np.ndarray) -> tuple[float, np.ndarray]:
-            weights = _unflatten(x)
+        def _fun(u: np.ndarray) -> tuple[float, np.ndarray]:
+            weights = _weights(u)
             representations = [v @ w for v, w in zip(views, weights)]
             obj = self._objective(views, representations, weights)
             grads = self._derivative(views, representations, weights)
-            grad = np.concatenate([g.ravel() for g in grads])
+            grad = np.concatenate([(g / s).ravel() for g, s in zip(grads, scales)])
             return obj, grad
 
-        x0 = np.concatenate([w.ravel() for w in weights0])
+        u0 = np.concatenate([(w * s).ravel() for w, s in zip(weights0, scales)])
         result = minimize(
             _fun,
-            x0,
+            u0,
             jac=True,
             method="L-BFGS-B",
             options={"maxiter": self.max_iter, "ftol": self.tol},
         )
         self.n_iter_: int = result.nit
         warn_if_not_converged(self, result.nit < self.max_iter)
-        return _unflatten(result.x)
+        return _weights(result.x)

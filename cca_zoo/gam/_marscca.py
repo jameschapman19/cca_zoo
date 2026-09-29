@@ -633,6 +633,8 @@ class MARSCCA(BaseModel):
         backward_path_: ``(view, term)`` in the order the backward pass
             deleted them.
         backward_loss_: Training EY loss after each number of deletions.
+        n_removed_: Terms the backward pass pruned, the first ``n_removed_``
+            of ``backward_path_``; zero when ``nprune`` is None.
 
     References:
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.

@@ -29,9 +29,10 @@ class StochasticCCAEY(CCAEY):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
-        learning_rate: Step size as a fraction of ``1 / L``, where ``L`` is
-            the largest eigenvalue of any view's covariance, so that the
-            default suits data at any scale. Default is 0.05.
+        learning_rate: Step size as a fraction of ``1 / L_i`` for view i,
+            where ``L_i`` is the largest eigenvalue of its constraint matrix
+            ``(1 - shrinkage) cov_i + shrinkage I``, so that the default suits
+            views in any units. Default is 0.02.
         momentum: Momentum in ``[0, 1)``. Default is 0.9.
         batch_size: Mini-batch size; None uses all samples. Default is None.
         max_iter: Number of epochs. Default is 1000.
@@ -67,7 +68,7 @@ class StochasticCCAEY(CCAEY):
         *,
         center: bool = True,
         shrinkage: float = 0.0,
-        learning_rate: float = 0.05,
+        learning_rate: float = 0.02,
         momentum: float = 0.9,
         batch_size: int | None = None,
         max_iter: int = 1000,
@@ -118,10 +119,12 @@ class StochasticCCAEY(CCAEY):
         """Weights from mini-batch momentum SGD."""
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
-        largest_variance = max(
-            randomized_svd(v, 1, random_state=0)[1][0] ** 2 / (n - 1) for v in views
-        )
-        step = self.learning_rate / largest_variance
+        c = self.shrinkage
+        steps = [
+            self.learning_rate
+            / ((1 - c) * randomized_svd(v, 1, random_state=0)[1][0] ** 2 / (n - 1) + c)
+            for v in views
+        ]
         weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
         prev_obj = np.inf
@@ -134,7 +137,7 @@ class StochasticCCAEY(CCAEY):
                 representations = [b @ w for b, w in zip(batch, weights)]
                 grads = self._derivative(batch, representations, weights)
                 for i, g in enumerate(grads):
-                    velocity[i] = self.momentum * velocity[i] - step * g
+                    velocity[i] = self.momentum * velocity[i] - steps[i] * g
                     weights[i] = weights[i] + velocity[i]
             full_representations = [v @ w for v, w in zip(views, weights)]
             obj = self._objective(views, full_representations, weights)

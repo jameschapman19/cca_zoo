@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY
+from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA
 from cca_zoo.stochastic import StochasticCCAEY
 from tests._helpers import canonical_correlations
 
@@ -72,3 +72,17 @@ def test_stochastic_divergence_is_an_error() -> None:
         StochasticCCAEY(
             n_components=2, learning_rate=2.0, batch_size=100, random_state=0
         ).fit(_views(2))
+
+
+@pytest.mark.parametrize("cls", [CCAEY, PLSEY, HuberCCA])
+def test_ignores_the_units_of_a_view(cls: type) -> None:
+    """Rescaling each view leaves CCA's and PLS's correlations unchanged."""
+    views = _views(2)
+    rescaled = [views[0] * 100, views[1] * 0.01]
+    np.testing.assert_allclose(
+        canonical_correlations(
+            cls(n_components=2, random_state=0).fit(rescaled), rescaled
+        ),
+        canonical_correlations(cls(n_components=2, random_state=0).fit(views), views),
+        atol=1e-3,
+    )
