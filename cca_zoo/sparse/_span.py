@@ -26,6 +26,10 @@ class SpanCCA(BaseModel):
     alternating heuristic in the spirit of Asteris et al.'s SpanCCA, not their
     randomised low-rank search.
 
+    One of three sparse PLS power iterations, with :class:`PMDCCA` and
+    :class:`ParkhomenkoCCA`: each multiplies by the other views' summed score,
+    then thresholds, and they differ only in the threshold.
+
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.

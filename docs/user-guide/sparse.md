@@ -4,8 +4,8 @@ The `cca_zoo.sparse` module provides sparse/regularised linear multiview CCA met
 mechanism families. Three are EY-loss coordinate descent, each the EY-loss analogue of a
 scikit-learn regularised linear regressor: `ElasticNetCCA` (elastic net),
 `MultiTaskElasticNetCCA` (multi-task elastic net — row-group sparsity across latent dimensions),
-and `OrthogonalMatchingPursuitCCA` (greedy fixed-cardinality selection). The remaining seven —
-`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `WaijenborgCCA`, `ParkhomenkoCCA`, `SpanCCA`, `SAR` — are
+and `OrthogonalMatchingPursuitCCA` (greedy fixed-cardinality selection). The remaining six —
+`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `ParkhomenkoCCA`, `SpanCCA`, `SAR` — are
 Alternating Least Squares (ALS) methods, each a from-the-literature sparse CCA algorithm with its
 own penalty and fitting loop; see [below](#alternating-least-squares-methods). None has an
 optional dependency: all are built entirely on numpy, already required by `cca_zoo`.
@@ -156,14 +156,14 @@ Hyperparameters are best selected by cross-validation with `GridSearchCV` from
 
 ## Alternating Least Squares methods
 
-These seven methods use an **Alternating Least Squares (ALS)** loop with Gram-Schmidt deflation
-to extract multiple canonical directions, rather than EY-loss coordinate descent.
+These six methods use an **Alternating Least Squares (ALS)** loop, deflating the views by each
+component's scores before the next, as PLS does, rather than EY-loss coordinate descent. PMDCCA,
+ParkhomenkoCCA and SpanCCA are one power iteration with three different thresholds.
 
 !!! tip "Choosing an ALS method"
     - **PMDCCA** — fast, interpretable L1 bound; good default for sparse CCA
     - **ADMMCCA** — more principled L1 penalty via ADMM
     - **IPLSCCA** — elastic net penalty; handles both L1 and L2 regularisation
-    - **WaijenborgCCA** — elastic net applied to the multiview sum-of-scores target
     - **ParkhomenkoCCA** — simple fixed soft-threshold; fast but less adaptive
     - **SpanCCA** — hard threshold (top-k entries); useful when sparsity level is known
     - **SAR** — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune
@@ -210,29 +210,15 @@ model = ADMMCCA(n_components=2, alpha=0.1, random_state=0).fit([X1, X2])
 
 ### IPLSCCA
 
-Uses an elastic net regression (sklearn) at each ALS step (Mai & Zhang 2019).
-`alpha` controls overall regularisation; `l1_ratio=1` gives Lasso, `l1_ratio=0` gives Ridge.
+Uses an elastic net regression (sklearn) at each ALS step, rescaled to a unit-variance score
+(Waaijenborg et al. 2008; Mai & Zhang 2019). `alpha` controls overall regularisation;
+`l1_ratio=1` gives Mai and Zhang's lasso, `l1_ratio=0.5` Waaijenborg et al.'s elastic net, and
+`l1_ratio=0` a ridge.
 
 ```python
 from cca_zoo.sparse import IPLSCCA
 
 model = IPLSCCA(n_components=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit([X1, X2])
-```
-
-### WaijenborgCCA
-
-Elastic net CCA (Waaijenborg 2008). Each weight vector is estimated by regressing
-the sum-of-all-other-view scores against the current view via elastic net. Named after
-the paper's author to disambiguate it from `ElasticNetCCA` above (a different algorithm: an
-elastic-net penalty on the actual Eckart-Young CCA loss, not an alternating-regression
-heuristic).
-
-```python
-from cca_zoo.sparse import WaijenborgCCA
-
-model = WaijenborgCCA(n_components=2, alpha=0.01, l1_ratio=0.5, random_state=0).fit(
-    [X1, X2]
-)
 ```
 
 ### ParkhomenkoCCA
@@ -263,7 +249,7 @@ model = SpanCCA(n_components=2, span=10, random_state=0).fit([X1, X2])
 ### SAR
 
 Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
-structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
+structure as IPLSCCA, but the lasso penalty at each step is picked automatically
 by BIC rather than left as a hyperparameter, so there is no `alpha`/`l1_bound`/`span` to
 tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
 requires and an OLS-based one does not (see the class docstring for why).

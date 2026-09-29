@@ -4,7 +4,7 @@ Penalised Eckart-Young models fitted by coordinate descent
 (:class:`ElasticNetCCA`, :class:`MultiTaskElasticNetCCA`,
 :class:`OrthogonalMatchingPursuitCCA`) and alternating penalised
 regressions from the literature (:class:`PMDCCA`, :class:`ADMMCCA`,
-:class:`IPLSCCA`, :class:`SpanCCA`, :class:`WaijenborgCCA`,
+:class:`IPLSCCA`, :class:`SpanCCA`,
 :class:`ParkhomenkoCCA`, :class:`SAR`).
 """
 
@@ -19,7 +19,6 @@ from cca_zoo.sparse._parkhomenko import ParkhomenkoCCA
 from cca_zoo.sparse._pmd import PMDCCA
 from cca_zoo.sparse._sar import SAR
 from cca_zoo.sparse._span import SpanCCA
-from cca_zoo.sparse._waijenborg import WaijenborgCCA
 
 __all__ = [
     "ADMMCCA",
@@ -31,5 +30,4 @@ __all__ = [
     "OrthogonalMatchingPursuitCCA",
     "ParkhomenkoCCA",
     "SpanCCA",
-    "WaijenborgCCA",
 ]

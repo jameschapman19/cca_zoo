@@ -33,6 +33,10 @@ class ParkhomenkoCCA(BaseModel):
     with $S_\alpha$ the soft-threshold and $\tilde X_i$ the standardised view.
     Weights are returned on the original feature scale.
 
+    One of three sparse PLS power iterations, with :class:`PMDCCA` and
+    :class:`SpanCCA`: each multiplies by the other views' summed score, then
+    thresholds, and they differ only in the threshold.
+
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.

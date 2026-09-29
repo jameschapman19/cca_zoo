@@ -35,6 +35,10 @@ class PMDCCA(BaseModel):
 
     Each update soft-thresholds with the level found by bisection.
 
+    One of three sparse PLS power iterations, with :class:`SpanCCA` and
+    :class:`ParkhomenkoCCA`: each multiplies by the other views' summed score,
+    then thresholds, and they differ only in the threshold.
+
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.

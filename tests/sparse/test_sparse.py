@@ -19,7 +19,6 @@ from cca_zoo.sparse import (
     OrthogonalMatchingPursuitCCA,
     ParkhomenkoCCA,
     SpanCCA,
-    WaijenborgCCA,
 )
 
 
@@ -51,7 +50,6 @@ def _signal_and_noise_columns(n: int = 200, k: int = 1) -> list[np.ndarray]:
         ParkhomenkoCCA(alpha=2.0),
         SpanCCA(span=3),
         ADMMCCA(alpha=1.0),
-        WaijenborgCCA(alpha=0.1, l1_ratio=1.0),
     ],
     ids=lambda m: type(m).__name__,
 )
@@ -142,7 +140,7 @@ def test_omp_keeps_its_budget_of_features(
             model.set_params(n_nonzero_coefs=bad).fit(correlated_views)
 
 
-@pytest.mark.parametrize("cls", [IPLSCCA, WaijenborgCCA, ADMMCCA])
+@pytest.mark.parametrize("cls", [IPLSCCA, ADMMCCA])
 def test_unpenalised_deflation_is_cca_on_every_component(cls: type) -> None:
     """At alpha=0 each deflated component is the next canonical pair."""
     rng = np.random.default_rng(0)

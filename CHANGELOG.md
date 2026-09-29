@@ -41,7 +41,7 @@ The table below gives each replacement.
 | `SCCA_ADMM`, `SCCAADMM` | `cca_zoo.sparse.ADMMCCA` |
 | `SCCA_IPLS`, `SCCAIPLS` | `cca_zoo.sparse.IPLSCCA` |
 | `SCCA_Span`, `SCCASpan` | `cca_zoo.sparse.SpanCCA` |
-| `ElasticCCA`; `cca_zoo.linear.WaijenborgCCA` | `cca_zoo.sparse.WaijenborgCCA` |
+| `ElasticCCA`; `WaijenborgCCA` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.IPLSCCA(l1_ratio=0.5)`, the same algorithm (see Removed) |
 | `cca_zoo.linear.ParkhomenkoCCA`, `cca_zoo.linear.SAR` | `cca_zoo.sparse.ParkhomenkoCCA`, `cca_zoo.sparse.SAR` |
 | `cca_zoo.linear.StochasticCCAEY` | `cca_zoo.stochastic.StochasticCCAEY` |
 | `CCA_EY`, `MCCAEY`, `MCCA_EY` | `cca_zoo.linear.CCAEY` (2 or more views) |
@@ -207,8 +207,8 @@ The table below gives each replacement.
   default `alpha` the model memorised (training correlations 0.97, held-out 0.30), and
   at `alpha >= 0.1` it returned zeros. It now holds out at 0.94, 0.91 and 0.87 where
   CCA gets 0.97, 0.91 and 0.71, and its default fit ignores the data's units.
-- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `WaijenborgCCA`,
-  `ParkhomenkoCCA`, `SAR`) start each component at the leading cross-covariance (PLS)
+- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `ParkhomenkoCCA`,
+  `SAR`) start each component at the leading cross-covariance (PLS)
   direction of the deflated views, as sklearn's PLS does, rather than at random weights.
 - `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
   `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
@@ -229,7 +229,7 @@ The table below gives each replacement.
   rounds have converged when the active sets repeat.
 - `ElasticNetCCA` and `MultiTaskElasticNetCCA` default to `max_iter=1000`, as sklearn's
   `ElasticNet`; at 100 they stopped short on ordinary data.
-- `IPLSCCA` and `WaijenborgCCA` regress by least squares at `alpha=0` rather than an
+- `IPLSCCA` regresses by least squares at `alpha=0` rather than an
   unpenalised `Lasso`, which warned on every fit.
 
 - `GCCA`'s shared latent has unit variance, so the scale of its scores no longer
@@ -327,6 +327,11 @@ The table below gives each replacement.
 
 ### Removed
 
+- `WaijenborgCCA`, which was `IPLSCCA` under another name: both regress each view on the
+  other views' summed score, normalised, so IPLS's rescaling of its own weights never
+  reached the next regression. With two views their weights had the same directions and
+  sparsity; with more, `WaijenborgCCA`'s unscaled weights let one view dominate the
+  target. Use `IPLSCCA(l1_ratio=0.5)`, whose references now include Waaijenborg et al.
 Removed outright, with no deprecation period; the table above gives each replacement.
 
 - The `weights` property, which duplicated the `weights_` attribute.

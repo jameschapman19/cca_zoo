@@ -29,7 +29,8 @@ class IPLSCCA(BaseModel):
     r"""Sparse CCA by iterative penalised least squares.
 
     Each view's weights solve an elastic-net regression onto the other views'
-    summed score, then are rescaled to a unit-variance score:
+    summed score, then are rescaled to a unit-variance score, as in
+    Waaijenborg et al.'s elastic-net CCA and Mai and Zhang's lasso version:
 
     $$
     \hat{\mathbf{w}}_i = \arg\min_{\mathbf{w}}
@@ -41,8 +42,8 @@ class IPLSCCA(BaseModel):
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
         alpha: Penalty strength. Per-view. Default is 0.
-        l1_ratio: Share of the penalty that is L1 (1 is the lasso). Per-view.
-            Default is 1.
+        l1_ratio: Share of the penalty that is L1: 1 is Mai and Zhang's lasso,
+            and Waaijenborg et al. use an elastic net. Per-view. Default is 1.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance on the change in weights. Default is 1e-6.
         random_state: Seed for the start and the lasso's coordinate order.
@@ -53,6 +54,11 @@ class IPLSCCA(BaseModel):
         n_iter_: Most iterations run by any component.
 
     References:
+        Waaijenborg, S., de Witt Hamer, P. C. V., & Zwinderman, A. H. (2008).
+        Quantifying the association between gene expressions and DNA-markers by
+        penalized canonical correlation analysis. Statistical Applications in
+        Genetics and Molecular Biology, 7(1).
+
         Mai, Q., & Zhang, X. (2019). An iterative penalized least squares
         approach to sparse canonical correlation analysis. Biometrics, 75(3),
         734-744.
