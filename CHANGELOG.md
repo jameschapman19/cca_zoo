@@ -378,6 +378,10 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- Importing `cca_zoo` imported tensorly, which prints SyntaxWarnings on Python 3.12;
+  `TCCA` now imports it when it fits. `TCCA` also switched tensorly's global backend to
+  numpy for every other user of tensorly in the process; it now does so only for its
+  own decomposition.
 - `OrthogonalMatchingPursuitCCA` stopped as soon as its active sets repeated, after as
   few as two rounds of alternating refits, so with every feature active it spanned a
   subspace at 0.40 of CCA's. Its final weights are now the exact EY optimum on the

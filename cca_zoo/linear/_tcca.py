@@ -5,9 +5,7 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 import numpy as np
-import tensorly as tl
 from numpy.typing import ArrayLike
-from tensorly.decomposition import parafac
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
@@ -87,13 +85,15 @@ class TCCA(BaseModel):
 
         M = cross_moment_tensor(whitened)
 
-        tl.set_backend("numpy")
-        parafac_result = parafac(
-            M,
-            self.n_components,
-            verbose=False,
-            random_state=self.random_state,
-        )
+        # Imported here: importing tensorly prints SyntaxWarnings on Python
+        # 3.12, which every user of cca_zoo would otherwise see.
+        import tensorly as tl
+        from tensorly.decomposition import parafac
+
+        with tl.backend_context("numpy"):
+            parafac_result = parafac(
+                M, self.n_components, verbose=False, random_state=self.random_state
+            )
         self.weights_: list[np.ndarray] = [
             cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
         ]

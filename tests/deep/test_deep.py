@@ -33,8 +33,9 @@ from cca_zoo.deep import (
     SplitAE,
     VICReg,
 )
+from cca_zoo.deep._dcca_ey import _cca_cv
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
-from cca_zoo.linear import CCA
+from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
 from cca_zoo.metrics import pairwise_correlations
 
 pytestmark = pytest.mark.slow
@@ -294,15 +295,111 @@ def test_encoder_widths_are_checked() -> None:
         private.loss({"views": [torch.randn(4, p) for p in P]})
 
 
-def test_objectives_are_scalars() -> None:
-    """Each loss returns a scalar; CCALoss is non-positive and two-view only."""
-    two = [torch.randn(16, 4) for _ in range(2)]
-    three = [torch.randn(16, 4) for _ in range(3)]
-    assert float(CCALoss(eps=1e-4)(two)) <= 0.0
-    for loss in (MCCALoss(eps=1e-4), GCCALoss(eps=1e-4), TCCALoss(eps=1e-4)):
-        assert loss(three).ndim == 0
+def _linear_views(n_views: int) -> list[np.ndarray]:
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((500, 3)) * [3, 2, 1]
+    return [
+        z @ rng.standard_normal((3, p)) + rng.standard_normal((500, p))
+        for p in (6, 5, 4)[:n_views]
+    ]
+
+
+def _ey_loss(representations: list[torch.Tensor]) -> torch.Tensor:
+    """DCCAEY's objective."""
+    c, v = _cca_cv(representations)
+    return -torch.trace(2.0 * c) + torch.trace(v @ v)
+
+
+def _minimised_over_linear_encoders(
+    loss: Callable[[list[torch.Tensor]], torch.Tensor],
+    views: list[np.ndarray],
+    k: int,
+) -> list[np.ndarray]:
+    """The encodings of the linear maps minimising ``loss``, by full-batch L-BFGS."""
+    torch.manual_seed(0)
+    xs = [torch.tensor(v - v.mean(axis=0)) for v in views]
+    weights = [
+        torch.randn(x.shape[1], k, dtype=x.dtype, requires_grad=True) for x in xs
+    ]
+    optimiser = torch.optim.LBFGS(
+        weights,
+        max_iter=5000,
+        tolerance_grad=1e-12,
+        tolerance_change=1e-15,
+        line_search_fn="strong_wolfe",
+    )
+
+    def closure() -> torch.Tensor:
+        optimiser.zero_grad()
+        value = loss([x @ w for x, w in zip(xs, weights)])
+        value.backward()
+        return value
+
+    for _ in range(5):
+        optimiser.step(closure)
+    return [(x @ w).detach().numpy() for x, w in zip(xs, weights)]
+
+
+def _same_subspace(a: list[np.ndarray], b: list[np.ndarray]) -> None:
+    for x, y in zip(a, b):
+        qx = np.linalg.qr(x - x.mean(axis=0))[0]
+        qy = np.linalg.qr(y - y.mean(axis=0))[0]
+        np.testing.assert_allclose(
+            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=1e-4
+        )
+
+
+@pytest.mark.parametrize(
+    ("loss", "linear", "n_views"),
+    [
+        (CCALoss(eps=1e-10), CCA(2), 2),
+        (MCCALoss(eps=1e-10), CCA(2), 2),
+        (_ey_loss, CCA(2), 2),
+        (_ey_loss, MCCA(2), 3),
+        (GCCALoss(eps=1e-10), GCCA(2), 3),
+    ],
+    ids=["CCALoss", "MCCALoss", "EY", "EY-3-views", "GCCALoss"],
+)
+def test_linear_encoders_minimising_a_loss_are_its_linear_model(
+    loss: Callable[[list[torch.Tensor]], torch.Tensor],
+    linear: object,
+    n_views: int,
+) -> None:
+    """Each deep objective, over linear encoders, is minimised by its linear model."""
+    views = _linear_views(n_views)
+    _same_subspace(
+        _minimised_over_linear_encoders(loss, views, 2),
+        linear.fit(views).transform(views),  # type: ignore[attr-defined]
+    )
+
+
+def test_tcca_attains_the_minimum_of_its_loss() -> None:
+    """No linear encoding scores below TCCA's on TCCALoss.
+
+    The tensor loss has local minima, so a single descent may stop above it.
+    """
+    views = _linear_views(3)
+    loss = TCCALoss(eps=1e-10)
+    tcca = [
+        torch.tensor(z) for z in TCCA(1, random_state=0).fit(views).transform(views)
+    ]
+    descended = [
+        torch.tensor(z) for z in _minimised_over_linear_encoders(loss, views, 1)
+    ]
+    assert float(loss(tcca)) <= float(loss(descended)) + 1e-8
+
+
+def test_cca_loss_is_minus_the_squared_canonical_correlations() -> None:
+    """At CCA's scores, whatever each view's invertible mixing of them."""
+    views = _linear_views(2)
+    model = CCA(2).fit(views)
+    scores = [torch.tensor(z) for z in model.transform(views)]
+    squared = np.sum(pairwise_correlations(model.transform(views))[0, 1] ** 2)
+    mixing = torch.tensor(np.random.default_rng(1).standard_normal((2, 2)))
+    for pair in (scores, [scores[0] @ mixing, scores[1]]):
+        assert float(CCALoss(eps=1e-10)(pair)) == pytest.approx(-squared, abs=1e-8)
     with pytest.raises(ValueError, match="exactly 2"):
-        CCALoss()(three)
+        CCALoss()([scores[0]] * 3)
 
 
 def _confounded_views(n: int = 1500) -> tuple[list[np.ndarray], np.ndarray, np.ndarray]:
