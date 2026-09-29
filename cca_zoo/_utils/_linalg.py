@@ -126,6 +126,33 @@ def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
     return xp.flip(eigvals[-k:], axis=0), xp.flip(eigvecs[:, -k:], axis=1)
 
 
+def loading(view: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    """Regression of a view's columns on its score, ``X' X w / ||X w||^2``.
+
+    What :func:`deflate` removes from the view, per unit of score.
+    """
+    score = view @ weight
+    return np.asarray(view.T @ score / max(float(score @ score), 1e-12))
+
+
+def undeflated_weights(weights: np.ndarray, loadings: np.ndarray) -> np.ndarray:
+    """Weights giving deflated-view scores from the original view, ``W (P'W)^-1``.
+
+    Component ``d`` of ``weights`` acts on the view deflated by the earlier
+    components, whose :func:`loading` is column ``d`` of ``loadings``; the
+    result gives the same scores from the undeflated view, as sklearn's PLS
+    ``x_rotations_``, and is supported on the union of ``weights``' supports.
+
+    Args:
+        weights: Shape (n_features, n_components).
+        loadings: Shape (n_features, n_components).
+
+    Returns:
+        Shape (n_features, n_components).
+    """
+    return np.asarray(weights @ np.linalg.pinv(loadings.T @ weights))
+
+
 def soft_threshold(x: np.ndarray, threshold: float) -> np.ndarray:
     """Soft thresholding, ``sign(x) * max(|x| - threshold, 0)``."""
     return np.asarray(np.sign(x) * np.maximum(np.abs(x) - threshold, 0.0))

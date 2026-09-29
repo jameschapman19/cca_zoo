@@ -16,7 +16,7 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._linalg import deflate
+from cca_zoo._utils._linalg import deflate, loading, undeflated_weights
 from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 
 IndexFn = Callable[[np.ndarray, np.ndarray], float]
@@ -247,17 +247,20 @@ class ProjectionPursuitCCA(BaseModel):
         index_fn = self._make_index_fn(rng)
         pairs = list(combinations(range(self.n_views_), 2))
 
-        weights: list[np.ndarray] = [
-            np.zeros((p, self.n_components)) for p in self.n_features_per_view_
-        ]
+        shape = [(p, self.n_components) for p in self.n_features_per_view_]
+        deflated_weights = [np.zeros(s) for s in shape]
+        loadings = [np.zeros(s) for s in shape]
         deflated = [v.copy() for v in views_]
         self.n_iter_: int = 0
         for d in range(self.n_components):
             directions, n_iter = self._fit_directions(deflated, pairs, index_fn, rng)
             self.n_iter_ = max(self.n_iter_, n_iter)
-            for i, a in enumerate(directions):
-                weights[i][:, d] = a
+            for i, (view, a) in enumerate(zip(deflated, directions)):
+                deflated_weights[i][:, d] = a
+                loadings[i][:, d] = loading(view, a)
             deflated = deflate(deflated, directions)
         warn_if_not_converged(self, self.n_iter_ < self.max_iter)
-        self.weights_ = weights
+        self.weights_ = [
+            undeflated_weights(w, p) for w, p in zip(deflated_weights, loadings)
+        ]
         return self._finish_fit(views_)

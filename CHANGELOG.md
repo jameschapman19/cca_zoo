@@ -187,8 +187,11 @@ The table below gives each replacement.
   `OrthogonalMatchingPursuitCCA` and `MultiTaskElasticNetCCA` found the right subspace in
   an arbitrary rotation, with components unordered and of either sign; they now rotate
   onto the eigenvectors of the k x k reward, which leaves the loss (and row-wise
-  penalties) unchanged. `ElasticNetCCA`, whose elementwise penalty rules out a rotation,
-  orders its components by reward.
+  penalties) unchanged. The tree models do the same, keeping the rotation in `rotation_`,
+  and so does `ProbabilisticCCA`, whose likelihood and isotropic prior are equally
+  invariant. `ElasticNetCCA`, whose elementwise penalty rules out a rotation, and
+  `VariationalBayesCCA`, whose ARD prior tells components apart, order theirs by reward
+  (the latter with `ard_precision_`).
 - The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `WaijenborgCCA`,
   `ParkhomenkoCCA`, `SAR`) start each component at the leading cross-covariance (PLS)
   direction of the deflated views, as sklearn's PLS does, rather than at random weights.
@@ -326,13 +329,15 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
-- The deflation models' later components did not reproduce their fitted scores:
+- The deflation models' (and `ProjectionPursuitCCA`'s) later components did not
+  reproduce their fitted scores:
   component d's weights were found on views deflated by the earlier scores but applied
   to the original views, adding an arbitrary multiple of those scores. At `alpha=0`,
   `IPLSCCA`'s second canonical correlation came out as -0.03 instead of 0.71. Weights
   are now `W (P'W)^-1`, as sklearn's PLS `x_rotations_`, which give the deflated scores
   from the original views and keep the union of the components' supports; unpenalised,
-  every component matches MCCA's.
+  every component matches MCCA's, and `ProjectionPursuitCCA`'s later correlations on
+  Gaussian data rose from about 0.2 to MCCA's 0.7.
 - `SAR` could return all-zero components on a strong signal: from a random start, the
   first lasso could select nothing, and a zero target keeps every later one at zero.
 

@@ -12,7 +12,11 @@ from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._ey import ey_grad_z, random_orthogonal_embedding
+from cca_zoo._utils._ey import (
+    canonical_rotation,
+    ey_grad_z,
+    random_orthogonal_embedding,
+)
 from cca_zoo._utils._param_constraints import (
     FRACTION_PER_VIEW,
     NONNEGATIVE_PER_VIEW,
@@ -224,6 +228,9 @@ class TreeCCA(BaseModel, ABC):
 
     Attributes:
         boosters_: Per view, one fitted booster per latent dimension.
+        rotation_: Orthogonal (n_components, n_components) rotation of the
+            boosters' outputs ordering the components, as
+            :func:`~cca_zoo._utils._ey.canonical_rotation`.
 
     References:
         Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
@@ -367,12 +374,16 @@ class TreeCCA(BaseModel, ABC):
                     grads = _boosting_targets(representations)
 
         self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
+        self.rotation_ = canonical_rotation(
+            [enc.predict().astype(np.float64) for enc in encoders]
+        )
         return self._finish_fit(views_)
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        scores: np.ndarray = self._predict_boosters(
-            self.boosters_[view], centred
-        ).astype(np.float64)
+        scores: np.ndarray = (
+            self._predict_boosters(self.boosters_[view], centred).astype(np.float64)
+            @ self.rotation_
+        )
         return scores
 
 

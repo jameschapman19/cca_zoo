@@ -20,6 +20,7 @@ from cca_zoo.linear import (
 from cca_zoo.linear._projection_pursuit_cca import spearman_projection_index
 from cca_zoo.linear._trimmed_cca import _per_sample_terms, _select
 from cca_zoo.linear.gradient._huber_cca import _huber_sample_weight, _weighted_ey
+from cca_zoo.metrics import pairwise_correlations
 
 
 def _contaminated(kind: str, fraction: float, noise: float = 0.6) -> tuple[list, list]:
@@ -179,3 +180,18 @@ def test_spearman_index_is_rank_correlation() -> None:
     u = np.arange(20.0)
     assert spearman_projection_index(u, u**3) == pytest.approx(1.0)
     assert spearman_projection_index(np.zeros(10), np.arange(10.0)) == 0.0
+
+
+def test_projection_pursuit_components_track_cca_on_gaussian_data() -> None:
+    """On Gaussian data rank correlation tracks Pearson's, component by component."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 2)) * [3, 1.5]
+    views = [
+        z @ rng.standard_normal((2, p)) + rng.standard_normal((300, p)) for p in (4, 3)
+    ]
+    robust = ProjectionPursuitCCA(n_components=2, n_init=3, random_state=0)
+    np.testing.assert_allclose(
+        pairwise_correlations(robust.fit(views).transform(views))[0, 1],
+        pairwise_correlations(MCCA(n_components=2).fit(views).transform(views))[0, 1],
+        atol=0.02,
+    )

@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 import numpy as np
 from numpy.typing import ArrayLike
 
+from cca_zoo._utils._ey import ey_cross_covariance
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT, RANDOM_STATE
 from cca_zoo.probabilistic._utils import BaseProbabilistic, _integer_seed
 
@@ -187,6 +188,13 @@ class VariationalBayesCCA(BaseProbabilistic):
         self.weights_: list[np.ndarray] = [
             self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
+        # The ARD prior tells the components apart, so they may be permuted
+        # into order of reward, with their precisions, but not rotated.
+        scores = [self._transform_view(i, v) for i, v in enumerate(validated)]
+        reward, _ = ey_cross_covariance(scores)
+        order = np.argsort(-np.diag(reward), kind="stable")
+        self._rotate_components(np.eye(self.n_components)[:, order])
+        self.posterior_samples_["alpha"] = self.posterior_samples_["alpha"][:, order]
         # Posterior mean ARD precision per latent dimension: larger means
         # "more shrunk / less relevant".
         self.ard_precision_: np.ndarray = self.posterior_samples_["alpha"].mean(axis=0)

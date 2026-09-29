@@ -152,6 +152,18 @@ class BaseProbabilistic(BaseModel):
         encoder: np.ndarray = scaled @ np.linalg.inv(np.eye(w.shape[1]) + w.T @ scaled)
         return encoder
 
+    def _rotate_components(self, rotation: np.ndarray) -> None:
+        """Rotate the latent space: every draw of ``W_i`` and ``z`` times ``rotation``.
+
+        With ``rotation`` orthogonal, and a permutation when the prior tells
+        the components apart, the posterior is unchanged.
+        """
+        for site in [*(f"W_{i}" for i in range(self.n_views_)), "z"]:
+            self.posterior_samples_[site] = self.posterior_samples_[site] @ rotation
+        self.weights_ = [
+            self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
+        ]
+
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         """Posterior mean of the latent given this view alone."""
         scores: np.ndarray = centred @ self._encoder(view)

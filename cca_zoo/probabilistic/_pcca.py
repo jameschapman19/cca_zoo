@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 import numpy as np
 from numpy.typing import ArrayLike
 
+from cca_zoo._utils._ey import canonical_rotation
 from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 from cca_zoo.probabilistic._utils import (
     BaseProbabilistic,
@@ -169,4 +170,7 @@ class ProbabilisticCCA(BaseProbabilistic):
         self.weights_: list[np.ndarray] = [
             self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
+        # The aligned draws share an arbitrary rotation; order the components.
+        scores = [self._transform_view(i, v) for i, v in enumerate(validated)]
+        self._rotate_components(canonical_rotation(scores))
         return self._finish_fit(validated)

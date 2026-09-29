@@ -13,7 +13,12 @@ from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge, las
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._linalg import deflate, soft_threshold
+from cca_zoo._utils._linalg import (
+    deflate,
+    loading,
+    soft_threshold,
+    undeflated_weights,
+)
 from cca_zoo._utils._param_constraints import (
     FRACTION_PER_VIEW,
     NONNEGATIVE_PER_VIEW,
@@ -93,16 +98,12 @@ class _BaseIterative(BaseModel):
             self.n_iter_ = max(self.n_iter_, n_iter)
             all_converged = all_converged and converged
             for i, (view, wi) in enumerate(zip(deflated, w)):
-                score = view @ wi
                 deflated_weights[i][:, d] = wi
-                loadings[i][:, d] = view.T @ score / max(score @ score, 1e-12)
+                loadings[i][:, d] = loading(view, wi)
             deflated = deflate(deflated, w)
         warn_if_not_converged(self, all_converged)
-        # Each component's weights act on views deflated by the earlier
-        # scores; W (P'W)^-1 gives the same scores from the original views,
-        # as sklearn's PLS x_rotations_, supported on the union of W's supports.
         self.weights_: list[np.ndarray] = [
-            w @ np.linalg.pinv(p.T @ w) for w, p in zip(deflated_weights, loadings)
+            undeflated_weights(w, p) for w, p in zip(deflated_weights, loadings)
         ]
         return self._finish_fit(views_)
 
