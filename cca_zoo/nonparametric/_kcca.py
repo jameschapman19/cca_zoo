@@ -88,4 +88,5 @@ class KCCA(_BaseKernelModel):
         linear = MCCA(self.n_components, center=False, shrinkage=self.shrinkage)
         features, projections = self._feature_maps(views_)
         self._set_weights(projections, linear.fit(features).weights_)
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

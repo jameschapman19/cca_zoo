@@ -290,7 +290,8 @@ class GAMCCA(BaseModel):
             enc.coef_ = enc.constraint_ @ lift_i @ coef
 
         self.encoders_: list[_GamEncoder] = encoders
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         return self.encoders_[view].predict_new(centred)

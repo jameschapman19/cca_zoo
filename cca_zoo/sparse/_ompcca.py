@@ -11,8 +11,13 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import omp_coordinate_descent_ey
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, ey_loss
 from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
+from cca_zoo.sparse._coordinate_descent import (
+    ey_quartic,
+    minimise_quartic,
+    others_covariance,
+)
 
 
 class OrthogonalMatchingPursuitCCA(BaseModel):
@@ -114,16 +119,96 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
                 than ``n_components``.
         """
         views_ = self._setup_fit(views)
-        n_nonzero_coefs = self._resolve_n_nonzero_coefs(self.n_features_per_view_)
+        budgets = self._resolve_n_nonzero_coefs(self.n_features_per_view_)
         rng = np.random.default_rng(self.random_state)
-        weights, self.n_iter_, converged = omp_coordinate_descent_ey(
-            bases=views_,
-            k=self.n_components,
-            n_nonzero_coefs=n_nonzero_coefs,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            rng=rng,
+        # A dense start: all-zero scores are a stationary point of the EY
+        # loss, with no gradient to select features by.
+        weights = cheap_orthonormal_projection_weights(
+            views_, self.n_components, None, rng
         )
+        scores = [v @ w for v, w in zip(views_, weights)]
+        active_sets: list[list[int]] = []
+        converged = False
+        for n_iter in range(1, self.max_iter + 1):
+            previous, active_sets = (
+                active_sets,
+                [
+                    self._regrow(views_, weights, scores, i, budget)
+                    for i, budget in enumerate(budgets)
+                ],
+            )
+            if active_sets == previous:
+                converged = True
+                break
+        self.n_iter_: int = n_iter
         warn_if_not_converged(self, converged)
         self.weights_: list[np.ndarray] = weights
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
+
+    def _regrow(
+        self,
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        scores: list[np.ndarray],
+        i: int,
+        budget: int,
+    ) -> list[int]:
+        """Regrow view ``i``'s active set from empty, as OMP grows its support.
+
+        Each step adds the feature with the largest EY gradient, then refits
+        the active weights by exact coordinate descent until the loss
+        settles. Updates ``weights[i]`` and ``scores[i]`` in place.
+
+        Returns:
+            The active set, sorted.
+        """
+        view, w, z = views[i], weights[i], scores[i]
+        k = self.n_components
+        a0 = 1.0 / (len(views) * (len(view) - 1))
+        w[:] = 0.0
+        z[:] = 0.0
+        total = np.sum(scores, axis=0)
+        v_other = others_covariance(scores, i, a0)
+        sq_norms = np.sum(view**2, axis=0)
+        zero = np.zeros(k)
+
+        def gradient_norm(j: int) -> float:
+            """Norm of the EY gradient in feature ``j``'s (zero) weights.
+
+            Each component's slope at zero is its quartic's linear coefficient.
+            """
+            xj = view[:, j]
+            quartics = (
+                ey_quartic(xj, sq_norms[j], a0, z, total, v_other, zero, c, k)
+                for c in range(k)
+            )
+            return float(np.linalg.norm([c1 for *_, c1 in quartics]))
+
+        active: list[int] = []
+        inactive = [j for j in range(view.shape[1]) if sq_norms[j] >= 1e-12]
+        for _ in range(min(budget, len(inactive))):
+            best = max(inactive, key=gradient_norm)
+            active.append(best)
+            inactive.remove(best)
+            previous = np.inf
+            for _ in range(_REFIT_SWEEPS):
+                for j in active:
+                    xj = view[:, j]
+                    for c in range(k):
+                        c4, c3, c2, c1 = ey_quartic(
+                            xj, sq_norms[j], a0, z, total, v_other, w[j], c, k
+                        )
+                        step = minimise_quartic(c4, c3, c2, c1, lasso=0.0) - w[j, c]
+                        w[j, c] += step
+                        z[:, c] += xj * step
+                        total[:, c] += xj * step
+                loss = ey_loss(scores)["objective"]
+                if abs(previous - loss) < self.tol:
+                    break
+                previous = loss
+        return sorted(active)
+
+
+# Most coordinate-descent sweeps refitting the active set after each addition.
+_REFIT_SWEEPS = 20

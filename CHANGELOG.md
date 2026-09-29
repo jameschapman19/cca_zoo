@@ -182,6 +182,20 @@ The table below gives each replacement.
 
 ### Changed
 
+- Each sparse model's algorithm reads in its own `fit`. The seven alternating models,
+  which shared one 1000-line module through a base class with `_fit_single` and
+  `_update_weight` hooks (one of them unused by ADMM, and bypassed by SAR), each have
+  their own module; their shared parts are the named pieces in `sparse/_deflation.py`:
+  `Deflation`, `pls_direction`, `others_score` and `elastic_net`. `ElasticNetCCA`,
+  `MultiTaskElasticNetCCA` and `OrthogonalMatchingPursuitCCA` carry their own solvers
+  rather than calling into `_utils/_ey.py`, which keeps the EY loss and closed forms and
+  shrinks from 943 lines to 432. Fits are unchanged to rounding, except
+  `ParkhomenkoCCA`, which starts on the standardised views it iterates on and reaches
+  the same weights (to its tolerance) sooner.
+- `SpanCCA`'s default `span=None` keeps every feature of each view; it had kept as many
+  as the first view has, capping a wider second view.
+- The post-fit pass every model runs is `_fit_maps_and_importances`, named for what it
+  does, where it was `_finish_fit`.
 - `CCAR3` and `ECCA` whiten with `n - 1`, as every other model's covariance does.
 - `GaussianProcessCCA`'s default kernel takes its length scale from the data,
   `sqrt(n_features * X.var() / 2)`, as sklearn's `gamma="scale"`, rather than 1. On data

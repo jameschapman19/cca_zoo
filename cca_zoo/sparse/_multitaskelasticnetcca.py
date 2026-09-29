@@ -11,9 +11,14 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import group_coordinate_descent_ey
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, ey_loss
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
+from cca_zoo.sparse._coordinate_descent import (
+    PENALTY_PATH,
+    ey_quartic,
+    others_covariance,
+)
 
 
 class MultiTaskElasticNetCCA(BaseModel):
@@ -93,18 +98,125 @@ class MultiTaskElasticNetCCA(BaseModel):
             self.
         """
         views_ = self._setup_fit(views)
-        alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
-        l1_ratio_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
+        alpha = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
+        l1_ratio = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
         rng = np.random.default_rng(self.random_state)
-        weights, self.n_iter_, converged = group_coordinate_descent_ey(
-            bases=views_,
-            k=self.n_components,
-            alpha=alpha_,
-            l1_ratio=l1_ratio_,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            rng=rng,
+        weights = cheap_orthonormal_projection_weights(
+            views_, self.n_components, None, rng
         )
+        for scale in PENALTY_PATH:
+            self.n_iter_, converged = self._proximal_descent(
+                views_, weights, [a * scale for a in alpha], l1_ratio
+            )
         warn_if_not_converged(self, converged)
+        # All-zero weights have loss zero, so a fit ending above it has none.
+        if self._objective(views_, weights, alpha, l1_ratio) > 0.0:
+            weights = [np.zeros_like(w) for w in weights]
         self.weights_: list[np.ndarray] = weights
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
+
+    def _proximal_descent(
+        self,
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        alpha: list[float],
+        l1_ratio: list[float],
+    ) -> tuple[int, bool]:
+        """Cyclic proximal-gradient steps on each feature's row, in place.
+
+        A row's restriction is a coupled quartic with no closed-form
+        minimiser, so each row takes a group-soft-thresholded gradient step,
+        backtracking until the EY loss is below its quadratic upper bound at
+        the step. Accepting any step that lowers the penalised objective
+        instead lets a row jump to zero past a nonzero minimum.
+
+        Returns:
+            The sweeps run, and whether the objective settled within ``tol``.
+        """
+        n = views[0].shape[0]
+        k = self.n_components
+        a0 = 1.0 / (len(views) * (n - 1))
+        lasso = [a * r for a, r in zip(alpha, l1_ratio)]
+        ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
+        scores = [v @ w for v, w in zip(views, weights)]
+        total = np.sum(scores, axis=0)
+        loss = ey_loss(scores)["objective"]
+        previous = np.inf
+        for n_iter in range(1, self.max_iter + 1):
+            for i, (view, w) in enumerate(zip(views, weights)):
+                v_other = others_covariance(scores, i, a0)
+                for j, xj in enumerate(view.T):
+                    a = xj @ xj
+                    if a < 1e-12:
+                        continue
+                    row = w[j].copy()
+                    gradient = np.empty(k)
+                    for c in range(k):
+                        c4, c3, c2, c1 = ey_quartic(
+                            xj, a, a0, scores[i], total, v_other, row, c, k
+                        )
+                        x = row[c]
+                        gradient[c] = 4 * c4 * x**3 + 3 * c3 * x**2 + 2 * c2 * x + c1
+                    curvature = max(a0 * a, 1e-6)
+                    for _ in range(_MAX_BACKTRACK):
+                        denom = curvature + ridge[i]
+                        step = (
+                            _group_soft_threshold(
+                                (curvature * row - gradient) / denom, lasso[i] / denom
+                            )
+                            - row
+                        )
+                        change = np.outer(xj, step)
+                        scores[i] += change
+                        total += change
+                        trial = ey_loss(scores)["objective"]
+                        bound = loss + gradient @ step + curvature * (step @ step) / 2
+                        if trial <= bound + 1e-12:
+                            w[j] = row + step
+                            loss = trial
+                            break
+                        scores[i] -= change
+                        total -= change
+                        curvature *= 2.0
+            objective = loss + self._penalty(weights, alpha, l1_ratio)
+            if abs(previous - objective) < self.tol:
+                return n_iter, True
+            previous = objective
+        return self.max_iter, False
+
+    @staticmethod
+    def _penalty(
+        weights: list[np.ndarray], alpha: list[float], l1_ratio: list[float]
+    ) -> float:
+        """Each view's row-group elastic-net penalty, summed."""
+        return float(
+            sum(
+                a * r * np.sum(np.linalg.norm(w, axis=1))
+                + a * (1.0 - r) * np.sum(w**2) / 2
+                for w, a, r in zip(weights, alpha, l1_ratio)
+            )
+        )
+
+    def _objective(
+        self,
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        alpha: list[float],
+        l1_ratio: list[float],
+    ) -> float:
+        """The EY loss plus the penalty."""
+        scores = [v @ w for v, w in zip(views, weights)]
+        return float(
+            ey_loss(scores)["objective"] + self._penalty(weights, alpha, l1_ratio)
+        )
+
+
+# Most halvings of a row's step before its update is abandoned.
+_MAX_BACKTRACK = 40
+
+
+def _group_soft_threshold(u: np.ndarray, threshold: float) -> np.ndarray:
+    """``u`` shrunk towards zero by ``threshold`` in norm, the group lasso's prox."""
+    norm = float(np.linalg.norm(u))
+    return max(0.0, 1.0 - threshold / norm) * u if norm > 1e-15 else np.zeros_like(u)

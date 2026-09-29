@@ -83,7 +83,7 @@ class BaseModel(BaseEstimator, ABC):
     """Base class for multiview CCA models.
 
     Subclasses implement :meth:`fit`, starting with :meth:`_setup_fit` and
-    ending with :meth:`_finish_fit`. A linear model sets ``weights_``; a
+    ending with :meth:`_fit_maps_and_importances`. A linear model sets ``weights_``; a
     nonlinear model overrides :meth:`_transform_view`, its per-view encoder.
     ``transform``, ``predict``, ``inverse_transform``, ``score`` and
     ``feature_importances_per_view_`` are built on that encoder.
@@ -214,12 +214,13 @@ class BaseModel(BaseEstimator, ABC):
             validated = _weighted_pseudo_rows(validated, weights)
         return validated
 
-    def _finish_fit(self: _Model, views: list[np.ndarray]) -> _Model:
-        """Record what later calls need from the centred training views.
+    def _fit_maps_and_importances(self, views: list[np.ndarray]) -> None:
+        """Fit what ``predict``, ``inverse_transform`` and the importances need.
 
-        ``predict`` and ``inverse_transform`` regress the training views on
-        their latent scores; the maps and the importances are computed here so
-        that the fitted model does not keep the training data.
+        The one pass over the centred training views after a model's own
+        algorithm: least-squares maps from each view's scores, and from the
+        shared latent, back to the views, and ``feature_importances_per_view_``.
+        Computing them here means the fitted model keeps no training data.
         """
         own_scores = [self._transform_view(i, v) for i, v in enumerate(views)]
         self.n_components_: int = own_scores[0].shape[1]
@@ -236,7 +237,6 @@ class BaseModel(BaseEstimator, ABC):
             self.feature_importances_per_view_.append(
                 positive / total if total > 0 else positive
             )
-        return self
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
         """View ``i`` as a validated array with the width and names seen in fit."""

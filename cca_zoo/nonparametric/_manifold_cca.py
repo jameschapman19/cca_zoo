@@ -370,7 +370,8 @@ class ManifoldCCA(BaseModel):
         self._lle_state_: list[NearestNeighbors] | None = (
             lle_nn if self.method == "lle" else None
         )
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         v_train = self.views_fit_[view]

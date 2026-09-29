@@ -101,4 +101,5 @@ class RidgeCCA(BaseModel):
         k = min(self.n_components, X1_w.shape[1], X2_w.shape[1])
         U, _, Vt = xp.linalg.svd(X1_w.T @ X2_w / (X1.shape[0] - 1), full_matrices=False)
         self.weights_: list[Any] = [W1 @ U[:, :k], W2 @ Vt[:k, :].T]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

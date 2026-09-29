@@ -100,10 +100,11 @@ All contributions must comply with the following:
 2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep). This gets you
    `transform`, `fit_transform`, `predict`, `inverse_transform`, `score`, and correct
    sklearn `get_params`/`set_params`/tags for free. Implement `fit`, starting with
-   `views = self._setup_fit(views)` and ending with `return self._finish_fit(views)`, and
+   `views = self._setup_fit(views)` and ending with
+   `self._fit_maps_and_importances(views)` then `return self`, and
    set `weights_` for a linear model; a nonlinear one overrides
    `_transform_view(view, centred)`, its per-view encoder, which every other method goes
-   through. `_finish_fit` records what `predict`, `inverse_transform` and
+   through. `_fit_maps_and_importances` records what `predict`, `inverse_transform` and
    `feature_importances_per_view_` need, so the model does not keep its training data.
    Override `_feature_importances(views)` if the model has a native importance (one
    non-negative array per view); otherwise permutation importance is used.

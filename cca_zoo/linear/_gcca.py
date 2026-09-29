@@ -109,4 +109,5 @@ class GCCA(BaseModel):
         # the number of samples.
         T = U[:, : self.n_components] * math.sqrt(self.n_samples_ - 1)
         self.weights_: list[Any] = [xp.linalg.pinv(v) @ T for v in views_]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

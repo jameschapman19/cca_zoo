@@ -169,4 +169,5 @@ class ProbabilisticCCA(BaseProbabilistic):
         self.weights_: list[np.ndarray] = [
             self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
-        return self._finish_fit(validated)
+        self._fit_maps_and_importances(validated)
+        return self

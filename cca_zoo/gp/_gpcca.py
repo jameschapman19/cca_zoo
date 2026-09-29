@@ -212,7 +212,8 @@ class GaussianProcessCCA(BaseModel):
             enc.coef_ = enc._nystroem @ coef
 
         self.encoders_: list[_GpEncoder] = encoders
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def posterior_std(self, views: list[ArrayLike]) -> list[np.ndarray]:
         """Posterior standard deviation of each view's latent scores.

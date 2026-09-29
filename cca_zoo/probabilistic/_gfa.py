@@ -283,4 +283,5 @@ class GFA(BaseProbabilistic):
         self.weights_: list[np.ndarray] = q.w
         self.ard_precision_: np.ndarray = np.array(q.alpha)
         self.posterior_samples_ = q.sample(rng, self.n_posterior_samples)
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

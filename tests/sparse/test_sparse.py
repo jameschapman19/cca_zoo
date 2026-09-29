@@ -207,16 +207,15 @@ def test_admm_update_solves_the_papers_problem() -> None:
     """
     rng = np.random.default_rng(1)
     X, target, alpha = rng.standard_normal((60, 15)), rng.standard_normal(60) * 0.5, 0.2
-    model = ADMMCCA(
-        alpha=alpha, max_iter=1, admm_iter=20_000, tol=1e-14, random_state=0
-    )
-    w = [np.zeros(15), np.array([1.0])]
-    model._fit_single([X, target[:, None]], w)
-    score = X @ w[0]
+    model = ADMMCCA(admm_iter=20_000, tol=1e-14)
+    step = 1.0 / np.linalg.norm(X, ord=2) ** 2
+    c = X.T @ target
+    w, _, _ = model._admm_block(X, c, alpha, step, np.zeros(15), *np.zeros((2, 60)))
+    score = X @ w
     assert np.linalg.norm(score) > 0.99  # the constraint is active
-    active = np.abs(w[0]) > 1e-6
-    c, grad = X.T @ target, X.T @ score / np.linalg.norm(score)
-    duals = (c[active] - alpha * np.sign(w[0][active])) / grad[active]
+    active = np.abs(w) > 1e-6
+    grad = X.T @ score / np.linalg.norm(score)
+    duals = (c[active] - alpha * np.sign(w[active])) / grad[active]
     np.testing.assert_allclose(duals, duals.mean(), rtol=1e-3)
     assert duals.mean() > 0
     assert np.all(np.abs(c[~active] - duals.mean() * grad[~active]) <= alpha + 1e-3)

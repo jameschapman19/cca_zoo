@@ -736,7 +736,8 @@ class MARSCCA(BaseModel):
             _MarsEncoder(t, raw.mean(axis=0), coef)
             for t, raw, coef in zip(terms, raw_bases, coefficients)
         ]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _forward_pass(
         self, views: list[np.ndarray], alpha: list[float]

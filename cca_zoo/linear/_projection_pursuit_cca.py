@@ -263,4 +263,5 @@ class ProjectionPursuitCCA(BaseModel):
         self.weights_ = [
             undeflated_weights(w, p) for w, p in zip(deflated_weights, loadings)
         ]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

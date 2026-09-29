@@ -142,4 +142,5 @@ class CCAR3(BaseModel):
             B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self._EPS
         )
         self.weights_: list[np.ndarray] = [U, V]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

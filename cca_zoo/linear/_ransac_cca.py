@@ -169,4 +169,5 @@ class RANSACCCA(BaseModel):
         self.weights_: list[np.ndarray] = final.weights_
         self.inlier_mask_: np.ndarray = best_mask
         self.n_trials_: int = trial
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

@@ -119,7 +119,8 @@ class MCCA(BaseModel):
         if self.pca:
             weights = [m.components_.T @ w for m, w in zip(pca_models, weights)]
         self.weights_: list[Any] = weights
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     # ------------------------------------------------------------------
     # Matrix construction helpers (overridable by subclasses)

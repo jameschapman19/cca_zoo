@@ -97,7 +97,8 @@ class TCCA(BaseModel):
         self.weights_: list[np.ndarray] = [
             cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
         ]
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _whiten_views(
         self,

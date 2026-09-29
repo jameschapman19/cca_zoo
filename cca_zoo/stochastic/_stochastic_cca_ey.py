@@ -109,7 +109,8 @@ class StochasticCCAEY(CCAEY):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_sgd(views_, rng)
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator

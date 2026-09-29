@@ -101,7 +101,8 @@ class CCAEY(BaseFullBatchEYModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._fit_lbfgsb(views_, rng)
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
 
     def _weight_scale(self, view: np.ndarray) -> float:
         """Root mean eigenvalue of ``(1 - shrinkage) cov + shrinkage I``."""

@@ -11,15 +11,21 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._ey import cheap_orthonormal_projection_weights, ey_loss
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
+from cca_zoo.sparse._coordinate_descent import (
+    PENALTY_PATH,
+    ey_quartic,
+    minimise_quartic,
+    others_covariance,
+)
 
 
 class ElasticNetCCA(BaseModel):
     r"""Sparse multiview CCA by coordinate descent on the elastic-net EY loss.
 
-    Minimises, over  = X_i W_i$,
+    Minimises, over $Z_i = X_i W_i$,
 
     $$
     \mathcal{L}_{EY}(Z_1, \dots, Z_M)
@@ -99,19 +105,79 @@ class ElasticNetCCA(BaseModel):
             self.
         """
         views_ = self._setup_fit(views)
-        alpha_ = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
-        l1_ratio_ = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
+        alpha = perview_parameter("alpha", self.alpha, 1.0, self.n_views_)
+        l1_ratio = perview_parameter("l1_ratio", self.l1_ratio, 0.5, self.n_views_)
         rng = np.random.default_rng(self.random_state)
-        weights, self.n_iter_, converged = coordinate_descent_ey(
-            bases=views_,
-            k=self.n_components,
-            alpha=alpha_,
-            l1_ratio=l1_ratio_,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            rng=rng,
-            positive=self.positive,
+        weights = cheap_orthonormal_projection_weights(
+            views_, self.n_components, None, rng
         )
+        for scale in PENALTY_PATH:
+            self.n_iter_, converged = self._coordinate_descent(
+                views_, weights, [a * scale for a in alpha], l1_ratio
+            )
         warn_if_not_converged(self, converged)
+        # All-zero weights have loss zero, so a fit ending above it has none.
+        if self._objective(views_, weights, alpha, l1_ratio) > 0.0:
+            weights = [np.zeros_like(w) for w in weights]
         self.weights_: list[np.ndarray] = weights
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self
+
+    def _coordinate_descent(
+        self,
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        alpha: list[float],
+        l1_ratio: list[float],
+    ) -> tuple[int, bool]:
+        """Cyclic sweeps setting each weight to its exact minimiser, in place.
+
+        Returns:
+            The sweeps run, and whether the objective settled within ``tol``.
+        """
+        n = views[0].shape[0]
+        k = self.n_components
+        a0 = 1.0 / (len(views) * (n - 1))
+        lasso = [a * r for a, r in zip(alpha, l1_ratio)]
+        ridge = [a * (1.0 - r) for a, r in zip(alpha, l1_ratio)]
+        scores = [v @ w for v, w in zip(views, weights)]
+        total = np.sum(scores, axis=0)
+        previous = np.inf
+        for n_iter in range(1, self.max_iter + 1):
+            for i, (view, w) in enumerate(zip(views, weights)):
+                v_other = others_covariance(scores, i, a0)
+                for j, xj in enumerate(view.T):
+                    a = xj @ xj
+                    if a < 1e-12:
+                        continue
+                    for c in range(k):
+                        c4, c3, c2, c1 = ey_quartic(
+                            xj, a, a0, scores[i], total, v_other, w[j], c, k
+                        )
+                        new = minimise_quartic(
+                            c4, c3, c2 + ridge[i] / 2, c1, lasso[i], self.positive
+                        )
+                        step = new - w[j, c]
+                        w[j, c] = new
+                        scores[i][:, c] += xj * step
+                        total[:, c] += xj * step
+            objective = self._objective(views, weights, alpha, l1_ratio)
+            if abs(previous - objective) < self.tol:
+                return n_iter, True
+            previous = objective
+        return self.max_iter, False
+
+    @staticmethod
+    def _objective(
+        views: list[np.ndarray],
+        weights: list[np.ndarray],
+        alpha: list[float],
+        l1_ratio: list[float],
+    ) -> float:
+        """The EY loss plus each view's elastic-net penalty."""
+        penalty = sum(
+            a * r * np.sum(np.abs(w)) + a * (1.0 - r) * np.sum(w**2) / 2
+            for w, a, r in zip(weights, alpha, l1_ratio)
+        )
+        scores = [v @ w for v, w in zip(views, weights)]
+        return float(ey_loss(scores)["objective"] + penalty)

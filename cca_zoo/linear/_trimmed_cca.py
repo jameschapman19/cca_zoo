@@ -278,4 +278,5 @@ class TrimmedCCA(BaseModel):
         self.weights_: list[np.ndarray] = best_weights
         self.inlier_mask_: np.ndarray = np.zeros(n, dtype=bool)
         self.inlier_mask_[best_mask] = True
-        return self._finish_fit(views_)
+        self._fit_maps_and_importances(views_)
+        return self

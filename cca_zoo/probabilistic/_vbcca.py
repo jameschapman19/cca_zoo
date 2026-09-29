@@ -190,4 +190,5 @@ class VariationalBayesCCA(BaseProbabilistic):
         # Posterior mean ARD precision per latent dimension: larger means
         # "more shrunk / less relevant".
         self.ard_precision_: np.ndarray = self.posterior_samples_["alpha"].mean(axis=0)
-        return self._finish_fit(validated)
+        self._fit_maps_and_importances(validated)
+        return self
