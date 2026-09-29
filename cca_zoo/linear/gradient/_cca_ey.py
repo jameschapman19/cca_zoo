@@ -103,17 +103,31 @@ class CCAEY(BaseModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        weights0 = self._initial_weights(views_, rng)
-        # L-BFGS-B stops on an absolute gradient, and a view's gradient scales
-        # with its units, so search over u_i = s_i w_i, with s_i the root mean
-        # eigenvalue of the view's constraint matrix: the same loss, in units
-        # where every view's gradient is comparable.
+        start = self._initial_weights(views_, rng)
+        self.weights_, self.n_iter_ = self._minimise(views_, start, self.max_iter)
+        warn_if_not_converged(self, self.n_iter_ < self.max_iter)
+        self._fit_maps_and_importances(views_)
+        return self
+
+    def _minimise(
+        self, views: list[np.ndarray], start: list[np.ndarray], max_iter: int
+    ) -> tuple[list[np.ndarray], int]:
+        """The weights minimising the loss on ``views`` by L-BFGS-B from ``start``.
+
+        L-BFGS-B stops on an absolute gradient, and a view's gradient scales
+        with its units, so the search runs over ``u_i = s_i w_i``, with
+        ``s_i`` the root mean eigenvalue of the view's constraint matrix: the
+        same loss, in units where every view's gradient is comparable.
+
+        Returns:
+            The weights, and the iterations run.
+        """
         c = self.shrinkage
         scales = [
-            np.sqrt((1 - c) * np.mean(v.var(axis=0, ddof=1)) + c) or 1.0 for v in views_
+            np.sqrt((1 - c) * np.mean(v.var(axis=0, ddof=1)) + c) or 1.0 for v in views
         ]
-        shapes = [w.shape for w in weights0]
-        splits = np.cumsum([w.size for w in weights0])[:-1]
+        shapes = [w.shape for w in start]
+        splits = np.cumsum([w.size for w in start])[:-1]
 
         def weights_of(u: np.ndarray) -> list[np.ndarray]:
             parts = np.split(u, splits)
@@ -121,24 +135,20 @@ class CCAEY(BaseModel):
 
         def loss_and_gradient(u: np.ndarray) -> tuple[float, np.ndarray]:
             weights = weights_of(u)
-            scores = [v @ w for v, w in zip(views_, weights)]
-            gradients = self._derivative(views_, scores, weights)
-            return self._objective(views_, scores, weights), np.concatenate(
+            scores = [v @ w for v, w in zip(views, weights)]
+            gradients = self._derivative(views, scores, weights)
+            return self._objective(views, scores, weights), np.concatenate(
                 [(g / s).ravel() for g, s in zip(gradients, scales)]
             )
 
         result = minimize(
             loss_and_gradient,
-            np.concatenate([(w * s).ravel() for w, s in zip(weights0, scales)]),
+            np.concatenate([(w * s).ravel() for w, s in zip(start, scales)]),
             jac=True,
             method="L-BFGS-B",
-            options={"maxiter": self.max_iter, "ftol": self.tol},
+            options={"maxiter": max_iter, "ftol": self.tol},
         )
-        self.n_iter_: int = result.nit
-        warn_if_not_converged(self, result.nit < self.max_iter)
-        self.weights_ = weights_of(result.x)
-        self._fit_maps_and_importances(views_)
-        return self
+        return weights_of(result.x), int(result.nit)
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator

@@ -7,33 +7,12 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.covariance import LedoitWolf
 from sklearn.linear_model import MultiTaskLasso
 from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT
-from cca_zoo.linear._rrr_common import (
-    _postprocess_rrr_fit,
-    _whiten_response,
-)
-
-
-def _row_sparse_rrr(
-    X: np.ndarray, Y_tilde: np.ndarray, alpha: float, max_iter: int, tol: float
-) -> tuple[np.ndarray, int]:
-    """Solve ``min_B ||Y - XB||^2 / n + alpha * sum_j ||B[j]||`` by MultiTaskLasso.
-
-    sklearn scales the loss by ``1 / (2n)``, so its ``alpha`` is half of this
-    one.
-
-    Returns:
-        ``B``, and the MultiTaskLasso's iterations.
-    """
-    model = MultiTaskLasso(
-        alpha=alpha / 2.0, fit_intercept=False, max_iter=max_iter, tol=tol
-    )
-    model.fit(X, Y_tilde)
-    return np.asarray(model.coef_.T), model.n_iter_
 
 
 class CCAR3(BaseModel):
@@ -89,8 +68,6 @@ class CCAR3(BaseModel):
         "tol": POSITIVE_EPS,
     }
 
-    _EPS: ClassVar[float] = 1e-8
-
     def __init__(
         self,
         n_components: int = 1,
@@ -123,24 +100,74 @@ class CCAR3(BaseModel):
         views_ = self._setup_fit(views)
         if self.n_views_ != 2:
             raise ValueError(
-                f"CCAR3 requires exactly 2 views, got {self.n_views_}. "
-                "Use MCCA for more than 2 views."
+                f"{type(self).__name__} requires exactly 2 views, got "
+                f"{self.n_views_}. Use MCCA for more than 2 views."
             )
         X, Y = views_
-
-        Y_tilde, sqrt_inv_Sy = _whiten_response(Y, self.ledoit_wolf)
-
-        self.n_iter_: int = 0
+        n = len(X)
+        # Regress the whitened response on X.
+        cov_y = LedoitWolf().fit(Y).covariance_ if self.ledoit_wolf else Y.T @ Y / n
+        whitener = _inverse_sqrt(cov_y)
         if self.alpha == 0.0:
-            B = np.linalg.lstsq(X, Y_tilde, rcond=None)[0]
+            B = np.linalg.lstsq(X, Y @ whitener, rcond=None)[0]
+            self.n_iter_: int = 0
         else:
-            B, self.n_iter_ = _row_sparse_rrr(
-                X, Y_tilde, alpha=self.alpha, max_iter=self.max_iter, tol=self.tol
-            )
-
-        U, V = _postprocess_rrr_fit(
-            B, X, Y, sqrt_inv_Sy, self.n_components, ridge=self._EPS
-        )
-        self.weights_: list[np.ndarray] = [U, V]
+            B, self.n_iter_ = self._regression(X, Y @ whitener)
+        # The canonical directions are the right singular vectors of the
+        # fitted values X B, not of B, whose singular vectors ignore the
+        # covariance of X.
+        k = min(self.n_components, *B.shape)
+        q = np.linalg.svd(X @ B, full_matrices=False)[2][:k].T
+        u, v = B @ q, whitener @ q
+        # Whitening each side's scores leaves the pairs mixed; the SVD of the
+        # whitened cross-covariance gives the canonical pairs, in order.
+        u = u @ _whitener_of_scores(X @ u)
+        v = v @ _whitener_of_scores(Y @ v)
+        left, _, right_t = np.linalg.svd((X @ u).T @ (Y @ v) / n)
+        self.weights_: list[np.ndarray] = [
+            np.zeros((X.shape[1], self.n_components)),
+            np.zeros((Y.shape[1], self.n_components)),
+        ]
+        if np.any(B):
+            self.weights_[0][:, :k] = u @ left
+            self.weights_[1][:, :k] = v @ right_t.T
         self._fit_maps_and_importances(views_)
         return self
+
+    def _regression(self, X: np.ndarray, Y: np.ndarray) -> tuple[np.ndarray, int]:
+        """``B`` minimising ``||Y - X B||^2 / n + alpha sum_j ||B_j||``.
+
+        By sklearn's MultiTaskLasso, whose loss is scaled by ``1 / (2n)``, so
+        its ``alpha`` is half of this one.
+
+        Returns:
+            ``B``, and the iterations run.
+        """
+        model = MultiTaskLasso(
+            alpha=self.alpha / 2.0,
+            fit_intercept=False,
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+        model.fit(X, Y)
+        return np.asarray(model.coef_.T), int(model.n_iter_)
+
+
+def _inverse_sqrt(S: np.ndarray, threshold: float = 1e-4) -> np.ndarray:
+    """Symmetric inverse square root of a PSD matrix.
+
+    Eigenvalues below ``threshold`` times the largest are zeroed, so the
+    result does not depend on the units of the data.
+    """
+    vals, vecs = np.linalg.eigh(S)
+    keep = vals > threshold * vals.max()
+    return np.asarray(
+        (vecs * np.where(keep, 1.0 / np.sqrt(np.abs(vals)), 0.0)) @ vecs.T
+    )
+
+
+def _whitener_of_scores(scores: np.ndarray, ridge: float = 1e-8) -> np.ndarray:
+    """``W`` giving ``scores @ W`` unit-variance, uncorrelated columns."""
+    gram = scores.T @ scores / (len(scores) - 1) + ridge * np.eye(scores.shape[1])
+    vals, vecs = np.linalg.eigh(gram)
+    return np.asarray((vecs / np.sqrt(np.maximum(vals, ridge))) @ vecs.T)

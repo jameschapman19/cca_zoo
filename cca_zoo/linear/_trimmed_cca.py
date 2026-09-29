@@ -7,15 +7,12 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.optimize import minimize
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import weight_gram_mean
 from cca_zoo._utils._param_constraints import (
     POSITIVE_INT,
-    RANDOM_STATE,
 )
 from cca_zoo.linear.gradient import CCAEY
 
@@ -96,53 +93,20 @@ def _select(
     return np.sort(kept)
 
 
-def _refit(
-    model: CCAEY,
-    xs: list[np.ndarray],
-    weights: list[np.ndarray],
-    tol: float,
-) -> list[np.ndarray]:
-    """Re-minimise the CCAEY loss on ``xs`` by L-BFGS-B, starting from ``weights``."""
-    shapes = [w.shape for w in weights]
-    sizes = [w.size for w in weights]
-
-    def unflatten(x: np.ndarray) -> list[np.ndarray]:
-        out = []
-        offset = 0
-        for shape, size in zip(shapes, sizes):
-            out.append(x[offset : offset + size].reshape(shape))
-            offset += size
-        return out
-
-    def fun(x: np.ndarray) -> tuple[float, np.ndarray]:
-        ws = unflatten(x)
-        representations = [xv @ w for xv, w in zip(xs, ws)]
-        obj = model._objective(xs, representations, ws)
-        grads = model._derivative(xs, representations, ws)
-        grad = np.concatenate([g.ravel() for g in grads])
-        return obj, grad
-
-    x0 = np.concatenate([w.ravel() for w in weights])
-    result = minimize(fun, x0, jac=True, method="L-BFGS-B", options={"ftol": tol})
-    return unflatten(result.x)
+# L-BFGS-B iterations allowed each refit: scipy's default, the concentration
+# steps being counted by max_iter.
+_REFIT_MAX_ITER = 15_000
 
 
-def _objective_value(
-    model: CCAEY, xs: list[np.ndarray], weights: list[np.ndarray]
-) -> float:
-    """The CCAEY loss at ``weights`` on ``xs``."""
-    representations = [xv @ w for xv, w in zip(xs, weights)]
-    return model._objective(xs, representations, weights)
-
-
-class TrimmedCCA(BaseModel):
+class TrimmedCCA(CCAEY):
     """Robust multiview CCA by concentration steps.
 
-    As in least trimmed squares, alternates between keeping the ``h`` rows
-    with the lowest :class:`~cca_zoo.linear.gradient.CCAEY` loss and
-    refitting on them. Neither step increases the loss. The best of
-    ``n_init`` random starts is kept. Suited to heavy contamination when
-    the clean fraction is roughly known. Supports one latent dimension.
+    :class:`~cca_zoo.linear.gradient.CCAEY` fitted by concentration steps: as
+    in least trimmed squares, alternates between keeping the ``h`` rows with
+    the lowest CCAEY loss and refitting CCAEY on them. Neither step increases
+    the loss. The best of ``n_init`` random starts is kept. Suited to heavy
+    contamination when the clean fraction is roughly known. Supports one
+    latent dimension.
 
     Args:
         n_components: Number of latent dimensions; must be 1. Default is 1.
@@ -179,13 +143,9 @@ class TrimmedCCA(BaseModel):
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseModel._parameter_constraints,
-        "shrinkage": [Interval(Real, 0, 1, closed="both")],
+        **CCAEY._parameter_constraints,
         "support_fraction": [Interval(Real, 0, 1, closed="right")],
         "n_init": POSITIVE_INT,
-        "max_iter": POSITIVE_INT,
-        "tol": [Interval(Real, 0, None, closed="neither")],
-        "random_state": RANDOM_STATE,
     }
 
     def __init__(
@@ -200,13 +160,16 @@ class TrimmedCCA(BaseModel):
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(n_components=n_components, center=center)
-        self.shrinkage = shrinkage
+        super().__init__(
+            n_components=n_components,
+            center=center,
+            shrinkage=shrinkage,
+            max_iter=max_iter,
+            tol=tol,
+            random_state=random_state,
+        )
         self.support_fraction = support_fraction
         self.n_init = n_init
-        self.max_iter = max_iter
-        self.tol = tol
-        self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TrimmedCCA:
         """Fit the model.
@@ -230,11 +193,6 @@ class TrimmedCCA(BaseModel):
         n = self.n_samples_
         h = max(2, round(self.support_fraction * n))
         rng = np.random.default_rng(self.random_state)
-        # CCAEY's own _objective/_derivative back both the selection score
-        # and the refit, rather than a second implementation of the loss
-        # living here -- .fit() is never called on it, only these two.
-        model = CCAEY(n_components=1, shrinkage=self.shrinkage)
-
         best_weights: list[np.ndarray] | None = None
         best_mask: np.ndarray | None = None
         best_obj = np.inf
@@ -248,8 +206,8 @@ class TrimmedCCA(BaseModel):
 
             kept = np.sort(rng.choice(n, h, replace=False))
             xs_kept = [xv[kept] for xv in views_]
-            weights = _refit(model, xs_kept, weights, self.tol)
-            cur_obj = _objective_value(model, xs_kept, weights)
+            weights, _ = self._minimise(xs_kept, weights, _REFIT_MAX_ITER)
+            cur_obj = self._loss(xs_kept, weights)
 
             converged = False
             for n_iter in range(1, self.max_iter + 1):
@@ -260,8 +218,8 @@ class TrimmedCCA(BaseModel):
                     converged = True
                     break
                 xs_new = [xv[new_kept] for xv in views_]
-                new_weights = _refit(model, xs_new, weights, self.tol)
-                new_obj = _objective_value(model, xs_new, new_weights)
+                new_weights, _ = self._minimise(xs_new, weights, _REFIT_MAX_ITER)
+                new_obj = self._loss(xs_new, new_weights)
                 if new_obj > cur_obj + 1e-10:
                     converged = True
                     break
@@ -280,3 +238,7 @@ class TrimmedCCA(BaseModel):
         self.inlier_mask_[best_mask] = True
         self._fit_maps_and_importances(views_)
         return self
+
+    def _loss(self, views: list[np.ndarray], weights: list[np.ndarray]) -> float:
+        """The CCAEY loss of ``weights`` on ``views``."""
+        return self._objective(views, [v @ w for v, w in zip(views, weights)], weights)

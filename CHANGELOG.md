@@ -198,6 +198,15 @@ The table below gives each replacement.
   sample's contribution to the moments: it overrides only `_sample_weight`, and gains
   CCAEY's `shrinkage`. `CCAEY` holds its L-BFGS-B fit itself; the base class that
   existed only to share that loop between the two is gone.
+- `ECCA` subclasses `CCAR3`, of which it is the variant with an entrywise lasso on the
+  regression: it overrides only `_regression`, and gains `ledoit_wolf` (default False,
+  as before). `CCAR3.fit` holds the whole method, whitening, regression and the
+  canonical pairs of the fitted values, where a shared helper module held it. Fits are
+  unchanged.
+- `TrimmedCCA` subclasses `CCAEY`, which it fits by concentration steps, refitting
+  through CCAEY's own L-BFGS-B step (`_minimise`) rather than a copy of it run on the
+  private loss of a `CCAEY` it never fitted. It keeps the same inliers; its weights
+  move by less than its tolerance.
 - The post-fit pass every model runs is `_fit_maps_and_importances`, named for what it
   does, where it was `_finish_fit`.
 - `CCAR3` and `ECCA` whiten with `n - 1`, as every other model's covariance does.
