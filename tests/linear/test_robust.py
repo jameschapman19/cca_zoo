@@ -19,7 +19,7 @@ from cca_zoo.linear import (
 )
 from cca_zoo.linear._projection_pursuit_cca import spearman_projection_index
 from cca_zoo.linear._trimmed_cca import _per_sample_terms, _select
-from cca_zoo.linear.gradient._huber_cca import _huber_sample_weight, _weighted_ey
+from cca_zoo.linear.gradient._huber_cca import _huber_sample_weight
 from cca_zoo.metrics import pairwise_correlations
 
 
@@ -131,18 +131,36 @@ def test_resists_its_contamination(
     assert _held_out(robust, train, test) > _held_out(baseline, train, test) + margin
 
 
-def test_huber_gradient_matches_finite_differences() -> None:
-    """The weighted EY gradient is the derivative of the weighted EY loss."""
+@pytest.mark.parametrize("shrinkage", [0.0, 0.4])
+def test_weighted_ey_gradient_matches_finite_differences(shrinkage: float) -> None:
+    """With fixed sample weights, as HuberCCA's, CCAEY's gradient is exact."""
     rng = np.random.default_rng(0)
-    z = [rng.standard_normal((15, 2)) for _ in range(3)]
-    weight = rng.uniform(0.2, 1.0, size=15)
+    views = [rng.standard_normal((15, p)) for p in (3, 4, 2)]
+    sample_weight = rng.uniform(0.2, 1.0, size=15)
+
+    class WeightedCCAEY(CCAEY):
+        def _sample_weight(self, representations: list[np.ndarray]) -> np.ndarray:
+            return sample_weight
+
+    model = WeightedCCAEY(n_components=2, shrinkage=shrinkage)
+    splits = np.cumsum([3 * 2, 4 * 2])
+
+    def weights_of(flat: np.ndarray) -> list[np.ndarray]:
+        return [part.reshape(-1, 2) for part in np.split(flat, splits)]
 
     def loss(flat: np.ndarray) -> float:
-        return _weighted_ey(list(flat.reshape(3, 15, 2)), weight)[0]
+        weights = weights_of(flat)
+        return model._objective(views, [v @ w for v, w in zip(views, weights)], weights)
 
-    _, grad = _weighted_ey(z, weight)
+    flat = rng.standard_normal(9 * 2)
+    weights = weights_of(flat)
+    gradient = model._derivative(
+        views, [v @ w for v, w in zip(views, weights)], weights
+    )
     np.testing.assert_allclose(
-        np.ravel(grad), approx_fprime(np.ravel(z), loss, 1e-6), atol=1e-5
+        np.concatenate([g.ravel() for g in gradient]),
+        approx_fprime(flat, loss, 1e-6),
+        atol=1e-5,
     )
 
 

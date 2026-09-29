@@ -31,27 +31,31 @@ from scipy.sparse.linalg import LinearOperator
 
 
 def ey_cross_covariance(
-    representations: list[np.ndarray],
+    representations: list[np.ndarray], sample_weight: np.ndarray | None = None
 ) -> tuple[np.ndarray, np.ndarray]:
     """Mean pairwise cross-covariance ``C`` and mean auto-covariance ``V``.
 
     Args:
         representations: One array of shape (n_samples, k) per view; centred
             internally.
+        sample_weight: Weight of each sample in the moments, which divide by
+            the total weight less one; None weights samples equally.
 
     Returns:
         ``(C, V)``, each of shape (k, k).
     """
     n = representations[0].shape[0]
+    weight = np.ones(n) if sample_weight is None else sample_weight
     m = len(representations)
-    centred = [z - z.mean(axis=0) for z in representations]
+    centred = [z - np.average(z, axis=0, weights=weight) for z in representations]
     k = centred[0].shape[1]
     C = np.zeros((k, k))
     V = np.zeros((k, k))
     for zi in centred:
-        V += zi.T @ zi / (n - 1)
+        weighted = weight[:, None] * zi / (weight.sum() - 1)
+        V += weighted.T @ zi
         for zj in centred:
-            C += zi.T @ zj / (n - 1)
+            C += weighted.T @ zj
     return C / m, V / m
 
 

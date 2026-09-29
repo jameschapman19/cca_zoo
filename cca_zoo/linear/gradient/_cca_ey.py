@@ -2,22 +2,25 @@
 
 from __future__ import annotations
 
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.optimize import minimize
 from sklearn.utils._param_validation import Interval
 
+from cca_zoo._base import BaseModel
+from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
     weight_gram_mean,
 )
-from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
+from cca_zoo._utils._param_constraints import RANDOM_STATE
 
 
-class CCAEY(BaseFullBatchEYModel):
+class CCAEY(BaseModel):
     r"""Multiview CCA by minimising the Eckart-Young loss, with a ridge blend.
 
     For $Z_i = X_i W_i$, with $C$ and $V$ the mean pairwise cross-covariance
@@ -65,8 +68,11 @@ class CCAEY(BaseFullBatchEYModel):
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseFullBatchEYModel._parameter_constraints,
+        **BaseModel._parameter_constraints,
         "shrinkage": [Interval(Real, 0, 1, closed="both")],
+        "max_iter": [Interval(Integral, 1, None, closed="left")],
+        "tol": [Interval(Real, 0, None, closed="neither")],
+        "random_state": RANDOM_STATE,
     }
 
     def __init__(
@@ -79,14 +85,11 @@ class CCAEY(BaseFullBatchEYModel):
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
-        super().__init__(
-            n_components=n_components,
-            center=center,
-            max_iter=max_iter,
-            tol=tol,
-            random_state=random_state,
-        )
+        super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
+        self.max_iter = max_iter
+        self.tol = tol
+        self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> CCAEY:
         """Fit the model.
@@ -100,20 +103,52 @@ class CCAEY(BaseFullBatchEYModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_lbfgsb(views_, rng)
+        weights0 = self._initial_weights(views_, rng)
+        # L-BFGS-B stops on an absolute gradient, and a view's gradient scales
+        # with its units, so search over u_i = s_i w_i, with s_i the root mean
+        # eigenvalue of the view's constraint matrix: the same loss, in units
+        # where every view's gradient is comparable.
+        c = self.shrinkage
+        scales = [
+            np.sqrt((1 - c) * np.mean(v.var(axis=0, ddof=1)) + c) or 1.0 for v in views_
+        ]
+        shapes = [w.shape for w in weights0]
+        splits = np.cumsum([w.size for w in weights0])[:-1]
+
+        def weights_of(u: np.ndarray) -> list[np.ndarray]:
+            parts = np.split(u, splits)
+            return [p.reshape(shape) / s for p, shape, s in zip(parts, shapes, scales)]
+
+        def loss_and_gradient(u: np.ndarray) -> tuple[float, np.ndarray]:
+            weights = weights_of(u)
+            scores = [v @ w for v, w in zip(views_, weights)]
+            gradients = self._derivative(views_, scores, weights)
+            return self._objective(views_, scores, weights), np.concatenate(
+                [(g / s).ravel() for g, s in zip(gradients, scales)]
+            )
+
+        result = minimize(
+            loss_and_gradient,
+            np.concatenate([(w * s).ravel() for w, s in zip(weights0, scales)]),
+            jac=True,
+            method="L-BFGS-B",
+            options={"maxiter": self.max_iter, "ftol": self.tol},
+        )
+        self.n_iter_: int = result.nit
+        warn_if_not_converged(self, result.nit < self.max_iter)
+        self.weights_ = weights_of(result.x)
         self._fit_maps_and_importances(views_)
         return self
-
-    def _weight_scale(self, view: np.ndarray) -> float:
-        """Root mean eigenvalue of ``(1 - shrinkage) cov + shrinkage I``."""
-        variance = float(np.mean(view.var(axis=0, ddof=1)))
-        return float(np.sqrt((1 - self.shrinkage) * variance + self.shrinkage))
 
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
         """Weights giving unit-variance, uncorrelated projections on the full data."""
         return cheap_orthonormal_projection_weights(views, self.n_components, None, rng)
+
+    def _sample_weight(self, representations: list[np.ndarray]) -> np.ndarray:
+        """Each sample's weight in the loss's moments: equal, for CCA."""
+        return np.ones(len(representations[0]))
 
     def _derivative(
         self,
@@ -123,24 +158,24 @@ class CCAEY(BaseFullBatchEYModel):
     ) -> list[np.ndarray]:
         r"""Gradient of $\mathcal{L}_{EY}(c)$ in each view's weights.
 
-        The chain rule through the embeddings plus the direct term from $B$.
+        The chain rule through the embeddings plus the direct term from $B$,
+        with the sample weights held fixed.
         """
         m = len(views)
-        n = views[0].shape[0]
         c = self.shrinkage
-        centred_reps = [z - z.mean(axis=0) for z in representations]
-        total = sum(centred_reps)
-        _, v_data = ey_cross_covariance(representations)
-        b = weight_gram_mean(weights)
-        v_blend = (1 - c) * v_data + c * b
-        scale = 4.0 / (m * (n - 1))
-        grads = []
-        for k, (view, zk) in enumerate(zip(views, centred_reps)):
-            view_c = view - view.mean(axis=0)
-            z_term = scale * (c * zk + (1 - c) * (zk @ v_blend) - total)
-            grad = view_c.T @ z_term + (4.0 * c / m) * (weights[k] @ v_blend)
-            grads.append(grad)
-        return grads
+        sample_weight = self._sample_weight(representations)
+        centred = [
+            z - np.average(z, axis=0, weights=sample_weight) for z in representations
+        ]
+        total = sum(centred)
+        _, v_data = ey_cross_covariance(representations, sample_weight)
+        v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
+        scale = 4.0 * sample_weight[:, None] / (m * (sample_weight.sum() - 1))
+        return [
+            view.T @ (scale * (c * z + (1 - c) * (z @ v_blend) - total))
+            + (4.0 * c / m) * (w @ v_blend)
+            for view, z, w in zip(views, centred, weights)
+        ]
 
     def _objective(
         self,
@@ -151,8 +186,8 @@ class CCAEY(BaseFullBatchEYModel):
         r"""$\mathcal{L}_{EY}(c)$."""
         del views
         c = self.shrinkage
-        C, v_data = ey_cross_covariance(representations)
-        b = weight_gram_mean(weights)
-        v_blend = (1 - c) * v_data + c * b
-        reward = C - c * v_data
-        return float(-2.0 * np.trace(reward) + np.trace(v_blend @ v_blend))
+        C, v_data = ey_cross_covariance(
+            representations, self._sample_weight(representations)
+        )
+        v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
+        return float(-2.0 * np.trace(C - c * v_data) + np.trace(v_blend @ v_blend))

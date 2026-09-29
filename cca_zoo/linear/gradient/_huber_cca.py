@@ -9,8 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.utils._param_validation import Interval
 
-from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
-from cca_zoo.linear.gradient._base import BaseFullBatchEYModel
+from cca_zoo.linear.gradient._cca_ey import CCAEY
 
 
 def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.ndarray:
@@ -39,58 +38,20 @@ def _huber_sample_weight(representations: list[np.ndarray], delta: float) -> np.
     return result
 
 
-def _weighted_ey(
-    representations: list[np.ndarray], sample_weight: np.ndarray
-) -> tuple[float, list[np.ndarray]]:
-    """Sample-weighted EY loss and its gradient in each embedding.
-
-    As :func:`~cca_zoo._utils._ey.ey_loss` with weighted moments and
-    ``n - 1`` replaced by ``sum(sample_weight) - 1``. The weights are held
-    fixed, as in IRLS.
-
-    Args:
-        representations: One array of shape (n_samples, k) per view.
-        sample_weight: Weights, shape (n_samples,).
-
-    Returns:
-        ``(objective, grads)``, with one gradient of shape (n_samples, k) per
-        view.
-    """
-    m = len(representations)
-    w = sample_weight
-    w_sum = w.sum()
-    means = [np.average(z, axis=0, weights=w) for z in representations]
-    centred = [z - mu for z, mu in zip(representations, means)]
-    total = sum(centred)
-
-    k = centred[0].shape[1]
-    C = np.zeros((k, k))
-    V = np.zeros((k, k))
-    for zi in centred:
-        wzi = w[:, None] * zi
-        V += wzi.T @ zi / (w_sum - 1)
-        for zj in centred:
-            C += wzi.T @ zj / (w_sum - 1)
-    C /= m
-    V /= m
-    objective = float(-2.0 * np.trace(C) + np.trace(V @ V))
-
-    scale = 4.0 / (m * (w_sum - 1))
-    grad_z = [scale * w[:, None] * (zc @ V - total) for zc in centred]
-    return objective, grad_z
-
-
-class HuberCCA(BaseFullBatchEYModel):
+class HuberCCA(CCAEY):
     """Bounded-influence CCA by Huber reweighting of the EY loss.
 
-    As :class:`~cca_zoo.linear.gradient.CCAEY`, but each sample's
-    contribution to the EY moments is reweighted by a Huber weight of its
-    leverage, recomputed at every evaluation, so high-leverage samples have
-    bounded influence. Fitted by full-batch L-BFGS-B.
+    :class:`~cca_zoo.linear.gradient.CCAEY`, with each sample's contribution
+    to the EY moments reweighted by a Huber weight of its leverage,
+    recomputed at every evaluation, so high-leverage samples have bounded
+    influence. Fitted by full-batch L-BFGS-B, with each evaluation's weights
+    held fixed in its gradient, as in iteratively reweighted least squares.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
         delta: Huber cutoff as a multiple of the median sample leverage;
             smaller is more robust. Values below 1 downweight most of the
             data. Default is 4.0.
@@ -118,7 +79,7 @@ class HuberCCA(BaseFullBatchEYModel):
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **BaseFullBatchEYModel._parameter_constraints,
+        **CCAEY._parameter_constraints,
         "delta": [Interval(Real, 0, None, closed="neither")],
     }
 
@@ -127,6 +88,7 @@ class HuberCCA(BaseFullBatchEYModel):
         n_components: int = 1,
         *,
         center: bool = True,
+        shrinkage: float = 0.0,
         delta: float = 4.0,
         max_iter: int = 1000,
         tol: float = 1e-8,
@@ -135,6 +97,7 @@ class HuberCCA(BaseFullBatchEYModel):
         super().__init__(
             n_components=n_components,
             center=center,
+            shrinkage=shrinkage,
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,
@@ -151,47 +114,8 @@ class HuberCCA(BaseFullBatchEYModel):
         Returns:
             self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
-        rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_lbfgsb(views_, rng)
-        self._fit_maps_and_importances(views_)
-        return self
+        return super().fit(views, y)
 
-    def _initial_weights(
-        self, views: list[np.ndarray], rng: np.random.Generator
-    ) -> list[np.ndarray]:
-        """Weights giving unit-variance, uncorrelated projections on the full data."""
-        return cheap_orthonormal_projection_weights(views, self.n_components, None, rng)
-
-    def _derivative(
-        self,
-        views: list[np.ndarray],
-        representations: list[np.ndarray],
-        weights: list[np.ndarray],
-    ) -> list[np.ndarray]:
-        """Gradient of the weighted EY loss in each view's weights.
-
-        The weighted-mean-centred view contracted with :func:`_weighted_ey`'s
-        embedding gradient.
-        """
-        del weights
-        sample_weight = _huber_sample_weight(representations, self.delta)
-        _, grad_z = _weighted_ey(representations, sample_weight)
-        grads = []
-        for view, gz in zip(views, grad_z):
-            view_mean = np.average(view, axis=0, weights=sample_weight)
-            view_cw = view - view_mean
-            grads.append(view_cw.T @ gz)
-        return grads
-
-    def _objective(
-        self,
-        views: list[np.ndarray],
-        representations: list[np.ndarray],
-        weights: list[np.ndarray],
-    ) -> float:
-        """The weighted EY loss."""
-        del views, weights
-        sample_weight = _huber_sample_weight(representations, self.delta)
-        objective, _ = _weighted_ey(representations, sample_weight)
-        return objective
+    def _sample_weight(self, representations: list[np.ndarray]) -> np.ndarray:
+        """Each sample's Huber weight of its leverage."""
+        return _huber_sample_weight(representations, self.delta)

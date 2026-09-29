@@ -194,6 +194,10 @@ The table below gives each replacement.
   the same weights (to its tolerance) sooner.
 - `SpanCCA`'s default `span=None` keeps every feature of each view; it had kept as many
   as the first view has, capping a wider second view.
+- `HuberCCA` subclasses `CCAEY`, of which it is the variant with Huber weights on each
+  sample's contribution to the moments: it overrides only `_sample_weight`, and gains
+  CCAEY's `shrinkage`. `CCAEY` holds its L-BFGS-B fit itself; the base class that
+  existed only to share that loop between the two is gone.
 - The post-fit pass every model runs is `_fit_maps_and_importances`, named for what it
   does, where it was `_finish_fit`.
 - `CCAR3` and `ECCA` whiten with `n - 1`, as every other model's covariance does.
