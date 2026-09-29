@@ -171,6 +171,7 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | `SplitAE` | Split autoencoder baseline | — | ≥2 |
 | `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) | ≥2 |
 | `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) | ≥2 |
+| `LeJEPA` | Joint-embedding prediction with SIGReg against collapse | Balestriero & LeCun (2025) | ≥2 |
 
 Losses defined between two views (`BarlowTwins`, `VICReg`, `DCCASDL`, `DCCAE`'s default)
 are summed over pairs of views, as `DMCCA` sums `DCCA`'s; with two views each is the

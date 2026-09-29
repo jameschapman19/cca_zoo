@@ -29,11 +29,13 @@ from cca_zoo.deep import (
     BarlowTwins,
     BaseDeep,
     DVCCAPrivate,
+    LeJEPA,
     MultiviewDataset,
     SplitAE,
     VICReg,
 )
 from cca_zoo.deep._dcca_ey import _cca_cv
+from cca_zoo.deep._lejepa import _sigreg
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
 from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
 from cca_zoo.metrics import pairwise_correlations
@@ -91,6 +93,7 @@ MODELS: dict[str, Callable[[], BaseDeep]] = {
     "DTCCA": lambda: DTCCA(K, _encoders()),
     "BarlowTwins": lambda: BarlowTwins(K, _encoders()),
     "VICReg": lambda: VICReg(K, _encoders()),
+    "LeJEPA": lambda: LeJEPA(K, _encoders(), n_slices=16),
     "DCCAE": lambda: DCCAE(K, _encoders(), [nn.Linear(K, p) for p in P]),
     "SplitAE": lambda: SplitAE(K, _encoders(), [nn.Linear(2 * K, p) for p in P]),
 }
@@ -187,6 +190,7 @@ def _three_view_models(widths: list[int]) -> dict[str, BaseDeep]:
         "DCCASDL": DCCASDL(K, enc()),
         "BarlowTwins": BarlowTwins(K, enc()),
         "VICReg": VICReg(K, enc()),
+        "LeJEPA": LeJEPA(K, enc(), n_slices=16),
         "DCCAE": DCCAE(K, enc(), dec(K)),
         "SplitAE": SplitAE(K, enc(), dec(3 * K)),
         "DVCCA": DVCCA(K, nn.Linear(widths[0], 2 * K), dec(K)),
@@ -485,3 +489,28 @@ def test_dpcca_needs_partials_to_train() -> None:
     model = DPCCA(K, _encoders())
     with pytest.raises(ValueError, match="partials"):
         model.loss({"views": [torch.randn(8, p) for p in P]})
+
+
+def test_sigreg_is_small_for_a_standard_normal_and_large_for_a_collapse() -> None:
+    """SIGReg tests each random projection against a standard normal."""
+    torch.manual_seed(0)
+    gaussian = _sigreg(torch.randn(2048, 8), 0, 64, 17, 5.0)
+    collapsed = _sigreg(torch.zeros(2048, 8), 0, 64, 17, 5.0)
+    assert float(gaussian) < 2.0
+    assert float(collapsed) > 100 * float(gaussian)
+
+
+def test_sigreg_directions_follow_the_seed() -> None:
+    """Directions repeat for a seed and are resampled across seeds."""
+    z = torch.randn(64, 4) * torch.tensor([3.0, 1.0, 0.2, 1.0])
+    assert torch.equal(_sigreg(z, 1, 8, 17, 5.0), _sigreg(z, 1, 8, 17, 5.0))
+    assert not torch.equal(_sigreg(z, 1, 8, 17, 5.0), _sigreg(z, 2, 8, 17, 5.0))
+
+
+def test_lejepa_views_that_agree_leave_only_sigreg() -> None:
+    """Identical encodings have no predictive loss, and lam weighs SIGReg."""
+    model = LeJEPA(K, [nn.Identity(), nn.Identity()], lam=0.3)
+    z = torch.randn(16, K)
+    terms = model.loss({"views": [z, z.clone()]})
+    assert float(terms["sim_loss"]) == 0.0
+    torch.testing.assert_close(terms["objective"], 0.3 * terms["sigreg"])

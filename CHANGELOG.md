@@ -18,6 +18,7 @@ The table below gives each replacement.
 |---|---|
 | `latent_dimensions=` (every model) | `n_components=`, sklearn's name (as in its `CCA`, `PLSCanonical` and `PCA`) |
 | `rCCA` | `RidgeCCA` (CapWords, like every other class) |
+| `DCCANOI(rho=0.1)`, the weight of each new batch in the running covariance | `DCCANOI(rho=0.9)`: `rho` is now Wang et al.'s time constant, the weight of the previous running moments, as `DPCCA`'s `rho` already was; the default is unchanged in effect |
 | `StochasticCCAEY(momentum=)` | removed: plain SGD with sklearn's adaptive step, as `SGDRegressor(learning_rate="adaptive")`, converges where momentum at a fixed step hovered |
 | `JointData(...).sample()` | `make_joint_data(...)`, an sklearn-style `make_*` generator; for train and test sets, split its output with `sklearn.model_selection.train_test_split(*views)` |
 | `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
@@ -79,6 +80,11 @@ The table below gives each replacement.
 
 ### Added
 
+- `cca_zoo.deep.LeJEPA` (Balestriero & LeCun, 2025): every view's embedding predicts
+  the views' centre, and SIGReg, the Epps-Pulley statistic of random 1-D projections
+  of each view's embedding against a standard normal with the directions resampled
+  every step, prevents collapse in place of stop-gradients, predictors or teacher
+  networks. Two or more views.
 - `TCCA` and `KTCCA` take `init`, PARAFAC's initialisation: `"svd"` (the default, and
   the only start before, which never used `random_state`) or `"random"`, seeded by
   `random_state`, as sklearn's `NMF` uses its seed only for its random

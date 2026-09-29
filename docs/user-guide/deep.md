@@ -102,6 +102,7 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `DCCASDL` | any | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
 | `BarlowTwins` | any | Cross-correlation to the identity (Zbontar et al., 2021) |
 | `VICReg` | any | Variance, invariance and covariance terms (Bardes et al., 2022) |
+| `LeJEPA` | any | Each view predicts the views' centre, with SIGReg, an isotropic-Gaussian test on random projections, preventing collapse (Balestriero & LeCun, 2025) |
 | `DCCAE` | any | Deep CCA plus per-view reconstruction (Wang et al., 2015) |
 | `SplitAE` | any | Every view reconstructed from all encodings |
 | `DVCCA` | any | Variational: a latent inferred from the first view generates every view (Wang et al., 2016) |

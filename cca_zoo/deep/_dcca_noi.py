@@ -19,19 +19,20 @@ class _BatchWhiten(nn.Module):
 
     Args:
         num_features: Input dimension.
-        momentum: Running-covariance update rate. Default is 0.1.
+        rho: Weight of the previous running moments in ``[0, 1)``, the
+            paper's time constant. Default is 0.9.
         eps: Floor on the covariance eigenvalues. Default is 1e-5.
     """
 
     def __init__(
         self,
         num_features: int,
-        momentum: float = 0.1,
+        rho: float = 0.9,
         eps: float = 1e-5,
     ) -> None:
         super().__init__()
         self.num_features = num_features
-        self.momentum = momentum
+        self.rho = rho
         self.eps = eps
         self.register_buffer("running_mean", torch.zeros(num_features))
         self.register_buffer(
@@ -54,9 +55,9 @@ class _BatchWhiten(nn.Module):
         if self.training:
             with torch.no_grad():
                 centred = x - x.mean(dim=0)
-                self.running_mean.lerp_(x.mean(dim=0), self.momentum)
+                self.running_mean.lerp_(x.mean(dim=0), 1.0 - self.rho)
                 self.running_covar.lerp_(
-                    centred.T @ centred / (x.shape[0] - 1), self.momentum
+                    centred.T @ centred / (x.shape[0] - 1), 1.0 - self.rho
                 )
                 self.num_batches_tracked.add_(1)
         return (x - self.running_mean) @ _inv_sqrtm(self.running_covar, self.eps)
@@ -65,24 +66,28 @@ class _BatchWhiten(nn.Module):
 class DCCANOI(BaseDeep):
     r"""Deep CCA by nonlinear orthogonal iterations.
 
-    Regresses each view's encoding on the others' whitened encodings, held
-    fixed:
+    Wang et al.'s Algorithm 2: regresses each view's encoding on the others'
+    whitened, centred encodings, held fixed,
 
     $$
-    \mathcal{L} = \sum_{i \neq j} \bigl\| z_i - \operatorname{sg}(W_j z_j) \bigr\|_2^2,
+    \mathcal{L} = \sum_{i \neq j} \bigl\| z_i
+        - \operatorname{sg}\bigl(\Sigma_j^{-1/2} (z_j - \mu_j)\bigr) \bigr\|_2^2,
     $$
 
-    with $W_j$ a running batch-whitening transform and sg a stop-gradient.
+    with sg a stop-gradient, and the running moments updated by each training
+    batch as $\Sigma_j \leftarrow \rho \Sigma_j + (1 - \rho)\,
+    \widehat{\Sigma}_j$, and $\mu_j$ likewise.
 
     Args:
         n_components: Latent dimension.
         encoders: One module per view.
-        rho: Running-covariance update rate in ``[0, 1]``. Default is 0.1.
+        rho: Weight of the previous running moments in ``[0, 1)``, the paper's
+            time constant. Default is 0.9.
         learning_rate: Adam learning rate. Default is 1e-3.
         eps: Floor on the whitening eigenvalues. Default is 1e-6.
 
     Raises:
-        ValueError: If ``rho`` is outside ``[0, 1]``.
+        ValueError: If ``rho`` is outside ``[0, 1)``.
 
     References:
         Wang, W., Arora, R., Livescu, K., & Srebro, N. (2015). Stochastic
@@ -100,12 +105,12 @@ class DCCANOI(BaseDeep):
         self,
         n_components: int,
         encoders: list[nn.Module],
-        rho: float = 0.1,
+        rho: float = 0.9,
         learning_rate: float = 1e-3,
         eps: float = 1e-6,
     ) -> None:
-        if rho < 0.0 or rho > 1.0:
-            raise ValueError(f"rho must be in [0, 1], got {rho}.")
+        if not 0.0 <= rho < 1.0:
+            raise ValueError(f"rho must be in [0, 1), got {rho}.")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
@@ -115,7 +120,7 @@ class DCCANOI(BaseDeep):
         self.rho = rho
         self.mse = nn.MSELoss(reduction="sum")
         self.bws = nn.ModuleList(
-            [_BatchWhiten(n_components, momentum=rho, eps=eps) for _ in encoders]
+            [_BatchWhiten(n_components, rho=rho, eps=eps) for _ in encoders]
         )
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
