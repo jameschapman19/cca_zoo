@@ -137,8 +137,14 @@ def test_recovers_a_shared_signal(cls: type[BaseModel]) -> None:
 
 
 _ITERATIVE = [c for c in MODEL_CLASSES if "max_iter" in make_model(c).get_params()]
-# ECCA and CCAR3 solve their default alpha=0 by least squares, without iterating.
-_ITERATING = {"ECCA": {"alpha": 0.1}, "CCAR3": {"alpha": 0.1}}
+# ECCA and CCAR3 solve their default alpha=0 by least squares, without iterating;
+# unpenalised, PMDCCA and SpanCCA start at their answer, the PLS direction.
+_ITERATING = {
+    "ECCA": {"alpha": 0.1},
+    "CCAR3": {"alpha": 0.1},
+    "PMDCCA": {"l1_bound": 0.3},
+    "SpanCCA": {"span": 2},
+}
 
 
 @pytest.mark.parametrize("cls", _ITERATIVE, ids=[c.__name__ for c in _ITERATIVE])
