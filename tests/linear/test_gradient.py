@@ -29,7 +29,6 @@ def _views(n_views: int) -> list[np.ndarray]:
             StochasticCCAEY(
                 n_components=2,
                 batch_size=100,
-                learning_rate=1e-3,
                 max_iter=300,
                 random_state=0,
             ),
@@ -42,11 +41,11 @@ def _views(n_views: int) -> list[np.ndarray]:
 def test_converges_to_the_closed_form(
     model: object, exact: object, n_views: int
 ) -> None:
-    """The EY optimum has the closed-form solution's correlations, in some order."""
+    """The EY optimum has the closed-form solution's correlations, in order."""
     views = _views(n_views)
     np.testing.assert_allclose(
-        np.sort(canonical_correlations(model.fit(views), views)),
-        np.sort(canonical_correlations(exact.fit(views), views)),
+        canonical_correlations(model.fit(views), views),
+        canonical_correlations(exact.fit(views), views),
         atol=0.05,
     )
 
@@ -70,4 +69,6 @@ def test_ccaey_with_full_shrinkage_is_plsey(two_views: list[np.ndarray]) -> None
 def test_stochastic_divergence_is_an_error() -> None:
     """Too large a step diverges, and says what to change."""
     with pytest.raises(ValueError, match="Lower learning_rate"):
-        StochasticCCAEY(n_components=2, batch_size=100, random_state=0).fit(_views(2))
+        StochasticCCAEY(
+            n_components=2, learning_rate=2.0, batch_size=100, random_state=0
+        ).fit(_views(2))

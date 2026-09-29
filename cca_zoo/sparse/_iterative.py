@@ -8,7 +8,8 @@ from typing import Any, ClassVar, cast
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import brentq
-from sklearn.linear_model import ElasticNet, Lasso, Ridge, lasso_path
+from scipy.sparse.linalg import LinearOperator, eigsh
+from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge, lasso_path
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
@@ -80,24 +81,29 @@ class _BaseIterative(BaseModel):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        # Initialise weight storage: (n_features_i, n_components)
-        self.weights_: list[np.ndarray] = [
-            np.zeros((p, self.n_components)) for p in self.n_features_per_view_
-        ]
+        shape = [(p, self.n_components) for p in self.n_features_per_view_]
+        deflated_weights = [np.zeros(s) for s in shape]
+        loadings = [np.zeros(s) for s in shape]
         deflated = [v.copy() for v in views_]
         self.n_iter_: int = 0
         all_converged = True
         for d in range(self.n_components):
-            # Random initialisation for this dimension
-            w = [rng.standard_normal(p) for p in self.n_features_per_view_]
-            w = [wi / np.linalg.norm(wi) for wi in w]
+            w = _leading_cross_direction(deflated, rng)
             n_iter, converged = self._fit_single(deflated, w)
             self.n_iter_ = max(self.n_iter_, n_iter)
             all_converged = all_converged and converged
-            for i in range(self.n_views_):
-                self.weights_[i][:, d] = w[i]
+            for i, (view, wi) in enumerate(zip(deflated, w)):
+                score = view @ wi
+                deflated_weights[i][:, d] = wi
+                loadings[i][:, d] = view.T @ score / max(score @ score, 1e-12)
             deflated = deflate(deflated, w)
         warn_if_not_converged(self, all_converged)
+        # Each component's weights act on views deflated by the earlier
+        # scores; W (P'W)^-1 gives the same scores from the original views,
+        # as sklearn's PLS x_rotations_, supported on the union of W's supports.
+        self.weights_: list[np.ndarray] = [
+            w @ np.linalg.pinv(p.T @ w) for w, p in zip(deflated_weights, loadings)
+        ]
         return self._finish_fit(views_)
 
     def _fit_single(
@@ -127,6 +133,29 @@ class _BaseIterative(BaseModel):
         i: int,
     ) -> np.ndarray:
         """Updated unit-norm weight vector of view ``i``."""
+
+
+def _leading_cross_direction(
+    views: list[np.ndarray], rng: np.random.Generator
+) -> list[np.ndarray]:
+    """Unit weights maximising the summed cross-covariance of the scores.
+
+    The PLS direction, which sklearn's PLS also starts from: the leading
+    eigenvector of the between-view blocks ``X_i' X_j``, found by Lanczos
+    from a random start. Alternating updates started at random can stall
+    at all-zero weights when the first target barely correlates with a view.
+    """
+    splits = np.cumsum([v.shape[1] for v in views])[:-1]
+
+    def cross_covariance(stacked: np.ndarray) -> np.ndarray:
+        scores = [v @ w for v, w in zip(views, np.split(stacked, splits))]
+        total = sum(scores)
+        return np.concatenate([v.T @ (total - s) for v, s in zip(views, scores)])
+
+    size = sum(v.shape[1] for v in views)
+    operator = LinearOperator((size, size), matvec=cross_covariance, dtype=float)
+    _, vector = eigsh(operator, k=1, which="LA", v0=rng.standard_normal(size))
+    return [w / max(np.linalg.norm(w), 1e-12) for w in np.split(vector[:, 0], splits)]
 
 
 def _target_score(
@@ -929,8 +958,7 @@ class SAR(_BaseIterative):
         self.n_iter_: int = 0
         all_converged = True
         for d in range(self.n_components):
-            w = [rng.standard_normal(p) for p in self.n_features_per_view_]
-            w = [wi / np.linalg.norm(wi) for wi in w]
+            w = _leading_cross_direction(deflated, rng)
             n_iter, converged = self._fit_single(deflated, w)
             self.n_iter_ = max(self.n_iter_, n_iter)
             all_converged = all_converged and converged
@@ -984,11 +1012,16 @@ def _make_regressors(
     l1_ratio: list[float],
     tol: float,
     random_state: int | None,
-) -> list[Ridge | Lasso | ElasticNet]:
-    """Per-view sklearn regressors: Ridge, Lasso or ElasticNet by ``l1_ratio``."""
-    regressors: list[Ridge | Lasso | ElasticNet] = []
+) -> list[LinearRegression | Ridge | Lasso | ElasticNet]:
+    """Per-view regressors: least squares, Ridge, Lasso or ElasticNet.
+
+    Least squares at ``alpha=0``, otherwise chosen by ``l1_ratio``.
+    """
+    regressors: list[LinearRegression | Ridge | Lasso | ElasticNet] = []
     for a, l1 in zip(alpha, l1_ratio):
-        if l1 == 0.0:
+        if a == 0.0:
+            regressors.append(LinearRegression(fit_intercept=False))
+        elif l1 == 0.0:
             regressors.append(Ridge(alpha=a, fit_intercept=False, tol=tol))
         elif l1 == 1.0:
             regressors.append(

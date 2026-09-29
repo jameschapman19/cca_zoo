@@ -11,7 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import coordinate_descent_ey
+from cca_zoo._utils._ey import coordinate_descent_ey, ey_cross_covariance
 from cca_zoo._utils._param_constraints import RANDOM_STATE
 from cca_zoo._utils._validation import perview_parameter
 
@@ -38,7 +38,8 @@ class ElasticNetCCA(BaseModel):
         alpha: Penalty strength. Per-view. Default is 1.0.
         l1_ratio: L1 share of the penalty in ``[0, 1]``. Per-view. Default
             is 0.5.
-        max_iter: Maximum coordinate-descent sweeps. Default is 100.
+        max_iter: Maximum coordinate-descent sweeps at each stage of the
+            penalty path. Default is 1000, as sklearn's ElasticNet.
         tol: Tolerance on the change in the objective. Default is 1e-6.
         random_state: Seed for the initial weights. Default is None.
         positive: Whether to constrain the weights to be non-negative.
@@ -74,7 +75,7 @@ class ElasticNetCCA(BaseModel):
         center: bool = True,
         alpha: float | list[float] = 1.0,
         l1_ratio: float | list[float] = 0.5,
-        max_iter: int = 100,
+        max_iter: int = 1000,
         tol: float = 1e-6,
         random_state: int | None = None,
         positive: bool = False,
@@ -112,5 +113,9 @@ class ElasticNetCCA(BaseModel):
             positive=self.positive,
         )
         warn_if_not_converged(self, converged)
-        self.weights_: list[np.ndarray] = weights
+        # The elementwise penalty rules out canonical_rotation, but reordering
+        # the components by their reward changes neither loss nor penalty.
+        reward, _ = ey_cross_covariance([v @ w for v, w in zip(views_, weights)])
+        order = np.argsort(-np.diag(reward), kind="stable")
+        self.weights_: list[np.ndarray] = [w[:, order] for w in weights]
         return self._finish_fit(views_)

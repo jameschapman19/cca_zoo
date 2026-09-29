@@ -13,6 +13,13 @@ from cca_zoo._utils._ey import (
     full_rank_reparametrisation,
     penalised_basis_ey_closed_form,
 )
+from cca_zoo.linear.gradient import CCAEY, PLSEY
+from cca_zoo.sparse import (
+    ElasticNetCCA,
+    MultiTaskElasticNetCCA,
+    OrthogonalMatchingPursuitCCA,
+)
+from cca_zoo.stochastic import StochasticCCAEY
 
 
 @pytest.mark.parametrize("n_views", [2, 3, 4])
@@ -114,3 +121,35 @@ def test_reparametrisation_is_full_rank_and_keeps_the_penalty() -> None:
     assert np.all(
         np.sum((factor @ others) ** 2, axis=0) >= np.sum((factor @ w) ** 2) - 1e-9
     )
+
+
+def _three_signals() -> list[np.ndarray]:
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 3)) * [3, 2, 1]
+    return [
+        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("model", "rotated"),
+    [
+        (CCAEY(n_components=3, random_state=0), True),
+        (PLSEY(n_components=3, random_state=0), True),
+        (StochasticCCAEY(n_components=3, random_state=0), True),
+        (OrthogonalMatchingPursuitCCA(n_components=3, random_state=0), True),
+        (MultiTaskElasticNetCCA(n_components=3, alpha=0.01, random_state=0), True),
+        (ElasticNetCCA(n_components=3, alpha=0.01, random_state=0), False),
+    ],
+    ids=lambda x: type(x).__name__ if not isinstance(x, bool) else "",
+)
+def test_ey_components_come_in_order_of_reward(model: object, rotated: bool) -> None:
+    """Components descend in reward; rotation-invariant fits make it diagonal."""
+    views = _three_signals()
+    reward, auto = ey_cross_covariance(model.fit(views).transform(views))
+    if isinstance(model, PLSEY):
+        reward = reward - auto
+    assert np.all(np.diff(np.diag(reward)) <= 1e-8)
+    if rotated:
+        off_diagonal = reward - np.diag(np.diag(reward))
+        np.testing.assert_allclose(off_diagonal, 0.0, atol=1e-8)

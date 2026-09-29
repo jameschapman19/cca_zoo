@@ -55,6 +55,29 @@ def ey_cross_covariance(
     return C / m, V / m
 
 
+def canonical_rotation(
+    representations: list[np.ndarray], shrinkage: float = 0.0
+) -> np.ndarray:
+    """Orthogonal k x k rotation ordering EY components by their reward.
+
+    The EY loss is unchanged by ``W -> W Q`` for orthogonal ``Q``, as are
+    penalties on whole rows of ``W``, so a fit finds its subspace in an
+    arbitrary rotation, with components unordered and of either sign.
+    Rotating onto the eigenvectors of the k x k reward ``C - shrinkage V``,
+    in descending order, orders the components as the closed form does.
+
+    Args:
+        representations: Each view's scores, shape (n_samples, k).
+        shrinkage: Weight of the auto-covariance taken off the reward.
+
+    Returns:
+        The rotation, shape (k, k).
+    """
+    C, V = ey_cross_covariance(representations)
+    _, rotation = np.linalg.eigh(C - shrinkage * V)
+    return np.flip(rotation, axis=1)
+
+
 def ey_loss(representations: list[np.ndarray]) -> dict[str, float]:
     """The EY loss and its terms.
 
@@ -586,20 +609,22 @@ def omp_coordinate_descent_ey(
     choosing the feature with the largest EY gradient norm and refitting
     the active coefficients by exact coordinate descent after each addition.
     All views start from a dense warm start, since the all-zero embedding is
-    a stationary point with nothing to select against.
+    a stationary point with nothing to select against. Rounds regrow every
+    view's active set until the sets repeat.
 
     Args:
         bases: Column-centred design matrix of each view.
         k: Number of latent dimensions.
         n_nonzero_coefs: Active-set size of each view.
         max_iter: Maximum rounds of regrowing every view's active set.
-        tol: Tolerance on the change in the EY loss.
+        tol: Tolerance on the change in the EY loss between refit sweeps.
         rng: Random generator for the warm start.
         refit_sweeps: Maximum sweeps refitting the active set per addition.
 
     Returns:
         ``(coefficients, n_iter, converged)`` as :func:`coordinate_descent_ey`,
-        counting rounds; rows outside the active sets are exactly zero.
+        counting rounds, converged when the active sets repeat; rows outside
+        the active sets are exactly zero.
     """
     m = len(bases)
     n = bases[0].shape[0]
@@ -611,8 +636,9 @@ def omp_coordinate_descent_ey(
     representations = [b @ c for b, c in zip(bases, coefficients)]
     total = sum(representations)
 
-    prev_obj = np.inf
+    prev_active_sets: list[list[int]] = []
     for n_iter in range(1, max_iter + 1):
+        active_sets: list[list[int]] = []
         for i, basis in enumerate(bases):
             target = min(n_nonzero_coefs[i], n_features[i])
             zi = representations[i]
@@ -683,11 +709,11 @@ def omp_coordinate_descent_ey(
                     if abs(refit_prev - refit_obj) < tol:
                         break
                     refit_prev = refit_obj
+            active_sets.append(sorted(active))
 
-        obj = ey_loss(representations)["objective"]
-        if abs(prev_obj - obj) < tol:
+        if active_sets == prev_active_sets:
             return coefficients, n_iter, True
-        prev_obj = obj
+        prev_active_sets = active_sets
     return coefficients, max_iter, False
 
 

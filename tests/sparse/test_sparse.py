@@ -7,8 +7,11 @@ import pytest
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._ey import ey_loss
+from cca_zoo.linear import MCCA
+from cca_zoo.metrics import pairwise_correlations
 from cca_zoo.sparse import (
     ADMMCCA,
+    IPLSCCA,
     PMDCCA,
     SAR,
     ElasticNetCCA,
@@ -122,21 +125,37 @@ def test_positive_weights(correlated_views: list[np.ndarray]) -> None:
 
 @pytest.mark.parametrize(
     ("budget", "expected"),
-    [(3, [3, 3]), ([2, 4], [2, 4]), (None, [1, 1]), (100, [10, 8])],
+    [(3, [3, 3]), ([2, 4], [2, 4]), (None, [2, 2]), (100, [10, 8])],
 )
 def test_omp_keeps_its_budget_of_features(
     correlated_views: list[np.ndarray],
     budget: int | list[int] | None,
     expected: list[int],
 ) -> None:
-    """Exactly n_nonzero_coefs features per view, by default a tenth, capped at all."""
+    """n_nonzero_coefs per view: a tenth, at least n_components, at most all."""
     model = OrthogonalMatchingPursuitCCA(
         n_components=2, n_nonzero_coefs=budget, random_state=0
     )
     assert [_active_rows(w) for w in model.fit(correlated_views).weights_] == expected
-    for bad in ([3], [3, 0]):
+    for bad in ([3], [3, 1]):
         with pytest.raises(ValueError, match="n_nonzero_coefs"):
             model.set_params(n_nonzero_coefs=bad).fit(correlated_views)
+
+
+@pytest.mark.parametrize("cls", [IPLSCCA, WaijenborgCCA, ADMMCCA])
+def test_unpenalised_deflation_is_cca_on_every_component(cls: type) -> None:
+    """At alpha=0 each deflated component is the next canonical pair."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 3)) * [3, 2, 1]
+    views = [
+        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
+    ]
+    model = cls(n_components=3, alpha=0.0, random_state=0).fit(views)
+    np.testing.assert_allclose(
+        pairwise_correlations(model.transform(views))[0, 1],
+        pairwise_correlations(MCCA(3).fit(views).transform(views))[0, 1],
+        atol=1e-3,
+    )
 
 
 def test_pmd_l1_bound_one_is_unconstrained(two_views: list[np.ndarray]) -> None:
@@ -172,10 +191,12 @@ def test_sar_selects_the_signal_columns() -> None:
     assert abs(np.corrcoef(zx[:, 0], zx[:, 1])[0, 1]) < 0.3
 
 
-def test_sar_selects_nothing_from_noise(two_views: list[np.ndarray]) -> None:
-    """With no shared signal, BIC chooses all-zero weights."""
+def test_sar_selects_nothing_from_noise() -> None:
+    """With no shared signal and ample samples, BIC chooses all-zero weights."""
+    rng = np.random.default_rng(0)
+    noise = [rng.standard_normal((1000, 10)), rng.standard_normal((1000, 8))]
     assert not any(
-        w.any() for w in SAR(max_iter=50, random_state=0).fit(two_views).weights_
+        w.any() for w in SAR(max_iter=50, random_state=0).fit(noise).weights_
     )
 
 

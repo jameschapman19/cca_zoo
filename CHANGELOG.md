@@ -182,6 +182,28 @@ The table below gives each replacement.
 
 ### Changed
 
+- EY-fitted models return their components in the closed form's order. The EY loss is
+  unchanged by rotating the weights, so `CCAEY`, `PLSEY`, `StochasticCCAEY`,
+  `OrthogonalMatchingPursuitCCA` and `MultiTaskElasticNetCCA` found the right subspace in
+  an arbitrary rotation, with components unordered and of either sign; they now rotate
+  onto the eigenvectors of the k x k reward, which leaves the loss (and row-wise
+  penalties) unchanged. `ElasticNetCCA`, whose elementwise penalty rules out a rotation,
+  orders its components by reward.
+- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `WaijenborgCCA`,
+  `ParkhomenkoCCA`, `SAR`) start each component at the leading cross-covariance (PLS)
+  direction of the deflated views, as sklearn's PLS does, rather than at random weights.
+- `StochasticCCAEY`'s `learning_rate` is relative to `1 / L`, with `L` the largest
+  variance of any view, so one default (now 0.05) suits data at any scale; the old
+  default diverged on unscaled data.
+- `OrthogonalMatchingPursuitCCA`'s `n_nonzero_coefs` defaults to
+  `max(n_components, n_features // 10)` and must be at least `n_components`; the
+  components share the active set, so a smaller one made them linearly dependent. Its
+  rounds have converged when the active sets repeat.
+- `ElasticNetCCA` and `MultiTaskElasticNetCCA` default to `max_iter=1000`, as sklearn's
+  `ElasticNet`; at 100 they stopped short on ordinary data.
+- `IPLSCCA` and `WaijenborgCCA` regress by least squares at `alpha=0` rather than an
+  unpenalised `Lasso`, which warned on every fit.
+
 - `GCCA`'s shared latent has unit variance, so the scale of its scores no longer
   shrinks with the number of samples. Correlations are unchanged.
 - `GraphicalLassoCCA` with a fixed `alpha` penalises the covariance with denominator
@@ -303,6 +325,16 @@ Removed outright, with no deprecation period; the table above gives each replace
   keeps `objective`, since no class covers its combinations.
 
 ### Fixed
+
+- The deflation models' later components did not reproduce their fitted scores:
+  component d's weights were found on views deflated by the earlier scores but applied
+  to the original views, adding an arbitrary multiple of those scores. At `alpha=0`,
+  `IPLSCCA`'s second canonical correlation came out as -0.03 instead of 0.71. Weights
+  are now `W (P'W)^-1`, as sklearn's PLS `x_rotations_`, which give the deflated scores
+  from the original views and keep the union of the components' supports; unpenalised,
+  every component matches MCCA's.
+- `SAR` could return all-zero components on a strong signal: from a random start, the
+  first lasso could select nothing, and a zero target keeps every later one at zero.
 
 - `GAMCCA` lost the linear fit at large `sp`: the penalised eigenproblem mixed penalty
   eigenvalues of order `sp` with rewards of order 1, so rounding in the penalty's null

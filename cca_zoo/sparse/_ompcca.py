@@ -11,7 +11,7 @@ from sklearn.utils._param_validation import Interval
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._ey import omp_coordinate_descent_ey
+from cca_zoo._utils._ey import canonical_rotation, omp_coordinate_descent_ey
 from cca_zoo._utils._param_constraints import POSITIVE_INT_PER_VIEW, RANDOM_STATE
 
 
@@ -26,11 +26,15 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
-        n_nonzero_coefs: Active features, capped at the view's width; None
-            is ``max(1, n_features_i // 10)``. Per-view. Default is None.
-        max_iter: Maximum rounds of regrowing every view's active set.
-            Default is 10.
-        tol: Tolerance on the change in the EY loss. Default is 1e-6.
+        n_nonzero_coefs: Active features, capped at the view's width. The
+            components share the active set, so it needs at least
+            ``n_components`` features for them to be linearly independent.
+            None is ``max(n_components, n_features_i // 10)``. Per-view.
+            Default is None.
+        max_iter: Maximum rounds of regrowing every view's active set; the
+            fit has converged when the sets repeat. Default is 10.
+        tol: Tolerance on the change in the EY loss while refitting an
+            active set. Default is 1e-6.
         random_state: Seed for the dense warm start. Default is None.
 
     Attributes:
@@ -75,7 +79,7 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
     def _resolve_n_nonzero_coefs(self, n_features: list[int]) -> list[int]:
         """One positive active-set size per view."""
         if self.n_nonzero_coefs is None:
-            resolved = [max(1, p // 10) for p in n_features]
+            resolved = [max(self.n_components, p // 10) for p in n_features]
         elif isinstance(self.n_nonzero_coefs, (int, np.integer)):
             resolved = [int(self.n_nonzero_coefs)] * len(n_features)
         else:
@@ -85,11 +89,13 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
                     f"n_nonzero_coefs has {len(resolved)} entries, expected "
                     f"one per view ({len(n_features)})."
                 )
-        if any(x < 1 for x in resolved):
+        if any(x < min(self.n_components, p) for x, p in zip(resolved, n_features)):
             raise ValueError(
-                f"n_nonzero_coefs must be positive for every view, got {resolved}."
+                f"n_nonzero_coefs must be at least n_components={self.n_components} "
+                f"for every view, got {resolved}; fewer active features than "
+                "components makes the components linearly dependent."
             )
-        return resolved
+        return [min(x, p) for x, p in zip(resolved, n_features)]
 
     def fit(
         self, views: list[ArrayLike], y: None = None
@@ -104,7 +110,8 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             self.
 
         Raises:
-            ValueError: If ``n_nonzero_coefs`` has the wrong length or is not positive.
+            ValueError: If ``n_nonzero_coefs`` has the wrong length or is fewer
+                than ``n_components``.
         """
         views_ = self._setup_fit(views)
         n_nonzero_coefs = self._resolve_n_nonzero_coefs(self.n_features_per_view_)
@@ -118,5 +125,6 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
             rng=rng,
         )
         warn_if_not_converged(self, converged)
-        self.weights_: list[np.ndarray] = weights
+        rotation = canonical_rotation([v @ w for v, w in zip(views_, weights)])
+        self.weights_: list[np.ndarray] = [w @ rotation for w in weights]
         return self._finish_fit(views_)

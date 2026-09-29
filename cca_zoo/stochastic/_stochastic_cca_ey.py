@@ -9,6 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.utils import gen_batches
 from sklearn.utils._param_validation import Interval
+from sklearn.utils.extmath import randomized_svd
 
 from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import cheap_orthonormal_projection_weights
@@ -28,7 +29,9 @@ class StochasticCCAEY(CCAEY):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
-        learning_rate: Step size. Default is 1e-2.
+        learning_rate: Step size as a fraction of ``1 / L``, where ``L`` is
+            the largest eigenvalue of any view's covariance, so that the
+            default suits data at any scale. Default is 0.05.
         momentum: Momentum in ``[0, 1)``. Default is 0.9.
         batch_size: Mini-batch size; None uses all samples. Default is None.
         max_iter: Number of epochs. Default is 1000.
@@ -64,7 +67,7 @@ class StochasticCCAEY(CCAEY):
         *,
         center: bool = True,
         shrinkage: float = 0.0,
-        learning_rate: float = 1e-2,
+        learning_rate: float = 0.05,
         momentum: float = 0.9,
         batch_size: int | None = None,
         max_iter: int = 1000,
@@ -98,7 +101,7 @@ class StochasticCCAEY(CCAEY):
         """
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_sgd(views_, rng)
+        self.weights_ = self._in_canonical_order(views_, self._fit_sgd(views_, rng))
         return self._finish_fit(views_)
 
     def _initial_weights(
@@ -115,6 +118,10 @@ class StochasticCCAEY(CCAEY):
         """Weights from mini-batch momentum SGD."""
         n = views[0].shape[0]
         bs = n if self.batch_size is None else min(self.batch_size, n)
+        largest_variance = max(
+            randomized_svd(v, 1, random_state=0)[1][0] ** 2 / (n - 1) for v in views
+        )
+        step = self.learning_rate / largest_variance
         weights = self._initial_weights(views, rng)
         velocity = [np.zeros_like(w) for w in weights]
         prev_obj = np.inf
@@ -127,7 +134,7 @@ class StochasticCCAEY(CCAEY):
                 representations = [b @ w for b, w in zip(batch, weights)]
                 grads = self._derivative(batch, representations, weights)
                 for i, g in enumerate(grads):
-                    velocity[i] = self.momentum * velocity[i] - self.learning_rate * g
+                    velocity[i] = self.momentum * velocity[i] - step * g
                     weights[i] = weights[i] + velocity[i]
             full_representations = [v @ w for v, w in zip(views, weights)]
             obj = self._objective(views, full_representations, weights)

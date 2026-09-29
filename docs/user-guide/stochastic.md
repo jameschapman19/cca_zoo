@@ -14,9 +14,7 @@ objective itself — by mini-batch momentum SGD instead of full-batch L-BFGS-B:
 ```python
 from cca_zoo.stochastic import StochasticCCAEY
 
-model = StochasticCCAEY(
-    n_components=2, learning_rate=0.01, batch_size=128, max_iter=200
-)
+model = StochasticCCAEY(n_components=2, batch_size=128, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -24,6 +22,8 @@ model.fit([X1, X2])
 is naturally streamed/out-of-core. Otherwise, `CCAEY` is simpler to tune (no `learning_rate` or
 `batch_size`) and converges more predictably.
 
+`learning_rate` is relative: the step is `learning_rate / L`, where `L` is the largest variance
+along any direction of any view, so the default suits data at any scale without standardising.
 `batch_size` trades off gradient-estimate noise against per-step cost; `learning_rate` and the
 momentum term interact with it the same way they do for any mini-batch SGD method — too large a
 learning rate for a given batch size can diverge, too small converges slowly. `random_state`
