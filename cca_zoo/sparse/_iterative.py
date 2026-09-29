@@ -53,6 +53,10 @@ class _BaseIterative(BaseModel):
         n_iter_: Most iterations run by any component.
     """
 
+    # The constraint the weights are scaled to (see _normalise_weights): 0
+    # for the CCA models, 1 for those that bound the weights' norm, as PLS.
+    _constraint_shrinkage: ClassVar[float] = 0.0
+
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "max_iter": POSITIVE_INT,
@@ -105,6 +109,7 @@ class _BaseIterative(BaseModel):
         self.weights_: list[np.ndarray] = [
             undeflated_weights(w, p) for w, p in zip(deflated_weights, loadings)
         ]
+        self._normalise_weights(views_, self._constraint_shrinkage)
         return self._finish_fit(views_)
 
     def _fit_single(
@@ -254,6 +259,8 @@ class PMDCCA(_BaseIterative):
         >>> X1, X2 = rng.standard_normal((50, 10)), rng.standard_normal((50, 8))
         >>> model = PMDCCA(l1_bound=0.5, random_state=0).fit([X1, X2])
     """
+
+    _constraint_shrinkage: ClassVar[float] = 1.0
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
@@ -584,6 +591,8 @@ class SpanCCA(_BaseIterative):
         >>> model = SpanCCA(span=5, random_state=0).fit([X1, X2])
     """
 
+    _constraint_shrinkage: ClassVar[float] = 1.0
+
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
         "span": [None, *POSITIVE_INT_PER_VIEW],
@@ -781,6 +790,8 @@ class ParkhomenkoCCA(_BaseIterative):
         >>> model = ParkhomenkoCCA(alpha=0.1, random_state=0).fit([X1, X2])
     """
 
+    _constraint_shrinkage: ClassVar[float] = 1.0
+
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **_BaseIterative._parameter_constraints,
         "alpha": NONNEGATIVE_PER_VIEW,
@@ -974,6 +985,7 @@ class SAR(_BaseIterative):
                 self.weights_[j][:, d] = w_final[j]
             deflated = deflate(deflated, w)
         warn_if_not_converged(self, all_converged)
+        self._normalise_weights(views_, self._constraint_shrinkage)
         return self._finish_fit(views_)
 
     def _reexpress(

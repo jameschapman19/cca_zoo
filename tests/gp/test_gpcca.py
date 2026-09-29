@@ -59,3 +59,13 @@ def test_kernel_per_view(two_views_small: list[np.ndarray]) -> None:
     model = GaussianProcessCCA(kernel=[DotProduct(), RBF()], random_state=0)
     kernels = [enc.kernel_ for enc in model.fit(two_views_small).encoders_]
     assert isinstance(kernels[0], DotProduct) and isinstance(kernels[1], RBF)
+
+
+def test_default_kernel_follows_the_units_of_the_data() -> None:
+    """The default length scale scales with the data, so rescaling changes nothing."""
+    views = linear_views(0, 150)
+    model = GaussianProcessCCA(n_components=2, random_state=0)
+    expected = model.fit(views).transform(views)
+    rescaled = [views[0] * 100, views[1] * 0.01]
+    for got, want in zip(model.fit(rescaled).transform(rescaled), expected):
+        np.testing.assert_allclose(np.abs(got), np.abs(want), atol=1e-6)

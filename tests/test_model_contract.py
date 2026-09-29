@@ -331,3 +331,42 @@ def test_skops_round_trip(cls: type[BaseModel]) -> None:
     loaded = skops.io.loads(data, trusted=skops.io.get_untrusted_types(data=data))
     for a, b in zip(model.transform(views), loaded.transform(views)):
         np.testing.assert_array_equal(a, b)
+
+
+# Each linear model's constraint, as the shrinkage c of w'((1 - c) cov + c I)w = 1.
+_CONSTRAINT = {
+    **dict.fromkeys(
+        [
+            "CCA",
+            "MCCA",
+            "CCAR3",
+            "ECCA",
+            "CCAEY",
+            "HuberCCA",
+            "StochasticCCAEY",
+            "ProjectionPursuitCCA",
+            "ADMMCCA",
+            "IPLSCCA",
+            "SAR",
+            "WaijenborgCCA",
+            "ElasticNetCCA",
+            "MultiTaskElasticNetCCA",
+            "OrthogonalMatchingPursuitCCA",
+        ],
+        0.0,
+    ),
+    **dict.fromkeys(["PLS", "PLSEY", "PMDCCA", "SpanCCA", "ParkhomenkoCCA"], 1.0),
+}
+
+
+@pytest.mark.parametrize(("name", "shrinkage"), _CONSTRAINT.items())
+def test_weights_meet_their_models_constraint(name: str, shrinkage: float) -> None:
+    """Solvers of one problem share a scale: CCA unit variance, PLS unit norm."""
+    cls = next(c for c in MODEL_CLASSES if c.__name__ == name)
+    views = _views(0, n_views=2, n=100)
+    model = _fit(make_model(cls).set_params(n_components=2), views)
+    for view, w in zip(views, model.weights_):
+        centred = view - view.mean(axis=0)
+        variance = np.sum((centred @ w) ** 2, axis=0) / (len(view) - 1)
+        size = (1 - shrinkage) * variance + shrinkage * np.sum(w**2, axis=0)
+        np.testing.assert_allclose(size[np.any(w, axis=0)], 1.0, rtol=1e-6)

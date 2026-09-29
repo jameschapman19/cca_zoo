@@ -214,6 +214,20 @@ class BaseModel(BaseEstimator, ABC):
             validated = _weighted_pseudo_rows(validated, weights)
         return validated
 
+    def _normalise_weights(self, views: list[np.ndarray], shrinkage: float) -> None:
+        """Scale each component to ``w' ((1 - shrinkage) cov + shrinkage I) w = 1``.
+
+        The constraint MCCA's components meet, so every solver of one problem
+        returns the same scale: unit-variance scores for CCA (``shrinkage=0``)
+        and unit-norm weights for PLS (``shrinkage=1``). All-zero components
+        stay zero.
+        """
+        n = views[0].shape[0]
+        for i, (view, w) in enumerate(zip(views, self.weights_)):
+            variance = np.sum((view @ w) ** 2, axis=0) / (n - 1)
+            size = (1 - shrinkage) * variance + shrinkage * np.sum(w**2, axis=0)
+            self.weights_[i] = w / np.sqrt(np.where(size > 0, size, 1.0))
+
     def _finish_fit(self: _Model, views: list[np.ndarray]) -> _Model:
         """Record what later calls need from the centred training views.
 

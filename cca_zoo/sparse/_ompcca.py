@@ -127,4 +127,5 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         warn_if_not_converged(self, converged)
         rotation = canonical_rotation([v @ w for v, w in zip(views_, weights)])
         self.weights_: list[np.ndarray] = [w @ rotation for w in weights]
+        self._normalise_weights(views_, shrinkage=0.0)
         return self._finish_fit(views_)

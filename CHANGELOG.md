@@ -182,6 +182,18 @@ The table below gives each replacement.
 
 ### Changed
 
+- Every linear solver scales its weights to its problem's constraint,
+  `w' ((1 - shrinkage) cov + shrinkage I) w = 1`, as MCCA's already were: unit-variance
+  scores for the CCA models and unit-norm weights for the PLS ones. The EY-fitted CCA
+  models had returned scores of variance `1 + rho`, `ADMMCCA` and `WaijenborgCCA` of
+  about `1 / n`, and `SAR` unit-norm weights, so one problem's solvers disagreed on
+  scale. `CCAR3` and `ECCA` normalise with `n - 1`, as everything else does.
+- `GaussianProcessCCA`'s default kernel takes its length scale from the data,
+  `sqrt(n_features * X.var() / 2)`, as sklearn's `gamma="scale"`, rather than 1. On data
+  in larger units the unit length scale made the kernel near the identity: at the
+  default `alpha` the model memorised (training correlations 0.97, held-out 0.30), and
+  at `alpha >= 0.1` it returned zeros. It now holds out at 0.94, 0.91 and 0.87 where
+  CCA gets 0.97, 0.91 and 0.71, and its default fit ignores the data's units.
 - EY-fitted models return their components in the closed form's order. The EY loss is
   unchanged by rotating the weights, so `CCAEY`, `PLSEY`, `StochasticCCAEY`,
   `OrthogonalMatchingPursuitCCA` and `MultiTaskElasticNetCCA` found the right subspace in

@@ -88,6 +88,18 @@ class _GpEncoder:
         return np.tile(std[:, None], (1, self.k))
 
 
+def _default_kernel(X: np.ndarray) -> Kernel:
+    """RBF whose length scale follows the data, as sklearn's ``gamma="scale"``.
+
+    ``gamma = 1 / (n_features X.var())`` in ``exp(-gamma d^2)`` is a length
+    scale of ``sqrt(n_features X.var() / 2)``; a fixed unit length scale
+    makes the kernel near the identity on data in larger units, which the
+    model can only memorise.
+    """
+    length_scale = np.sqrt(X.shape[1] * X.var() / 2) or 1.0
+    return ConstantKernel(1.0) * RBF(length_scale=length_scale)
+
+
 class GaussianProcessCCA(BaseModel):
     r"""Nonlinear CCA with Gaussian-process encoders.
 
@@ -105,7 +117,8 @@ class GaussianProcessCCA(BaseModel):
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
         kernel: A kernel, cloned per view, or one per view; None uses
-            ``ConstantKernel(1.0) * RBF(np.ones(n_features))``. Default is None.
+            ``ConstantKernel(1.0) * RBF(sqrt(n_features * X.var() / 2))``,
+            the length scale of sklearn's ``gamma="scale"``. Default is None.
         alpha: RKHS-norm penalty, also the noise level of the posterior
             variance. Per-view. Default is 0.01.
         n_inducing: Number of inducing points; None, or at least
@@ -182,11 +195,7 @@ class GaussianProcessCCA(BaseModel):
             _GpEncoder(
                 X,
                 k,
-                (
-                    clone(kern)
-                    if kern is not None
-                    else ConstantKernel(1.0) * RBF(length_scale=np.ones(X.shape[1]))
-                ),
+                clone(kern) if kern is not None else _default_kernel(X),
                 a,
                 n_ind,
                 self.random_state,

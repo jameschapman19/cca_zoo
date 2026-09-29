@@ -118,4 +118,5 @@ class ElasticNetCCA(BaseModel):
         reward, _ = ey_cross_covariance([v @ w for v, w in zip(views_, weights)])
         order = np.argsort(-np.diag(reward), kind="stable")
         self.weights_: list[np.ndarray] = [w[:, order] for w in weights]
+        self._normalise_weights(views_, shrinkage=0.0)
         return self._finish_fit(views_)

@@ -102,6 +102,7 @@ class CCAEY(BaseFullBatchEYModel):
         views_: list[np.ndarray] = self._setup_fit(views)
         rng = np.random.default_rng(self.random_state)
         self.weights_ = self._in_canonical_order(views_, self._fit_lbfgsb(views_, rng))
+        self._normalise_weights(views_, self.shrinkage)
         return self._finish_fit(views_)
 
     def _weight_scale(self, view: np.ndarray) -> float:

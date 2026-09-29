@@ -63,8 +63,8 @@ def _postprocess_rrr_fit(
 
     XU0 = X @ U0
     YV0 = Y @ V0
-    GX = XU0.T @ XU0 / n
-    GY = YV0.T @ YV0 / n
+    GX = XU0.T @ XU0 / (n - 1)
+    GY = YV0.T @ YV0 / (n - 1)
 
     U = U0 @ _whiten_factor(GX, ridge)
     V = V0 @ _whiten_factor(GY, ridge)

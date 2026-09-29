@@ -158,6 +158,7 @@ class HuberCCA(BaseFullBatchEYModel):
         # any orthogonal rotation is free; order them by reward, as CCAEY does.
         rotation = canonical_rotation([v @ w for v, w in zip(views_, weights)])
         self.weights_ = [w @ rotation for w in weights]
+        self._normalise_weights(views_, shrinkage=0.0)
         return self._finish_fit(views_)
 
     def _initial_weights(
