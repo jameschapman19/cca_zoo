@@ -27,11 +27,14 @@ class ParkhomenkoCCA(BaseModel):
     which amounts to standardising each feature, then iterates
 
     $$
-    \mathbf{w}_i \leftarrow S_{\alpha_i}(\tilde X_i^\top \bar{\mathbf{s}}_{\neg i}),
+    \mathbf{w}_i \leftarrow
+        S_{\alpha_i}\bigl(\tfrac{1}{n} \tilde X_i^\top \bar{\mathbf{s}}_{\neg i}\bigr),
     $$
 
-    with $S_\alpha$ the soft-threshold and $\tilde X_i$ the standardised view.
-    Weights are returned on the original feature scale.
+    with $S_\alpha$ the soft-threshold, $\tilde X_i$ the standardised view and
+    $\bar{\mathbf{s}}_{\neg i}$ the other views' summed score at unit variance:
+    each feature's correlation with that score is soft-thresholded at
+    $\alpha_i$. Weights are returned on the original feature scale.
 
     One of three sparse PLS power iterations, with :class:`PMDCCA` and
     :class:`SpanCCA`: each multiplies by the other views' summed score, then
@@ -40,7 +43,9 @@ class ParkhomenkoCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to subtract column means. Default is True.
-        alpha: Soft-threshold level, an L1 penalty. Per-view. Default is 0.1.
+        alpha: Soft-threshold on each feature's correlation with the other
+            views' score; 1 or more zeroes every weight. Per-view. Default
+            is 0.1.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance on the change in weights. Default is 1e-6.
         random_state: Seed for the start. Default is None.
@@ -111,11 +116,11 @@ class ParkhomenkoCCA(BaseModel):
             w = pls_direction(standardised, rng)
             for n_iter in range(1, self.max_iter + 1):
                 previous = [wi.copy() for wi in w]
-                # Power iteration, soft-thresholded at each view's alpha.
+                # Each feature's correlation with the others' score,
+                # soft-thresholded at the view's alpha.
                 for i, (view, alpha) in enumerate(zip(standardised, alphas)):
-                    raw = soft_threshold(
-                        view.T @ others_score(standardised, w, i), alpha
-                    )
+                    correlations = view.T @ others_score(standardised, w, i) / len(view)
+                    raw = soft_threshold(correlations, alpha)
                     w[i] = raw / max(np.linalg.norm(raw), 1e-12)
                 if max(np.linalg.norm(a - b) for a, b in zip(w, previous)) < self.tol:
                     break

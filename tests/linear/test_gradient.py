@@ -25,18 +25,21 @@ def _views(n_views: int) -> list[np.ndarray]:
         (CCAEY(n_components=2, random_state=0), CCA(n_components=2), 2),
         (PLSEY(n_components=2, random_state=0), PLS(n_components=2), 2),
         (CCAEY(n_components=2, random_state=0), MCCA(n_components=2), 3),
+        (StochasticCCAEY(n_components=2, random_state=0), CCA(n_components=2), 2),
+        # 300 rows in batches of 299 leave a remainder of one row.
         (
-            StochasticCCAEY(
-                n_components=2,
-                batch_size=100,
-                max_iter=300,
-                random_state=0,
-            ),
+            StochasticCCAEY(n_components=2, batch_size=299, random_state=0),
             CCA(n_components=2),
             2,
         ),
     ],
-    ids=["CCAEY-CCA", "PLSEY-PLS", "CCAEY-MCCA", "Stochastic-CCA"],
+    ids=[
+        "CCAEY-CCA",
+        "PLSEY-PLS",
+        "CCAEY-MCCA",
+        "Stochastic-CCA",
+        "Stochastic-one-row-remainder",
+    ],
 )
 def test_converges_to_the_closed_form(
     model: object, exact: object, n_views: int
@@ -85,4 +88,14 @@ def test_ignores_the_units_of_a_view(cls: type) -> None:
         ),
         canonical_correlations(cls(n_components=2, random_state=0).fit(views), views),
         atol=1e-3,
+    )
+
+
+def test_stochastic_momentum_overshoot_is_not_convergence() -> None:
+    """Full-batch SGD runs through momentum's overshoot to CCA's optimum."""
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((101, 5))
+    views = [x, x[:, :3] + rng.standard_normal((101, 3))]
+    assert StochasticCCAEY(random_state=0).fit(views).score(views) == pytest.approx(
+        CCA().fit(views).score(views), abs=0.01
     )

@@ -81,12 +81,16 @@ def pls_direction(
 def others_score(
     views: list[np.ndarray], weights: list[np.ndarray], i: int
 ) -> np.ndarray:
-    """The unit-norm sum of every view's score but view ``i``'s."""
+    """The sum of every view's score but view ``i``'s, at unit variance.
+
+    Unit variance, not unit norm, so that a penalty on view ``i``'s update
+    means the same at any sample size.
+    """
     total: np.ndarray = np.asarray(
         sum(v @ w for j, (v, w) in enumerate(zip(views, weights)) if j != i)
     )
-    norm = np.linalg.norm(total)
-    return total / norm if norm > 1e-12 else total
+    std = total.std()
+    return total / std if std > 1e-12 else total
 
 
 def elastic_net(

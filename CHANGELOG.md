@@ -225,8 +225,9 @@ The table below gives each replacement.
   unscaled data. `L_i` is measured on a mini-batch, whose curvature exceeds the full
   data's when the batch is small next to the view.
 - `StochasticCCAEY` stops as sklearn's SGD estimators do, after `n_iter_no_change`
-  (new, default 5) epochs without an improvement of `tol` on the best epoch loss, the
-  mean of its mini-batches' losses, so the fit never passes over all the data at once.
+  (new, default 10 as in sklearn's MLP, which also uses momentum) epochs without an
+  improvement of `tol` on the best epoch loss, the mean of its mini-batches' losses, so
+  the fit never passes over all the data at once.
   Comparing consecutive full-data losses never stopped a mini-batch fit, whose loss is
   noisy, so every one ran all `max_iter` epochs and warned.
 - `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than
@@ -367,6 +368,18 @@ Removed outright, with no deprecation period; the table above gives each replace
   keeps `objective`, since no class covers its combinations.
 
 ### Fixed
+
+- `StochasticCCAEY` raised "diverged" whenever the last mini-batch of an epoch had one
+  row, which has no covariance, such as 101 samples in batches of 10. The remainder now
+  joins the last full batch, and `batch_size` must be at least 2.
+- Penalties that meant something different at each sample size: stacking a data set on
+  itself, which leaves every covariance unchanged, took `IPLSCCA(alpha=0.05)` from four
+  nonzero weights per view to none, and made `ParkhomenkoCCA` and `ADMMCCA` denser.
+  `IPLSCCA` now regresses onto the other views' score at unit variance, as Mai and
+  Zhang do, rather than at unit norm; `ParkhomenkoCCA`'s `alpha` thresholds each
+  feature's correlation with that score; and `ADMMCCA` solves Suo et al.'s problem on
+  `X / sqrt(n)`, a unit-variance constraint. The same `alpha` now penalises more
+  strongly in `ParkhomenkoCCA` and `ADMMCCA`, and less in `IPLSCCA`.
 
 - A callable `kernel` in `KCCA`, `KGCCA` and `KTCCA` was called with `gamma`, `degree`
   and `coef0` as well as its `kernel_params`, so a custom kernel not accepting them,

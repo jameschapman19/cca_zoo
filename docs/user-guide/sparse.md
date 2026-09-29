@@ -193,14 +193,15 @@ vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandku
 2017):
 
 $$
-\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-    - \tau_1\|\mathbf{w}_1\|_1 - \tau_2\|\mathbf{w}_2\|_1
-\quad \text{s.t.} \quad \|X_i\mathbf{w}_i\|_2 \leq 1
+\max_{\mathbf{w}_1, \mathbf{w}_2} \; \tfrac{1}{n} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+    - \alpha_1\|\mathbf{w}_1\|_1 - \alpha_2\|\mathbf{w}_2\|_1
+\quad \text{s.t.} \quad \tfrac{1}{n} \|X_i\mathbf{w}_i\|_2^2 \leq 1
 $$
 
 solved via a linearised Alternating Direction Method of Multipliers, needed because the
 constraint couples $\mathbf{w}_i$ to $X_i\mathbf{w}_i$ through a linear map rather than
-the identity.
+the identity. It is Suo et al.'s problem on $X_i / \sqrt{n}$: the constraint is unit
+variance, so `alpha` means the same at any sample size, as sklearn's penalties do.
 
 ```python
 from cca_zoo.sparse import ADMMCCA
@@ -223,8 +224,9 @@ model = IPLSCCA(n_components=2, alpha=0.01, l1_ratio=1.0, random_state=0).fit([X
 
 ### ParkhomenkoCCA
 
-Fixed soft-threshold applied after each power step (Parkhomenko 2009). Simpler than PMD
-but `alpha` is a fixed threshold, not an L1 bound.
+Fixed soft-threshold applied after each power step (Parkhomenko 2009): each standardised
+feature's correlation with the other views' score is soft-thresholded at `alpha`. Simpler
+than PMD, but `alpha` is a fixed threshold, not an L1 bound.
 
 ```python
 from cca_zoo.sparse import ParkhomenkoCCA

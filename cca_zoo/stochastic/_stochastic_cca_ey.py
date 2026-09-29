@@ -38,7 +38,8 @@ class StochasticCCAEY(CCAEY):
         max_iter: Number of epochs. Default is 1000.
         n_iter_no_change: Epochs without an improvement of ``tol`` on the
             best epoch loss, the mean of its mini-batches' losses, before
-            stopping, as in sklearn's SGD estimators. Default is 5.
+            stopping, as in sklearn's MLP, whose default of 10 outlasts the
+            momentum's overshoot. Default is 10.
         tol: Improvement in the epoch loss that counts, as for
             ``n_iter_no_change``. Default is 1e-6.
         random_state: Seed for the shuffling and initial weights. Default is
@@ -62,7 +63,7 @@ class StochasticCCAEY(CCAEY):
         **CCAEY._parameter_constraints,
         "learning_rate": [Interval(Real, 0, None, closed="neither")],
         "momentum": [Interval(Real, 0, 1, closed="left")],
-        "batch_size": [None, Interval(Integral, 1, None, closed="left")],
+        "batch_size": [None, Interval(Integral, 2, None, closed="left")],
         "n_iter_no_change": [Interval(Integral, 1, None, closed="left")],
     }
 
@@ -76,7 +77,7 @@ class StochasticCCAEY(CCAEY):
         momentum: float = 0.9,
         batch_size: int | None = None,
         max_iter: int = 1000,
-        n_iter_no_change: int = 5,
+        n_iter_no_change: int = 10,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -145,8 +146,10 @@ class StochasticCCAEY(CCAEY):
             shuffled = [v[perm] for v in views]
             # The epoch's loss is the mean of its mini-batches' losses, as in
             # sklearn's SGD, so the fit never needs a pass over all the data.
+            # The remainder joins the last full batch: a batch of one row has
+            # no covariance.
             obj = 0.0
-            for sl in gen_batches(n, bs):
+            for sl in gen_batches(n, bs, min_batch_size=bs):
                 batch = [v[sl] for v in shuffled]
                 representations = [b @ w for b, w in zip(batch, weights)]
                 obj += (

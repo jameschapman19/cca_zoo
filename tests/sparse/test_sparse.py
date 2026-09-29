@@ -41,24 +41,40 @@ def _signal_and_noise_columns(n: int = 200, k: int = 1) -> list[np.ndarray]:
     ]
 
 
-@pytest.mark.parametrize(
-    "model",
-    [
-        ElasticNetCCA(alpha=0.1, l1_ratio=0.9),
-        MultiTaskElasticNetCCA(alpha=0.3, l1_ratio=0.9),
-        PMDCCA(l1_bound=0.3),
-        ParkhomenkoCCA(alpha=2.0),
-        SpanCCA(span=3),
-        ADMMCCA(alpha=1.0),
-    ],
-    ids=lambda m: type(m).__name__,
-)
+_PENALISED = [
+    ElasticNetCCA(alpha=0.1, l1_ratio=0.9),
+    MultiTaskElasticNetCCA(alpha=0.3, l1_ratio=0.9),
+    IPLSCCA(alpha=0.3),
+    PMDCCA(l1_bound=0.3),
+    ParkhomenkoCCA(alpha=0.3),
+    SpanCCA(span=3),
+    ADMMCCA(alpha=1.0),
+]
+
+
+@pytest.mark.parametrize("model", _PENALISED, ids=lambda m: type(m).__name__)
 def test_penalty_zeroes_some_weights(
     model: BaseModel, correlated_views: list[np.ndarray]
 ) -> None:
     """Each penalty zeroes some, but not all, of a view's weights."""
     model.set_params(random_state=0).fit(correlated_views)
     assert any(0.0 < np.isclose(w, 0.0).mean() < 1.0 for w in model.weights_)
+
+
+@pytest.mark.parametrize("model", _PENALISED, ids=lambda m: type(m).__name__)
+def test_a_penalty_means_the_same_at_any_sample_size(
+    model: BaseModel, correlated_views: list[np.ndarray]
+) -> None:
+    """Stacking the data twice keeps the covariances, so it keeps the weights.
+
+    Up to the 1% that the covariances' n - 1 divisor moves at n = 50.
+    """
+    model.set_params(random_state=0)
+    once = model.fit(correlated_views).weights_
+    twice = model.fit([np.vstack([v, v]) for v in correlated_views]).weights_
+    for a, b in zip(once, twice):
+        np.testing.assert_array_equal(a == 0, b == 0)
+        np.testing.assert_allclose(np.abs(a), np.abs(b), atol=0.01)
 
 
 @pytest.mark.parametrize("cls", [ElasticNetCCA, MultiTaskElasticNetCCA])

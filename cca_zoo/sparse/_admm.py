@@ -23,19 +23,21 @@ from cca_zoo.sparse._deflation import Deflation, pls_direction
 class ADMMCCA(BaseModel):
     r"""Sparse CCA by linearised ADMM.
 
-    For view $i$, with the other views' summed score
-    $\bar{\mathbf{s}}_{\neg i}$ fixed, solves
+    For view $i$, with the other views' weights fixed, solves
 
     $$
-    \max_{\mathbf{w}_i}\ \mathbf{w}_i^\top X_i^\top \bar{\mathbf{s}}_{\neg i}
+    \max_{\mathbf{w}_i}\ \tfrac{1}{n} \mathbf{w}_i^\top X_i^\top
+        \textstyle\sum_{j \ne i} X_j \mathbf{w}_j
         - \alpha_i \|\mathbf{w}_i\|_1
-    \quad\text{subject to}\quad \|X_i \mathbf{w}_i\|_2 \le 1
+    \quad\text{subject to}\quad \tfrac{1}{n} \|X_i \mathbf{w}_i\|_2^2 \le 1,
     $$
 
-    by linearised ADMM on the split $\mathbf{z}_i = X_i \mathbf{w}_i$, so
-    each step is a soft-threshold and a projection onto the unit ball, with
-    step size $1 / (\rho \|X_i\|_{\mathrm{op}}^2)$. Further components use
-    deflation rather than the paper's orthogonality constraint.
+    the paper's problem on $X_i / \sqrt{n}$, so that the constraint is unit
+    variance and ``alpha`` means the same at any sample size. It is solved
+    by linearised ADMM on the split $\mathbf{z}_i = X_i \mathbf{w}_i / \sqrt{n}$,
+    so each step is a soft-threshold and a projection onto the unit ball,
+    with step size $n / (\rho \|X_i\|_{\mathrm{op}}^2)$. Further components
+    use deflation rather than the paper's orthogonality constraint.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -111,16 +113,18 @@ class ADMMCCA(BaseModel):
         deflation = Deflation(views_, self.n_components)
         for deflated in deflation:
             w = pls_direction(deflated, rng)
+            # The paper's problem on X / sqrt(n): unit-variance constraints.
+            scaled = [v / np.sqrt(len(v)) for v in deflated]
             # The split z_i = X_i w_i and its scaled dual persist across the
             # outer iterations, as in the paper's Algorithm 1.
-            z = [v @ wi for v, wi in zip(deflated, w)]
-            dual = [np.zeros(len(v)) for v in deflated]
-            steps = [1.0 / (self.rho * np.linalg.norm(v, ord=2) ** 2) for v in deflated]
+            z = [v @ wi for v, wi in zip(scaled, w)]
+            dual = [np.zeros(len(v)) for v in scaled]
+            steps = [1.0 / (self.rho * np.linalg.norm(v, ord=2) ** 2) for v in scaled]
             for n_iter in range(1, self.max_iter + 1):
                 previous = [wi.copy() for wi in w]
-                for i, (view, alpha, step) in enumerate(zip(deflated, alphas, steps)):
+                for i, (view, alpha, step) in enumerate(zip(scaled, alphas, steps)):
                     others = sum(
-                        v @ wj for j, (v, wj) in enumerate(zip(deflated, w)) if j != i
+                        v @ wj for j, (v, wj) in enumerate(zip(scaled, w)) if j != i
                     )
                     w[i], z[i], dual[i] = self._admm_block(
                         view, view.T @ others, alpha, step, w[i], z[i], dual[i]
