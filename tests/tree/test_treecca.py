@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import sys
+
 import numpy as np
 import pytest
 
 pytest.importorskip("xgboost")
 
-import cca_zoo.tree._treecca as treecca
 from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
 
 pytestmark = pytest.mark.slow
@@ -47,20 +48,15 @@ def test_max_depth_per_view(two_views_small: list[np.ndarray]) -> None:
 
 
 @pytest.mark.parametrize(
-    ("cls", "flag", "package"),
-    [
-        (LightGBMCCA, "_LGBM_AVAILABLE", "lightgbm"),
-        (CatBoostCCA, "_CATBOOST_AVAILABLE", "catboost"),
-    ],
+    ("cls", "package"), [(LightGBMCCA, "lightgbm"), (CatBoostCCA, "catboost")]
 )
 def test_missing_backend_names_the_package(
     cls: type,
-    flag: str,
     package: str,
     two_views_small: list[np.ndarray],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Without its optional backend, a model says which package to install."""
-    monkeypatch.setattr(treecca, flag, False)
+    """Without its optional backend, a model's fit says which package is missing."""
+    monkeypatch.setitem(sys.modules, package, None)
     with pytest.raises(ImportError, match=package):
         cls().fit(two_views_small)

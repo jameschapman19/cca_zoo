@@ -24,21 +24,6 @@ from cca_zoo._utils._param_constraints import (
 )
 from cca_zoo._utils._validation import perview_parameter
 
-try:
-    import lightgbm as lgb
-
-    _LGBM_AVAILABLE = True
-except ImportError:
-    _LGBM_AVAILABLE = False
-
-try:
-    import catboost as cb
-
-    _CATBOOST_AVAILABLE = True
-except ImportError:
-    _CATBOOST_AVAILABLE = False
-
-
 # Standard deviation of the random embedding the first round starts from, small
 # against the unit scale of the EY optimum. It only breaks the symmetry (the EY
 # gradient is zero at an all-zero embedding); later rounds use the trees alone.
@@ -100,6 +85,8 @@ class _LightGBMEncoder:
     """Per-view ensemble of ``k`` scalar LightGBM boosters, used during ``fit``."""
 
     def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
+        import lightgbm as lgb
+
         self._X = X
         dataset = lgb.Dataset(
             X, label=np.zeros(len(X), dtype=np.float32), params=params
@@ -154,6 +141,9 @@ class _CatBoostEncoder:
     """
 
     def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
+        from catboost import CatBoostRegressor
+
+        self._regressor = CatBoostRegressor
         self._X = X
         self._params = params
         # CatBoost refuses to train on a label vector that is all one value;
@@ -182,7 +172,7 @@ class _CatBoostEncoder:
         updated = []
         for col, booster in enumerate(self.boosters):
             objective = _CatBoostGradientObjective(gradient[:, col])
-            new_model = cb.CatBoostRegressor(
+            new_model = self._regressor(
                 iterations=1, loss_function=objective, **self._params
             )
             new_model.fit(self._X, self._y_dummy, init_model=booster, verbose=False)
@@ -464,26 +454,6 @@ class LightGBMCCA(TreeCCA):
         >>> model = LightGBMCCA(n_components=2, n_estimators=10).fit([X1, X2])
     """
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> LightGBMCCA:
-        """Fit the model.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-
-        Returns:
-            self.
-
-        Raises:
-            ImportError: If ``lightgbm`` is not installed.
-        """
-        if not _LGBM_AVAILABLE:
-            raise ImportError(
-                "LightGBMCCA requires the lightgbm package. "
-                "Install with: pip install lightgbm"
-            )
-        return super().fit(views, y)
-
     def _booster_params(
         self,
         learning_rate: float,
@@ -542,26 +512,6 @@ class CatBoostCCA(TreeCCA):
         >>> X2 = rng.standard_normal((100, 5))
         >>> model = CatBoostCCA(n_components=2, n_estimators=10).fit([X1, X2])
     """
-
-    def fit(self, views: list[ArrayLike], y: None = None) -> CatBoostCCA:
-        """Fit the model.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view.
-            y: Ignored.
-
-        Returns:
-            self.
-
-        Raises:
-            ImportError: If ``catboost`` is not installed.
-        """
-        if not _CATBOOST_AVAILABLE:
-            raise ImportError(
-                "CatBoostCCA requires the catboost package. "
-                "Install with: pip install catboost"
-            )
-        return super().fit(views, y)
 
     def _booster_params(
         self,
