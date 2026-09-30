@@ -87,7 +87,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `RidgeCCA` | Regularised CCA / canonical ridge | Vinod (1976) | 2 |
 | `PLS` | Partial Least Squares | Wold (1975) | 2 |
 | `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
-| `GCCA` | Generalised CCA — shared latent projection | Carroll (1968) | ≥2 |
+| `GCCA` | Generalised CCA — shared latent projection | Carroll (1968); Tenenhaus & Tenenhaus (2011) | ≥2 |
 | `TCCA` | Tensor CCA — higher-order cross-moment | Luo et al. (2015) | ≥2 |
 | `PartialCCA` | CCA adjusted for confounding variables | Rao (1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2023) | ≥2 |
@@ -108,7 +108,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `KCCA` | Kernel CCA | Hardoon, Szedmak & Shawe-Taylor (2004) |
 | `KGCCA` | Kernel Generalised CCA | Tenenhaus, Philippe & Frouin (2015) |
 | `KTCCA` | Kernel Tensor CCA | Luo et al. (2015) |
-| `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator | Belkin & Niyogi (2003); Roweis & Saul (2000) |
+| `ManifoldCCA` | CCA of per-view graph Laplacian or LLE embeddings (manifold alignment) | Chapman et al. (2021); Ham, Lee & Saul (2005) |
 
 ### `cca_zoo.tree` *(requires `[tree]`)*
 

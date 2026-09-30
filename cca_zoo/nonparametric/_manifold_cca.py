@@ -227,7 +227,10 @@ class ManifoldCCA(BaseModel):
     LLE barycentric weights for ``method="lle"``, the Nystrom extension for
     ``method="laplacian"``; either returns a training point's own embedding.
     Fitting solves a dense ``(n M) x (n M)``
-    eigenproblem, so it suits moderate sample sizes.
+    eigenproblem, so it suits moderate sample sizes. It is a form of
+    manifold alignment (Ham, Lee and Saul, 2005), which preserves each view's
+    local geometry while matching corresponding samples, with every sample
+    paired and a CCA coupling in place of their matching penalty.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -254,6 +257,15 @@ class ManifoldCCA(BaseModel):
             embedding is interpolated.
 
     References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+
+        Ham, J., Lee, D. D., & Saul, L. K. (2005). Semisupervised alignment of
+        manifolds. In Proceedings of the Tenth International Workshop on
+        Artificial Intelligence and Statistics (pp. 120-127).
+
         Roweis, S. T., & Saul, L. K. (2000). Nonlinear dimensionality reduction
         by locally linear embedding. Science, 290(5500), 2323-2326.
 

@@ -119,7 +119,7 @@ model = KTCCA(
 
 ---
 
-## ManifoldCCA — transductive manifold CCA
+## ManifoldCCA — manifold-alignment CCA
 
 **When to use:** Two views share a single underlying coordinate that is embedded
 *nonlinearly and differently* in each view's raw features (e.g. two different curved/spiral
@@ -172,9 +172,6 @@ Either extension returns a training point's own embedding: `transform` of the tr
 ```python
 z1, z2 = model.transform([X1_test, X2_test])
 ```
-
-`inverse_transform`/`predict` are not supported (same limitation as `KCCA`): both assume a
-`(n_features_i, k)` weight matrix, not a `(n_train_samples, k)` transductive embedding.
 
 **Not implemented:** Hessian-LLE and LTSA (`sklearn.manifold.LocallyLinearEmbedding`'s other two
 `method` options) need a local Hessian/tangent-space estimate per point, substantially more
