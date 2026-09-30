@@ -4,7 +4,7 @@ hide:
 ---
 
 [![PyPI](https://img.shields.io/pypi/v/cca-zoo)](https://pypi.org/project/cca-zoo/)
-[![Python 3.10+](https://img.shields.io/pypi/pyversions/cca-zoo)](https://pypi.org/project/cca-zoo/)
+[![Python 3.11+](https://img.shields.io/pypi/pyversions/cca-zoo)](https://pypi.org/project/cca-zoo/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](https://github.com/jameschapman19/cca_zoo/blob/main/LICENSE)
 [![CI](https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml/badge.svg)](https://github.com/jameschapman19/cca_zoo/actions/workflows/ci.yml)
 

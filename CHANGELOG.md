@@ -371,6 +371,10 @@ The table below gives each replacement.
 
 ### Removed
 
+- Python 3.10, which reaches end of life in October 2026 and which scikit-learn 1.8
+  dropped. The dependency floors are now the oldest versions the test suite passes on,
+  and CI tests them: numpy 2.0, scipy 1.13 and scikit-learn 1.8 (was numpy 1.26,
+  scipy 1.11 and scikit-learn 1.6, on which most models failed).
 - `WaijenborgCCA`, which was `IPLSCCA` under another name: both regress each view on the
   other views' summed score, normalised, so IPLS's rescaling of its own weights never
   reached the next regression. With two views their weights had the same directions and
@@ -403,6 +407,11 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- CI's Python matrix tested 3.12 in every job: the repository's `.python-version` pins
+  3.12, and `uv run` followed it over the environment `uv sync` built for the matrix
+  version. Each job now runs its own version.
+- `SAR` raised on scikit-learn below 1.9, whose `lasso_path` takes no integer `alphas`;
+  it now passes sklearn's grid explicitly.
 - `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA` and `GraphicalLassoCCA` raised each
   covariance's spectrum to an absolute floor of 1e-6, so a view in small units (its
   eigenvalues near 1e-6) was regularised and the fit depended on its units: dividing a

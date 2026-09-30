@@ -8,7 +8,7 @@ Install the core package with pip:
 pip install cca-zoo
 ```
 
-The core package requires Python ≥ 3.10 and provides all linear and nonparametric methods.
+The core package requires Python ≥ 3.11 and provides all linear and nonparametric methods.
 
 ### Optional extras
 

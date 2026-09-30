@@ -7,7 +7,7 @@ name = "cca-zoo"
 dynamic = ["version"]
 description = "Multiview CCA methods in a scikit-learn style framework"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "James Chapman", email = "james.chapman.19@ucl.ac.uk" }]
 keywords = ["cca", "multiview", "canonical correlation analysis"]
@@ -15,7 +15,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -23,9 +22,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "numpy>=1.26",
-    "scipy>=1.11",
-    "scikit-learn>=1.6",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "scikit-learn>=1.8",
     "tensorly>=0.8",
 ]
 
@@ -34,7 +33,7 @@ deep = ["torch>=2.1", "lightning>=2.1"]
 probabilistic = ["numpyro>=0.13", "jax>=0.4", "arviz>=0.17"]
 tree = ["xgboost>=2.0", "lightgbm>=4.0", "catboost>=1.2"]
 optuna = ["optuna>=4.0", "optuna-integration>=4.0"]
-dev = ["pytest>=8", "pytest-cov>=5", "pytest-xdist>=3.5", "mypy>=1.8", "ruff>=0.4", "pandas>=2.0", "polars>=1.0", "skops>=0.11", "array-api-strict>=2.0"]
+dev = ["pytest>=8", "pytest-cov>=5", "pytest-xdist>=3.5", "mypy>=1.8", "ruff>=0.4", "pandas>=2.2.2", "polars>=1.0", "skops>=0.11", "array-api-strict>=2.0"]
 docs = [
     "mkdocs>=1.5,<2.0",
     "mkdocs-material>=9.5,<10.0",
@@ -60,7 +59,7 @@ version-file = "cca_zoo/_version.py"
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 # PEP 20 where a linter can check it: flat (C90, PLR0915), simple (SIM, RET,

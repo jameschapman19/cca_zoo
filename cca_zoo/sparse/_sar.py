@@ -127,13 +127,17 @@ class SAR(BaseModel):
         # validation, passing the Gram exactly when precompute="auto" would.
         x = np.asfortranarray(x, dtype=float)
         y = np.ascontiguousarray(y, dtype=float)
+        xy = x.T @ y
+        # sklearn's grid: from the smallest penalty zeroing every coefficient
+        # down to 1e-3 of it, evenly on a log scale.
+        alpha_max = max(float(np.abs(xy).max()) / n, np.finfo(float).resolution)
         _, coefs, _ = lasso_path(
             x,
             y,
-            alphas=self.n_alphas,
+            alphas=np.geomspace(alpha_max, 1e-3 * alpha_max, self.n_alphas),
             tol=self.tol,
             precompute=x.T @ x if n > p else False,
-            Xy=x.T @ y if n > p else None,
+            Xy=xy if n > p else None,
             check_input=False,
         )
         rss = np.maximum(((y[:, None] - x @ coefs) ** 2).sum(axis=0), 1e-12)

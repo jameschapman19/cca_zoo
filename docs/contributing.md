@@ -76,7 +76,7 @@ uv run mkdocs build --strict      # build static site into site/
 
 All contributions must comply with the following:
 
-- **Python ≥ 3.10 only.** Use `X | Y` unions, `list[x]`/`dict[x]`/`tuple[x]` generics.
+- **Python ≥ 3.11 only.** Use `X | Y` unions, `list[x]`/`dict[x]`/`tuple[x]` generics.
 - **Google-style docstrings**, short and factual. A public class docstring has a one-line
   summary, the objective and method in a few sentences (maths where it defines the model),
   then `Args` (each ending "Default is X."; "Per-view." for parameters that take a scalar or

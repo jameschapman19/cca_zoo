@@ -232,7 +232,7 @@ class BaseModel(BaseEstimator, ABC):
         self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
             xp, _ = get_namespace(raw)
-            positive = xp.clip(raw, min=0.0)
+            positive = xp.where(raw > 0, raw, 0.0)
             total = float(xp.sum(positive))
             self.feature_importances_per_view_.append(
                 positive / total if total > 0 else positive
