@@ -40,7 +40,6 @@ _SOLVER = {
 }
 _MODEL_SOLVER = {
     ("MCCA", "pca"): "solving in the principal-component basis is exact",
-    ("GraphicalLassoCCA", "mode"): "cd and lars solve the same problem",
     ("ADMMCCA", "rho"): "ADMM's step size, not its problem",
     ("StochasticCCAEY", "learning_rate"): "the step size, not the problem",
     ("VariationalBayesCCA", "learning_rate"): "the step size, not the problem",
@@ -77,7 +76,6 @@ _ALTERNATIVE: dict[str, Any] = {
     "min_samples": 0.6,
     "residual_threshold": 0.5,
     "support_fraction": 0.55,
-    "mcd_support_fraction": 0.55,
     "reg": 0.1,
     "delta": 1.0,
     "coef0": 3.0,
@@ -134,13 +132,6 @@ _MODEL_ALTERNATIVE: dict[tuple[str, str], Any] = {
     ("TrimmedCCA", "shrinkage"): 0.6,
 }
 
-# Too slow to fit twice here: each MCD index evaluation is a robust
-# covariance fit, and one Powell iteration takes seconds.
-_TOO_SLOW = {
-    ("ProjectionPursuitCCA", "mcd_support_fraction"),
-    ("ProjectionPursuitCCA", "projection_index"),
-}
-
 # Not scalar settings: covered by the model's own tests.
 _STRUCTURAL = {"n_components", "center", "feature_groups", "kernel_params"}
 
@@ -155,7 +146,6 @@ def _cases() -> list[Any]:
                 param in _SOLVER
                 or param in _STRUCTURAL
                 or (name, param) in _MODEL_SOLVER
-                or (name, param) in _TOO_SLOW
             ):
                 continue
             marks = [pytest.mark.slow] if slow else []

@@ -63,6 +63,7 @@ class _GpEncoder:
         keep = mu > mu.max() * len(mu) * np.finfo(mu.dtype).eps
         self._nystroem: np.ndarray = vectors[:, keep] / np.sqrt(mu[keep])
         self.coef_: np.ndarray = np.zeros((self.inducing_.shape[0], k))
+        self.offset_: np.ndarray = np.zeros(k)
         self._variance_model = GaussianProcessRegressor(
             kernel=self.kernel_, alpha=ridge, optimizer=None
         ).fit(self.inducing_, np.zeros(self.inducing_.shape[0]))
@@ -79,7 +80,7 @@ class _GpEncoder:
 
     def predict_new(self, X: np.ndarray) -> np.ndarray:
         """Encoder output for new data, shape (n, k)."""
-        mean: np.ndarray = self.basis(X) @ self.coef_
+        mean: np.ndarray = self.basis(X) @ self.coef_ - self.offset_
         return mean
 
     def predict_std(self, X: np.ndarray) -> np.ndarray:
@@ -205,11 +206,15 @@ class GaussianProcessCCA(BaseModel):
 
         features = [enc.features(X) for enc, X in zip(encoders, views_)]
         # Inducing points other than the training rows leave the features
-        # uncentred on the training data; the EY loss sees only covariances.
-        features = [f - f.mean(axis=0) for f in features]
-        coefficients = penalised_basis_ey_closed_form(features, k, alpha_)
-        for enc, coef in zip(encoders, coefficients):
+        # uncentred on the training data: the scores are centred there, as
+        # the EY loss fitted them.
+        offsets = [f.mean(axis=0) for f in features]
+        coefficients = penalised_basis_ey_closed_form(
+            [f - o for f, o in zip(features, offsets)], k, alpha_
+        )
+        for enc, coef, offset in zip(encoders, coefficients, offsets):
             enc.coef_ = enc._nystroem @ coef
+            enc.offset_ = offset @ coef
 
         self.encoders_: list[_GpEncoder] = encoders
         self._fit_maps_and_importances(views_)

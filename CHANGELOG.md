@@ -69,6 +69,8 @@ The table below gives each replacement.
 | `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
 | `GRCCA(mu=0)`, the default, fitted as `mu=1` | `mu` is the penalty on group means relative to the deviations from them: `mu=1` is ridge MCCA and `mu=0` shrinks each weight towards its group's mean; `shrinkage=0` is CCA whatever `mu` |
 | `SAR(random_state=)` | removed: SAR starts from the ridge-CCA direction, which needs no seed |
+| `ProjectionPursuitCCA(projection_index="mcd", mcd_support_fraction=)`, `projection_index=` | removed: each MCD evaluation is a robust covariance fit, so a fit took hours at the defaults; the index is Spearman's (the old default) |
+| `GraphicalLassoCCA(mode=)`, default `max_iter=100` | removed: the graphical lasso is solved by ADMM (see Fixed); `max_iter` defaults to 1000, and `tol` is new |
 | `GraphicalLassoCCA(alpha=)` on each view's covariance | `alpha` penalises each view's correlations, so it is the same in any units; for features of variance `s**2`, the old `alpha` is roughly `alpha / s**2` now |
 | `ProbabilisticCCA`/`VariationalBayesCCA` `posterior_samples_["log_psi_{i}"]`, `["z"]` | `["noise_sd_{i}"]` and `["noise_corr_{i}"]`, each view's noise scales and correlation Cholesky factor; the latent is integrated out, so there are no `z` draws (`posterior_mean` gives it) |
 | `GFA.posterior_samples_["log_psi_{i}"]` | `["noise_sd_{i}"]`, as the other probabilistic models |
@@ -401,6 +403,11 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `GaussianProcessCCA` with fewer inducing points than samples, the tree models and
+  `ManifoldCCA`'s Laplacian embedding returned training scores with a nonzero mean (up
+  to 0.3 standard deviations for the trees), which `predict` and `inverse_transform`,
+  mapping scores without an intercept, turned into error. Each now centres its scores
+  on the training data, and the model contract checks every model's.
 - `ProbabilisticCCA` and `VariationalBayesCCA` gave each view diagonal noise, which makes
   them factor analysis of the stacked views rather than CCA: given views each dominated
   by a private factor three times the scale of the one factor they share, the latent
@@ -421,9 +428,12 @@ Removed outright, with no deprecation period; the table above gives each replace
 - `SAR` returned all-zero weights when each view was dominated by variance the others do
   not share: from the PLS start, the first BIC lasso selected nothing. It now starts at
   the ridge-CCA direction and finds the shared factor.
-- `GraphicalLassoCCA` failed at any `alpha` on views with a strong common factor: sklearn's
-  solver fails on covariances far from unit scale. The graphical lasso is fitted to
-  each view's correlations and rescaled.
+- `GraphicalLassoCCA` failed at any `alpha` on views with a strong common factor, and
+  elsewhere stopped short: sklearn's coordinate descent raised, or ended 1e-4 to 1e-1 from
+  the lasso's optimality conditions, at scattered penalties. The graphical lasso is now
+  fitted to each view's correlations, so `alpha` is unit-free, and solved by ADMM with
+  residual balancing (Boyd et al., 2011), exact at each step: it meets the optimality
+  conditions to 1e-8 in milliseconds, which a new test checks.
 - `ManifoldCCA`'s Laplacian extension did not return the training embedding (subspace
   agreement 0.968): new points were joined to the k-NN graph without its
   symmetrisation, self-loops that the Laplacian ignores were kept, the basis projected

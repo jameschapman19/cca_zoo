@@ -256,17 +256,12 @@ resulting scores, never forming a covariance matrix at all.
 ```python
 from cca_zoo.linear import ProjectionPursuitCCA
 
-model = ProjectionPursuitCCA(
-    n_components=2, projection_index="spearman", random_state=0
-)
+model = ProjectionPursuitCCA(n_components=2, random_state=0)
 model.fit([X1, X2])
 ```
 
-Two projection indices are available: `"spearman"` (default, Spearman rank correlation —
-insensitive to an outlier's exact magnitude, only its rank) and `"mcd"` (a
-minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
-robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
-scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
+The projection index is Spearman's rank correlation, insensitive to an outlier's exact
+magnitude, only its rank. Each direction is parametrised by unconstrained hyperspherical angles and found
 by derivative-free search (`n_init` random restarts of `scipy.optimize.minimize` with
 Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
 solvers don't apply). Unlike the other three estimators here, there is no `inlier_mask_`:
@@ -286,7 +281,7 @@ projection directions), tracing back to Huber's original projection pursuit (198
 Alfons, Croux & Filzmoser (2017) put the same paradigm on firmer statistical footing
 (efficiency, breakdown point, a wider family of projection indices) and ship it as the
 R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementation
-`ProjectionPursuitCCA`'s `"spearman"` and `"mcd"` projection indices follow.
+`ProjectionPursuitCCA`'s Spearman projection index follows.
 
 > Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant estimators for canonical
 > correlation analysis. In *COMPSTAT: Proceedings in Computational Statistics 2000* (pp.

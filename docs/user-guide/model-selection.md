@@ -329,5 +329,10 @@ before being compared feature-by-feature. This follows the resampling-based sign
 testing approach used in the neuroimaging CCA/PLS literature (Xia et al. 2018; McIntosh &
 Lobaugh 2004).
 
+Only the first dimension's p-value is a valid test. A later dimension is compared with
+the shuffled fits' dimension of the same rank, but those were fitted without first
+removing the earlier dimensions' signal; Winkler et al. (2020) test later dimensions
+step-down, residualising each earlier one first.
+
 `n_permutations` trades off precision against runtime (each permutation refits the model
 from scratch); pass `n_jobs` to parallelise across permutations.

@@ -345,3 +345,11 @@ def test_transform_of_the_training_views_is_the_fitted_embedding(
     model = _fit(make_model(cls), views)
     for scores, embedding in zip(model.transform(views), model.embedding_):
         np.testing.assert_allclose(scores, embedding, atol=1e-10)
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_training_scores_are_centred(cls: type[BaseModel]) -> None:
+    """Training scores have zero mean: predict and inverse_transform assume it."""
+    views = _views(0, shift=5.0)
+    for scores in _fit(make_model(cls), views).transform(views):
+        np.testing.assert_allclose(scores.mean(axis=0), 0.0, atol=1e-8 * scores.std())

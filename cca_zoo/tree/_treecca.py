@@ -370,13 +370,20 @@ class TreeCCA(BaseModel, ABC):
                     grads = _boosting_targets(representations)
 
         self.boosters_: list[list[Any]] = [enc.boosters for enc in encoders]
+        # The EY loss sees only covariances, so the boosted scores carry an
+        # arbitrary offset: centre them on the training data.
+        self._score_means_: list[np.ndarray] = [
+            self._predict_boosters(b, X).astype(np.float64).mean(axis=0)
+            for b, X in zip(self.boosters_, views_)
+        ]
         self._fit_maps_and_importances(views_)
         return self
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
-        scores: np.ndarray = self._predict_boosters(
-            self.boosters_[view], centred
-        ).astype(np.float64)
+        scores: np.ndarray = (
+            self._predict_boosters(self.boosters_[view], centred).astype(np.float64)
+            - self._score_means_[view]
+        )
         return scores
 
 

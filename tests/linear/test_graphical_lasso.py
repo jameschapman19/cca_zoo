@@ -3,32 +3,12 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.linalg import block_diag
-from sklearn.covariance import graphical_lasso
 
 from cca_zoo.linear import MCCA, GraphicalLassoCCA
 
 
 def _offdiagonal_nonzeros(precision: np.ndarray) -> int:
     return int(np.sum(np.abs(precision[~np.eye(len(precision), dtype=bool)]) > 1e-8))
-
-
-def test_covariance_is_sklearns_graphical_lasso(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Each within-view covariance is sklearn's graphical lasso of its correlations."""
-    model = GraphicalLassoCCA(alpha=0.2)
-    views = model._setup_fit(two_views_small)
-    scales = [np.std(v, axis=0, ddof=1) for v in views]
-    expected = block_diag(
-        *(
-            graphical_lasso(np.corrcoef(v, rowvar=False), alpha=0.2)[0] * np.outer(s, s)
-            for v, s in zip(views, scales)
-        )
-    )
-    np.testing.assert_allclose(
-        model._build_B(views, c=[0.0, 0.0]), expected / 2, atol=1e-8
-    )
 
 
 def test_small_alpha_is_mcca(two_views_small: list[np.ndarray]) -> None:

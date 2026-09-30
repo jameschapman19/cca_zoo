@@ -39,8 +39,6 @@ _SETTINGS = {
     "VariationalBayesCCA": {"n_iter": 3000},
     # Cancelling the private factor needs two features.
     "OrthogonalMatchingPursuitCCA": {"n_nonzero_coefs": 2},
-    # sklearn's graphical-lasso solver fails on this conditioning below 0.02.
-    "GraphicalLassoCCA": {"alpha": 0.05},
 }
 
 # Models whose quick test settings stop them short: these run at their defaults.

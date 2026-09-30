@@ -106,13 +106,6 @@ def _held_out(model: BaseModel, train: list, test: list) -> float:
             0.2,
             0.2,
         ),
-        (
-            ProjectionPursuitCCA(projection_index="mcd", n_init=5, random_state=0),
-            MCCA(shrinkage=0.1),
-            "outlier",
-            0.2,
-            0.2,
-        ),
     ],
     ids=[
         "Huber-leverage",
@@ -120,7 +113,6 @@ def _held_out(model: BaseModel, train: list, test: list) -> float:
         "RANSAC-vs-Huber",
         "Trimmed-vs-RANSAC",
         "PP-outlier",
-        "PP-MCD-outlier",
     ],
 )
 def test_resists_its_contamination(

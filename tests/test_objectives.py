@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from cca_zoo.linear import GCCA, GRCCA, MCCA
+from cca_zoo.linear import GCCA, GRCCA, MCCA, GraphicalLassoCCA
 from tests._helpers import principal_cosines
 
 
@@ -96,3 +96,27 @@ def test_grcca_with_mu_one_is_ridge_mcca() -> None:
     mcca = MCCA(2, shrinkage=0.4, pca=False).fit(views)
     for a, b in zip(grcca.weights_, mcca.weights_):
         assert np.all(principal_cosines(a, b) > 1 - 1e-8)
+
+
+@pytest.mark.parametrize("alpha", [0.01, 0.05, 0.3])
+def test_graphical_lasso_precision_meets_the_lasso_optimality_conditions(
+    alpha: float,
+) -> None:
+    """Theta^-1 - R = alpha * dL1(Theta) off the diagonal, for correlations R.
+
+    The subgradient is sign(Theta) where Theta is nonzero and in [-1, 1] where
+    it is zero; the diagonal is unpenalised.
+    """
+    views = _views()
+    model = GraphicalLassoCCA(alpha=alpha).fit(views)
+    for view, precision in zip(views, model.precision_):
+        scale = view.std(axis=0, ddof=1)
+        theta = precision * np.outer(scale, scale)
+        gradient = np.linalg.inv(theta) - np.corrcoef(view, rowvar=False)
+        off = ~np.eye(len(theta), dtype=bool)
+        active = off & (np.abs(theta) > 1e-10)
+        np.testing.assert_allclose(np.diag(gradient), 0.0, atol=1e-6)
+        np.testing.assert_allclose(
+            gradient[active], alpha * np.sign(theta[active]), atol=1e-6
+        )
+        assert np.all(np.abs(gradient[off & ~active]) <= alpha + 1e-6)

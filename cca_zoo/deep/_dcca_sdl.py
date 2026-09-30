@@ -29,7 +29,10 @@ class DCCASDL(BaseDeep):
         \operatorname{mean}\lvert \text{offdiag}(\operatorname{Cov}(z_a)) \rvert.
     $$
 
-    With two views this is the original loss.
+    With two views this is the original loss, with one difference: Chang et
+    al. estimate the covariance by a running average across batches, while
+    here each batch's covariance is used, so no state is carried between
+    batches, as in :class:`DPCCA`. Use batches well above ``n_components``.
 
     Args:
         n_components: Latent dimension.

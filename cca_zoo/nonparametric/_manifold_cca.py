@@ -372,7 +372,12 @@ class ManifoldCCA(BaseModel):
         sizes = [b.shape[1] for b in full_bases]
         blocks = np.split(eigvecs, np.cumsum(sizes)[:-1], axis=0)
         embedding = [fb @ blk for fb, blk in zip(full_bases, blocks)]
-        self.embedding_: list[np.ndarray] = embedding
+        # The Laplacian's basis is orthogonal to D^{1/2} 1, not to the
+        # constant: centre the embedding, and new points by the same means.
+        self._embedding_means_: list[np.ndarray] = [e.mean(axis=0) for e in embedding]
+        self.embedding_: list[np.ndarray] = [
+            e - m for e, m in zip(embedding, self._embedding_means_)
+        ]
         self.views_fit_: list[np.ndarray] = views_
         self._n_neighbors_: list[int] = n_neighbors_
         self._reg_: list[float] = reg_
@@ -411,5 +416,7 @@ class ManifoldCCA(BaseModel):
         W_new = _laplacian_new_point_affinity(centred, v_train, state)
         degrees_new = np.maximum(W_new.sum(axis=1), 1e-12)
         K_tilde = W_new / np.sqrt(np.outer(degrees_new, state.degrees))
-        extended: np.ndarray = (K_tilde @ state.full_basis) / state.mu @ state.block
+        extended: np.ndarray = (
+            K_tilde @ state.full_basis
+        ) / state.mu @ state.block - self._embedding_means_[view]
         return extended

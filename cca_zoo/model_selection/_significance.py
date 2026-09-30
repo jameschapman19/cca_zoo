@@ -67,6 +67,12 @@ def permutation_test_significance(
     observed ones by orthogonal Procrustes over all views before comparison,
     since permuted fits can rotate or reflect near-tied dimensions.
 
+    Only the first dimension's p-value is a valid test. Each later dimension
+    is compared with the permuted fits' dimension of the same rank, which
+    were fitted without removing the earlier dimensions' signal; Winkler et
+    al. (2020) test them step-down, residualising each earlier dimension
+    first.
+
     Args:
         estimator: An unfitted multiview estimator.
         views: Arrays of shape (n_samples, n_features_i), one per view.
@@ -79,6 +85,11 @@ def permutation_test_significance(
 
     Raises:
         ValueError: If ``n_permutations`` is not positive.
+
+    References:
+        Winkler, A. M., Renaud, O., Smith, S. M., & Nichols, T. E. (2020).
+        Permutation inference for canonical correlation analysis.
+        NeuroImage, 220, 117065.
 
     Examples:
         >>> import numpy as np
