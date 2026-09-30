@@ -131,6 +131,13 @@ class GaussianProcessCCA(BaseModel):
             and ``coef_``.
 
     References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
         Rasmussen, C. E., & Williams, C. K. I. (2006). Gaussian Processes
         for Machine Learning. MIT Press.
 

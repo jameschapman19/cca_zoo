@@ -654,6 +654,13 @@ class MARSCCA(BaseModel):
             of ``backward_path_``; zero when ``nprune`` is None.
 
     References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
         Friedman, J. H. (1991). Multivariate Adaptive Regression Splines.
         The Annals of Statistics, 19(1), 1-67.
 

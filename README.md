@@ -122,14 +122,14 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
-| `MARSCCA` | Multivariate-adaptive-regression-spline CCA with optional within-view interactions (Eckart-Young objective) | Friedman (1991) | ≥2 |
+| `GAMCCA` | Generalized-additive-model CCA (Eckart-Young objective) | Chapman et al. (2021) | ≥2 |
+| `MARSCCA` | Multivariate-adaptive-regression-spline CCA with optional within-view interactions (Eckart-Young objective) | Chapman et al. (2021); Friedman (1991) | ≥2 |
 
 ### `cca_zoo.gp`
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `GaussianProcessCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `GaussianProcessCCA` | Gaussian-process CCA (Eckart-Young objective), with predictive uncertainty | Chapman et al. (2021) | ≥2 |
 
 ### `cca_zoo.sparse`
 
