@@ -79,12 +79,11 @@ class PerViewTransformer(BaseEstimator):
 
         Returns:
             The transformed views.
+
+        Raises:
+            ValueError: If there are not as many views as in fit.
         """
-        check_is_fitted(self)
-        validated = validate_views(
-            views, min_views=len(self.transformers_), ensure_all_finite=False
-        )
-        return [t.transform(v) for t, v in zip(self.transformers_, validated)]
+        return [t.transform(v) for t, v in zip(self.transformers_, self._fitted(views))]
 
     def fit_transform(self, views: list[ArrayLike], y: None = None) -> list[np.ndarray]:
         """Fit, then transform the training views.
@@ -106,12 +105,25 @@ class PerViewTransformer(BaseEstimator):
 
         Returns:
             The views in their original feature spaces.
+
+        Raises:
+            ValueError: If there are not as many views as in fit.
         """
+        return [
+            t.inverse_transform(v)
+            for t, v in zip(self.transformers_, self._fitted(views))
+        ]
+
+    def _fitted(self, views: list[ArrayLike]) -> list[np.ndarray]:
+        """The views, validated, one for each fitted transformer."""
         check_is_fitted(self)
-        validated = validate_views(
-            views, min_views=len(self.transformers_), ensure_all_finite=False
-        )
-        return [t.inverse_transform(v) for t, v in zip(self.transformers_, validated)]
+        validated = validate_views(views, min_views=1, ensure_all_finite=False)
+        if len(validated) != len(self.transformers_):
+            raise ValueError(
+                f"Expected {len(self.transformers_)} views, as in fit, "
+                f"got {len(validated)}."
+            )
+        return validated
 
     def __sklearn_tags__(self) -> Tags:
         """Tags marking list-of-views input, which sklearn's checks cannot validate."""

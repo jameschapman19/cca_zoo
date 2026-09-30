@@ -403,6 +403,12 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- A search grid point setting both a parameter and one view's value of it, as
+  `{"shrinkage": [0.1], "shrinkage__1": [0.5]}`, expanded the per-view list from the
+  estimator's value before the grid's: view 0 kept the old shrinkage. Per-view values now
+  override the grid's whole-model value.
+- `PerViewTransformer.transform` and `inverse_transform` silently dropped views beyond
+  those it was fitted on; a different number of views is now an error.
 - `GaussianProcessCCA` with fewer inducing points than samples, the tree models and
   `ManifoldCCA`'s Laplacian embedding returned training scores with a nonzero mean (up
   to 0.3 standard deviations for the trees), which `predict` and `inverse_transform`,

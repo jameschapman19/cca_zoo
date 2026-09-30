@@ -45,3 +45,12 @@ def test_pipelines_need_no_multiview_class(two_views: list[np.ndarray]) -> None:
     pipe = Pipeline([("scale", PerViewTransformer(StandardScaler())), ("cca", CCA())])
     search = GridSearchCV(pipe, param_grid={"cca__n_components": [1, 2]}, cv=2)
     assert len(search.fit(two_views).transform(two_views)) == 2
+
+
+def test_transform_needs_the_fitted_number_of_views(
+    two_views: list[np.ndarray],
+) -> None:
+    """A view without a fitted transformer is an error, not dropped."""
+    transformer = PerViewTransformer(StandardScaler()).fit(two_views)
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        transformer.transform([*two_views, two_views[0]])

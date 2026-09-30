@@ -123,6 +123,18 @@ def test_per_view_override_keeps_the_other_views(two_views: list[np.ndarray]) ->
     assert gs.fit(two_views).best_estimator_.shrinkage[1] == 0.3
 
 
+def test_per_view_value_overrides_a_whole_model_value(
+    two_views: list[np.ndarray],
+) -> None:
+    """A grid point setting both keeps the whole-model value for the other views."""
+    gs = GridSearchCV(
+        RidgeCCA(shrinkage=0.9),
+        param_grid={"shrinkage": [0.1], "shrinkage__1": [0.5]},
+        cv=2,
+    )
+    assert gs.fit(two_views).best_estimator_.shrinkage == [0.1, 0.5]
+
+
 def test_per_view_index_beyond_the_views_raises(two_views: list[np.ndarray]) -> None:
     """A view index beyond the data names the problem."""
     gs = GridSearchCV(RidgeCCA(), param_grid={"shrinkage__5": [0.1]}, cv=2)

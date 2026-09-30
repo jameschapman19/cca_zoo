@@ -116,7 +116,8 @@ class _MultiviewWrapper(TransformerMixin, BaseEstimator):
                     f"Per-view parameter '{name}' has index/indices {bad} but "
                     f"there are only {n_views} views."
                 )
-            current = params[name]
+            # Read after the whole-model values are set, which these override.
+            current = self.estimator.get_params()[name]
             values = list(current) if isinstance(current, list) else [current] * n_views
             for idx, value in overrides.items():
                 values[idx] = value
