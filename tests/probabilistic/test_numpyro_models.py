@@ -74,13 +74,11 @@ def test_log_likelihood_prefers_the_model_fitted_to_the_data(cls: type) -> None:
     assert fitted.log_likelihood(views) > unrelated.log_likelihood(views)
 
 
-def test_noise_is_a_variance() -> None:
-    """The fitted noise matches each feature's true variance, 0.01 or 4."""
+def test_noise_is_a_covariance() -> None:
+    """The fitted noise covariance has each feature's true variance, 0.01 or 4."""
     views, _ = _views(n=400, noise=np.array([0.1] * 3 + [2.0] * 3))
-    psi = (
-        VariationalBayesCCA(2, n_iter=3000, random_state=0)
-        .fit(views)
-        ._noise_variances()[0]
+    psi = np.diag(
+        VariationalBayesCCA(2, n_iter=3000, random_state=0).fit(views)._noise()[0]
     )
     assert psi[:3].max() < 0.05 and psi[3:].min() > 3.0
 

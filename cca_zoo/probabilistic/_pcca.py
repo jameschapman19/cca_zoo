@@ -12,6 +12,8 @@ from cca_zoo.probabilistic._utils import (
     BaseProbabilistic,
     _integer_seed,
     align_posterior_rotation,
+    maximum_likelihood_start,
+    pcca_model,
 )
 
 
@@ -20,10 +22,14 @@ class ProbabilisticCCA(BaseProbabilistic):
 
     $$
     z \sim \mathcal{N}(0, I), \qquad
-    x_i \mid z \sim \mathcal{N}(W_i z + \mu_i, \Psi_i).
+    x_i \mid z \sim \mathcal{N}(W_i z + \mu_i, \Psi_i),
     $$
 
-    The likelihood is invariant to a shared rotation of the loadings, so the
+    with each $\Psi_i$ a full covariance, so that $z$ models only what the
+    views share: at the maximum likelihood each view's posterior mean spans
+    its canonical variates (Bach & Jordan, 2005). $\Psi_i$ has an LKJ prior
+    on its correlation and log-normal scales, and $z$ is integrated out. The
+    likelihood is invariant to a shared rotation of the loadings, so the
     draws are aligned by generalized Procrustes before averaging. Requires
     the ``probabilistic`` extra.
 
@@ -75,52 +81,9 @@ class ProbabilisticCCA(BaseProbabilistic):
         self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
-    # ------------------------------------------------------------------
-    # numpyro generative model
-    # ------------------------------------------------------------------
-
     def _model(self, views: list[np.ndarray]) -> None:
-        """Numpyro generative model on centred views."""
-        import jax.numpy as jnp
-        import numpyro
-        import numpyro.distributions as dist
-
-        n = views[0].shape[0]
-        k = self.n_components
-
-        # Sample per-view parameters
-        ws: list[Any] = []
-        psis: list[Any] = []
-        for i, xi in enumerate(views):
-            p_i = xi.shape[1]
-            w_i = numpyro.sample(
-                f"W_{i}",
-                dist.Normal(jnp.zeros((p_i, k)), jnp.ones((p_i, k))).to_event(2),
-            )
-            log_psi_i = numpyro.sample(
-                f"log_psi_{i}",
-                dist.Normal(jnp.zeros(p_i), jnp.ones(p_i)).to_event(1),
-            )
-            ws.append(w_i)
-            psis.append(jnp.exp(log_psi_i))  # noise variances
-
-        # Sample latent variables and observations
-        with numpyro.plate("n", n):
-            z = numpyro.sample(
-                "z",
-                dist.Normal(jnp.zeros(k), jnp.ones(k)).to_event(1),
-            )
-            for i, (xi, w_i, psi_i) in enumerate(zip(views, ws, psis)):
-                mean_i = z @ w_i.T  # (n, p_i)
-                numpyro.sample(
-                    f"x_{i}",
-                    dist.Normal(mean_i, jnp.sqrt(psi_i)).to_event(1),
-                    obs=jnp.array(xi),
-                )
-
-    # ------------------------------------------------------------------
-    # Public fit / transform
-    # ------------------------------------------------------------------
+        """Numpyro model on centred views, unit-variance prior on the loadings."""
+        pcca_model(views, self.n_components)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ProbabilisticCCA:
         """Fit the model.
@@ -133,11 +96,13 @@ class ProbabilisticCCA(BaseProbabilistic):
             self.
         """
         import jax
-        from numpyro.infer import MCMC, NUTS
+        from numpyro.infer import MCMC, NUTS, init_to_value
 
         validated = self._setup_fit(views)
 
-        nuts_kernel = NUTS(self._model)
+        # Sampling starts at the maximum likelihood.
+        start = maximum_likelihood_start(validated, self.n_components)
+        nuts_kernel = NUTS(self._model, init_strategy=init_to_value(values=start))
         mcmc = MCMC(
             nuts_kernel,
             num_warmup=self.n_warmup,
@@ -151,19 +116,15 @@ class ProbabilisticCCA(BaseProbabilistic):
         }
 
         # Resolve the model's rotational symmetry (see class docstring)
-        # before any cross-draw averaging: stack every view's W_i draws,
-        # align them to a common reference, then rotate that draw's z by
-        # the same rotation to keep it internally consistent.
+        # before averaging: align every view's stacked W_i draws to a common
+        # reference.
         w_stack = np.concatenate(
             [self.posterior_samples_[f"W_{i}"] for i in range(self.n_views_)], axis=1
         )  # (n_posterior_samples, P, k)
-        aligned_w, rotations = align_posterior_rotation(w_stack)
+        aligned_w, _ = align_posterior_rotation(w_stack)
         splits = np.cumsum(self.n_features_per_view_)[:-1]
         for i, w_i_aligned in enumerate(np.split(aligned_w, splits, axis=1)):
             self.posterior_samples_[f"W_{i}"] = w_i_aligned
-        self.posterior_samples_["z"] = np.einsum(
-            "snk,skj->snj", self.posterior_samples_["z"], rotations
-        )
 
         # Set weights_ to posterior mean W matrices (p_i x k) for each view
         self.weights_: list[np.ndarray] = [

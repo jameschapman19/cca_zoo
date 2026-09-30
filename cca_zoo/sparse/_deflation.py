@@ -13,7 +13,7 @@ import numpy as np
 from scipy.sparse.linalg import LinearOperator, eigsh
 from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge
 
-from cca_zoo._utils._linalg import deflate, loading, undeflated_weights
+from cca_zoo._utils._linalg import deflate, loading, svd_whiten, undeflated_weights
 
 
 class Deflation:
@@ -76,6 +76,25 @@ def pls_direction(
     operator = LinearOperator((size, size), matvec=cross_covariance, dtype=float)
     _, vector = eigsh(operator, k=1, which="LA", v0=rng.standard_normal(size))
     return [w / max(np.linalg.norm(w), 1e-12) for w in np.split(vector[:, 0], splits)]
+
+
+def ridge_cca_direction(
+    views: list[np.ndarray], shrinkage: float = 0.5
+) -> list[np.ndarray]:
+    """Unit weights of the leading ridge-regularised CCA direction.
+
+    The start for the models whose updates are regressions: from the PLS
+    direction, a view dominated by variance the others do not share gives
+    them a target they barely correlate with, and a penalised regression
+    selects nothing. The leading right singular vector of the stacked
+    ridge-whitened views is MAXVAR's first direction on those views, and with
+    ``shrinkage`` between CCA and PLS it exists at any sample size.
+    """
+    whitened = [svd_whiten(v, shrinkage) for v in views]
+    _, _, vt = np.linalg.svd(np.hstack([x for x, _ in whitened]), full_matrices=False)
+    splits = np.cumsum([x.shape[1] for x, _ in whitened])[:-1]
+    directions = [w @ u for (_, w), u in zip(whitened, np.split(vt[0], splits))]
+    return [w / max(np.linalg.norm(w), 1e-12) for w in directions]
 
 
 def others_score(

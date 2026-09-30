@@ -136,8 +136,8 @@ class _VariationalPosterior:
     def sample(self, rng: np.random.Generator, s: int) -> dict[str, np.ndarray]:
         """Draws from q, keyed as the other probabilistic models' samples.
 
-        Each view's scalar noise is broadcast to every feature, matching their
-        ``log_psi_{i}`` convention.
+        Each view's scalar noise is broadcast to every feature as
+        ``noise_sd_{i}``, diagonal noise in their convention.
         """
         k = self.z.shape[1]
         noise = (
@@ -157,7 +157,7 @@ class _VariationalPosterior:
             noise = rng.standard_normal((s, *w.shape)) @ np.linalg.cholesky(cov).T
             samples[f"W_{m}"] = w[np.newaxis] + noise
             tau = rng.gamma(self.a_tau[m], 1.0 / self.b_tau[m], size=s)
-            samples[f"log_psi_{m}"] = np.repeat(-np.log(tau)[:, None], len(w), axis=1)
+            samples[f"noise_sd_{m}"] = np.repeat(tau[:, None] ** -0.5, len(w), axis=1)
         return samples
 
 
@@ -201,7 +201,7 @@ class GFA(BaseProbabilistic):
         ard_precision_: Posterior mean ARD precisions, shape
             (n_views, n_components_); large means shrunk away.
         n_components_: Number of dimensions kept.
-        posterior_samples_: Posterior draws keyed ``W_{i}``, ``log_psi_{i}``
+        posterior_samples_: Posterior draws keyed ``W_{i}``, ``noise_sd_{i}``
             and ``alpha``.
         n_iter_: Number of iterations run.
 

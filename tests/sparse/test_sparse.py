@@ -196,7 +196,7 @@ def test_pmd_ignores_the_scale_of_the_data(two_views: list[np.ndarray]) -> None:
 def test_sar_selects_the_signal_columns() -> None:
     """BIC keeps each factor's columns and drops noise, one component per factor."""
     x, y = _signal_and_noise_columns(k=2)
-    model = SAR(n_components=2, random_state=0).fit([x, y])
+    model = SAR(n_components=2).fit([x, y])
     for w in model.weights_:
         assert np.all(np.abs(w[:6]).sum(axis=1) > 0)
         assert np.sum(w[6:] ** 2) < 0.1 * np.sum(w[:6] ** 2)
@@ -209,9 +209,7 @@ def test_sar_selects_nothing_from_noise() -> None:
     """With no shared signal and ample samples, BIC chooses all-zero weights."""
     rng = np.random.default_rng(0)
     noise = [rng.standard_normal((1000, 10)), rng.standard_normal((1000, 8))]
-    assert not any(
-        w.any() for w in SAR(max_iter=50, random_state=0).fit(noise).weights_
-    )
+    assert not any(w.any() for w in SAR(max_iter=50).fit(noise).weights_)
 
 
 def test_admm_update_solves_the_papers_problem() -> None:

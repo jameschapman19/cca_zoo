@@ -55,7 +55,6 @@ _UNITS_EXEMPT = {
     "MultiTaskElasticNetCCA": "alpha is an absolute penalty, as in sklearn",
     "IPLSCCA": "alpha is an absolute penalty, as in sklearn's Lasso",
     "ADMMCCA": "alpha is an absolute L1 penalty",
-    "GraphicalLassoCCA": "alpha is absolute, as in sklearn's GraphicalLasso",
     "ECCA": "alpha is an absolute lasso penalty",
     "CCAR3": "alpha is an absolute group-lasso penalty",
     "KCCA": _SHRINKAGE,

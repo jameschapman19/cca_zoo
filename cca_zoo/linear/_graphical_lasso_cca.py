@@ -26,7 +26,11 @@ class GraphicalLassoCCA(MCCA):
     Replaces each view's block of :class:`~cca_zoo.linear.MCCA`'s $B$ with
     the covariance implied by :class:`~sklearn.covariance.GraphicalLasso`'s
     sparse precision estimate, an L1 penalty on partial correlations rather
-    than shrinkage of the covariance. Solved in the original feature space.
+    than shrinkage of the covariance. The lasso is fitted to each view's
+    correlation matrix and rescaled to its covariance, so ``alpha`` is a
+    penalty on correlations, the same in any units; sklearn's solver also
+    fails on covariances far from unit scale. Solved in the original feature
+    space.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -34,9 +38,9 @@ class GraphicalLassoCCA(MCCA):
         shrinkage: Shrinkage of each view's estimated covariance towards the
             identity, in ``[0, 1]``, as in MCCA.
             Default is 0.
-        alpha: Graphical-lasso penalty; None selects it by
-            :class:`~sklearn.covariance.GraphicalLassoCV`. Per-view. Default
-            is 0.01.
+        alpha: Graphical-lasso penalty on the correlation scale; None selects
+            it by :class:`~sklearn.covariance.GraphicalLassoCV`. Per-view.
+            Default is 0.01.
         mode: Graphical-lasso solver, ``"cd"`` or ``"lars"``. Default is
             ``"cd"``.
         max_iter: Maximum graphical-lasso iterations. Default is 100.
@@ -128,31 +132,31 @@ class GraphicalLassoCCA(MCCA):
         precisions = []
         self.n_iter_: int = 0
         for v, a in zip(views, alpha_):
+            # The views are centred when center=True, so these are their
+            # covariance and scales, weighted when fit was given sample_weight.
+            scale = np.sqrt(np.sum(v**2, axis=0) / (len(v) - 1))
             if a is None:
                 estimator = GraphicalLassoCV(
                     mode=self.mode, max_iter=self.max_iter
-                ).fit(v)
-                covariance, precision, n_iter = (
+                ).fit(v / scale)
+                correlation, precision, n_iter = (
                     estimator.covariance_,
                     estimator.precision_,
                     estimator.n_iter_,
                 )
             elif v.shape[1] == 1:
                 # The lasso penalises partial correlations: one feature has none.
-                covariance = v.T @ v / (len(v) - 1)
-                precision, n_iter = 1.0 / covariance, 0
+                correlation, precision, n_iter = np.ones((1, 1)), np.ones((1, 1)), 0
             else:
-                # The views are centred when center=True, so this is their
-                # covariance, weighted when fit was given sample_weight.
-                covariance, precision, n_iter = graphical_lasso(
-                    v.T @ v / (len(v) - 1),
+                correlation, precision, n_iter = graphical_lasso(
+                    (v / scale).T @ (v / scale) / (len(v) - 1),
                     alpha=a,
                     mode=self.mode,
                     max_iter=self.max_iter,
                     return_n_iter=True,
                 )
-            covariances.append(covariance)
-            precisions.append(precision)
+            covariances.append(correlation * np.outer(scale, scale))
+            precisions.append(precision / np.outer(scale, scale))
             self.n_iter_ = max(self.n_iter_, n_iter)
         self.covariance_: list[np.ndarray] = covariances
         self.precision_: list[np.ndarray] = precisions

@@ -260,5 +260,5 @@ requires and an OLS-based one does not (see the class docstring for why).
 ```python
 from cca_zoo.sparse import SAR
 
-model = SAR(n_components=2, random_state=0).fit([X1, X2])
+model = SAR(n_components=2).fit([X1, X2])
 ```

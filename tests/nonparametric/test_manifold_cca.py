@@ -37,10 +37,10 @@ def test_duplicated_views_extend_as_lle() -> None:
         assert np.all(principal_cosines(z, expected) > 1 - 1e-2)
 
 
-def test_transform_of_training_data_follows_the_embedding(
+def test_transform_of_training_data_is_the_embedding(
     two_views_small: list[np.ndarray],
 ) -> None:
-    """Out-of-sample extension at the training points tracks their embedding."""
+    """The out-of-sample extension returns each training point's embedding."""
     for kwargs in (
         {"method": "laplacian"},
         {"method": "laplacian", "affinity": "rbf", "n_operator_components": 8},
@@ -48,7 +48,7 @@ def test_transform_of_training_data_follows_the_embedding(
     ):
         model = ManifoldCCA(n_neighbors=8, **kwargs).fit(two_views_small)
         for z, t in zip(model.embedding_, model.transform(two_views_small)):
-            assert abs(np.corrcoef(z[:, 0], t[:, 0])[0, 1]) > 0.8
+            np.testing.assert_allclose(t, z, atol=1e-10)
 
 
 def test_relates_two_differently_wound_spirals() -> None:

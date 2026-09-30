@@ -331,3 +331,16 @@ def test_skops_round_trip(cls: type[BaseModel]) -> None:
     loaded = skops.io.loads(data, trusted=skops.io.get_untrusted_types(data=data))
     for a, b in zip(model.transform(views), loaded.transform(views)):
         np.testing.assert_array_equal(a, b)
+
+
+@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+def test_transform_of_the_training_views_is_the_fitted_embedding(
+    cls: type[BaseModel],
+) -> None:
+    """A model storing its training embedding transforms the training views to it."""
+    views = _views(0)
+    model = _fit(make_model(cls), views)
+    if not hasattr(model, "embedding_"):
+        pytest.skip("stores no training embedding")
+    for scores, embedding in zip(model.transform(views), model.embedding_):
+        np.testing.assert_allclose(scores, embedding, atol=1e-10)

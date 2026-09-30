@@ -10,12 +10,8 @@ from sklearn.linear_model import lasso_path
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
-from cca_zoo._utils._param_constraints import (
-    POSITIVE_EPS,
-    POSITIVE_INT,
-    RANDOM_STATE,
-)
-from cca_zoo.sparse._deflation import Deflation, others_score, pls_direction
+from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT
+from cca_zoo.sparse._deflation import Deflation, others_score, ridge_cca_direction
 
 
 class SAR(BaseModel):
@@ -24,8 +20,10 @@ class SAR(BaseModel):
     CCA as alternating regressions of each view's score on the other views'
     summed score, each a lasso whose penalty is chosen by BIC. Latent
     dimensions after the first are found on deflated views, then re-fitted
-    against the original views (Wilms and Croux, Section 3). The extension
-    beyond two views is this implementation's own.
+    against the original views (Wilms and Croux, Section 3). Each component
+    starts from the ridge-regularised CCA direction, from which the first
+    lasso finds a target the other views share. The extension beyond two
+    views is this implementation's own.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -34,7 +32,6 @@ class SAR(BaseModel):
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance of the alternating loop and each lasso path.
             Default is 1e-6.
-        random_state: Seed for the start. Default is None.
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
@@ -51,7 +48,7 @@ class SAR(BaseModel):
         >>> latent = rng.standard_normal(50)
         >>> X1 = np.column_stack([latent, rng.standard_normal((50, 9))])
         >>> X2 = np.column_stack([latent, rng.standard_normal((50, 7))])
-        >>> model = SAR(random_state=0).fit([X1, X2])
+        >>> model = SAR().fit([X1, X2])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
@@ -59,7 +56,6 @@ class SAR(BaseModel):
         "n_alphas": POSITIVE_INT,
         "max_iter": POSITIVE_INT,
         "tol": POSITIVE_EPS,
-        "random_state": RANDOM_STATE,
     }
 
     def __init__(
@@ -70,13 +66,11 @@ class SAR(BaseModel):
         n_alphas: int = 100,
         max_iter: int = 500,
         tol: float = 1e-6,
-        random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.n_alphas = n_alphas
         self.max_iter = max_iter
         self.tol = tol
-        self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> SAR:
         """Fit the model.
@@ -89,7 +83,6 @@ class SAR(BaseModel):
             self.
         """
         views_ = self._setup_fit(views)
-        rng = np.random.default_rng(self.random_state)
         self.weights_: list[np.ndarray] = [
             np.zeros((p, self.n_components)) for p in self.n_features_per_view_
         ]
@@ -97,7 +90,7 @@ class SAR(BaseModel):
         converged = True
         deflation = Deflation(views_, self.n_components)
         for d, deflated in enumerate(deflation):
-            w = pls_direction(deflated, rng)
+            w = ridge_cca_direction(deflated)
             for n_iter in range(1, self.max_iter + 1):
                 previous = [wi.copy() for wi in w]
                 # BIC-selected lasso of each view on the others' score.

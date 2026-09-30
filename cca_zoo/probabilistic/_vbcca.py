@@ -8,7 +8,12 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._utils._param_constraints import POSITIVE_EPS, POSITIVE_INT, RANDOM_STATE
-from cca_zoo.probabilistic._utils import BaseProbabilistic, _integer_seed
+from cca_zoo.probabilistic._utils import (
+    BaseProbabilistic,
+    _integer_seed,
+    maximum_likelihood_start,
+    pcca_model,
+)
 
 # Weak, near-uninformative Gamma hyperprior on each ARD precision alpha_k,
 # following the standard choice for automatic relevance determination in
@@ -27,9 +32,11 @@ class VariationalBayesCCA(BaseProbabilistic):
     \alpha_k &\sim \mathrm{Gamma}(a_0, b_0), &
     W_i[:, k] &\sim \mathcal{N}(0, \alpha_k^{-1} I), \\
     z &\sim \mathcal{N}(0, I), &
-    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i, \Psi_i).
+    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i, \Psi_i),
     \end{aligned}
     $$
+
+    with each $\Psi_i$ a full covariance, as in :class:`ProbabilisticCCA`.
 
     Dimensions no view supports are shrunk away, so set ``n_components``
     generously and read ``ard_precision_``. Inference is mean-field SVI in
@@ -92,62 +99,20 @@ class VariationalBayesCCA(BaseProbabilistic):
         self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
-    # ------------------------------------------------------------------
-    # numpyro generative model
-    # ------------------------------------------------------------------
-
     def _model(self, views: list[np.ndarray]) -> None:
-        """Numpyro generative model on centred views."""
+        """Numpyro model on centred views, with the ARD prior on the loadings."""
         import jax.numpy as jnp
         import numpyro
         import numpyro.distributions as dist
 
-        n = views[0].shape[0]
         k = self.n_components
-
         # Shared ARD precision per latent dimension, tying all views' loading
         # columns together so shrinkage decisions are made jointly.
         alpha = numpyro.sample(
             "alpha",
             dist.Gamma(jnp.full((k,), _ARD_A0), jnp.full((k,), _ARD_B0)).to_event(1),
         )
-        scale = 1.0 / jnp.sqrt(alpha)  # (k,)
-
-        # Sample per-view parameters
-        ws: list[Any] = []
-        psis: list[Any] = []
-        for i, xi in enumerate(views):
-            p_i = xi.shape[1]
-            w_i = numpyro.sample(
-                f"W_{i}",
-                dist.Normal(
-                    jnp.zeros((p_i, k)), jnp.broadcast_to(scale, (p_i, k))
-                ).to_event(2),
-            )
-            log_psi_i = numpyro.sample(
-                f"log_psi_{i}",
-                dist.Normal(jnp.zeros(p_i), jnp.ones(p_i)).to_event(1),
-            )
-            ws.append(w_i)
-            psis.append(jnp.exp(log_psi_i))  # noise variances
-
-        # Sample latent variables and observations
-        with numpyro.plate("n", n):
-            z = numpyro.sample(
-                "z",
-                dist.Normal(jnp.zeros(k), jnp.ones(k)).to_event(1),
-            )
-            for i, (xi, w_i, psi_i) in enumerate(zip(views, ws, psis)):
-                mean_i = z @ w_i.T  # (n, p_i)
-                numpyro.sample(
-                    f"x_{i}",
-                    dist.Normal(mean_i, jnp.sqrt(psi_i)).to_event(1),
-                    obs=jnp.array(xi),
-                )
-
-    # ------------------------------------------------------------------
-    # Public fit / transform
-    # ------------------------------------------------------------------
+        pcca_model(views, k, 1.0 / jnp.sqrt(alpha))
 
     def fit(self, views: list[ArrayLike], y: None = None) -> VariationalBayesCCA:
         """Fit the model.
@@ -161,12 +126,16 @@ class VariationalBayesCCA(BaseProbabilistic):
         """
         import jax
         import numpyro.optim as optim
-        from numpyro.infer import SVI, Predictive, Trace_ELBO
+        from numpyro.infer import SVI, Predictive, Trace_ELBO, init_to_value
         from numpyro.infer.autoguide import AutoNormal
 
         validated = self._setup_fit(views)
 
-        guide = AutoNormal(self._model)
+        # From the saddle at zero loadings, where the noise explains each view
+        # alone, SVI is slow to find the shared signal: start at the maximum
+        # likelihood instead.
+        start = maximum_likelihood_start(validated, self.n_components)
+        guide = AutoNormal(self._model, init_loc_fn=init_to_value(values=start))
         svi = SVI(self._model, guide, optim.Adam(self.learning_rate), Trace_ELBO())
 
         rng_key, predictive_key = jax.random.split(
