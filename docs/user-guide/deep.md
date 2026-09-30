@@ -99,6 +99,7 @@ model = DCCA.load_from_checkpoint(path, encoders=[make_encoder(100), make_encode
 | `DPCCA` | any | Partial CCA: correlation conditioned on a variable seen only in training (Rotman et al., 2018), trained on the EY loss |
 | `DTCCA` | any | Tensor CCA (Wong et al., 2021) |
 | `DCCANOI` | any | Nonlinear orthogonal iterations (Wang et al., 2015) |
+| `NRDCCA` | any | `DMCCA` plus noise regularisation: each encoder must correlate its view with Gaussian noise as a linear map would, against model collapse (He et al., 2024) |
 | `DCCASDL` | any | Alignment plus within-view soft decorrelation (Chang et al., 2018) |
 | `BarlowTwins` | any | Cross-correlation to the identity (Zbontar et al., 2021) |
 | `VICReg` | any | Variance, invariance and covariance terms (Bardes et al., 2022) |

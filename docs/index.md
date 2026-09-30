@@ -55,7 +55,7 @@ CCA-Zoo extends classical CCA in several directions:
 
 - :material-brain: **Deep learning**
 
-    DCCA and variants (EY, NOI, SDL, DCCAE, DVCCA, DTCCA, BarlowTwins, VICReg, LeJEPA)
+    DCCA and variants (EY, NOI, SDL, DCCAE, DVCCA, DTCCA, BarlowTwins, VICReg, LeJEPA, NR-DCCA)
     using your own `nn.Module` encoders with PyTorch Lightning.
 
     [Deep methods →](user-guide/deep.md)

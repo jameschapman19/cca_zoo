@@ -84,6 +84,10 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
+::: cca_zoo.deep.NRDCCA
+
+---
+
 ## Objectives
 
 ::: cca_zoo.deep.objectives
