@@ -99,6 +99,10 @@ class ProjectionPursuitCCA(BaseModel):
         association estimators. Journal of the American Statistical
         Association, 112(517), 436-445.
 
+        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
+        association between data sets: The R package ccaPP. Austrian Journal
+        of Statistics, 45(1), 71-79.
+
     Examples:
         >>> import numpy as np
         >>> from cca_zoo.linear import ProjectionPursuitCCA
