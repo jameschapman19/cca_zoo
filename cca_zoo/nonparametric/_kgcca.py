@@ -17,6 +17,9 @@ class KGCCA(_BaseKernelModel):
     :class:`~cca_zoo.linear.GCCA` in each view's kernel feature space. With
     centred kernels $K_i$, $T$ holds the top eigenvectors of
     $\sum_i \mu_i K_i ((1 - c_i) K_i^2 / (n - 1) + c_i K_i)^{-1} K_i$.
+    This is Carroll's MAXVAR criterion in kernel form, as in Chen, Wang and
+    Giannakis's kernel multiview CCA without its graph term; Tenenhaus,
+    Philippe and Frouin's kernel generalized CCA extends RGCCA instead.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -44,6 +47,12 @@ class KGCCA(_BaseKernelModel):
             of a new view is evaluated and centred.
 
     References:
+        Carroll, J. D. (1968). Generalization of canonical correlation analysis
+        to three or more sets of variables. Proceedings of the 76th Annual
+        Convention of the American Psychological Association, 3, 227-228.
+        Chen, J., Wang, G., & Giannakis, G. B. (2019). Graph multiview
+        canonical correlation analysis. IEEE Transactions on Signal
+        Processing, 67(11), 2826-2838.
         Tenenhaus, A., Philippe, C., & Frouin, V. (2015). Kernel generalized
         canonical correlation analysis. Computational Statistics & Data
         Analysis, 90, 114-131.

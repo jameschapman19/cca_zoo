@@ -106,7 +106,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | Class | Description | Citation |
 |---|---|---|
 | `KCCA` | Kernel CCA | Hardoon, Szedmak & Shawe-Taylor (2004) |
-| `KGCCA` | Kernel Generalised CCA | Tenenhaus, Philippe & Frouin (2015) |
+| `KGCCA` | Kernel Generalised CCA (MAXVAR) | Carroll (1968); Chen, Wang & Giannakis (2019) |
 | `KTCCA` | Kernel Tensor CCA | Luo et al. (2015) |
 | `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator | Belkin & Niyogi (2003); Roweis & Saul (2000) |
 
