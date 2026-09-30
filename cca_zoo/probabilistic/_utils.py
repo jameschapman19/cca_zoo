@@ -261,8 +261,7 @@ class BaseProbabilistic(BaseModel):
 
     def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
         """Posterior mean of the latent given this view alone."""
-        scores: np.ndarray = centred @ self._encoder(view)
-        return scores
+        return self._shared_latent({view: centred})
 
     def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
         """Variance share of each feature in its view's linear posterior mean."""
