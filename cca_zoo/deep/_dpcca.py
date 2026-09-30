@@ -6,33 +6,24 @@ import torch
 import torch.nn as nn
 
 from cca_zoo.deep._base import BaseDeep, Batch
-from cca_zoo.deep._dcca_ey import _cca_cv
-
-
-def _partialled(z: torch.Tensor, f: torch.Tensor, eps: float) -> torch.Tensor:
-    """``f`` less its least-squares regression on ``z``, both centred."""
-    eye = eps * torch.eye(z.shape[1], device=z.device, dtype=z.dtype)
-    residual: torch.Tensor = f - z @ torch.linalg.solve(z.T @ z + eye, z.T @ f)
-    return residual
 
 
 class DPCCA(BaseDeep):
     r"""Deep partial CCA: correlate the views after conditioning on a shared variable.
 
-    Each batch's encodings $F_i$ are partialled on the conditioning variable
-    $Z$ (``batch["partials"]``) by the batch's own regression,
-    $F_i|Z = F_i - Z (Z^\top Z)^{-1} Z^\top F_i$, and minimise the
-    Eckart-Young loss of :class:`DCCAEY`,
+    The Eckart-Young loss of :class:`DCCAEY` on the views' partial covariances
+    given a conditioning variable $Z$ (``batch["partials"]``). For the
+    stacked encodings $F$ of a batch,
 
     $$
+    \Sigma_{FF|Z} = \Sigma_{FF} - \Sigma_{FZ} \Sigma_{ZZ}^{-1} \Sigma_{ZF},
+    \qquad
     \mathcal{L} = -2 \operatorname{tr}(C_{|Z}) + \operatorname{tr}(V_{|Z} V_{|Z}),
     $$
 
-    whose $C_{|Z}$ and $V_{|Z}$ are then the batch's mean pairwise partial
-    cross-covariance and mean partial auto-covariance,
-    $\Sigma_{FF} - \Sigma_{FZ} \Sigma_{ZZ}^{-1} \Sigma_{ZF}$. Gradients flow
-    through the regression, so this is the derivative of the partial
-    covariances' loss.
+    with $C_{|Z}$ the mean over views of the sum of each view's blocks of
+    $\Sigma_{FF|Z}$, and $V_{|Z}$ the mean of its diagonal blocks, as
+    :class:`DCCAEY` forms them from the covariances.
 
     ``partial_encoder=None`` uses $Z$ as given; a module encodes it, trained to
     explain the encodings by least squares, so that partialling removes all
@@ -102,7 +93,7 @@ class DPCCA(BaseDeep):
         return centred
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
-        """The EY loss of the partialled encodings and its terms.
+        """The EY loss of the encodings' partial covariances and its terms.
 
         Args:
             batch: Dictionary with a ``"views"`` list of tensors and the
@@ -113,8 +104,18 @@ class DPCCA(BaseDeep):
             partial encoder's loss, when there is one.
         """
         z = self._conditioning(batch)
-        encodings = [f - f.mean(dim=0) for f in self(batch["views"])]
-        c, v = _cca_cv([_partialled(z.detach(), f, self.eps) for f in encodings])
+        f = torch.cat([f - f.mean(dim=0) for f in self(batch["views"])], dim=1)
+        n, m, k = f.shape[0], len(batch["views"]), self.n_components
+        eye = self.eps * torch.eye(z.shape[1], device=z.device, dtype=z.dtype)
+        # The partial covariance of the encodings given Z, held fixed.
+        z_fixed = z.detach()
+        zf = z_fixed.T @ f
+        partial = (
+            f.T @ f - zf.T @ torch.linalg.solve(z_fixed.T @ z_fixed + eye, zf)
+        ) / (n - 1)
+        blocks = partial.reshape(m, k, m, k)
+        c = blocks.sum(dim=(0, 2)) / m
+        v = torch.diagonal(blocks, dim1=0, dim2=2).sum(dim=-1) / m
         rewards = torch.trace(2.0 * c)
         penalties = torch.trace(v @ v)
         terms = {"rewards": rewards, "penalties": penalties}
@@ -122,10 +123,13 @@ class DPCCA(BaseDeep):
         if self.partial_encoder is not None:
             # The partial encoder learns to explain the encodings, held fixed, so
             # partialling removes all it can; trained on the EY loss it would
-            # instead learn to leave the confound in.
-            residual = torch.stack(
-                [_partialled(z, f.detach(), self.eps).pow(2).mean() for f in encodings]
-            ).sum()
+            # instead learn to leave the confound in. Its loss is the mean
+            # squared residual, the trace of the partial second moment.
+            f_fixed = f.detach()
+            zf = z.T @ f_fixed
+            residual = torch.trace(
+                f_fixed.T @ f_fixed - zf.T @ torch.linalg.solve(z.T @ z + eye, zf)
+            ) / (n * k)
             terms["residual"] = residual
             objective = objective + residual
         return {"objective": objective, **terms}

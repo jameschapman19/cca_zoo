@@ -121,8 +121,8 @@ The table below gives each replacement.
 - `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
   correlation conditioned on a variable given as `partials`, used as given or encoded by a
   `partial_encoder` (the paper's variants A and B), and needed only for training. It
-  partials each batch by its own regression and minimises the EY loss of the partialled
-  encodings, rather than the paper's nonlinear orthogonal iterations with running
+  minimises the EY loss of each batch's partial covariances given the conditioning
+  variable, rather than the paper's nonlinear orthogonal iterations with running
   covariance estimates, which needs no whitening and no running estimates. The partial encoder is trained to
   explain the encodings by least squares, not on the correlation loss as in the paper,
   which rewards it for leaving the confound in. The prediction-time linear CCA is fitted
