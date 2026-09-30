@@ -1,92 +1,90 @@
-"""DCCA — Deep Canonical Correlation Analysis (Andrew 2013)."""
+"""Deep CCA."""
 
 from __future__ import annotations
 
 import torch
 import torch.nn as nn
 
-from cca_zoo.deep._base import BaseDeep
+from cca_zoo.deep._base import BaseDeep, Batch
 from cca_zoo.deep.objectives import CCALoss
 
 
-class DCCA(BaseDeep):
-    r"""Deep Canonical Correlation Analysis with a pluggable objective.
+class _ObjectiveModel(BaseDeep):
+    """A deep model minimising a loss module of the encodings, ``objective``."""
 
-    Trains two (or more) neural network encoders to maximise canonical
-    correlation between their outputs, by minimising, per mini-batch:
+    objective: nn.Module
+
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """``{"objective": objective(encodings)}``."""
+        return {"objective": self.objective(self(batch["views"]))}
+
+
+class DCCA(_ObjectiveModel):
+    r"""Deep CCA of two views: encoders trained to maximise canonical correlation.
+
+    Minimises, per mini-batch,
 
     $$
-    \mathcal{L} = -\left\|
-        \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2}
-    \right\|_F^2
+    \mathcal{L} = -\bigl\| \Sigma_{11}^{-1/2} \Sigma_{12} \Sigma_{22}^{-1/2} \bigr\|_F^2
     $$
 
-    where $\Sigma_{11}, \Sigma_{22}$ are the (ridge-regularised)
-    within-view covariances of the two encoder outputs and
-    $\Sigma_{12}$ their cross-covariance (see
-    :class:`~cca_zoo.deep.objectives.CCALoss`). The objective is pluggable
-    via the ``objective`` parameter, which defaults to the above.
-
-    The model is a :class:`lightning.pytorch.LightningModule` and is
-    trained via a :class:`lightning.Trainer`.
-
-    References:
-        Andrew, G., et al. "Deep canonical correlation analysis."
-        ICML 2013.
+    (:class:`~cca_zoo.deep.objectives.CCALoss`). As linear CCA generalises to
+    MCCA, GCCA and TCCA, it generalises to more views as :class:`DMCCA`,
+    :class:`DGCCA` and :class:`DTCCA`.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects mapping each
-            view to the latent space.
-        objective: Differentiable loss module operating on a list of
-            latent tensors.  If ``None``, defaults to
-            :class:`~cca_zoo.deep.objectives.CCALoss`.
-        lr: Learning rate for the Adam optimiser. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation parameter passed to the default CCALoss when
-            ``objective`` is ``None``. Default is 1e-6.
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
+
+    Raises:
+        ValueError: If there are not two encoders.
+
+    References:
+        Andrew, G., Arora, R., Bilmes, J., & Livescu, K. (2013). Deep
+        canonical correlation analysis. ICML.
 
     Examples:
+        >>> import lightning.pytorch as pl
+        >>> import numpy as np
         >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCA(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> from torch.utils.data import DataLoader
+        >>> from cca_zoo.deep import DCCA, MultiviewDataset
+        >>> rng = np.random.default_rng(0)
+        >>> X1 = rng.standard_normal((64, 10)).astype("float32")
+        >>> X2 = rng.standard_normal((64, 8)).astype("float32")
+        >>> loader = DataLoader(MultiviewDataset([X1, X2]), batch_size=32)
+        >>> model = DCCA(n_components=2, encoders=[nn.Linear(10, 2), nn.Linear(8, 2)])
+        >>> trainer = pl.Trainer(max_epochs=2, logger=False, enable_progress_bar=False,
+        ...                      enable_checkpointing=False, enable_model_summary=False)
+        >>> trainer.fit(model, loader)
+        >>> batches = trainer.predict(model, loader)
+        >>> Z1, Z2 = (torch.cat(z).numpy() for z in zip(*batches))
+        >>> from cca_zoo.linear import CCA
+        >>> U1, U2 = CCA(n_components=2).fit([Z1, Z2]).transform([Z1, Z2])
+        >>> U1.shape
+        (64, 2)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
+        reg_covar: float = 1e-6,
     ) -> None:
+        if len(encoders) != 2:
+            raise ValueError(
+                f"DCCA is defined for two views, got {len(encoders)}; use DMCCA, "
+                "DGCCA or DTCCA for more."
+            )
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
-        self.objective: nn.Module = CCALoss(eps=eps) if objective is None else objective
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the DCCA training objective.
-
-        Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
-            independent_representations: Optional second set of encodings
-                (unused in the base DCCA formulation).
-
-        Returns:
-            Dictionary with key ``"objective"`` containing the scalar
-            loss tensor to minimise.
-        """
-        return {"objective": self.objective(representations)}
+        self.reg_covar = reg_covar
+        self.objective = CCALoss(reg_covar=reg_covar)

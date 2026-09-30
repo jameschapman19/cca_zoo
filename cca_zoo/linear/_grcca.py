@@ -1,181 +1,131 @@
-"""GRCCA — Group Regularised Canonical Correlation Analysis."""
+"""Group-regularised CCA."""
 
 from __future__ import annotations
 
-import warnings
-from typing import cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._linalg import covariance
+from cca_zoo._utils._param_constraints import NONNEGATIVE_PER_VIEW
 from cca_zoo._utils._validation import perview_parameter
 from cca_zoo.linear._mcca import MCCA
 
 
 class GRCCA(MCCA):
-    r"""Group Regularised Canonical Correlation Analysis.
+    r"""MCCA with ridge penalties that shrink weights towards their group means.
 
-    Extends :class:`MCCA` with structured ridge regularisation that shrinks
-    within-group feature weights toward a shared group-level effect. Each
-    view's features are partitioned into groups via ``feature_groups``; the
-    per-view ``c`` parameter controls shrinkage of within-group deviations
-    and ``mu`` controls the weighting of the group-level effect.
+    Tuzhilina et al.'s penalty on each view's weights $w$, for features in
+    groups $g$ of size $p_g$ with mean weight $\bar w_g$,
 
-    Each view is internally augmented with group-mean features before
-    solving the generalised eigenvalue problem, then the resulting weights
-    are algebraically collapsed back to the original feature space, so
-    ``transform`` operates directly on the un-augmented views.
+    $$
+    \sum_g \sum_{j \in g} (w_j - \bar w_g)^2 + \mu \sum_g p_g \bar w_g^2
+        = w^\top \bigl((I - H) + \mu H\bigr) w,
+    $$
 
-    References:
-        Tuzhilina, E., Tozzi, L., & Hastie, T. (2021). Canonical correlation
-        analysis in high dimensions with structured regularization.
-        *Statistical Modelling*.
+    with $H$ the projection averaging each group, takes the place of
+    :class:`MCCA`'s identity: each view's block of $B$ is
+    $(1 - c)\Sigma_{ii} + c\,((I - H) + \mu H)$. ``shrinkage`` $c$ sets the
+    strength of the penalty and ``mu`` that of the group means relative to
+    the deviations from them: ``mu=1`` is MCCA's ridge, and ``mu=0`` shrinks
+    each weight towards its group's mean alone. Their $\lambda$ and $\mu$
+    are $c / (1 - c)$ and $\mu c / (1 - c)$.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) controlling within-group
-            shrinkage. Either a scalar applied to all views or a per-view
-            list, each in ``[0, 1]``. ``c=0`` disables grouping for that
-            view (falls back to plain MCCA behaviour). Default is 0.
-        mu: Regularisation parameter(s) controlling the group-level effect
-            scale. Either a scalar or a per-view list. Default is 0.
-        eps: Small constant added to the eigenvalues of B to ensure
-            positive definiteness. Default is 1e-6.
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        shrinkage: Strength of the penalty, in ``[0, 1]``: 0 is CCA. Per-view.
+            Default is 0.
+        mu: Penalty on the group means, relative to the within-group
+            deviations. Per-view. Default is 0.
+        feature_groups: Integer group label of each feature, shape
+            (n_features_i,) per view; None puts each view in one group.
+            Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+        feature_groups_: Group label of each feature, per view.
+
+    Raises:
+        ValueError: If a view's ``feature_groups`` does not label each feature.
+
+    References:
+        Tuzhilina, E., Tozzi, L., & Hastie, T. (2023). Canonical correlation
+        analysis in high dimensions with structured regularization.
+        Statistical Modelling, 23(3), 203-227.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.linear import GRCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
-        >>> groups1 = rng.integers(0, 3, size=10)
-        >>> groups2 = rng.integers(0, 3, size=8)
-        >>> model = GRCCA(latent_dimensions=2, c=0.5).fit(
-        ...     [X1, X2], feature_groups=[groups1, groups2]
-        ... )
-        >>> scores = model.transform([X1, X2])
+        >>> groups = [rng.integers(0, 3, size=10), rng.integers(0, 3, size=8)]
+        >>> model = GRCCA(n_components=2, shrinkage=0.5, feature_groups=groups)
+        >>> model = model.fit([X1, X2])
     """
+
+    _supports_array_api: ClassVar[bool] = False
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **{k: v for k, v in MCCA._parameter_constraints.items() if k != "pca"},
+        "mu": NONNEGATIVE_PER_VIEW,
+        "feature_groups": [None, list],
+    }
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
+        *,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         mu: float | list[float] = 0.0,
-        eps: float = 1e-6,
+        feature_groups: list[np.ndarray] | None = None,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             center=center,
-            c=c,
+            shrinkage=shrinkage,
             pca=False,
-            eps=eps,
         )
         self.mu = mu
+        self.feature_groups = feature_groups
 
     def fit(
         self,
         views: list[ArrayLike],
         y: None = None,
-        feature_groups: list[np.ndarray] | None = None,
+        sample_weight: ArrayLike | None = None,
     ) -> GRCCA:
-        """Fit the GRCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
-            feature_groups: List of integer group-label arrays, one per
-                view, each of shape (n_features_i,). Required for
-                meaningful grouping whenever the corresponding per-view
-                ``c`` is nonzero; defaults to a single group per view
-                (equivalent to plain MCCA) if omitted.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
-            self: Fitted estimator.
+            self.
         """
-        views_ = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
-        mu_ = perview_parameter("mu", self.mu, 0.0, self.n_views_)
+        return cast(GRCCA, super().fit(views, y, sample_weight))
 
-        if feature_groups is None:
-            if any(ci > 0 for ci in c_):
-                warnings.warn(
-                    "No feature_groups provided; using a single group per "
-                    "view, which makes the group regularisation a no-op."
+    def _build_B(self, views: list[np.ndarray], c: list[float]) -> np.ndarray:
+        """Block-diagonal covariance blended with each view's group penalty."""
+        mu = perview_parameter("mu", self.mu, 0.0, len(views))
+        groups = self.feature_groups or [np.zeros(v.shape[1], dtype=int) for v in views]
+        for g, v in zip(groups, views):
+            if len(g) != v.shape[1]:
+                raise ValueError(
+                    f"feature_groups has {len(g)} labels for a view with "
+                    f"{v.shape[1]} features."
                 )
-            feature_groups = [np.ones(v.shape[1], dtype=int) for v in views_]
-        self.feature_groups_ = feature_groups
-
-        processed = [
-            self._augment_view(v, g, m, c)
-            for v, g, m, c in zip(views_, feature_groups, mu_, c_)
-        ]
-        A = self._build_A(processed)
-        B = self._build_B(processed, c_)
-        _, eigvecs = gevp(A, B, self.latent_dimensions)
-        splits = np.cumsum([v.shape[1] for v in processed])
-        raw_blocks = np.split(eigvecs, splits[:-1], axis=0)
-
-        self.weights_: list[np.ndarray] = [
-            self._collapse_weights(block, g, c, m)
-            for block, g, c, m in zip(raw_blocks, feature_groups, c_, mu_)
-        ]
-        return self
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def _augment_view(
-        self, view: np.ndarray, group: np.ndarray, mu: float, c: float
-    ) -> np.ndarray:
-        """Augment a view with per-group mean features scaled by c and mu."""
-        if c <= 0:
-            return view
-        _, unique_inverse, unique_counts, group_means = self._group_mean(view, group)
-        mu_eff = 1.0 if mu == 0 else mu
-        view_1 = (view - group_means[:, unique_inverse]) / c
-        view_2 = group_means / np.sqrt(mu_eff / unique_counts)
-        return np.hstack((view_1, view_2))
-
-    def _collapse_weights(
-        self,
-        block: np.ndarray,
-        group: np.ndarray,
-        c: float,
-        mu: float,
-    ) -> np.ndarray:
-        """Collapse augmented-space eigenvectors back to the original feature space."""
-        if c <= 0:
-            return block
-        n_groups = np.unique(group).shape[0]
-        weights_1 = block[:-n_groups]
-        weights_2 = block[-n_groups:]
-        _, unique_inverse, unique_counts, group_means = self._group_mean(
-            weights_1.T, group
-        )
-        mu_eff = 1.0 if mu == 0 else mu
-        weights_1 = (weights_1 - group_means[:, unique_inverse].T) / c
-        weights_2 = weights_2 / np.sqrt(mu_eff * unique_counts[:, None])
-        return cast(np.ndarray, weights_1 + weights_2[unique_inverse])
-
-    @staticmethod
-    def _group_mean(
-        arr: np.ndarray, group: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Compute the per-group mean along the column axis of ``arr``.
-
-        Args:
-            arr: Array of shape (n_rows, n_features).
-            group: Integer group label for each column, shape (n_features,).
-
-        Returns:
-            Tuple ``(ids, unique_inverse, unique_counts, group_means)``
-            where ``group_means`` has shape (n_rows, n_groups).
-        """
-        ids, unique_inverse, unique_counts = np.unique(
-            group, return_inverse=True, return_counts=True
-        )
-        group_means = np.array([arr[:, group == g].mean(axis=1) for g in ids]).T
-        return ids, unique_inverse, unique_counts, group_means
+        self.feature_groups_: list[np.ndarray] = [np.asarray(g) for g in groups]
+        blocks = []
+        for v, g, ci, mi in zip(views, self.feature_groups_, c, mu):
+            same = (g[:, None] == g[None, :]).astype(float)
+            averaging = same / same.sum(axis=1, keepdims=True)  # H
+            penalty = np.eye(len(g)) - averaging + mi * averaging
+            blocks.append((1.0 - ci) * covariance(v) + ci * penalty)
+        B: np.ndarray = self._floored_blocks(blocks)
+        return B

@@ -1,87 +1,53 @@
-"""DGCCA — Deep Generalised CCA."""
+"""Deep generalized CCA."""
 
 from __future__ import annotations
 
-import torch
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dcca import _ObjectiveModel
 from cca_zoo.deep.objectives import GCCALoss
 
 
-class DGCCA(DCCA):
-    r"""Deep Generalised CCA.
-
-    Applies the generalised CCA (MAX-VAR) loss
-    (:class:`~cca_zoo.deep.objectives.GCCALoss`) to neural representations,
-    maximising correlation of each view with a shared latent target rather
-    than with every other view pairwise:
+class DGCCA(_ObjectiveModel):
+    r"""Deep generalized CCA: correlate every view with a shared target.
 
     $$
-    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\!\left(\sum_i H_i H_i^\top\right)
+    \mathcal{L} = -\sum_{d=1}^{k} \lambda_d\Bigl(\sum_i H_i H_i^\top\Bigr)
     $$
 
-    where $H_i$ is the ridge-whitened representation of view
-    $i$ and $\lambda_d(\cdot)$ is the $d$-th largest
-    eigenvalue. Unlike the base :class:`DCCA`, this supports more than two
-    encoders/views out of the box, mirroring the linear
-    :class:`~cca_zoo.linear.GCCA`.
-
-    References:
-        Benton, A., et al. "Deep Generalized Canonical Correlation
-        Analysis." RepL4NLP 2019.
+    for ridge-whitened encodings $H_i$
+    (:class:`~cca_zoo.deep.objectives.GCCALoss`), for any number of views.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        objective: Ignored; the GCCA loss is always used. Accepted for
-            API compatibility.
-        lr: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation for within-view whitening. Default is 1e-6.
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
+
+    References:
+        Benton, A., Khayrallah, H., Gujral, B., Reisinger, D. A., Zhang, S.,
+        & Arora, R. (2019). Deep generalized canonical correlation analysis.
+        RepL4NLP.
 
     Examples:
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> enc3 = nn.Linear(6, 4)
-        >>> model = DGCCA(latent_dimensions=4, encoders=[enc1, enc2, enc3])
+        >>> from cca_zoo.deep import DGCCA
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4), nn.Linear(6, 4)]
+        >>> model = DGCCA(n_components=4, encoders=encoders)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
+        reg_covar: float = 1e-6,
     ) -> None:
-        # Pass objective=None so DCCA creates CCALoss, but we override it
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            objective=None,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
-        # Override with GCCALoss regardless of what was passed
-        self.objective = GCCALoss(eps=eps)
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the DGCCA loss via the generalised CCA objective.
-
-        Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
-            independent_representations: Unused.
-
-        Returns:
-            Dictionary with key ``"objective"``.
-        """
-        return {"objective": self.objective(representations)}
+        self.reg_covar = reg_covar
+        self.objective = GCCALoss(reg_covar=reg_covar)

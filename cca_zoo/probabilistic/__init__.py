@@ -1,11 +1,7 @@
-"""Probabilistic (Bayesian) CCA methods.
+"""Probabilistic CCA.
 
-``GFA`` is a closed-form coordinate-ascent variational algorithm with no
-dependencies beyond numpy/scikit-learn, and is always available.
-``ProbabilisticCCA`` and ``VariationalBayesCCA`` perform MCMC/black-box
-variational inference via ``numpyro`` and are only available when
-``numpyro`` and ``jax`` are installed; import errors for those two are
-deferred to usage time.
+:class:`GFA` needs no extra dependencies; :class:`ProbabilisticCCA` and
+:class:`VariationalBayesCCA` require the ``probabilistic`` extra.
 """
 
 from __future__ import annotations
@@ -24,3 +20,11 @@ if _numpyro_available and _jax_available:
     __all__ = ["GFA", "ProbabilisticCCA", "VariationalBayesCCA"]
 else:
     __all__ = ["GFA"]
+
+    def __getattr__(name: str) -> object:
+        if name in {"VariationalBayesCCA", "ProbabilisticCCA"}:
+            raise ImportError(
+                f"{name} requires the probabilistic extra: "
+                "pip install 'cca-zoo[probabilistic]'."
+            )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -5,7 +5,651 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [4.0.0] - 2026-09-30
+
+A major release that settles the public API: every model follows one scikit-learn-style
+contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_per_view_`),
+and every deprecated alias accumulated through 3.x is removed rather than carried forward.
+The table below gives each replacement.
+
+### Migrating from 3.x
+
+| 3.x | 4.0 |
+|---|---|
+| `latent_dimensions=` (every model) | `n_components=`, sklearn's name (as in its `CCA`, `PLSCanonical` and `PCA`) |
+| `rCCA` | `RidgeCCA` (CapWords, like every other class) |
+| `DCCANOI(rho=0.1)`, the weight of each new batch in the running covariance | `DCCANOI(rho=0.9)`: `rho` is now Wang et al.'s time constant, the weight of the previous running moments; the default is unchanged in effect |
+| `StochasticCCAEY(momentum=)` | removed: plain SGD with sklearn's adaptive step, as `SGDRegressor(learning_rate="adaptive")`, converges where momentum at a fixed step hovered |
+| `JointData(...).sample()` | `make_joint_data(...)`, an sklearn-style `make_*` generator; for train and test sets, split its output with `sklearn.model_selection.train_test_split(*views)` |
+| `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
+| `TrimmedCCA(n_starts=)`, `ProjectionPursuitCCA(n_restarts=)` | `n_init=`, sklearn's name for random restarts |
+| deep models' `lr=` | `learning_rate=`, as for every other model |
+| deep models' and losses' `eps=` | `reg_covar=`, scikit-learn's name (in `GaussianMixture`) for a non-negative amount added to the diagonal of each covariance; the losses' default is 1e-6, as the models' was, and `DCCANOI` adds it to its running covariance rather than flooring the eigenvalues |
+| `ProbabilisticCCA(num_warmup=, num_samples=)` | `n_warmup=`, `n_posterior_samples=` |
+| `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `n_iter=` (a fixed number of SVI steps), `n_posterior_samples=` |
+| `MultiviewWrapper` on stacked views | the `cca_zoo.model_selection` searches and cross-validation functions on the list of views; `Pipeline` with `cca_zoo.preprocessing.PerViewTransformer` for preprocessing |
+| `PermutationTestResult.correlations_`, `.p_values_`, and the other fields | the same names without the trailing `_` |
+| `random_state` defaulting to `0` in `GFA`, `ProbabilisticCCA`, `VariationalBayesCCA`, `GaussianProcessCCA` and the tree models | defaults to `None` everywhere, as in sklearn; pass `random_state=0` for the old reproducible fits |
+| `model.score(views)` → per-dimension array | `model.score(views)` → mean, a float; per dimension: `average_pairwise_correlations(pairwise_correlations(model.transform(views)))` from `cca_zoo.metrics` |
+| `model.weights` | `model.weights_` |
+| `model.pairwise_correlations(views)` | `cca_zoo.metrics.pairwise_correlations(model.transform(views))` |
+| `model.average_pairwise_correlations(views)` | `cca_zoo.metrics.average_pairwise_correlations(pairwise_correlations(model.transform(views)))` |
+| `model.get_factor_loadings(views)` | `cca_zoo.metrics.factor_loadings(views, model.transform(views))` |
+| probabilistic `model.transform(views)[0]` (joint posterior mean) | `model.posterior_mean(views)` |
+| `ManifoldCCA.weights_` | `ManifoldCCA.embedding_` |
+| `cca_zoo.model_selection.procrustes_rotation(reference, target)` | `scipy.linalg.orthogonal_procrustes(target, reference)[0]` |
+| `GAMCCA(n_knots=..., alpha=...)` | `GAMCCA(k=..., sp=...)` (see Changed) |
+| `XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA` fits | different (and far better) fits: the boosting itself is fixed, with new defaults `n_estimators=200, max_depth=3, min_child_weight=20` (see Fixed) |
+| `SCCA_PMD`, `SCCAPMD` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.PMDCCA` |
+| `SCCA_ADMM`, `SCCAADMM` | `cca_zoo.sparse.ADMMCCA` |
+| `SCCA_IPLS`, `SCCAIPLS` | `cca_zoo.sparse.IPLSCCA` |
+| `SCCA_Span`, `SCCASpan` | `cca_zoo.sparse.SpanCCA` |
+| `ElasticCCA`; `WaijenborgCCA` (`cca_zoo.linear` or `cca_zoo.sparse`) | `cca_zoo.sparse.IPLSCCA(l1_ratio=0.5)`, the same algorithm (see Removed) |
+| `cca_zoo.linear.ParkhomenkoCCA`, `cca_zoo.linear.SAR` | `cca_zoo.sparse.ParkhomenkoCCA`, `cca_zoo.sparse.SAR` |
+| `cca_zoo.linear.StochasticCCAEY` | `cca_zoo.stochastic.StochasticCCAEY` |
+| `CCA_EY`, `MCCAEY`, `MCCA_EY` | `cca_zoo.linear.CCAEY` (2 or more views) |
+| `PLS_EY` | `cca_zoo.linear.PLSEY` |
+| `GPCCA` | `cca_zoo.gp.GaussianProcessCCA` |
+| `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL` | `cca_zoo.deep.DCCAEY`, `DCCANOI`, `DCCASDL` |
+| `MARSCCA.variable_importance()` (never released) | `MARSCCA.feature_importances_per_view_` |
+| deep `model.transform(loader)` | `trainer.predict(model, loader)`, returning each view's encoding per batch; `[torch.cat(z) for z in zip(*batches)]` concatenates them. For canonical variates, fit `cca_zoo.linear.CCA` (or `MCCA`) to the training encodings |
+| deep `model.score(loader)` | `cca_zoo.metrics` on the predicted arrays |
+| deep models' `max_epochs=` (never used) | the `Trainer`'s `max_epochs` |
+| `DCCA(objective=MCCALoss())`, `GCCALoss()`, `TCCALoss()` | `DMCCA`, `DGCCA`, `DTCCA`; a custom loss subclasses `BaseDeep` and implements `loss(batch)` |
+| `DVCCA(encoders=[e1, e2], ...)` | `DVCCA(encoder=e1, ...)`: the published model encodes the first view only |
+| custom deep `loss(representations, independent_representations)` | `loss(batch)`, encoding `batch["views"]` itself |
+| `c=` (`RidgeCCA`, `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA`, `GraphicalLassoCCA`, `RANSACCCA`, `TrimmedCCA`, `CCAEY`, `StochasticCCAEY`, `KCCA`, `KGCCA`, `KTCCA`), and per-view `c__0` | `shrinkage=`, `shrinkage__0`: the covariance's shrinkage towards the identity in `[0, 1]`, as sklearn's `shrinkage`; `c` read as SVM's inverse penalty `C` |
+| Positional arguments after `n_components`, e.g. `CCA(2, False)` | keywords: every other constructor parameter is keyword-only, as in sklearn |
+| `eps=` (`MCCA`, `GCCA`, `TCCA`, `PartialCCA`, `GRCCA`, `CCAR3`, `ECCA`, `GraphicalLassoCCA`, `KCCA`, `KGCCA`, `KTCCA`, `ManifoldCCA`) | removed: a numerical floor, now fixed internally at the same value |
+| `PMDCCA(tau=)` | `l1_bound=`, the L1 bound as a fraction of `sqrt(n_features)` |
+| `ADMMCCA(tau=, mu=)`, `ParkhomenkoCCA(tau=)` | `alpha=` (the L1 penalty), `rho=` (ADMM's augmented-Lagrangian penalty) |
+| `TrimmedCCA(h_frac=)` | `support_fraction=`, as sklearn's `MinCovDet` |
+| `SAR(n_lambda=)` | `n_alphas=` |
+| `ManifoldCCA(lle_reg=)` | `reg=`, as sklearn's `LocallyLinearEmbedding` |
+| `CCAR3(highdim=False)` | `alpha=0`, now solved by least squares as in `ECCA`; `highdim` is removed |
+| `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
+| `GRCCA(mu=0)`, the default, fitted as `mu=1` | `mu` is the penalty on group means relative to the deviations from them: `mu=1` is ridge MCCA and `mu=0` shrinks each weight towards its group's mean; `shrinkage=0` is CCA whatever `mu` |
+| `SAR(random_state=)` | removed: SAR starts from the ridge-CCA direction, which needs no seed |
+| `ProjectionPursuitCCA(projection_index="mcd", mcd_support_fraction=)`, `projection_index=` | removed: each MCD evaluation is a robust covariance fit, so a fit took hours at the defaults; the index is Spearman's (the old default) |
+| `GraphicalLassoCCA(mode=)`, default `max_iter=100` | removed: the graphical lasso is solved by ADMM (see Fixed); `max_iter` defaults to 1000, and `tol` is new |
+| `GraphicalLassoCCA(alpha=)` on each view's covariance | `alpha` penalises each view's correlations, so it is the same in any units; for features of variance `s**2`, the old `alpha` is roughly `alpha / s**2` now |
+| `ProbabilisticCCA`/`VariationalBayesCCA` `posterior_samples_["log_psi_{i}"]`, `["z"]` | `["noise_sd_{i}"]` and `["noise_corr_{i}"]`, each view's noise scales and correlation Cholesky factor; the latent is integrated out, so there are no `z` draws (`posterior_mean` gives it) |
+| `GFA.posterior_samples_["log_psi_{i}"]` | `["noise_sd_{i}"]`, as the other probabilistic models |
+| `X1, X2 = load_linnerud()`, `load_breast_cancer()` | `load_linnerud(return_views=True)`; without it a `Bunch` with `views`, `feature_names` and `DESCR`, as sklearn's loaders |
+| `GaussianProcessCCA.transform(views, return_std=True)` | `transform(views)` and `posterior_std(views)`, as the probabilistic models' `posterior_mean`: `transform` takes views alone on every model |
+| `GaussianProcessCCA(max_iter=..., tol=...)`, `n_iter_` | removed: the fit is solved in closed form (see Changed) |
+| `KCCA`/`KGCCA`/`KTCCA` `degree` default 1 | 3, sklearn's polynomial-kernel default (only `kernel="poly"` uses it) |
+| `model.n_features_in_` (a list) | `model.n_features_per_view_`; sklearn reserves `n_features_in_` for one int |
+| `GFA.view_relevance_`, `VariationalBayesCCA.ard_relevance_` | `ard_precision_` on both: the ARD precision, where large means shrunk away ("relevance" read backwards) |
+| `KCCA`/`KGCCA`/`KTCCA`/`ManifoldCCA` `train_views_` | `views_fit_`, as sklearn's `KernelPCA.X_fit_` |
+| `n_iter_` as a list (sparse iterative models, `ProjectionPursuitCCA`, `GraphicalLassoCCA`) or `None` (`CCAR3`/`ECCA` at `alpha=0`) | an int on every model: the most iterations any component or view ran, 0 when nothing iterates |
+| `ProbabilisticCCA.mcmc_` | `posterior_samples_`; `numpyro.diagnostics.summary(model.posterior_samples_, group_by_chain=False)` for R-hat and effective sample size |
+| `VariationalBayesCCA.guide_`, `.svi_result_` | `posterior_samples_` and `losses_` |
+
+### Added
+
+- `cca_zoo.deep.NRDCCA` (He et al., 2024): `DMCCA`'s loss plus noise regularisation,
+  which holds each encoder to linear CCA's invariance of a view's correlation with
+  independent Gaussian noise, against the model collapse of long DCCA training.
+  `Corr` in the regulariser is the mean canonical correlation, and the noise is
+  redrawn every batch.
+- `cca_zoo.deep.LeJEPA` (Balestriero & LeCun, 2025): every view's embedding predicts
+  the views' centre, and SIGReg, the Epps-Pulley statistic of random 1-D projections
+  of each view's embedding against a standard normal with the directions resampled
+  every step, prevents collapse in place of stop-gradients, predictors or teacher
+  networks. Two or more views.
+- `TCCA` and `KTCCA` take `init`, PARAFAC's initialisation: `"svd"` (the default, and
+  the only start before, which never used `random_state`) or `"random"`, seeded by
+  `random_state`, as sklearn's `NMF` uses its seed only for its random
+  initialisations. Random starts show whether the SVD start found the best of the
+  tensor's local optima.
+- `n_components_` on every model, the number of latent dimensions fitted, as sklearn's
+  `PCA.n_components_`: `n_components`, or fewer where a model prunes dimensions (`GFA`)
+  or the data have too few.
+- Array API support in `CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA`: under
+  scikit-learn's `array_api_dispatch`, PyTorch or CuPy inputs are fitted and
+  transformed in their own namespace and on their own device, such as a GPU. The
+  generalized eigenproblem is solved by a Cholesky reduction on every backend. Models
+  without support raise a `TypeError` on such inputs.
+- `sample_weight` in `fit` for the models fitted from second moments: `CCA`,
+  `RidgeCCA`, `PLS`, `MCCA`, `GCCA`, `GRCCA` and `GraphicalLassoCCA` (with a fixed
+  `alpha`; `alpha=None` cross-validates over the rows and raises). As in sklearn, an
+  integer weight is the same as repeating the sample, exactly, with or without
+  centring. The searches and cross-validation slice it with the views. `TCCA` (third
+  moments), the kernel models and `PartialCCA` take none.
+- Feature names, as in sklearn: views fitted as DataFrames with string columns are
+  recorded in `feature_names_per_view_`; a new view whose names differ raises, and one
+  with names on only one side of fit and transform warns. `get_feature_names_out()`
+  names each view's latent dimensions `<model><k>` (`cca0`, `cca1`, ...), and
+  `set_output(transform="pandas" | "polars")`, or sklearn's global `transform_output`,
+  makes `transform` return one DataFrame per view, indexed as the input. Searches and
+  cross-validation carry each view's names through to the fitted models.
+- Every model round-trips through `skops.io`, sklearn's safe alternative to pickle,
+  and is tested to.
+- `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
+  correlation conditioned on a variable given as `partials`, used as given or encoded by a
+  `partial_encoder` (the paper's variants A and B), and needed only for training. It
+  minimises the EY loss of each batch's partial covariances given the conditioning
+  variable, rather than the paper's nonlinear orthogonal iterations with running
+  covariance estimates, which needs no whitening and no running estimates. The partial encoder is trained to
+  explain the encodings by least squares, not on the correlation loss as in the paper,
+  which rewards it for leaving the confound in. The prediction-time linear CCA is fitted
+  on partialled encodings. `MultiviewDataset` takes `partials`.
+- `cca_zoo.deep.DVCCAPrivate`, DVCCA with a private latent per view (Wang et al., 2016):
+  view $i$ is decoded from the shared $z$ and its own $h_i$, which takes up
+  view-specific variation. `private_means` gives the private posterior means.
+- `cca_zoo.model_selection.cross_val_score`, `cross_validate`, `cross_val_predict`,
+  `learning_curve` and `validation_curve`: sklearn's functions taking a list of views, so
+  multiview models are cross-validated as sklearn models are, without stacking views.
+  `validation_curve` takes per-view names such as `"shrinkage__0"`; `cross_val_predict` returns
+  each view's out-of-fold scores.
+- A `scoring` callable in the searches and cross-validation functions is called as
+  `scoring(estimator, views)`, with the fitted multiview model and the held-out views.
+- `MARSCCA` (in `cca_zoo.gam`): nonlinear multiview CCA using a multivariate adaptive
+  regression spline (Friedman, 1991) as the per-view encoder, trained on the same
+  Eckart-Young objective as `GAMCCA`. Where `GAMCCA` fixes a B-spline basis up front,
+  `MARSCCA` grows each view's basis greedily as classical MARS does — every forward step
+  adds the reflected hinge pair (any existing term as parent, any feature, any knot
+  `earth`'s `minspan`/`endspan` rules allow within the parent's support) that absorbs the
+  most of the current EY gradient, with the top ten re-ranked by their exact refit
+  loss (`earth`'s criterion), then refits every view's coefficients jointly, stopping
+  early by `earth`'s `thresh` rule — so knots go only where cross-view signal needs them, and
+  `degree >= 2` admits within-view interactions that an additive model cannot
+  represent. As in `earth`, a backward pass (`nprune`) then deletes, one at a time, the
+  term whose removal raises the refit training EY loss least; the size is chosen by
+  searching `nprune` with `GridSearchCV`, `earth`'s `pmethod="cv"` (its default, GCV, has
+  no EY-loss counterpart). Like `earth`, the fit is deterministic and ignores each
+  feature's units and the order of the rows: it starts from linear PLS on the
+  standardised views, and `alpha` (default 0.01) is a ridge on each basis function's
+  coefficient at unit variance. Every refit is the
+  closed-form optimum of a generalized eigenproblem, and deleting a term restricts it by
+  one linear constraint, so each backward step scores every candidate exactly from one
+  eigendecomposition (a secular-equation count via Sylvester's law of inertia). Selected
+  terms are inspectable via `model.basis_functions(view)`, and its
+  `feature_importances_per_view_` is `earth`'s `evimp` (the loss criterion).
+  Parameters take `earth`'s names and defaults (`degree`, `nk`, `nprune`, `thresh`,
+  `minspan`, `endspan`), so an `earth` user can read a call directly. The one default
+  that differs is `minspan`: `minspan=0` is Friedman's spacing exactly, as in `earth`,
+  while the default widens it to at most 20 knots per feature, which pruned held-out
+  correlation on a pure three-way interaction favours 0.94 to 0.61. Candidate scoring uses Friedman's
+  suffix-sum fast update, evaluated for every parent, feature and knot at once by
+  sparse block-membership matrices built once per fit. Each candidate's projection onto
+  the (incrementally orthonormalised) basis is cached as three running scalars and the
+  gradient is projected off the basis once per step, so no candidate column is ever
+  formed and memory stays O(n_samples * n_features) regardless of `nk` or
+  `degree`.
+
+- `feature_importances_per_view_` on every model: one non-negative array per view, summing
+  to 1, computed at fit. Each family uses its own literature's importance — a linear
+  model's `Var(x_j) * sum_k w_jk**2`, `GAMCCA` each smooth's variance, `MARSCCA` `earth`'s
+  `evimp`, the tree models their total split gain — and models with no such decomposition
+  (kernel, Gaussian-process, manifold) the mean squared change in a view's latent scores
+  when a feature is permuted, over at most 500 training rows drawn with `random_state`,
+  which for a linear or additive model is exactly twice its variance share. The name is
+  not sklearn's `feature_importances_`, which tools such as `SelectFromModel` read as one
+  array.
+- `cca_zoo.model_selection.OptunaSearchCV` (with the `optuna` extra):
+  `optuna_integration.OptunaSearchCV` on a list of views, with per-view parameter names.
+- The search classes extend their sklearn namesakes rather than copying their
+  constructors, so each takes exactly its upstream parameters and follows sklearn's changes;
+  `isinstance(search, sklearn.model_selection.GridSearchCV)` holds.
+- `n_iter_` on every model with `max_iter`, and sklearn's `ConvergenceWarning` when a fit
+  stops at `max_iter` before meeting its tolerance. `VariationalBayesCCA`, which runs a
+  fixed number of SVI steps with no stopping rule, takes `n_iter` instead.
+
+- `ProbabilisticCCA`, `VariationalBayesCCA` and `GFA` gain `posterior_mean(views)`, the
+  posterior mean of the shared latent given every view or, with `None` entries, any subset.
+
+- `GridSearchCV` and `RandomizedSearchCV` accept a callable `refit`, as sklearn's do, and
+  hand it `cv_results_` with the same unprefixed parameter names as their own
+  `cv_results_`. The model-selection guide shows the one-standard-error rule written this way.
+
+- `cca_zoo._utils._ey.penalised_basis_ey_gep` / `penalised_basis_ey_closed_form`: the
+  ridge-penalised EY fit on fixed bases is the generalized eigenproblem
+  `(A - R/4) W = B W (WᵀBW)`, solved in closed form at its global optimum (loss
+  `-Σ μ²` over the top-k eigenvalues), used by `MARSCCA` for every refit.
+
+### Changed
+
+- Each sparse model's algorithm reads in its own `fit`. The seven alternating models,
+  which shared one 1000-line module through a base class with `_fit_single` and
+  `_update_weight` hooks (one of them unused by ADMM, and bypassed by SAR), each have
+  their own module; their shared parts are the named pieces in `sparse/_deflation.py`:
+  `Deflation`, `pls_direction`, `others_score` and `elastic_net`. `ElasticNetCCA`,
+  `MultiTaskElasticNetCCA` and `OrthogonalMatchingPursuitCCA` carry their own solvers
+  rather than calling into `_utils/_ey.py`, which keeps the EY loss and closed forms and
+  shrinks from 943 lines to 432. Fits are unchanged to rounding, except
+  `ParkhomenkoCCA`, which starts on the standardised views it iterates on and reaches
+  the same weights (to its tolerance) sooner.
+- `SpanCCA`'s default `span=None` keeps every feature of each view; it had kept as many
+  as the first view has, capping a wider second view.
+- `HuberCCA` subclasses `CCAEY`, of which it is the variant with Huber weights on each
+  sample's contribution to the moments: it overrides only `_sample_weight`, and gains
+  CCAEY's `shrinkage`. `CCAEY` holds its L-BFGS-B fit itself; the base class that
+  existed only to share that loop between the two is gone.
+- `ECCA` subclasses `CCAR3`, of which it is the variant with an entrywise lasso on the
+  regression: it overrides only `_regression`, and gains `ledoit_wolf` (default False,
+  as before). `CCAR3.fit` holds the whole method, whitening, regression and the
+  canonical pairs of the fitted values, where a shared helper module held it. Fits are
+  unchanged.
+- `TrimmedCCA` subclasses `CCAEY`, which it fits by concentration steps, refitting
+  through CCAEY's own L-BFGS-B step (`_minimise`) rather than a copy of it run on the
+  private loss of a `CCAEY` it never fitted. It keeps the same inliers; its weights
+  move by less than its tolerance.
+- The post-fit pass every model runs is `_fit_maps_and_importances`, named for what it
+  does, where it was `_finish_fit`.
+- `CCAR3` and `ECCA` whiten with `n - 1`, as every other model's covariance does.
+- `GaussianProcessCCA`'s default kernel takes its length scale from the data,
+  `sqrt(n_features * X.var() / 2)`, as sklearn's `gamma="scale"`, rather than 1. On data
+  in larger units the unit length scale made the kernel near the identity: at the
+  default `alpha` the model memorised (training correlations 0.97, held-out 0.30), and
+  at `alpha >= 0.1` it returned zeros. It now holds out at 0.94, 0.91 and 0.87 where
+  CCA gets 0.97, 0.91 and 0.71, and its default fit ignores the data's units.
+- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `ParkhomenkoCCA`)
+  start each component at the leading cross-covariance (PLS) direction of the deflated
+  views, as sklearn's PLS does, rather than at random weights. `SAR` starts at the
+  leading ridge-CCA direction (see Fixed).
+- `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
+  `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
+  one default (now 0.2) suits views in any units; the old default diverged on
+  unscaled data. `L_i` is measured on a mini-batch, whose curvature exceeds the full
+  data's when the batch is small next to the view.
+- `StochasticCCAEY` is plain mini-batch SGD with the adaptive step of sklearn's
+  `SGDRegressor(learning_rate="adaptive")`, in place of momentum SGD at a fixed step:
+  after `n_iter_no_change` (new, default 5) epochs without an improvement of `tol` on
+  the best epoch loss, the mean of its mini-batches' losses, the step is divided by 5,
+  and the fit stops once it is negligible. A fixed step hovers at the noise of its
+  mini-batches rather than converging, and stopping on a stalled loss returned fits
+  far from the optimum without a warning; with the adaptive step the full-batch fit
+  reaches CCA's subspace and mini-batch fits settle within their noise. The epoch loss
+  never needs a pass over all the data at once.
+  Comparing consecutive full-data losses never stopped a mini-batch fit, whose loss is
+  noisy, so every one ran all `max_iter` epochs and warned.
+- `HuberCCA`'s leverage is the Mahalanobis norm of each sample's scores rather than
+  the norm of per-component standardised scores, so a sample's weight does not depend
+  on how the fit happens to rotate the components.
+- `OrthogonalMatchingPursuitCCA`'s `n_nonzero_coefs` defaults to
+  `max(n_components, n_features // 10)` and must be at least `n_components`; the
+  components share the active set, so a smaller one made them linearly dependent. Its
+  rounds have converged when the active sets repeat.
+- `ElasticNetCCA` and `MultiTaskElasticNetCCA` default to `max_iter=1000`, as sklearn's
+  `ElasticNet`; at 100 they stopped short on ordinary data.
+- `IPLSCCA` regresses by least squares at `alpha=0` rather than an
+  unpenalised `Lasso`, which warned on every fit.
+
+- `GCCA`'s shared latent has unit variance, so the scale of its scores no longer
+  shrinks with the number of samples. Correlations are unchanged.
+- `GraphicalLassoCCA` with a fixed `alpha` penalises the covariance with denominator
+  `n - 1`, as every other model's covariance, rather than sklearn's `n`.
+- `VariationalBayesCCA.posterior_samples_` holds numpy arrays, as
+  `ProbabilisticCCA`'s does, rather than JAX arrays, which pinned device memory and
+  could not be serialised by skops.
+- `GaussianProcessCCA` is solved in closed form. Its objective, the EY loss plus the
+  RKHS-norm penalty, is a ridge-penalised EY loss on the Nyström features of its inducing
+  points, whose global minimiser is a generalized eigenproblem. It replaces an L-BFGS-B
+  run of 100-300 iterations that stopped short of that minimum. `max_iter`, `tol` and
+  `n_iter_` are removed. With a linear kernel and no penalty it is exactly `CCA`.
+- `ProbabilisticCCA` no longer prints NumPyro's progress bar while fitting.
+- Every model whose embedding projects the features (the linear, sparse, gradient, tree and
+  MARS models) raises a `ValueError` when `n_components` exceeds the narrowest view's
+  features, as sklearn's `CCA` does. `CCA`, `RidgeCCA` and `PLS` silently returned fewer
+  components; others returned degenerate extra components, and a dozen failed in numpy
+  with a broadcasting error. The kernel, manifold, Gaussian-process, GAM and probabilistic
+  models, whose embeddings are not bounded by the features, are unchanged.
+- `TCCA` and `permutation_test_significance` take `random_state` as sklearn does: an int, a
+  `RandomState` instance or None. `TCCA` rejected a `RandomState`, and the permutation test
+  took a numpy `Generator`.
+- Fitted models no longer keep their training data. `predict`, `inverse_transform` and the
+  importances took it from a stored copy of the views; what they need is now computed at
+  fit, so a pickled model does not carry the dataset. `KTCCA` no longer keeps an
+  n-by-n whitening matrix, `GaussianProcessCCA`'s encoders an n-by-m training basis,
+  `GAMCCA`'s its training spline basis, and the probabilistic models their samplers, which
+  held the views. Only the kernel and manifold models, whose out-of-sample map is built
+  from the training rows, keep them, as `views_fit_`; `GaussianProcessCCA` keeps its
+  inducing points, every row by default.
+- Every constructor parameter of every model is validated when fitting, as sklearn's are;
+  the kernel, tree, probabilistic and iterative sparse models, and `random_state`
+  everywhere, previously accepted anything.
+- `GAMCCA` now follows `mgcv`'s API and P-spline smooths. This is a breaking change with
+  no deprecation shim, as was `TreeCCA`'s `backend=` removal, since `GAMCCA` shipped only
+  in 3.3.0. Each feature's smooth is `s(x, bs="ps", k=k, m=m)`: `k` B-splines on evenly
+  spaced knots with Eilers and Marx's difference penalty, which shrinks towards a
+  polynomial — the default towards a straight line — rather than the ridge towards zero
+  the previous version applied despite citing P-splines. `n_knots` and `alpha` become `k`
+  (default 10, `mgcv`'s) and `sp` (default 0.01), and
+  `m` is new. The fit is now one closed-form generalized eigenproblem at the global
+  optimum, so `max_iter`, `tol` and `random_state` are removed. Each feature's constant, which centring makes
+  unidentifiable, is absorbed by a Householder reflection as `mgcv` absorbs its
+  sum-to-zero constraint; any data-dependent rank deficiency left (data-free splines,
+  ties, duplicated features) is resolved by an exact reparametrisation onto the row space
+  (`cca_zoo._utils._ey.full_rank_reparametrisation`). The basis stays sparse, and
+  everything after its Gram is $d \times d$: a fit with 100 features and 5000 samples
+  takes about half a second. Held-out
+  correlation over quadratic, sine, absolute-value and linear relationships rises from
+  0.51 to 0.61 on average. `sp` is chosen by cross-validation, since `mgcv`'s GCV/REML
+  have no EY-loss counterpart.
+- `cca_zoo._utils._ey`: the ridge-only fixed-basis solver becomes
+  `penalised_basis_ey_closed_form` / `penalised_basis_ey_gep` / `penalised_basis_ey_min_loss`,
+  taking any quadratic penalty per view (a ridge or a matrix); the trust-region solver it
+  replaced is removed. Each has a Gram-level counterpart (`penalised_gram_ey_gep`,
+  `penalised_gram_ey_closed_form`) for callers that form the Gram themselves, as
+  `GAMCCA` does from its sparse basis.
+
+- **Breaking:** `score` returns one float, the mean canonical correlation, as sklearn's
+  contract for `score` requires; it was an array of per-dimension correlations. Those
+  come from `cca_zoo.metrics`:
+  `average_pairwise_correlations(pairwise_correlations(model.transform(views)))`.
+- **Breaking:** the probabilistic models' `transform` returns one array per view, like
+  every other model: each view's posterior mean given that view alone, instead of a
+  single-element list holding the joint posterior mean (now `posterior_mean`). Their special-cased `score`, correlation and
+  loading methods are gone, since the shared ones now apply.
+- `transform`, `predict` and `inverse_transform` all go through one per-view encoder,
+  `BaseModel._transform_view`: a linear model's projection onto `weights_`, overridden
+  by each nonlinear model. `predict` estimates the shared latent from the observed views
+  through it (the posterior mean, for the probabilistic models).
+- `ManifoldCCA`'s training embedding is `embedding_`, the name sklearn's manifold learners
+  use, rather than `weights_`, which elsewhere means weight matrices.
+- **Breaking:** the deep models are Lightning-native throughout.
+  - **Prediction:** `trainer.predict` returns each view's encoding, as calling the model
+    does. For canonical variates, fit `cca_zoo.linear.CCA` or `MCCA` to the training
+    encodings; the deep models hold no linear CCA of their own. The old `transform`
+    returned the same raw encodings.
+  - **Multi-GPU:** the covariance-based losses see each process's batch, not the global
+    one; the guide says so.
+  - **Scoring:** the old `score`, which fitted a CCA to the very data it scored, is
+    removed; use `cca_zoo.metrics` on the predictions.
+  - **Losses:** `loss(batch)` takes the whole batch, so the autoencoder models' validation
+    and test losses include reconstruction. `DVCCA` and `SplitAE` previously logged 0, and
+    `DCCAE` only its correlation term.
+  - **Hyperparameters:** they are saved (`load_from_checkpoint` takes the modules again).
+  - **Checks:** an encoder of the wrong width raises, and `DCCA` with its default two-view
+    `CCALoss` raises on other numbers of views.
+  - **Any number of views:** `DCCASDL`, `BarlowTwins` and `VICReg` silently used only the
+    first two views; their alignment terms are now summed over pairs of views, and
+    `DCCAE`'s default loss is `MCCALoss`. With two views every loss is unchanged.
+  - **Base classes:** `DCCAEY`, `DCCANOI`, `DCCASDL`, `BarlowTwins` and `VICReg` subclass
+    `BaseDeep` rather than carrying an unused `DCCA` loss.
+
+### Removed
+
+Removed outright, with no deprecation period; the table above gives each replacement.
+
+- Python 3.10, which reaches end of life in October 2026 and which scikit-learn 1.8
+  dropped. The dependency floors are now the oldest versions the test suite passes on,
+  and CI tests them: numpy 2.0, scipy 1.13 and scikit-learn 1.8 (was numpy 1.26,
+  scipy 1.11 and scikit-learn 1.6, on which most models failed).
+- `WaijenborgCCA`, which was `IPLSCCA` under another name: both regress each view on the
+  other views' summed score, normalised, so IPLS's rescaling of its own weights never
+  reached the next regression. With two views their weights had the same directions and
+  sparsity; with more, `WaijenborgCCA`'s unscaled weights let one view dominate the
+  target. Use `IPLSCCA(l1_ratio=0.5)`, whose references now include Waaijenborg et al.
+
+- The `weights` property, which duplicated the `weights_` attribute.
+- `MultiviewWrapper` is private. The searches and cross-validation functions cover what it
+  was used for, taking the list of views and returning multiview models; a multiview
+  `Pipeline` needs no wrapper.
+- The `pairwise_correlations`, `average_pairwise_correlations` and `get_factor_loadings`
+  model methods, which duplicated the `cca_zoo.metrics` functions of the same names.
+- `cca_zoo.model_selection.procrustes_rotation`, which duplicated
+  `scipy.linalg.orthogonal_procrustes`; the permutation test and the probabilistic models'
+  posterior alignment call scipy directly.
+- Every deprecated class alias from 3.x: `SCCA_PMD`, `SCCA_ADMM`, `SCCA_IPLS`,
+  `SCCA_Span`, `SCCAPMD`, `SCCAADMM`, `SCCAIPLS`, `SCCASpan`, `ElasticCCA`; the
+  `cca_zoo.linear` re-exports of the sparse and stochastic models; `CCA_EY`, `MCCAEY`,
+  `MCCA_EY`, `PLS_EY`; `GPCCA`; `DCCA_EY`, `DCCA_NOI`, `DCCA_SDL`.
+- The `objective` argument of the deep models whose loss is fixed (`DCCAEY`, `DCCANOI`,
+  `DCCASDL`, `DMCCA`, `DGCCA`, `DTCCA`, `BarlowTwins`, `VICReg`), which was accepted and
+  ignored; and `eps` where nothing used it (`DCCAEY`, `DCCASDL`, `BarlowTwins`, `VICReg`,
+  `SplitAE`, `DVCCA`).
+- The deep models' `max_epochs`, which was stored and never read, and their `transform`
+  and `score` (see Changed).
+- `DCCA`'s `objective` argument: `DCCA(objective=MCCALoss())` duplicated `DMCCA`, and
+  likewise for `DGCCA` and `DTCCA`. `DCCA` is the two-view method, as `CCA` is; `DCCAE`
+  keeps `objective`, since no class covers its combinations.
+
+### Fixed
+
+- CI's Python matrix tested 3.12 in every job: the repository's `.python-version` pins
+  3.12, and `uv run` followed it over the environment `uv sync` built for the matrix
+  version. Each job now runs its own version.
+- `SAR` raised on scikit-learn below 1.9, whose `lasso_path` takes no integer `alphas`;
+  it now passes sklearn's grid explicitly.
+- `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA` and `GraphicalLassoCCA` raised each
+  covariance's spectrum to an absolute floor of 1e-6, so a view in small units (its
+  eigenvalues near 1e-6) was regularised and the fit depended on its units: dividing a
+  view by 1000 moved GCCA's subspace to 0.99. The floor is now relative to each view's
+  largest eigenvalue.
+- A search grid point setting both a parameter and one view's value of it, as
+  `{"shrinkage": [0.1], "shrinkage__1": [0.5]}`, expanded the per-view list from the
+  estimator's value before the grid's: view 0 kept the old shrinkage. Per-view values now
+  override the grid's whole-model value.
+- `PerViewTransformer.transform` and `inverse_transform` silently dropped views beyond
+  those it was fitted on; a different number of views is now an error.
+- `GaussianProcessCCA` with fewer inducing points than samples, the tree models and
+  `ManifoldCCA`'s Laplacian embedding returned training scores with a nonzero mean (up
+  to 0.3 standard deviations for the trees), which `predict` and `inverse_transform`,
+  mapping scores without an intercept, turned into error. Each now centres its scores
+  on the training data, and the model contract checks every model's.
+- `ProbabilisticCCA` and `VariationalBayesCCA` gave each view diagonal noise, which makes
+  them factor analysis of the stacked views rather than CCA: given views each dominated
+  by a private factor three times the scale of the one factor they share, the latent
+  followed the private factor (correlation 0.998) and missed the shared one (0.041).
+  Each view's noise is now a full covariance, as in Bach and Jordan's model, with an
+  LKJ prior on its correlation; the latent is integrated out, and NUTS and SVI start at
+  the closed-form maximum likelihood. Both now find the shared factor (0.97).
+- `GCCA`'s weights were the least-squares fit `pinv(X_i) T` whatever the shrinkage, so
+  shrinkage changed only `T`: the training fit stayed perfect, and held-out correlation
+  fell as shrinkage rose while MCCA's rose. The weights are now each view's regularised
+  regression onto `T`, the minimiser of the MAXVAR objective the docstring now states.
+  `KGCCA` inherits the fix.
+- `GRCCA` treated its default `mu=0` as `mu=1`, ignored `mu` at `shrinkage=0`, and scaled
+  its feature augmentation by the shrinkage where Tuzhilina et al.'s change of variables
+  needs its square root. The group penalty is now a quadratic form in `MCCA`'s `B`,
+  `(1 - c) Sigma + c ((I - H) + mu H)` with `H` the group averaging, which is the paper's
+  penalty exactly, with no augmentation.
+- `SAR` returned all-zero weights when each view was dominated by variance the others do
+  not share: from the PLS start, the first BIC lasso selected nothing. It now starts at
+  the ridge-CCA direction and finds the shared factor.
+- `GraphicalLassoCCA` failed at any `alpha` on views with a strong common factor, and
+  elsewhere stopped short: sklearn's coordinate descent raised, or ended 1e-4 to 1e-1 from
+  the lasso's optimality conditions, at scattered penalties. The graphical lasso is now
+  fitted to each view's correlations, so `alpha` is unit-free, and solved by ADMM with
+  residual balancing (Boyd et al., 2011), exact at each step: it meets the optimality
+  conditions to 1e-8 in milliseconds, which a new test checks.
+- `ManifoldCCA`'s Laplacian extension did not return the training embedding (subspace
+  agreement 0.968): new points were joined to the k-NN graph without its
+  symmetrisation, self-loops that the Laplacian ignores were kept, the basis projected
+  out the constant vector rather than the normalised Laplacian's null vector, and
+  `1 - eigenvalue` was floored at 0.05, which also flipped the sign of eigenvectors past
+  1. Each is fixed, eigenvectors the extension cannot carry are dropped from the basis,
+  and `transform` of the training views is now the embedding exactly, for LLE too.
+- `PartialCCA` regressed the centred views on uncentred confounds, without an intercept,
+  so where a confound was measured from changed the fit: adding 100 to it moved the
+  scores' subspace to 0.18 of its original, and left them correlated with the
+  confound. It now solves MCCA's eigenproblem on the views' partial covariance given
+  the centred confounds, as `DPCCA` minimises the EY loss of it, and `transform`
+  centres new confounds by the training mean (`partials_mean_`).
+- `DCCANOI` whitened each view's target by its running second moment, not its
+  covariance, so an encoder's bias leaked into the target: with linear encoders its
+  fit reached only 0.11 of CCA's subspace. The whitening now keeps a running mean,
+  as `BatchNorm1d` does, and reaches CCA.
+- `GCCALoss` grew with the batch size. It is now the sum of each view's projection
+  onto its encodings, in `[-k M, 0]` at any batch size, so logged losses compare
+  across batch sizes and a batch size no longer changes an SGD step.
+- Importing `cca_zoo` imported tensorly, which prints SyntaxWarnings on Python 3.12;
+  `TCCA` now imports it when it fits. `TCCA` also switched tensorly's global backend to
+  numpy for every other user of tensorly in the process; it now does so only for its
+  own decomposition.
+- `OrthogonalMatchingPursuitCCA` stopped as soon as its active sets repeated, after as
+  few as two rounds of alternating refits, so with every feature active it spanned a
+  subspace at 0.40 of CCA's. Its final weights are now the exact EY optimum on the
+  active sets, CCA on the selected features, as sklearn's OMP coefficients are the
+  least-squares fit on its support; a selected feature in the span of the others takes
+  no weight.
+- `ParkhomenkoCCA` restandardised the deflated views for each component, so at
+  `alpha=0` its later components differed from sklearn's `PLSCanonical(scale=True)`.
+  It now standardises once, and matches `PLSCanonical`.
+- `StochasticCCAEY` diverged at `shrinkage=1` unless the views were scaled: its step
+  assumed the loss's curvature is the constraint's, which holds for CCA but not PLS,
+  whose curvature grows with the covariance. The step now allows for it, and is
+  unchanged at `shrinkage=0`.
+- `StochasticCCAEY` raised "diverged" whenever the last mini-batch of an epoch had one
+  row, which has no covariance, such as 101 samples in batches of 10. The remainder now
+  joins the last full batch, and `batch_size` must be at least 2.
+- Penalties that meant something different at each sample size: stacking a data set on
+  itself, which leaves every covariance unchanged, took `IPLSCCA(alpha=0.05)` from four
+  nonzero weights per view to none, and made `ParkhomenkoCCA` and `ADMMCCA` denser.
+  `IPLSCCA` now regresses onto the other views' score at unit variance, as Mai and
+  Zhang do, rather than at unit norm; `ParkhomenkoCCA`'s `alpha` thresholds each
+  feature's correlation with that score; and `ADMMCCA` solves Suo et al.'s problem on
+  `X / sqrt(n)`, a unit-variance constraint. The same `alpha` now penalises more
+  strongly in `ParkhomenkoCCA` and `ADMMCCA`, and less in `IPLSCCA`.
+
+- A callable `kernel` in `KCCA`, `KGCCA` and `KTCCA` was called with `gamma`, `degree`
+  and `coef0` as well as its `kernel_params`, so a custom kernel not accepting them,
+  such as the user guide's own example, raised `TypeError`. It now receives only its
+  `kernel_params`. The example itself took whole matrices; like sklearn's
+  `pairwise_kernels`, the models call a kernel on one pair of samples at a time.
+- Importing a model whose optional extra is missing (`cca_zoo.tree`,
+  `cca_zoo.probabilistic`, `cca_zoo.deep`) raised a bare "cannot import name"; it now
+  names the extra to install, as `OptunaSearchCV` already did.
+- `CCAEY`, `PLSEY` and `HuberCCA` stopped short on views in different units: L-BFGS-B
+  stops on an absolute gradient, which a view in small units reaches early. The search
+  now runs in each view's natural weight scale, the root mean eigenvalue of its
+  constraint matrix, so the fit no longer depends on units.
+- `CCAR3` and `ECCA` returned a rotation of the canonical subspace rather than the
+  canonical pairs: whitening each view's side separately left the pairs mixed, so
+  unpenalised their second and third correlations came out as 0.701 and 0.697 where
+  CCA's are 0.710 and 0.688. An SVD of the whitened cross-covariance now gives the
+  pairs themselves, in order. They also returned all-zero weights for a response view
+  in small units (variance below 1e-4), which the whitening floored to nothing; the
+  floor is now relative to the largest variance.
+- The deflation models' (and `ProjectionPursuitCCA`'s) later components did not
+  reproduce their fitted scores:
+  component d's weights were found on views deflated by the earlier scores but applied
+  to the original views, adding an arbitrary multiple of those scores. At `alpha=0`,
+  `IPLSCCA`'s second canonical correlation came out as -0.03 instead of 0.71. Weights
+  are now `W (P'W)^-1`, as sklearn's PLS `x_rotations_`, which give the deflated scores
+  from the original views and keep the union of the components' supports; unpenalised,
+  every component matches MCCA's, and `ProjectionPursuitCCA`'s later correlations on
+  Gaussian data rose from about 0.2 to MCCA's 0.7.
+- `SAR` could return all-zero components on a strong signal: from a random start, the
+  first lasso could select nothing, and a zero target keeps every later one at zero.
+  It now starts at the ridge-CCA direction (see above).
+
+- `GAMCCA` lost the linear fit at large `sp`: the penalised eigenproblem mixed penalty
+  eigenvalues of order `sp` with rewards of order 1, so rounding in the penalty's null
+  space (the linear functions) swamped the answer. At `sp=1e8` held-out scores agreed with
+  linear CCA's only to 0.96, at `1e12` to 0.2. The solver now works in the Demmler-Reinsch
+  basis, from the penalty's square-root factor, and drops only directions whose weight
+  would be below `sqrt(eps)`. `GAMCCA` now equals linear CCA at every large `sp`, and the
+  solver shared with `MARSCCA` and `GaussianProcessCCA` is stable at any penalty.
+- `KCCA`, `KGCCA` and `KTCCA` never centred the kernel in feature space, and their
+  within-view constraint was the uncentred `c K + (1 - c) K^2`, missing the `1 / (n - 1)`
+  that the between-view covariance carried. The two halves of the eigenproblem were on
+  different scales, so `shrinkage` did not mean what it means for the linear models and
+  the solution drifted from kernel CCA, most at small and large `shrinkage`. Kernels are
+  now centred with `KernelCenterer` (new rows with the training statistics) and each model
+  is fitted as its linear counterpart on the kernel feature map. `KCCA` now equals `MCCA`
+  on `Nystroem` features using every training row as a landmark to machine precision,
+  and with a linear kernel the three models are `MCCA`, `GCCA` and `TCCA`. The fit no
+  longer adds an arbitrary floor to the constraint's spectrum.
+- `TrimmedCCA` accepted a per-view `shrinkage` list and then failed with a `TypeError`;
+  like the `CCAEY` it wraps it takes one value, and a list is rejected when fitting.
+- Per-view parameter names inside a `Pipeline`, such as `cca__shrinkage__0`, raised
+  `AttributeError` in the searches and `validation_curve`.
+- `CCAR3` and `ECCA` took the canonical directions from the SVD of the regression
+  coefficients, which ignores the covariance of `X`, so with no penalty they did not
+  recover CCA: `CCAR3` found a correlation of 0.27 where CCA finds 0.97. Both now take
+  the SVD of the fitted values, as Donnat & Tuzhilina (2024) do, and match CCA at
+  `alpha=0`. `ECCA` now also regresses the whitened `Y`. Its penalty zeroes entries of
+  the coefficients; the canonical weights drop a feature only when its whole row is
+  zero, and its documentation no longer says otherwise.
+- `MultiTaskElasticNetCCA` returned all-zero weights at its default `alpha=1`, and both
+  it and `ElasticNetCCA` could return zeros when a fit with a lower penalised objective
+  exists: all-zero weights are a local minimum the coordinate updates cannot leave. Both
+  now raise the penalty to `alpha` along a path from zero, warm-starting each stage, and
+  with one component `MultiTaskElasticNetCCA` equals `ElasticNetCCA`.
+- The shared whitening kept a numerically null direction of centred data with more
+  features than samples, with an enormous weight, affecting unregularised fits in that
+  regime.
+- `transform`, `predict`, `log_likelihood` and `posterior_mean` check each view against
+  the number of views and features seen in fit, rather than failing in matrix
+  arithmetic or silently ignoring extra views, and `fit` needs at least two samples.
+  Views are converted to float64, so `GraphicalLassoCCA` accepts float32 and integer
+  data, and the tree models return float64 scores. `RidgeCCA`, `CCA` and `PLS`, which
+  compute accurately in float32, keep float32 views in float32, as sklearn's transformers
+  do, and declare it in their `preserves_dtype` tag.
+- `CCA` and `PLS` named `RidgeCCA` in their error for a third view.
+- `StochasticCCAEY` returned NaN weights when its updates diverged; it now raises,
+  suggesting a lower `learning_rate` or scaling the views.
+- `ProbabilisticCCA` and `VariationalBayesCCA` used their noise parameter as a standard
+  deviation in the likelihood but as a variance in `posterior_mean`, `log_likelihood`
+  and `predict`, so all three were computed with the wrong noise. The parameter is now a
+  variance throughout, as documented.
+- `GFA.inverse_transform` raised whenever dimensions were pruned, expecting
+  `n_components` columns rather than `n_components_`.
+- **Breaking:** `DVCCA` now follows Wang et al. (2016): the posterior $q(z \mid x_1)$ is
+  inferred from the first view alone, by a single `encoder`, and every view is decoded
+  from $z$. It took one encoder per view and added their means and log-variances, which
+  is neither the published model nor a valid posterior. Its reconstruction term is now
+  the Gaussian negative log-likelihood, squared errors summed over features, as the ELBO
+  requires; the mean over features weighted the KL term by the number of features.
+- `DMCCA` cited Kettenring (1971), the linear method; it now cites the deep one,
+  Somandepalli et al. (2019).
+- `DCCANOI`'s whitening layer returned unwhitened encodings in eval mode, so its
+  validation loss compared raw encodings; it now whitens by the running covariance, as
+  batch normalisation uses its running statistics.
+- `CCAR3` and `ECCA` named a constructor parameter `lambda_`; sklearn's `check_is_fitted`
+  treats any trailing-underscore attribute as fitted state, so an unfitted model raised a
+  confusing `AttributeError` instead of `NotFittedError`. The parameter is now `alpha`.
+- `TreeCCA` (`XGBoostCCA`, `LightGBMCCA`, `CatBoostCCA`) barely learned at its defaults:
+  0.14 held-out correlation on a plain linear signal where linear CCA reaches 0.91. It
+  started from a unit-variance random projection and renormalised every round's gradient
+  to a fixed small size, so the boosters' learned part stayed a fraction of a random
+  embedding they could not undo. It now boosts on each sample's own EY gradient, so
+  `learning_rate` is a true step size and steps shrink as the fit converges; a random
+  embedding of standard deviation 0.01 breaks the symmetry for the first round only, so
+  each encoder is its trees alone. Tuned, the old procedure reaches similar held-out
+  correlation, but needs roughly 5–10 times the rounds. Once the steps are the right size,
+  two tree ensembles fitted to each other overfit, so the defaults change to
+  `n_estimators=200`, `max_depth=3`, `min_child_weight=20` (from 50, 5, 5). Held-out
+  correlation on linear, sine and absolute-value relationships goes from 0.16 / 0.03 /
+  -0.01 to 0.88 / 0.72 / 0.72 (`XGBoostCCA`, n = 1000), at about 3 s per fit instead of 1.
+  `CatBoostCCA` now grows depthwise trees, the only CatBoost policy that honours the
+  minimum leaf size; it still converges more slowly than the other two backends on
+  non-monotone relationships. `LightGBMCCA` no longer fails on data too small to split at
+  that leaf size.
+- `predict` and `inverse_transform` projected with `weights_` directly, so they raised or
+  returned the wrong shape for every nonlinear model (`GAMCCA`, `MARSCCA`,
+  `GaussianProcessCCA`, the kernel, manifold and tree models); they now use each model's
+  own encoder.
+- `predict` and `inverse_transform` cached their reconstruction loadings on first use and
+  never invalidated them, so after refitting on new data they silently used the old
+  data's; they are now computed on demand.
+- `KCCA`, `KGCCA` and `KTCCA` formed test kernels from uncentred inputs against centred
+  training data, so `transform` of data far from the origin collapsed (an RBF kernel to
+  zero); inputs are now centred as in `fit`.
+
+### Performance
+
+Same results (to rounding, or up to a rotation inside a degenerate eigenspace), less time:
+
+- `KTCCA` and `TCCA` form the cross-moment tensor by one BLAS contraction
+  (`cca_zoo._utils._linalg.cross_moment_tensor`) instead of materialising every
+  sample's outer product before averaging — for two kernel views an n x n x n
+  intermediate (8 GB at n = 1000) for what is `W1ᵀW2 / n` — and whiten with one
+  symmetric `eigh` (`psd_inverse_sqrt`) instead of `inv(sqrtm(·))`. `KTCCA` at n = 1000
+  drops from 49 s to under 2 s; `TCCA` about 19x.
+- `GCCA` takes its shared latent space from the thin SVD of the stacked whitened views
+  rather than an eigendecomposition of the n x n matrix they span: O(n p²) instead of
+  O(n³), 17x at n = 4000.
+- `SAR` passes its lasso paths the Gram matrix and skips sklearn's per-call input
+  validation (the documented fast path, used exactly where `precompute="auto"` would
+  build the Gram): 1.7x, identical coefficients.
+- `ProjectionPursuitCCA`'s Spearman index ranks with `scipy.stats.rankdata` directly
+  instead of through `spearmanr`'s per-call overhead, and its angle parametrisation is
+  one cumulative product: 1.8x.
 
 ## [3.3.0] - 2026-09-22
 

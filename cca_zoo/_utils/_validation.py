@@ -6,6 +6,7 @@ from typing import TypeVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._array_api import get_namespace
 from sklearn.utils.validation import check_array
 
 _T = TypeVar("_T")
@@ -15,6 +16,8 @@ def validate_views(
     views: list[ArrayLike],
     min_views: int = 2,
     ensure_all_finite: bool = True,
+    ensure_min_samples: int = 1,
+    dtype: type | list[type] = np.float64,
 ) -> list[np.ndarray]:
     """Validate and convert multiview data to a list of 2-D numpy arrays.
 
@@ -24,9 +27,14 @@ def validate_views(
         ensure_all_finite: Whether to reject NaN/inf entries. Default is
             ``True``. Callers that handle missing data themselves (e.g. an
             imputer) pass ``False``.
+        ensure_min_samples: Minimum number of samples. Default is 1.
+        dtype: The dtype to convert to, or a list of dtypes to keep, as in
+            :func:`~sklearn.utils.check_array`. Views of mixed precision are
+            all converted to the first. Default is float64.
 
     Returns:
-        List of validated numpy arrays, each of shape (n_samples, n_features_i).
+        List of validated 2-D arrays, each of shape (n_samples, n_features_i), in
+        the views' namespace.
 
     Raises:
         ValueError: If fewer than ``min_views`` views are provided.
@@ -34,16 +42,23 @@ def validate_views(
     """
     if len(views) < min_views:
         raise ValueError(f"At least {min_views} views are required, got {len(views)}.")
+    # The dtypes in the views' own namespace, for Array API inputs.
+    xp, _ = get_namespace(*views)
+    requested = dtype if isinstance(dtype, list) else [dtype]
+    dtypes = [getattr(xp, np.dtype(t).name) for t in requested]
     processed = [
         check_array(
             v,
             ensure_2d=True,
             allow_nd=False,
-            dtype="numeric",
+            dtype=dtypes,
             ensure_all_finite=ensure_all_finite,
+            ensure_min_samples=ensure_min_samples,
         )
         for v in views
     ]
+    if len({v.dtype for v in processed}) > 1:
+        processed = [xp.astype(v, dtypes[0]) for v in processed]
     n_samples = processed[0].shape[0]
     if not all(v.shape[0] == n_samples for v in processed):
         raise ValueError(

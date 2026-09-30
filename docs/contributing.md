@@ -76,9 +76,15 @@ uv run mkdocs build --strict      # build static site into site/
 
 All contributions must comply with the following:
 
-- **Python ≥ 3.10 only.** Use `X | Y` unions, `list[x]`/`dict[x]`/`tuple[x]` generics.
-- **Google-style docstrings** on all public classes and methods with Args, Returns, Raises,
-  and Example sections.
+- **Python ≥ 3.11 only.** Use `X | Y` unions, `list[x]`/`dict[x]`/`tuple[x]` generics.
+- **Google-style docstrings**, short and factual. A public class docstring has a one-line
+  summary, the objective and method in a few sentences (maths where it defines the model),
+  then `Args` (each ending "Default is X."; "Per-view." for parameters that take a scalar or
+  one value per view), `Attributes` (the fitted attributes specific to the model; the common
+  ones are on `BaseModel`), `References` and a runnable `Examples` section. `fit` docstrings take
+  the form "Fit the model." with `Args`, `Returns: self.` and only model-specific `Raises`.
+  Private helpers get a line or two. Design rationale, history and comparisons belong in the
+  user guide, not the docstring.
 - **Full type annotations** — `mypy --strict` must pass cleanly.
 - **No `try/except`** — write code that does not need them.
 - **No `print`** — use `logging` if diagnostic output is needed.
@@ -92,26 +98,44 @@ All contributions must comply with the following:
 1. Create the implementation file in the appropriate subpackage
    (e.g. `cca_zoo/linear/_mymodel.py`).
 2. Inherit from `BaseModel` (linear/nonparametric) or `BaseDeep` (deep). This gets you
-   `transform`, `fit_transform`, `score`, `pairwise_correlations`, `get_factor_loadings`,
-   and correct sklearn `get_params`/`set_params`/tags for free — implement `fit` only.
+   `transform`, `fit_transform`, `predict`, `inverse_transform`, `score`, and correct
+   sklearn `get_params`/`set_params`/tags for free. Implement `fit`, starting with
+   `views = self._setup_fit(views)` and ending with
+   `self._fit_maps_and_importances(views)` then `return self`, and
+   set `weights_` for a linear model; a nonlinear one overrides
+   `_transform_view(view, centred)`, its per-view encoder, which every other method goes
+   through. `_fit_maps_and_importances` records what `predict`, `inverse_transform` and
+   `feature_importances_per_view_` need, so the model does not keep its training data.
+   Override `_feature_importances(views)` if the model has a native importance (one
+   non-negative array per view); otherwise permutation importance is used.
+   An iterative model reports `n_iter_` and warns with sklearn's `ConvergenceWarning`
+   when it stops at `max_iter`.
 3. Add Google-style docstrings including the mathematical objective and reference(s).
-4. If any constructor parameter has a documented range (e.g. a ridge parameter in
-   `[0, 1]`), declare it in `_parameter_constraints` (merging in the parent class's, e.g.
-   `{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}` — see
-   `cca_zoo/_utils/_param_constraints.py` for shared constraint fragments and
-   `cca_zoo/linear/_mcca.py` for an example). This is optional but recommended: it turns
-   an invalid parameter into a clear error at `fit()` time instead of a cryptic failure
-   deep in the linear algebra.
-5. Export from the subpackage's `__init__.py` and add to `__all__`. Doing this is also
-   what gets your model automatically covered by `tests/test_sklearn_compat.py`'s
-   generic sklearn-estimator-contract checks (`get_params`/`set_params` round-tripping,
-   `repr`, init purity) — no per-model test needed for that part.
-6. Write tests in `tests/<subpackage>/test_mymodel.py` covering, at minimum: `fit`
-   completing without error, `transform`/`fit_transform` output shapes, `score` shape and
-   value range, and — where a closed-form or known-correct reference solution exists — a
-   correctness check against it (see `tests/linear/test_eigendecomposition.py` for the
-   established pattern). If you added `_parameter_constraints`, add a rejection test per
-   constraint (see `tests/linear/test_parameter_constraints.py`).
+4. Declare every constructor parameter in `_parameter_constraints`, merging in the
+   parent class's (e.g. `{**BaseModel._parameter_constraints, "shrinkage": RIDGE_PARAMETER}`;
+   `cca_zoo/_utils/_param_constraints.py` has shared fragments). An invalid value then
+   fails clearly at `fit()`, as in sklearn.
+5. Export from the subpackage's `__init__.py` and add to `__all__`. This is what puts the
+   model under the generic tests, so it needs no tests of its own for anything they check:
+   - `tests/test_estimator_checks.py` runs scikit-learn's estimator checks on it through
+     a two-view adapter: input validation, fitted-state errors, pickling, cloning,
+     idempotent refits, invariance to sample order, and more.
+   - `tests/test_model_contract.py` checks the multiview contract: `transform`,
+     `predict` and `inverse_transform`, the number and shapes of views, that every
+     parameter is validated, `center=False`, `feature_importances_per_view_`,
+     convergence warnings, and that the model
+     recovers a strong shared signal at its defaults.
+   - `tests/test_invariances.py` checks what the fit must not depend on: stacking the
+     data on itself, the order of the rows and columns, and a whole view's units.
+   If a check cannot apply to the model, add it to that file's expected failures or
+   exemptions with the reason. A model with a hyperparameter that reduces it to another
+   model (no penalty to CCA, no sparsity to `PLSCanonical`) belongs in
+   `tests/test_limits.py`.
+6. Test only what is specific to the model in `tests/<subpackage>/test_mymodel.py`:
+   agreement with a known answer where one exists (a closed form, another model it
+   reduces to, a brute-force optimum), what its parameters do, and the behaviour that
+   motivates it (robustness to outliers, sparsity, an interaction it captures). Do not
+   repeat the generic checks.
 7. Add a `::: cca_zoo.<subpackage>.MyModel` entry to the relevant `docs/api/*.md` page —
    `tests/test_docs_coverage.py` enforces this.
 8. Open a pull request against `main`.

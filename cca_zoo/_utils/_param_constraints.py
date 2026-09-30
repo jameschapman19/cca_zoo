@@ -23,3 +23,25 @@ POSITIVE_EPS: list[Any] = [Interval(Real, 0, None, closed="neither")]
 
 #: A strictly positive iteration count.
 POSITIVE_INT: list[Any] = [Interval(Integral, 1, None, closed="left")]
+
+#: A strictly positive iteration count, or one per view.
+POSITIVE_INT_PER_VIEW: list[Any] = [*POSITIVE_INT, "array-like"]
+
+#: A non-negative penalty, or one per view.
+NONNEGATIVE_PER_VIEW: list[Any] = [Interval(Real, 0, None, closed="left"), "array-like"]
+
+#: A fraction in ``(0, 1]``, or one per view.
+FRACTION_PER_VIEW: list[Any] = [Interval(Real, 0, 1, closed="right"), "array-like"]
+
+#: A seed, as sklearn's ``random_state``.
+RANDOM_STATE: list[Any] = ["random_state"]
+
+#: The kernel arguments of the kernel models, each a scalar or per-view list.
+KERNEL_PARAMETERS: dict[str, list[Any]] = {
+    "shrinkage": RIDGE_PARAMETER,
+    "kernel": [str, callable, "array-like"],
+    "gamma": [None, Interval(Real, 0, None, closed="neither"), "array-like"],
+    "degree": [Interval(Real, 0, None, closed="left"), "array-like"],
+    "coef0": [Real, "array-like"],
+    "kernel_params": [None, dict, list],
+}

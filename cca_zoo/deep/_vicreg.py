@@ -1,165 +1,93 @@
-"""VICReg — Variance-Invariance-Covariance Regularization (Bardes 2022)."""
+"""Variance-invariance-covariance regularisation."""
 
 from __future__ import annotations
+
+import itertools
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
-def _invariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Compute the MSE similarity loss between two representations.
-
-    Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
-
-    Returns:
-        Scalar MSE loss.
-    """
-    return F.mse_loss(z1, z2)
+def _variance_loss(z: torch.Tensor) -> torch.Tensor:
+    """Hinge penalty on each dimension's standard deviation falling below 1."""
+    return torch.mean(F.relu(1.0 - torch.sqrt(z.var(dim=0) + 1e-4)))
 
 
-def _variance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Compute the variance hinge loss to prevent collapsed representations.
-
-    Penalises dimensions whose standard deviation falls below 1, encouraging
-    each dimension to be used.
-
-    Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
-
-    Returns:
-        Scalar variance penalty.
-    """
-    eps = 1e-4
-    std1 = torch.sqrt(z1.var(dim=0) + eps)
-    std2 = torch.sqrt(z2.var(dim=0) + eps)
-    return torch.mean(F.relu(1.0 - std1)) + torch.mean(F.relu(1.0 - std2))
+def _covariance_loss(z: torch.Tensor) -> torch.Tensor:
+    """Squared off-diagonal covariances of a representation, over its dimension."""
+    d = z.shape[1]
+    cov = torch.cov(z.T)
+    return cov[~torch.eye(d, dtype=torch.bool, device=z.device)].pow(2).sum() / d
 
 
-def _covariance_loss(z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-    """Compute the off-diagonal covariance regularisation loss.
-
-    Penalises correlation between different dimensions of the same view's
-    representations to reduce redundancy.
-
-    Args:
-        z1: Tensor of shape (batch_size, latent_dimensions).
-        z2: Tensor of shape (batch_size, latent_dimensions).
-
-    Returns:
-        Scalar covariance penalty.
-    """
-    n, d = z1.shape
-    z1 = z1 - z1.mean(dim=0)
-    z2 = z2 - z2.mean(dim=0)
-    cov1 = (z1.T @ z1) / (n - 1)
-    cov2 = (z2.T @ z2) / (n - 1)
-    eye = torch.eye(d, device=z1.device, dtype=z1.dtype)
-    off_diag_mask = ~eye.bool()
-    penalty = (
-        cov1[off_diag_mask].pow(2).sum() / d + cov2[off_diag_mask].pow(2).sum() / d
-    )
-    return penalty
-
-
-class VICReg(DCCA):
-    r"""Variance-Invariance-Covariance Regularization.
-
-    Three-term self-supervised objective that jointly encourages
-    invariance (MSE similarity between the two views' representations),
-    variance (per-feature standard deviation at least 1, preventing
-    collapse), and covariance (off-diagonal covariance close to zero,
-    reducing redundancy between feature dimensions):
+class VICReg(BaseDeep):
+    r"""Variance-invariance-covariance regularisation.
 
     $$
-    \mathcal{L} = \gamma \operatorname{MSE}(z_1, z_2)
-        + \mu \sum_{k \in \{1,2\}} \operatorname{mean}\bigl(
-            \max(0,\ 1 - \sigma(z_k))
-        \bigr)
-        + \nu \sum_{k \in \{1,2\}} \frac{1}{d} \sum_{i \neq j}
-            \operatorname{Cov}(z_k)_{ij}^2
+    \mathcal{L} = \gamma \sum_{a < b} \operatorname{MSE}(z_a, z_b)
+        + \mu \sum_a \operatorname{mean}(\max(0, 1 - \sigma(z_a)))
+        + \nu \sum_a \frac{1}{d} \sum_{i \neq j} \operatorname{Cov}(z_a)_{ij}^2,
     $$
 
-    where $\gamma, \mu, \nu$ are ``sim_coeff``, ``std_coeff``, and
-    ``cov_coeff`` respectively, $\sigma(z_k)$ is the per-dimension
-    standard deviation of view $k$'s representation, and $d$
-    is the latent dimensionality.
+    with $\gamma, \mu, \nu$ = ``sim_coeff``, ``std_coeff``, ``cov_coeff``. The
+    invariance term is summed over pairs of views; with two views this is the
+    original loss.
+
+    Args:
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        sim_coeff: Weight of the invariance term. Default is 25.0.
+        std_coeff: Weight of the variance term. Default is 25.0.
+        cov_coeff: Weight of the covariance term. Default is 1.0.
+        learning_rate: Adam learning rate. Default is 1e-3.
 
     References:
-        Bardes, A., Ponce, J., & LeCun, Y. "VICReg: Variance-Invariance-
-        Covariance Regularization for Self-Supervised Learning."
-        arXiv:2105.04906 (2022).
-
-    Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        sim_coeff: Weight for the invariance (MSE) term. Default is 25.0.
-        std_coeff: Weight for the variance hinge term. Default is 25.0.
-        cov_coeff: Weight for the covariance penalty term. Default is 1.0.
-        objective: Ignored; the VICReg loss is fixed. Accepted for API
-            compatibility.
-        lr: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Unused. Present for API compatibility. Default is 1e-6.
+        Bardes, A., Ponce, J., & LeCun, Y. (2022). VICReg:
+        Variance-Invariance-Covariance Regularization for Self-Supervised
+        Learning. ICLR.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = VICReg(latent_dimensions=4, encoders=[enc1, enc2])
+        >>> from cca_zoo.deep import VICReg
+        >>> model = VICReg(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         sim_coeff: float = 25.0,
         std_coeff: float = 25.0,
         cov_coeff: float = 1.0,
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            objective=objective,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
         self.sim_coeff = sim_coeff
         self.std_coeff = std_coeff
         self.cov_coeff = cov_coeff
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the VICReg three-term loss.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The VICReg loss of a batch and its terms.
 
         Args:
-            representations: List of tensors, each of shape
-                (batch_size, latent_dimensions).  Currently only the
-                first two views are used.
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
-            Dictionary with keys ``"objective"``, ``"sim_loss"``,
-            ``"var_loss"``, and ``"cov_loss"``.
+            ``{"objective", "sim_loss", "var_loss", "cov_loss"}``.
         """
-        z1, z2 = representations[0], representations[1]
-        sim = _invariance_loss(z1, z2)
-        var = _variance_loss(z1, z2)
-        cov = _covariance_loss(z1, z2)
+        representations = self(batch["views"])
+        sim = torch.stack(
+            [F.mse_loss(a, b) for a, b in itertools.combinations(representations, 2)]
+        ).sum()
+        var = torch.stack([_variance_loss(z) for z in representations]).sum()
+        cov = torch.stack([_covariance_loss(z) for z in representations]).sum()
         objective = self.sim_coeff * sim + self.std_coeff * var + self.cov_coeff * cov
         return {
             "objective": objective,

@@ -8,7 +8,7 @@ Install the core package with pip:
 pip install cca-zoo
 ```
 
-The core package requires Python ≥ 3.10 and provides all linear and nonparametric methods.
+The core package requires Python ≥ 3.11 and provides all linear and nonparametric methods.
 
 ### Optional extras
 
@@ -35,8 +35,8 @@ pip install cca-zoo[all]           # Everything above
 CCA-Zoo expects data as a **list of arrays**, one per view:
 
 ```python
-views = [X1, X2]  # two views
 views = [X1, X2, X3]  # three views
+views = [X1, X2]  # two views
 ```
 
 Each array has shape `(n_samples, n_features_i)`. All views must share the same number of rows.
@@ -48,7 +48,7 @@ Every model follows the same three-step pattern:
 ```python
 from cca_zoo.linear import CCA
 
-model = CCA(latent_dimensions=2)  # 1. construct
+model = CCA(n_components=2)  # 1. construct
 model.fit(views)  # 2. fit
 z = model.transform(views)  # 3. use
 ```
@@ -56,24 +56,30 @@ z = model.transform(views)  # 3. use
 Or equivalently:
 
 ```python
-z = CCA(latent_dimensions=2).fit_transform(views)
+z = CCA(n_components=2).fit_transform(views)
 ```
 
 ### Evaluating fit quality
 
-`score` returns the average pairwise canonical correlation per latent dimension:
+`score` returns the mean canonical correlation, one float as sklearn expects (so it works
+directly as a `GridSearchCV` criterion). The per-dimension values come from `cca_zoo.metrics`:
 
 ```python
-corrs = model.score(views)  # np.ndarray, shape (latent_dimensions,)
-print(corrs)  # e.g. [0.94, 0.87]
+from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
+
+model.score(views)  # e.g. 0.905
+scores = model.transform(views)
+average_pairwise_correlations(pairwise_correlations(scores))  # e.g. [0.94, 0.87]
 ```
 
 ### Inspecting weights
 
-After fitting, `model.weights` is a list of weight matrices (one per view):
+After fitting, a linear model's `weights_` is a list of weight matrices (one per view), and
+every model's `feature_importances_per_view_` gives one non-negative array per view summing to 1:
 
 ```python
-W1, W2 = model.weights  # each shape (n_features_i, latent_dimensions)
+W1, W2 = model.weights_  # each shape (n_features_i, n_components)
+imp1, imp2 = model.feature_importances_per_view_  # each shape (n_features_i,)
 ```
 
 ### Predicting a missing view
@@ -111,25 +117,27 @@ have some views but not others.
 ### Two-view CCA
 
 ```python
-import numpy as np
-from cca_zoo.datasets import JointData
+from sklearn.model_selection import train_test_split
+
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.linear import CCA
 
 # Simulate data from a linear latent variable model
-data = JointData(
-    n_views=2,
-    n_samples=200,
+views = make_joint_data(
+    n_samples=400,
     n_features=[50, 50],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=2.0,
     random_state=0,
 )
-train_views = data.sample()
-test_views = data.sample()
+X1_train, X1_test, X2_train, X2_test = train_test_split(
+    *views, test_size=0.5, random_state=0
+)
+train_views, test_views = [X1_train, X2_train], [X1_test, X2_test]
 
 # Fit and evaluate
-model = CCA(latent_dimensions=2).fit(train_views)
-print("Canonical correlations:", model.score(test_views))
+model = CCA(n_components=2).fit(train_views)
+print("Mean canonical correlation:", model.score(test_views))
 
 # Project into the shared latent space
 z1, z2 = model.transform(test_views)
@@ -141,20 +149,19 @@ print("Latent shape:", z1.shape)  # (200, 2)
 ```python
 from cca_zoo.linear import MCCA
 
-data = JointData(n_views=3, n_samples=200, n_features=30, random_state=0)
-views = data.sample()
+views = make_joint_data(n_samples=200, n_features=30, n_views=3, random_state=0)
 
-model = MCCA(latent_dimensions=2).fit(views)
+model = MCCA(n_components=2).fit(views)
 print(model.score(views))
 ```
 
 ### Regularised CCA
 
 ```python
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
 # c controls the ridge penalty (0 = CCA, 1 = PLS)
-model = rCCA(latent_dimensions=2, c=0.1).fit(train_views)
+model = RidgeCCA(n_components=2, shrinkage=0.1).fit(train_views)
 ```
 
 ### Kernel CCA
@@ -162,7 +169,7 @@ model = rCCA(latent_dimensions=2, c=0.1).fit(train_views)
 ```python
 from cca_zoo.nonparametric import KCCA
 
-model = KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit(train_views)
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit(train_views)
 z1, z2 = model.transform(test_views)
 ```
 
@@ -174,15 +181,15 @@ CCA-Zoo's `GridSearchCV` wraps sklearn's grid search with a multiview interface:
 from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
-param_grid = {"c": [0.01, 0.1, 1.0], "gamma": [0.01, 0.1]}
-gs = GridSearchCV(KCCA(latent_dimensions=2, kernel="rbf"), param_grid, cv=5)
+param_grid = {"shrinkage": [0.01, 0.1, 1.0], "gamma": [0.01, 0.1]}
+gs = GridSearchCV(KCCA(n_components=2, kernel="rbf"), param_grid, cv=5)
 gs.fit(train_views)
 print("Best params:", gs.best_params_)
 ```
 
-`RandomizedSearchCV` and the underlying `MultiviewWrapper` adapter are also available for
-sampling distributions or plugging cca_zoo models into other sklearn model-selection tools
-directly — see [Model Selection](user-guide/model-selection.md).
+`RandomizedSearchCV`, the successive-halving searches and sklearn's cross-validation
+functions are also available for lists of views — see
+[Model Selection](user-guide/model-selection.md).
 
 ---
 

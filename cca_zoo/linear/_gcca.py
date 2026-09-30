@@ -1,110 +1,124 @@
-"""GCCA — Generalised Canonical Correlation Analysis."""
+"""Generalized CCA."""
 
 from __future__ import annotations
 
+import math
 from typing import Any, ClassVar
 
-import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.utils._array_api import device, get_namespace
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import gevp
-from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
+from cca_zoo._utils._linalg import covariance, psd_inverse_sqrt
+from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
 class GCCA(BaseModel):
-    r"""Generalised Canonical Correlation Analysis.
-
-    Finds linear projections of multiple (>=2) views that maximise their
-    joint correlation with a shared auxiliary latent vector:
+    r"""Generalized CCA: views correlated with a shared latent variable.
 
     $$
-    \begin{aligned}
-    \max_{\mathbf{w}_i, T} \sum_{i=1}^M \mathbf{w}_i^\top X_i^\top T \\
-    \text{subject to } T^\top T = I
-    \end{aligned}
+    \min_{T,\, w_i} \sum_i \mu_i \Bigl(
+        w_i^\top C_i w_i - \tfrac{2}{n - 1} w_i^\top X_i^\top T \Bigr)
+    \quad \text{subject to} \quad \tfrac{1}{n - 1} T^\top T = I,
     $$
 
-    The solution is obtained by constructing the weighted projection matrix:
-
-    $$
-    Q = \sum_{i=1}^M \mu_i X_i
-        \bigl((1-c_i) X_i^\top X_i + c_i I\bigr)^{-1} X_i^\top
-    $$
-
-    and computing its top-k eigenvectors $V$, then recovering the
-    per-view weights as $\mathbf{w}_i = X_i^+ V$.
-
-    References:
-        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
-        canonical correlation analysis. *Psychometrika*, 76(2), 257–284.
+    with $C_i = (1 - c_i) \Sigma_{ii} + c_i I$: at $c_i = 0$, the squared
+    error of regressing $T$ on each view. Each view's weights are its
+    regularised regression onto $T$, $w_i = C_i^{-1} X_i^\top T / (n - 1)$,
+    and $T$ holds the top eigenvectors of $\sum_i \mu_i X_i C_i^{-1}
+    X_i^\top$, found from the SVD of the stacked whitened views.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation parameter(s) in ``[0, 1]``.  Default is 0.
-        view_weights: Per-view weights $\mu_i$ in the GCCA objective.
-            Default is equal weights (1 for all views).
-        eps: Regularisation floor for within-view matrices.  Default is 1e-6.
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
+        view_weights: Weight $\mu_i$ of each view; None weights them
+            equally. Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Carroll, J. D. (1968). Generalization of canonical correlation analysis
+        to three or more sets of variables. Proceedings of the 76th Annual
+        Convention of the American Psychological Association, 3, 227-228.
+        Kettenring, J. R. (1971). Canonical analysis of several sets of
+        variables. Biometrika, 58(3), 433-451.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.linear import GCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 10))
         >>> X2 = rng.standard_normal((50, 8))
         >>> X3 = rng.standard_normal((50, 6))
-        >>> model = GCCA(latent_dimensions=2).fit([X1, X2, X3])
-        >>> scores = model.transform([X1, X2, X3])
+        >>> model = GCCA(n_components=2).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
-        "eps": POSITIVE_EPS,
+        "shrinkage": RIDGE_PARAMETER,
+        "view_weights": [None, "array-like"],
     }
+
+    _EPS: ClassVar[float] = 1e-6
+    _supports_array_api: ClassVar[bool] = True
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
+        *,
         center: bool = True,
-        c: float | list[float] = 0.0,
+        shrinkage: float | list[float] = 0.0,
         view_weights: list[float] | None = None,
-        eps: float = 1e-6,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.c = c
+        super().__init__(n_components=n_components, center=center)
+        self.shrinkage = shrinkage
         self.view_weights = view_weights
-        self.eps = eps
 
-    def fit(self, views: list[ArrayLike], y: None = None) -> GCCA:
-        """Fit the GCCA model.
+    def fit(
+        self,
+        views: list[ArrayLike],
+        y: None = None,
+        sample_weight: ArrayLike | None = None,
+    ) -> GCCA:
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
+            sample_weight: Weight of each sample; an integer weight is the
+                same as repeating the sample. None weights samples equally.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        views_ = self._setup_fit(views, sample_weight)
+        xp, _ = get_namespace(*views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         mu = perview_parameter("view_weights", self.view_weights, 1.0, self.n_views_)
 
-        # Build Q = sum_i mu_i X_i (cov_i)^{-1} X_i^T
-        Q = np.zeros((self.n_samples_, self.n_samples_))
-        for i, (v, ci, mi) in enumerate(zip(views_, c_, mu)):
-            cov_i = (1.0 - ci) * np.cov(v, rowvar=False) + ci * np.eye(v.shape[1])
-            min_eig = np.linalg.eigvalsh(cov_i).min()
-            if min_eig < self.eps:
-                cov_i += (self.eps - min_eig) * np.eye(cov_i.shape[0])
-            Q += mi * (v @ np.linalg.inv(cov_i) @ v.T)
-
-        _, eigvecs = gevp(Q, None, self.latent_dimensions)
-        T = eigvecs[:, : self.latent_dimensions]  # (n_samples, k)
-        self.weights_: list[np.ndarray] = [np.linalg.pinv(v) @ T for v in views_]
+        # Q = sum_i mu_i X_i cov_i^{-1} X_i^T is H H^T for the stacked
+        # whitened views H = [sqrt(mu_i) X_i cov_i^{-1/2}], so its top
+        # eigenvectors are H's top left singular vectors: an n x sum(p_i)
+        # SVD in place of an n x n eigenproblem.
+        whiteners = []
+        for v, ci in zip(views_, c_):
+            identity = xp.eye(v.shape[1], dtype=v.dtype, device=device(v))
+            cov = (1.0 - ci) * covariance(v) + ci * identity
+            whiteners.append(psd_inverse_sqrt(cov, self._EPS))
+        whitened = [math.sqrt(mi) * v @ r for v, r, mi in zip(views_, whiteners, mu)]
+        U = xp.linalg.svd(xp.concat(whitened, axis=1), full_matrices=False)[0]
+        # Unit-variance shared latent, so the scores' scale does not depend on
+        # the number of samples.
+        T = U[:, : self.n_components] * math.sqrt(self.n_samples_ - 1)
+        # Each view's weights are its regularised regression onto T,
+        # cov_i^{-1} X_i' T / (n - 1): least squares at shrinkage 0.
+        self.weights_: list[Any] = [
+            r @ (r @ (v.T @ T)) / (self.n_samples_ - 1)
+            for v, r in zip(views_, whiteners)
+        ]
+        self._fit_maps_and_importances(views_)
         return self

@@ -10,10 +10,8 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
     options:
       members:
         - forward
-        - transform
-        - score
-        - training_step
-        - validation_step
+        - loss
+        - predict_step
         - configure_optimizers
 
 ---
@@ -50,6 +48,10 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
+::: cca_zoo.deep.DVCCAPrivate
+
+---
+
 ::: cca_zoo.deep.DTCCA
 
 ---
@@ -62,6 +64,10 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 
 ---
 
+::: cca_zoo.deep.DPCCA
+
+---
+
 ::: cca_zoo.deep.SplitAE
 
 ---
@@ -71,6 +77,14 @@ Deep CCA variants. Requires `pip install cca-zoo[deep]`.
 ---
 
 ::: cca_zoo.deep.VICReg
+
+---
+
+::: cca_zoo.deep.LeJEPA
+
+---
+
+::: cca_zoo.deep.NRDCCA
 
 ---
 

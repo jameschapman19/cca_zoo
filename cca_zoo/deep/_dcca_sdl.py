@@ -1,127 +1,93 @@
-"""DCCASDL — Stochastic Decorrelation Loss (Chang 2018)."""
+"""Deep CCA with a stochastic decorrelation loss."""
 
 from __future__ import annotations
+
+import itertools
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.utils import deprecated
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
 def _sdl_loss(view: torch.Tensor) -> torch.Tensor:
-    """Compute the SDL off-diagonal covariance penalty for a single view.
-
-    Penalises the absolute values of off-diagonal entries of the
-    within-view covariance matrix, encouraging feature decorrelation.
-
-    Args:
-        view: Tensor of shape (batch_size, latent_dimensions).
-
-    Returns:
-        Scalar tensor: mean of |off-diagonal covariance entries|.
-    """
+    """Mean absolute off-diagonal covariance of one view's encoding."""
     cov = torch.cov(view.T)
     mask = ~torch.eye(cov.shape[0], dtype=torch.bool, device=cov.device)
     return cov[mask].abs().mean()
 
 
-class DCCASDL(DCCA):
-    r"""Deep CCA via Stochastic Decorrelation Loss.
+class DCCASDL(BaseDeep):
+    r"""Deep CCA with a stochastic decorrelation loss.
 
-    Combines an MSE alignment loss between views with a within-view
-    decorrelation penalty.  Batch normalisation is applied to each
-    encoder output before the loss is computed.
+    Batch-normalised encodings are aligned by mean squared error, summed over
+    pairs of views, and decorrelated within each view:
 
     $$
-    \mathcal{L} = \operatorname{MSE}(z_1, z_2)
-        + \lambda \sum_{i} \operatorname{SDL}(z_i), \qquad
-    \operatorname{SDL}(z) = \operatorname{mean}\bigl(
-        \left|\text{off-diag}(\operatorname{Cov}(z))\right|
-    \bigr)
+    \mathcal{L} = \sum_{a < b} \operatorname{MSE}(z_a, z_b) + \lambda \sum_a
+        \operatorname{mean}\lvert \text{offdiag}(\operatorname{Cov}(z_a)) \rvert.
     $$
 
-    References:
-        Chang, X., Xiang, T., & Hospedales, T. M. "Scalable and
-        effective deep CCA via soft decorrelation." CVPR 2018.
+    With two views this is the original loss, with one difference: Chang et
+    al. estimate the covariance by a running average across batches, while
+    here each batch's covariance is used, so no state is carried between
+    batches, as in :class:`DPCCA`. Use batches well above ``n_components``.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        lam: Weight of the SDL decorrelation penalty. Default is 0.5.
-        objective: Ignored; the SDL loss is fixed. Accepted for API
-            compatibility.
-        lr: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Regularisation for numerical stability. Default is 1e-6.
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        lam: Weight of the decorrelation term. Default is 0.5.
+        learning_rate: Adam learning rate. Default is 1e-3.
+
+    References:
+        Chang, X., Xiang, T., & Hospedales, T. M. (2018). Scalable and
+        effective deep CCA via soft decorrelation. CVPR.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = DCCASDL(latent_dimensions=4, encoders=[enc1, enc2], lam=0.5)
+        >>> from cca_zoo.deep import DCCASDL
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4)]
+        >>> model = DCCASDL(n_components=4, encoders=encoders)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         lam: float = 0.5,
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            objective=objective,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
         self.lam = lam
         self.bns = nn.ModuleList(
-            [nn.BatchNorm1d(latent_dimensions, affine=False) for _ in encoders]
+            [nn.BatchNorm1d(n_components, affine=False) for _ in encoders]
         )
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Encode views and apply batch normalisation.
-
-        Args:
-            views: List of input tensors, one per view.
-
-        Returns:
-            List of batch-normalised latent tensors.
-        """
+        """Batch-normalised encodings of each view."""
         return [bn(enc(v)) for enc, bn, v in zip(self.encoders, self.bns, views)]
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the SDL loss.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The SDL loss of a batch and its terms.
 
         Args:
-            representations: Encoded and batch-normalised views from the
-                current batch, each of shape (batch_size, latent_dimensions).
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
-            Dictionary with keys ``"objective"``, ``"l2"``, and ``"sdl"``.
+            ``{"objective", "l2", "sdl"}``.
         """
-        l2 = F.mse_loss(representations[0], representations[1])
+        representations = self(batch["views"])
+        l2 = torch.stack(
+            [F.mse_loss(a, b) for a, b in itertools.combinations(representations, 2)]
+        ).sum()
         sdl = torch.stack([_sdl_loss(r) for r in representations]).sum()
         return {
             "objective": l2 + self.lam * sdl,
             "l2": l2,
             "sdl": sdl,
         }
-
-
-@deprecated("Renamed to DCCASDL for sklearn-style naming; use DCCASDL instead.")
-class DCCA_SDL(DCCASDL):
-    pass

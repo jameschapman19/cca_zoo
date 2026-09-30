@@ -1,189 +1,134 @@
-"""ProbabilisticCCA — Bayesian CCA via NUTS MCMC (numpyro)."""
+"""Probabilistic CCA by NUTS."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._base import BaseModel
+from cca_zoo._utils._param_constraints import POSITIVE_INT, RANDOM_STATE
 from cca_zoo.probabilistic._utils import (
-    PosteriorMeanTransformMixin,
+    BaseProbabilistic,
+    _integer_seed,
     align_posterior_rotation,
+    maximum_likelihood_start,
+    pcca_model,
 )
 
 
-class ProbabilisticCCA(PosteriorMeanTransformMixin, BaseModel):
-    r"""Probabilistic Canonical Correlation Analysis via NUTS MCMC.
-
-    Fits a Bayesian latent variable model with the following generative
-    process for $V$ views:
+class ProbabilisticCCA(BaseProbabilistic):
+    r"""Probabilistic CCA with posterior sampling by NUTS.
 
     $$
-    \begin{aligned}
-    z &\sim \mathcal{N}(0, I) \\
-    x_i \mid z &\sim \mathcal{N}(W_i z + \mu_i,\ \Psi_i), \quad i = 1, \dots, V
-    \end{aligned}
+    z \sim \mathcal{N}(0, I), \qquad
+    x_i \mid z \sim \mathcal{N}(W_i z + \mu_i, \Psi_i),
     $$
 
-    MCMC sampling is performed with the No-U-Turn Sampler (NUTS) from
-    numpyro.  After fitting, :meth:`transform` returns the posterior
-    mean of z conditioned on the observed views (computed analytically
-    using the posterior mean formula for linear Gaussian models).
-
-    This model has an exact rotational symmetry ($z \to zR$, $W_i \to W_i R$
-    for any orthogonal $R$ shared across views leaves the likelihood
-    unchanged), and different NUTS draws can settle on different rotations
-    along that ridge of equal density. Averaging *un-aligned* draws for a
-    point estimate is then biased toward zero (draws along different
-    rotations partially cancel), so ``fit`` aligns every draw's loadings
-    (and correspondingly, that draw's $z$) to a common reference via
-    generalized Procrustes analysis (see
-    :func:`~cca_zoo.probabilistic._utils.align_posterior_rotation`) before
-    computing ``weights_`` or storing ``posterior_samples_``.
-
-    The ``weights_`` attribute is set to the (rotation-aligned) posterior
-    mean of each W_i matrix so that :class:`~cca_zoo._base.BaseModel`'s
-    scoring utilities work without modification.
-
-    References:
-        Bach, F. R. & Jordan, M. I. "A probabilistic interpretation of
-        canonical correlation analysis." (2005).
-        Wang, C. "Variational Bayesian approach to canonical correlation
-        analysis." IEEE Transactions on Neural Networks 18.3 (2007).
+    with each $\Psi_i$ a full covariance, so that $z$ models only what the
+    views share: at the maximum likelihood each view's posterior mean spans
+    its canonical variates (Bach & Jordan, 2005). $\Psi_i$ has an LKJ prior
+    on its correlation and log-normal scales, and $z$ is integrated out. The
+    likelihood is invariant to a shared rotation of the loadings, so the
+    draws are aligned by generalized Procrustes before averaging. Requires
+    the ``probabilistic`` extra.
 
     Args:
-        latent_dimensions: Dimensionality of the latent space. Default is 1.
-        center: Whether to center each view before fitting. Default is True.
-        num_warmup: Number of NUTS warm-up (burn-in) steps. Default is 500.
-        num_samples: Number of NUTS posterior samples to draw. Default is 1000.
-        random_state: Integer seed for JAX PRNG. Default is 0.
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        n_warmup: NUTS warm-up steps. Default is 500.
+        n_posterior_samples: NUTS draws. Default is 1000.
+        random_state: Seed for the JAX PRNG. Default is None.
+
+    Attributes:
+        weights_: Posterior mean loadings of each view, shape
+            (n_features_i, n_components).
+        posterior_samples_: Aligned posterior draws keyed by site name.
+
+    References:
+        Bach, F. R., & Jordan, M. I. (2005). A probabilistic interpretation
+        of canonical correlation analysis. Technical Report 688, UC Berkeley.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.probabilistic import ProbabilisticCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 4))
         >>> X2 = rng.standard_normal((50, 3))
         >>> model = ProbabilisticCCA(
-        ...     latent_dimensions=2, num_warmup=10, num_samples=10
+        ...     n_components=2, n_warmup=10, n_posterior_samples=10
         ... ).fit([X1, X2])
     """
 
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        **BaseProbabilistic._parameter_constraints,
+        "n_warmup": POSITIVE_INT,
+        "n_posterior_samples": POSITIVE_INT,
+        "random_state": RANDOM_STATE,
+    }
+
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
+        *,
         center: bool = True,
-        num_warmup: int = 500,
-        num_samples: int = 1000,
-        random_state: int = 0,
+        n_warmup: int = 500,
+        n_posterior_samples: int = 1000,
+        random_state: int | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.num_warmup = num_warmup
-        self.num_samples = num_samples
+        super().__init__(n_components=n_components, center=center)
+        self.n_warmup = n_warmup
+        self.n_posterior_samples = n_posterior_samples
         self.random_state = random_state
 
-    # ------------------------------------------------------------------
-    # numpyro generative model
-    # ------------------------------------------------------------------
-
     def _model(self, views: list[np.ndarray]) -> None:
-        """Numpyro generative model for probabilistic CCA.
-
-        Args:
-            views: List of centered arrays, each (n_samples, n_features_i).
-        """
-        import jax.numpy as jnp
-        import numpyro
-        import numpyro.distributions as dist
-
-        n = views[0].shape[0]
-        k = self.latent_dimensions
-
-        # Sample per-view parameters
-        ws: list[Any] = []
-        psis: list[Any] = []
-        for i, xi in enumerate(views):
-            p_i = xi.shape[1]
-            w_i = numpyro.sample(
-                f"W_{i}",
-                dist.Normal(jnp.zeros((p_i, k)), jnp.ones((p_i, k))).to_event(2),
-            )
-            log_psi_i = numpyro.sample(
-                f"log_psi_{i}",
-                dist.Normal(jnp.zeros(p_i), jnp.ones(p_i)).to_event(1),
-            )
-            ws.append(w_i)
-            psis.append(jnp.exp(log_psi_i))
-
-        # Sample latent variables and observations
-        with numpyro.plate("n", n):
-            z = numpyro.sample(
-                "z",
-                dist.Normal(jnp.zeros(k), jnp.ones(k)).to_event(1),
-            )
-            for i, (xi, w_i, psi_i) in enumerate(zip(views, ws, psis)):
-                mean_i = z @ w_i.T  # (n, p_i)
-                numpyro.sample(
-                    f"x_{i}",
-                    dist.Normal(mean_i, psi_i).to_event(1),
-                    obs=jnp.array(xi),
-                )
-
-    # ------------------------------------------------------------------
-    # Public fit / transform
-    # ------------------------------------------------------------------
+        """Numpyro model on centred views, unit-variance prior on the loadings."""
+        pcca_model(views, self.n_components)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ProbabilisticCCA:
-        """Run NUTS MCMC to infer posterior over model parameters and latents.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-                All arrays must have the same number of rows.
-            y: Ignored.  Present for scikit-learn API compatibility.
+            views: Arrays of shape (n_samples, n_features_i), one per view.
+            y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         import jax
-        from numpyro.infer import MCMC, NUTS
+        from numpyro.infer import MCMC, NUTS, init_to_value
 
         validated = self._setup_fit(views)
 
-        nuts_kernel = NUTS(self._model)
+        # Sampling starts at the maximum likelihood.
+        start = maximum_likelihood_start(validated, self.n_components)
+        nuts_kernel = NUTS(self._model, init_strategy=init_to_value(values=start))
         mcmc = MCMC(
             nuts_kernel,
-            num_warmup=self.num_warmup,
-            num_samples=self.num_samples,
+            num_warmup=self.n_warmup,
+            num_samples=self.n_posterior_samples,
+            progress_bar=False,
         )
-        rng_key = jax.random.PRNGKey(self.random_state)
+        rng_key = jax.random.PRNGKey(_integer_seed(self.random_state))
         mcmc.run(rng_key, validated)
-        self.mcmc_ = mcmc
         self.posterior_samples_ = {
             k: np.array(v) for k, v in mcmc.get_samples().items()
         }
 
         # Resolve the model's rotational symmetry (see class docstring)
-        # before any cross-draw averaging: stack every view's W_i draws,
-        # align them to a common reference, then rotate that draw's z by
-        # the same rotation to keep it internally consistent.
+        # before averaging: align every view's stacked W_i draws to a common
+        # reference.
         w_stack = np.concatenate(
             [self.posterior_samples_[f"W_{i}"] for i in range(self.n_views_)], axis=1
-        )  # (num_samples, P, k)
-        aligned_w, rotations = align_posterior_rotation(w_stack)
-        splits = np.cumsum(self.n_features_in_)[:-1]
+        )  # (n_posterior_samples, P, k)
+        aligned_w, _ = align_posterior_rotation(w_stack)
+        splits = np.cumsum(self.n_features_per_view_)[:-1]
         for i, w_i_aligned in enumerate(np.split(aligned_w, splits, axis=1)):
             self.posterior_samples_[f"W_{i}"] = w_i_aligned
-        self.posterior_samples_["z"] = np.einsum(
-            "snk,skj->snj", self.posterior_samples_["z"], rotations
-        )
 
         # Set weights_ to posterior mean W matrices (p_i x k) for each view
         self.weights_: list[np.ndarray] = [
             self.posterior_samples_[f"W_{i}"].mean(axis=0) for i in range(self.n_views_)
         ]
+        self._fit_maps_and_importances(validated)
         return self

@@ -5,13 +5,13 @@ from ._linalg import deflate, gevp, soft_threshold, svd_whiten
 from ._validation import perview_parameter, validate_views
 
 __all__ = [
-    "validate_views",
-    "perview_parameter",
-    "svd_whiten",
-    "gevp",
-    "soft_threshold",
     "deflate",
     "ey_cross_covariance",
-    "ey_loss",
     "ey_grad_z",
+    "ey_loss",
+    "gevp",
+    "perview_parameter",
+    "soft_threshold",
+    "svd_whiten",
+    "validate_views",
 ]

@@ -27,26 +27,26 @@ numerically stable result even for high-dimensional views.
 ```python
 from cca_zoo.linear import CCA
 
-model = CCA(latent_dimensions=2).fit([X1, X2])
+model = CCA(n_components=2).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-print(model.score([X1, X2]))  # canonical correlations
+print(model.score([X1, X2]))  # mean canonical correlation
 ```
 
-### rCCA — Regularised CCA
+### RidgeCCA — Regularised CCA
 
-**When to use:** CCA breaks down when $n < p$ (more features than samples). rCCA adds a ridge
+**When to use:** CCA breaks down when $n < p$ (more features than samples). RidgeCCA adds a ridge
 penalty to stabilise the covariance matrices.
 
-The parameter `c` controls the regularisation strength:
+The parameter `shrinkage` controls the regularisation strength:
 
-- `c=0` → equivalent to `CCA`
-- `c=1` → equivalent to `PLS`
+- `shrinkage=0` → equivalent to `CCA`
+- `shrinkage=1` → equivalent to `PLS`
 - `0 < c < 1` → interpolates between the two
 
 ```python
-from cca_zoo.linear import rCCA
+from cca_zoo.linear import RidgeCCA
 
-model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
+model = RidgeCCA(n_components=2, shrinkage=0.1).fit([X1, X2])
 ```
 
 ### PLS — Partial Least Squares
@@ -54,7 +54,7 @@ model = rCCA(latent_dimensions=2, c=0.1).fit([X1, X2])
 **When to use:** When you want to maximise *covariance* rather than *correlation*. PLS is
 more robust to noise and does not require invertible covariance matrices.
 
-PLS is a special case of rCCA with `c=1`:
+PLS is a special case of RidgeCCA with `shrinkage=1`:
 
 $$
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
@@ -64,7 +64,7 @@ $$
 ```python
 from cca_zoo.linear import PLS
 
-model = PLS(latent_dimensions=2).fit([X1, X2])
+model = PLS(n_components=2).fit([X1, X2])
 ```
 
 ---
@@ -89,7 +89,7 @@ where $A$ contains the cross-view covariances and $B$ the regularised within-vie
 ```python
 from cca_zoo.linear import MCCA
 
-model = MCCA(latent_dimensions=2, c=0.1).fit([X1, X2, X3])
+model = MCCA(n_components=2, shrinkage=0.1).fit([X1, X2, X3])
 ```
 
 ### GCCA — Generalised CCA
@@ -110,7 +110,7 @@ the shared projection.
 ```python
 from cca_zoo.linear import GCCA
 
-model = GCCA(latent_dimensions=2, c=0.01).fit([X1, X2, X3])
+model = GCCA(n_components=2, shrinkage=0.01).fit([X1, X2, X3])
 ```
 
 ### TCCA — Tensor CCA
@@ -128,7 +128,7 @@ $$
 ```python
 from cca_zoo.linear import TCCA
 
-model = TCCA(latent_dimensions=2, c=0.01, random_state=0).fit([X1, X2, X3])
+model = TCCA(n_components=2, shrinkage=0.01, random_state=0).fit([X1, X2, X3])
 ```
 
 ---
@@ -145,23 +145,23 @@ directions on its own.
 | Class | Description |
 |---|---|
 | `PLSEY` | Eckart-Young PLS objective, full-batch L-BFGS-B |
-| `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `c` |
+| `CCAEY` | Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with `PLSEY` via `shrinkage` |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, full-batch L-BFGS-B |
 
 For datasets too large to fit comfortably in memory, see
 [`cca_zoo.stochastic.StochasticCCAEY`](stochastic.md), which fits the same
-objective as `CCAEY` with mini-batch momentum SGD instead.
+objective as `CCAEY` with mini-batch SGD instead.
 
-`CCAEY`'s `c` parameter (default `0`) blends its loss towards `PLSEY`'s (`c=1`) — in fact
-`PLSEY` is implemented as `CCAEY` with `c` fixed at `1`. Optimising the raw, unregularised
-(`c=0`) objective can be poorly conditioned when the number of samples doesn't outnumber the
-number of features by a healthy margin; if you see `nan` weights, increase `c` (0.1-0.3 is
+`CCAEY`'s `shrinkage` parameter (default `0`) blends its loss towards `PLSEY`'s (`shrinkage=1`) — in fact
+`PLSEY` is implemented as `CCAEY` with `shrinkage` fixed at `1`. Optimising the raw, unregularised
+(`shrinkage=0`) objective can be poorly conditioned when the number of samples doesn't outnumber the
+number of features by a healthy margin; if you see `nan` weights, increase `shrinkage` (0.1-0.3 is
 usually enough).
 
 ```python
 from cca_zoo.linear import CCAEY
 
-model = CCAEY(latent_dimensions=2, max_iter=200)
+model = CCAEY(n_components=2, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -174,15 +174,15 @@ forming those statistics — the same bounded-influence mechanism
 `sklearn.linear_model.HuberRegressor` uses against outliers, applied to the EY loss's own
 statistics. Every sample still contributes *something* (smooth downweighting, never exactly
 zero). Fit by the same full-batch L-BFGS-B as `CCAEY`, so it shares that class's `nan`-on
-ill-conditioned-data caveat above; it has no ridge-blend `c` of its own. The `delta` parameter
+ill-conditioned-data caveat above; it has no ridge-blend `shrinkage` of its own. The `delta` parameter
 sets the cutoff as a multiple of the dataset's own median sample leverage (self-calibrating, so
-it doesn't need re-tuning per `latent_dimensions`); values below 1 downweight the majority of the
+it doesn't need re-tuning per `n_components`); values below 1 downweight the majority of the
 data and are not recommended.
 
 ```python
 from cca_zoo.linear import HuberCCA
 
-model = HuberCCA(latent_dimensions=2, delta=4.0, max_iter=200)
+model = HuberCCA(n_components=2, delta=4.0, max_iter=200)
 model.fit([X1, X2])
 ```
 
@@ -206,13 +206,13 @@ magnitude, it catches exactly the contamination `HuberCCA` can't:
 ```python
 from cca_zoo.linear import RANSACCCA
 
-model = RANSACCCA(latent_dimensions=2, min_samples=0.25, random_state=0)
+model = RANSACCCA(n_components=2, min_samples=0.25, random_state=0)
 model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
 
 `min_samples` (a fraction or an absolute count) trades off two things: smaller subsets are more
-likely to be drawn free of contamination, but need `c` (a small ridge, default `0.1`) to stay
+likely to be drawn free of contamination, but need `shrinkage` (a small ridge, default `0.1`) to stay
 numerically well-posed. `residual_threshold` defaults to `0` — the natural zero point of the
 per-sample agreement score under no real relationship — rather than anything estimated from the
 data. Like `MCCA`, this isn't convex, and the random subset draws add their own instability on top:
@@ -224,23 +224,23 @@ where this helps and where the problem becomes too ambiguous for any method to r
 breakdown point, a random `min_samples`-sized draw becomes close to a coin flip on being usably
 clean, however many trials are tried. `TrimmedCCA` takes a different approach borrowed from
 Rousseeuw's Least Trimmed Squares / Minimum Covariance Determinant: rather than gambling on a lucky
-small draw, it starts from a large random subset of `h_frac * n` rows and alternates *concentration
+small draw, it starts from a large random subset of `support_fraction * n` rows and alternates *concentration
 steps* — rank every row by its own contribution to `CCAEY`'s exact loss and keep the best `h`, then
-re-fit on exactly those rows — each step provably non-increasing in the real loss. With `h_frac` set
+re-fit on exactly those rows — each step provably non-increasing in the real loss. With `support_fraction` set
 close to the true clean fraction, this holds up where `RANSACCCA`'s search degrades:
 
 ```python
 from cca_zoo.linear import TrimmedCCA
 
-model = TrimmedCCA(h_frac=0.55, n_starts=40, random_state=0)
+model = TrimmedCCA(support_fraction=0.55, n_init=40, random_state=0)
 model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
 
-`h_frac` is a prior on the contamination rate, not something fit from the data — set it too high and
+`support_fraction` is a prior on the contamination rate, not something fit from the data — set it too high and
 good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
-once true contamination exceeds `1 - h_frac`. `TrimmedCCA` supports any number of views (2 or more)
-but only `latent_dimensions=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
+once true contamination exceeds `1 - support_fraction`. `TrimmedCCA` supports any number of views (2 or more)
+but only `n_components=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
 penalty being the square of a *single* linear functional of the selection, which holds for any
 number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
 matrix-valued quadratic form (rank up to `k(k+1)/2`) that the same single-multiplier bisection can't
@@ -256,18 +256,13 @@ resulting scores, never forming a covariance matrix at all.
 ```python
 from cca_zoo.linear import ProjectionPursuitCCA
 
-model = ProjectionPursuitCCA(
-    latent_dimensions=2, projection_index="spearman", random_state=0
-)
+model = ProjectionPursuitCCA(n_components=2, random_state=0)
 model.fit([X1, X2])
 ```
 
-Two projection indices are available: `"spearman"` (default, Spearman rank correlation —
-insensitive to an outlier's exact magnitude, only its rank) and `"mcd"` (a
-minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
-robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
-scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
-by derivative-free search (`n_restarts` random restarts of `scipy.optimize.minimize` with
+The projection index is Spearman's rank correlation, insensitive to an outlier's exact
+magnitude, only its rank. Each direction is parametrised by unconstrained hyperspherical angles and found
+by derivative-free search (`n_init` random restarts of `scipy.optimize.minimize` with
 Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
 solvers don't apply). Unlike the other three estimators here, there is no `inlier_mask_`:
 its robustness comes from the projection index's own insensitivity to extreme values, not
@@ -286,7 +281,7 @@ projection directions), tracing back to Huber's original projection pursuit (198
 Alfons, Croux & Filzmoser (2017) put the same paradigm on firmer statistical footing
 (efficiency, breakdown point, a wider family of projection indices) and ship it as the
 R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementation
-`ProjectionPursuitCCA`'s `"spearman"` and `"mcd"` projection indices follow.
+`ProjectionPursuitCCA`'s Spearman projection index follows.
 
 > Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant estimators for canonical
 > correlation analysis. In *COMPSTAT: Proceedings in Computational Statistics 2000* (pp.
@@ -308,12 +303,38 @@ R package `ccaPP` (Alfons, Croux & Filzmoser, 2016), the reference implementatio
 
 ---
 
+## GPUs and the Array API
+
+`CCA`, `RidgeCCA`, `PLS`, `MCCA` and `GCCA` compute in the namespace of their inputs
+under scikit-learn's [Array API dispatch](https://scikit-learn.org/stable/modules/array_api.html),
+so PyTorch or CuPy arrays on a GPU are fitted and transformed on the GPU. Their cost is
+the covariance products and one eigendecomposition, both of which a GPU accelerates.
+scipy must be told before it is imported:
+
+```python
+import os
+
+os.environ["SCIPY_ARRAY_API"] = "1"
+
+import sklearn
+import torch
+from cca_zoo.linear import MCCA
+
+views = [torch.asarray(X1, device="cuda"), torch.asarray(X2, device="cuda")]
+with sklearn.config_context(array_api_dispatch=True):
+    model = MCCA(n_components=2, shrinkage=0.1).fit(views)
+    z1, z2 = model.transform(views)  # torch tensors on the GPU
+```
+
+The other models compute with numpy and raise a `TypeError` on other arrays under
+dispatch.
+
 ## Choosing a method
 
 | Scenario | Recommended |
 |---|---|
 | $n \gg p$, two views | `CCA` |
-| $n < p$ or ill-conditioned | `rCCA` (tune `c`) |
+| $n < p$ or ill-conditioned | `RidgeCCA` (tune `shrinkage`) |
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
 | Higher-order cross-view structure | `TCCA` |

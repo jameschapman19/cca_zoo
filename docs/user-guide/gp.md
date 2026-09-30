@@ -27,20 +27,16 @@ interaction between two features of the same view — `GaussianProcessCCA` fits 
 genuine, non-additive function of all of that view's features at once. As a Bayesian model it
 also comes with calibrated predictive uncertainty for free.
 
-Each encoder writes $f_i(x) = k(x, Z_i)^\top B_i$ for a fixed kernel $k$ and a fixed set of basis
-("inducing") points $Z_i$ — every training row by default, or `n_inducing` of them selected via
-`sklearn.cluster.kmeans_plusplus` for larger datasets. Fitting the coefficients $B_i$ is then an
-ordinary smooth optimisation problem with an exact, cheap analytic gradient, solved directly by
-**L-BFGS-B** (`scipy.optimize.minimize`) — the same algorithm `GaussianProcessRegressor` itself
-uses internally, just pointed at the EY loss (plus an RKHS-norm ridge penalty) instead of the
-negative log-marginal-likelihood it optimises kernel hyperparameters against. Every view's
-coefficients are optimised **jointly**, in a single L-BFGS-B run over all of them concatenated,
-rather than one view at a time with the others held fixed: the EY loss already couples every view
-together, so solving one view to convergence before moving to the next needlessly repeats work and
-can settle into a worse joint optimum than optimising every view simultaneously against the exact
-joint gradient. Kernel hyperparameters are fixed — pass `kernel=` explicitly, or tune it
-externally (e.g. with `sklearn.model_selection.GridSearchCV`, since this is an ordinary
-`BaseEstimator`).
+Each encoder writes $f_i(x) = k_c(x, U_i)^\top B_i$ for a fixed kernel $k$, centred in feature
+space, and a fixed set of basis ("inducing") points $U_i$ — every training row by default, or
+`n_inducing` of them selected via `sklearn.cluster.kmeans_plusplus` for larger datasets. The
+coefficients minimise the EY loss plus the RKHS-norm penalty
+$\tfrac12 \alpha_i \operatorname{tr}(B_i^\top K_i B_i)$. Writing $B_i$ in the eigenbasis of the
+inducing points' kernel turns the encoder into a linear map of their Nyström features and the
+penalty into a ridge, so the global minimiser over every view jointly is a generalized
+eigenproblem, solved in closed form: no iterations, no initialisation, no local optima. With a
+linear kernel and no penalty it is exactly CCA. Kernel hyperparameters are fixed — pass `kernel=`
+explicitly, or tune it externally (e.g. with `cca_zoo.model_selection.GridSearchCV`).
 
 **When to use:** Nonlinear multiview CCA where cross-view structure depends on a genuine
 *interaction* between two or more features of the same view (e.g. $x_1 x_2$), which an additive
@@ -59,33 +55,34 @@ expect fitting to be markedly slower than `GAMCCA` or `TreeCCA` on large dataset
 ```python
 from cca_zoo.gp import GaussianProcessCCA
 
-model = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2])
+model = GaussianProcessCCA(n_components=1).fit([X1, X2])
 z1, z2 = model.transform([X1, X2])
-corrs = model.score([X1, X2])
+corr = model.score([X1, X2])  # mean canonical correlation
 
 # GaussianProcessCCA also supports more than two views
-model3 = GaussianProcessCCA(latent_dimensions=1).fit([X1, X2, X3])
+model3 = GaussianProcessCCA(n_components=1).fit([X1, X2, X3])
 ```
 
 ## Predictive uncertainty
 
-Because each per-component encoder is a Gaussian process, `transform` can return each latent
-component's posterior standard deviation alongside its mean:
+Because each per-component encoder is a Gaussian process, `posterior_std` gives each latent
+component's posterior standard deviation, the uncertainty of `transform`'s scores:
 
 ```python
-means, stds = model.transform([X1, X2], return_std=True)
+means, stds = model.transform([X1, X2]), model.posterior_std([X1, X2])
 ```
 
-`stds[i]` has the same shape as `means[i]` (`(n_samples, latent_dimensions)`) and is the posterior
+`stds[i]` has the same shape as `means[i]` (`(n_samples, n_components)`) and is the posterior
 standard deviation of view `i`'s latent component — larger away from the training data, smaller
 near it, exactly as for any other GP posterior. This does not depend on the fitted coefficients at
 all (a standard GP fact: posterior variance only involves the kernel, the noise level, and the
 design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
 level, and inducing points as the mean fit.
 
-`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to `GAMCCA`'s
-`shape_function` (the kernel is not additive across features), so `model.weights` raises
-`NotImplementedError`.
+`GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to
+`GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_per_view_`
+is therefore permutation-based: the mean squared change in each view's latent scores when a
+feature's training values are shuffled, normalised to sum to 1 per view.
 
 ---
 
@@ -99,7 +96,7 @@ selected via `sklearn.cluster.kmeans_plusplus`'s seeding — reducing fitting to
 $O(n \, m^2 + m^3)$ for $m$ basis points instead of $O(n^3)$:
 
 ```python
-model = GaussianProcessCCA(latent_dimensions=1, n_inducing=200).fit(
+model = GaussianProcessCCA(n_components=1, n_inducing=200).fit(
     [X1, X2]
 )  # X1, X2 have many samples
 ```
@@ -119,16 +116,13 @@ whether increasing it changes the held-out canonical correlation.
 | `kernel` | Fixed kernel used for every view. `None` (default) uses `ConstantKernel(1.0) * RBF(length_scale=np.ones(p))` for each view's own feature count `p`. |
 | `alpha` | Ridge (RKHS-norm) penalty strength, also used as the noise level for the posterior-variance calculation. |
 | `n_inducing` | Number of basis ("inducing") points (see above). `None` (default) uses every training row (exact inference). |
-| `max_iter` | Maximum number of L-BFGS-B iterations for the single, joint solve over every view's coefficients. |
-| `tol` | Convergence tolerance, passed to L-BFGS-B as `ftol`. |
-| `random_state` | Seed for the initial coefficients, and (if `n_inducing` is set) for selecting inducing points. |
+| `random_state` | Seed for selecting inducing points when `n_inducing` is set. |
 
 ---
 
 ## Practical notes
 
 - `GaussianProcessCCA` supports 2 or more views.
-- `latent_dimensions` must not exceed the number of features in any view.
 - Exact inference (`n_inducing=None`) is $O(n^3)$ in the number of training samples; set
   `n_inducing` for datasets beyond a few thousand samples, or consider `GAMCCA` (if the
   relationship is additive) or `TreeCCA` instead.

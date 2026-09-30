@@ -5,9 +5,10 @@ small real-world datasets.
 
 ---
 
-## JointData — simulated multiview data
+## `make_joint_data` — simulated multiview data
 
-`JointData` generates data from a **linear latent variable model**:
+`make_joint_data` generates data from a **linear latent variable model**, in the style of
+`sklearn.datasets`' `make_*` generators:
 
 $$
 X_i = Z W_i^\top + E_i
@@ -15,55 +16,51 @@ $$
 
 where:
 
-- $Z \in \mathbb{R}^{n \times k}$ is the shared latent variable ($k$ = `latent_dimensions`)
-- $W_i \in \mathbb{R}^{p_i \times k}$ is the view-specific loading matrix (drawn once at construction)
+- $Z \in \mathbb{R}^{n \times k}$ is the shared latent variable ($k$ = `n_components`)
+- $W_i \in \mathbb{R}^{p_i \times k}$ is the view-specific loading matrix
 - $E_i$ is independent Gaussian noise, with variance controlled by `signal_to_noise`
 
-The loading matrices are fixed at construction so that successive calls to `sample()` share
-the same generative parameters.
+For independent training and test sets, generate once and split every view together with
+`sklearn.model_selection.train_test_split`:
 
 ```python
-from cca_zoo.datasets import JointData
+from sklearn.model_selection import train_test_split
 
-data = JointData(
-    n_views=2,
-    n_samples=200,
+from cca_zoo.datasets import make_joint_data
+
+views = make_joint_data(
+    n_samples=400,
     n_features=[50, 40],  # different feature counts per view
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=2.0,  # higher = less noise
     random_state=0,
 )
-
-train_views = data.sample()  # list of 2 arrays: (200, 50), (200, 40)
-test_views = data.sample()  # independent sample from the same model
+X1_train, X1_test, X2_train, X2_test = train_test_split(*views, random_state=0)
 ```
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `n_views` | `int` | `2` | Number of views |
-| `n_samples` | `int` | `100` | Observations per call to `sample()` |
+| `n_samples` | `int` | `100` | Observations |
 | `n_features` | `int` or `list[int]` | `10` | Features per view (scalar broadcasts) |
-| `latent_dimensions` | `int` | `1` | Shared latent dimension |
+| `n_views` | `int` | `2` | Number of views |
+| `n_components` | `int` | `1` | Shared latent dimension |
 | `signal_to_noise` | `float` or `list[float]` | `1.0` | SNR per view (higher = less noise) |
-| `random_state` | `int` or `None` | `None` | Seed for reproducibility |
+| `random_state` | `int`, `RandomState` or `None` | `None` | Seed for reproducibility |
+| `return_latent` | `bool` | `False` | Also return the latent variable `z` |
 
 ### Usage patterns
 
 ```python
-# Same features for all views (scalar broadcasts)
-data = JointData(
-    n_views=3, n_samples=100, n_features=20, latent_dimensions=2, random_state=0
-)
+# Three views, same feature count (scalar broadcasts)
+views = make_joint_data(n_samples=100, n_features=20, n_views=3, n_components=2)
 
 # Different SNR per view
-data = JointData(
-    n_views=2, n_samples=100, n_features=20, signal_to_noise=[4.0, 1.0], random_state=0
-)
+views = make_joint_data(n_samples=100, n_features=20, signal_to_noise=[4.0, 1.0])
 
-# Callable shorthand (same as sample())
-views = data()
+# The true latent variable too, e.g. to check recovery
+views, z = make_joint_data(n_samples=100, n_components=2, return_latent=True)
 ```
 
 ---
@@ -74,7 +71,9 @@ Two small real-world datasets are included for quick experimentation:
 
 ### `load_linnerud`
 
-Wraps `sklearn.datasets.load_linnerud`. Returns two arrays:
+Wraps `sklearn.datasets.load_linnerud`. Like sklearn's loaders it returns a `Bunch`, with the
+views in `views` and each view's `feature_names`; `return_views=True` returns the views alone,
+as sklearn's `return_X_y`:
 
 - **View 1:** exercise measurements (chin-ups, sit-ups, jumps) — shape `(20, 3)`
 - **View 2:** physiological measurements (weight, waist, pulse) — shape `(20, 3)`
@@ -82,7 +81,7 @@ Wraps `sklearn.datasets.load_linnerud`. Returns two arrays:
 ```python
 from cca_zoo.datasets import load_linnerud
 
-exercise, physiological = load_linnerud()
+exercise, physiological = load_linnerud(return_views=True)
 print(exercise.shape)  # (20, 3)
 print(physiological.shape)  # (20, 3)
 ```
@@ -98,7 +97,7 @@ a two-view dataset:
 ```python
 from cca_zoo.datasets import load_breast_cancer
 
-view1, view2 = load_breast_cancer()
+view1, view2 = load_breast_cancer(return_views=True)
 print(view1.shape)  # (569, 15)
 print(view2.shape)  # (569, 15)
 ```

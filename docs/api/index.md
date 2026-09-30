@@ -4,11 +4,11 @@ Complete API documentation auto-generated from source docstrings.
 
 | Module | Contents |
 |---|---|
-| [`cca_zoo.linear`](linear.md) | CCA, rCCA, PLS, MCCA, GCCA, TCCA, gradient and sparse variants |
+| [`cca_zoo.linear`](linear.md) | CCA, RidgeCCA, PLS, MCCA, GCCA, TCCA, gradient and sparse variants |
 | [`cca_zoo.nonparametric`](nonparametric.md) | KCCA, KGCCA, KTCCA |
 | [`cca_zoo.tree`](tree.md) | XGBoostCCA, LightGBMCCA, CatBoostCCA |
-| [`cca_zoo.gam`](gam.md) | GAMCCA |
+| [`cca_zoo.gam`](gam.md) | GAMCCA, MARSCCA |
 | [`cca_zoo.deep`](deep.md) | DCCA and variants, objectives |
 | [`cca_zoo.probabilistic`](probabilistic.md) | GFA, ProbabilisticCCA, VariationalBayesCCA |
-| [`cca_zoo.datasets`](datasets.md) | JointData, toy loaders |
-| [`cca_zoo.model_selection`](model-selection.md) | GridSearchCV, RandomizedSearchCV, MultiviewWrapper, permutation_test_significance |
+| [`cca_zoo.datasets`](datasets.md) | make_joint_data, toy loaders |
+| [`cca_zoo.model_selection`](model-selection.md) | GridSearchCV, RandomizedSearchCV, cross_val_score, permutation_test_significance |

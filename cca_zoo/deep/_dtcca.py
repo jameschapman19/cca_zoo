@@ -1,89 +1,50 @@
-"""DTCCA — Deep Tensor CCA (Wong 2021)."""
+"""Deep tensor CCA."""
 
 from __future__ import annotations
 
-import torch
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._dcca import _ObjectiveModel
 from cca_zoo.deep.objectives import TCCALoss
 
 
-class DTCCA(DCCA):
-    r"""Deep Tensor CCA.
+class DTCCA(_ObjectiveModel):
+    r"""Deep tensor CCA: maximise the cross-moment tensor of whitened encodings.
 
-    Applies the tensor CCA loss (:class:`~cca_zoo.deep.objectives.TCCALoss`)
-    to neural representations. The cross-moment tensor is formed from
-    whitened latent codes, and the objective is the negative Frobenius norm
-    of that tensor — a differentiable proxy for the tensor CCA criterion:
-
-    $$
-    M = \frac{1}{n} \sum_{s=1}^{n} H_1[s] \otimes H_2[s] \otimes
-        \cdots \otimes H_V[s], \qquad
-    \mathcal{L} = -\left\| M \right\|_F
-    $$
-
-    where $\otimes$ denotes the outer product and $H_i$ is the
-    ridge-whitened representation of view $i$. This is the deep
-    analogue of the higher-order cross-moment maximised in closed form by
-    the linear :class:`~cca_zoo.linear.TCCA`.
-
-    References:
-        Wong, H. S., et al. "Deep Tensor CCA for Multi-view Learning."
-        IEEE Transactions on Big Data (2021).
+    Minimises $-\|M\|_F$ with
+    $M = \frac{1}{n} \sum_s H_1[s] \otimes \cdots \otimes H_M[s]$ for
+    ridge-whitened encodings $H_i$
+    (:class:`~cca_zoo.deep.objectives.TCCALoss`).
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        objective: Ignored; the TCCA loss is always used. Accepted for
-            API compatibility.
-        lr: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Ridge regularisation for whitening. Default is 1e-6.
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        learning_rate: Adam learning rate. Default is 1e-3.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
+
+    References:
+        Wong, H. S., Wang, L., Chan, R., & Zeng, T. (2021). Deep tensor
+        CCA for multi-view learning. IEEE Transactions on Big Data.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> enc3 = nn.Linear(6, 4)
-        >>> model = DTCCA(latent_dimensions=4, encoders=[enc1, enc2, enc3])
+        >>> from cca_zoo.deep import DTCCA
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4), nn.Linear(6, 4)]
+        >>> model = DTCCA(n_components=4, encoders=encoders)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
+        reg_covar: float = 1e-6,
     ) -> None:
-        # Pass objective=None so DCCA creates CCALoss, but we override it
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            objective=None,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
-        # Override with TCCALoss regardless of what was passed
-        self.objective = TCCALoss(eps=eps)
-
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the DTCCA loss via the tensor cross-moment.
-
-        Args:
-            representations: Encoded views from the current batch, each
-                of shape (batch_size, latent_dimensions).
-            independent_representations: Unused.
-
-        Returns:
-            Dictionary with key ``"objective"``.
-        """
-        return {"objective": self.objective(representations)}
+        self.reg_covar = reg_covar
+        self.objective = TCCALoss(reg_covar=reg_covar)

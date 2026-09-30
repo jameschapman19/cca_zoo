@@ -1,115 +1,182 @@
-"""Linear algebra utilities: whitening, eigendecomposition, deflation."""
+"""Linear algebra utilities: whitening, eigendecomposition, deflation.
+
+The functions used by the Array API models (``covariance``, ``block_diag``,
+``svd_whiten``, ``psd_inverse_sqrt`` and ``gevp``) work in the namespace of
+their inputs, through scikit-learn's ``array_api_dispatch``.
+"""
 
 from __future__ import annotations
 
+import string
+from typing import Any
+
 import numpy as np
-import scipy.linalg
+from sklearn.utils._array_api import device, get_namespace
 
 
-def svd_whiten(
-    X: np.ndarray,
-    regularization: float = 0.0,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Whiten X using a regularised decomposition.
+def covariance(X: Any) -> Any:
+    """Sample covariance of the columns of ``X``, shape (p, p)."""
+    xp, _ = get_namespace(X)
+    centred = X - xp.mean(X, axis=0)
+    return centred.T @ centred / (X.shape[0] - 1)
 
-    Computes W such that ``X @ W`` has covariance approximately equal to the
-    identity matrix (or a regularised version thereof).
 
-    When ``n_samples >= n_features`` the sample covariance matrix (p x p) is
-    formed explicitly and diagonalised with ``eigh``. This is O(n p^2) in
-    FLOPs and O(p^2) in peak memory -- much cheaper than computing the full
-    thin SVD of X (which allocates an n x p matrix U).
+def block_diag(blocks: list[Any]) -> Any:
+    """The square ``blocks`` along the diagonal of one matrix."""
+    xp, _ = get_namespace(*blocks)
+    total = sum(b.shape[0] for b in blocks)
+    matrix = xp.zeros((total, total), dtype=blocks[0].dtype, device=device(blocks[0]))
+    start = 0
+    for b in blocks:
+        end = start + b.shape[0]
+        matrix[start:end, start:end] = b
+        start = end
+    return matrix
 
-    When ``n_samples < n_features`` the original SVD path is used, which
-    avoids forming the n x n Gram matrix.
+
+def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
+    """Whiten ``X`` with a ridge-regularised covariance.
+
+    Uses an eigendecomposition of the covariance when ``n >= p`` and an SVD
+    of ``X`` otherwise. Directions below the numerical rank are dropped, with
+    ``numpy.linalg.matrix_rank``'s relative tolerance: centred data always has
+    a null direction, and a strict zero threshold would keep it with an
+    enormous weight.
 
     Args:
-        X: Array of shape (n_samples, n_features), assumed mean-centred.
-        regularization: Ridge parameter in [0, 1].  0 gives full PCA whitening;
-            1 gives identity (no whitening).
+        X: Centred array of shape (n_samples, n_features).
+        regularization: Ridge blend in ``[0, 1]``; 0 is PCA whitening and 1
+            no whitening.
 
     Returns:
-        Tuple ``(X_white, W)`` where ``X_white = X @ W`` and ``W`` is the
-        (n_features, rank) whitening matrix.
+        ``(X @ W, W)``, with ``W`` of shape (n_features, rank).
     """
+    xp, _ = get_namespace(X)
     n, p = X.shape
     if n >= p:
-        # Covariance path -- avoids the large n x p matrix U from thin SVD.
-        C = X.T @ X / (n - 1)
-        lam, V = np.linalg.eigh(C)
-        # A strict ``lam > 0`` is not numerically safe here: forming X.T @ X
-        # squares the condition number, so near-zero eigenvalues of
-        # rank-deficient data can carry noise of either sign and slip
-        # through a zero threshold. Use a relative tolerance instead,
-        # matching numpy.linalg.matrix_rank's convention.
-        tol = lam.max() * p * np.finfo(lam.dtype).eps
-        pos = lam > tol
-        lam, V = lam[pos], V[:, pos]
-        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
-        W = V * inv_sqrt
-        X_white = X @ W
+        lam, V = xp.linalg.eigh(X.T @ X / (n - 1))
+        rank = int(xp.count_nonzero(lam > xp.max(lam) * p * xp.finfo(lam.dtype).eps))
+        lam, V = lam[p - rank :], V[:, p - rank :]
     else:
-        # SVD path -- avoids forming the p x p covariance matrix.
-        U, s, Vt = np.linalg.svd(X, full_matrices=False)
-        # Keep only dimensions with positive singular values
-        pos = s > 0
-        s = s[pos]
-        U = U[:, pos]
-        Vt = Vt[pos, :]
-        # Eigenvalues of the sample covariance
-        lam = s**2 / (n - 1)
-        # Regularised inverse square root: ((1 - c) * lam + c)^{-1/2}
-        inv_sqrt = 1.0 / np.sqrt((1.0 - regularization) * lam + regularization)
-        # Whitening matrix: shape (n_features, rank)
-        W = Vt.T * inv_sqrt
-        X_white = U * (s * inv_sqrt)
-    return X_white, W
+        _, s, Vt = xp.linalg.svd(X, full_matrices=False)
+        rank = int(xp.count_nonzero(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
+        lam, V = s[:rank] ** 2 / (n - 1), Vt[:rank, :].T
+    W = V / xp.sqrt((1.0 - regularization) * lam + regularization)
+    return X @ W, W
 
 
-def gevp(
-    A: np.ndarray,
-    B: np.ndarray | None,
-    k: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Solve a symmetric (generalised) eigenvalue problem and return the top-k pairs.
+def floored(matrix: Any, floor: float) -> Any:
+    """A symmetric matrix shifted to be positive definite, relative to its scale.
 
-    Solves ``A v = lambda B v`` (or the standard problem when B is None) and
-    returns the k eigenpairs with the largest eigenvalues.
+    The spectrum is raised so its smallest eigenvalue is at least ``floor``
+    times its largest, so the shift does not depend on the data's units.
+
+    Args:
+        matrix: Symmetric matrix of shape (p, p).
+        floor: Smallest eigenvalue allowed, as a fraction of the largest.
+
+    Returns:
+        Symmetric matrix of shape (p, p).
+    """
+    xp, _ = get_namespace(matrix)
+    eigenvalues = xp.linalg.eigvalsh(matrix)
+    shift = max(0.0, floor * float(eigenvalues[-1]) - float(eigenvalues[0]))
+    return matrix + shift * xp.eye(
+        matrix.shape[0], dtype=matrix.dtype, device=device(matrix)
+    )
+
+
+def psd_inverse_sqrt(matrix: Any, floor: float) -> Any:
+    """Inverse square root of a symmetric matrix, shifted to be positive definite.
+
+    The spectrum is raised so its smallest eigenvalue is at least ``floor``
+    times its largest, as :func:`floored`.
+
+    Args:
+        matrix: Symmetric matrix of shape (p, p).
+        floor: Smallest eigenvalue allowed, as a fraction of the largest.
+
+    Returns:
+        Symmetric matrix of shape (p, p).
+    """
+    xp, _ = get_namespace(matrix)
+    eigenvalues, vectors = xp.linalg.eigh(matrix)
+    shift = max(0.0, floor * float(eigenvalues[-1]) - float(eigenvalues[0]))
+    return (vectors / xp.sqrt(eigenvalues + shift)) @ vectors.T
+
+
+def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:
+    """Mean over samples of the outer product of each view's row.
+
+    For two views, ``views[0].T @ views[1] / n``.
+
+    Args:
+        views: Arrays of shape (n_samples, p_i).
+
+    Returns:
+        Array of shape (p_0, ..., p_{m-1}).
+    """
+    axes = string.ascii_letters[1 : len(views) + 1]
+    subscripts = ",".join("a" + axis for axis in axes) + "->" + axes
+    moment: np.ndarray = np.einsum(subscripts, *views, optimize=True) / len(views[0])
+    return moment
+
+
+def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
+    """Top ``k`` eigenpairs of ``A v = lambda B v``, or of ``A`` when ``B`` is None.
+
+    The generalized problem is reduced by the Cholesky factor ``B = L L'`` to
+    the symmetric ``L^{-1} A L^{-T} u = lambda u``, with ``v = L^{-T} u``.
 
     Args:
         A: Symmetric matrix of shape (p, p).
-        B: Symmetric positive-definite matrix of shape (p, p), or None for the
-            standard eigenvalue problem.
-        k: Number of eigenpairs to return.
+        B: Symmetric positive-definite matrix of shape (p, p), or None.
+        k: Number of eigenpairs.
 
     Returns:
-        Tuple ``(eigvals, eigvecs)`` where ``eigvals`` has shape ``(k,)`` and
-        ``eigvecs`` has shape ``(p, k)``, sorted in descending order.
+        ``(eigvals, eigvecs)`` of shapes (k,) and (p, k), in descending order.
     """
-    p = A.shape[0]
-    k_clamped = min(k, p)
+    xp, _ = get_namespace(A)
     if B is None:
-        eigvals, eigvecs = scipy.linalg.eigh(A, subset_by_index=[p - k_clamped, p - 1])
+        eigvals, eigvecs = xp.linalg.eigh(A)
     else:
-        eigvals, eigvecs = scipy.linalg.eigh(
-            A, B, subset_by_index=[p - k_clamped, p - 1]
-        )
-    idx = np.argsort(eigvals)[::-1]
-    return eigvals[idx].real, eigvecs[:, idx].real
+        L = xp.linalg.cholesky(B)
+        reduced = xp.linalg.solve(L, xp.linalg.solve(L, A).T)
+        eigvals, u = xp.linalg.eigh((reduced + reduced.T) / 2)
+        eigvecs = xp.linalg.solve(L.T, u)
+    k = min(k, A.shape[0])
+    return xp.flip(eigvals[-k:], axis=0), xp.flip(eigvecs[:, -k:], axis=1)
+
+
+def loading(view: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    """Regression of a view's columns on its score, ``X' X w / ||X w||^2``.
+
+    What :func:`deflate` removes from the view, per unit of score.
+    """
+    score = view @ weight
+    return np.asarray(view.T @ score / max(float(score @ score), 1e-12))
+
+
+def undeflated_weights(weights: np.ndarray, loadings: np.ndarray) -> np.ndarray:
+    """Weights giving deflated-view scores from the original view, ``W (P'W)^-1``.
+
+    Component ``d`` of ``weights`` acts on the view deflated by the earlier
+    components, whose :func:`loading` is column ``d`` of ``loadings``; the
+    result gives the same scores from the undeflated view, as sklearn's PLS
+    ``x_rotations_``, and is supported on the union of ``weights``' supports.
+
+    Args:
+        weights: Shape (n_features, n_components).
+        loadings: Shape (n_features, n_components).
+
+    Returns:
+        Shape (n_features, n_components).
+    """
+    return np.asarray(weights @ np.linalg.pinv(loadings.T @ weights))
 
 
 def soft_threshold(x: np.ndarray, threshold: float) -> np.ndarray:
-    """Apply element-wise soft (shrinkage) thresholding.
-
-    Computes ``sign(x) * max(|x| - threshold, 0)``.
-
-    Args:
-        x: Input array.
-        threshold: Non-negative threshold value.
-
-    Returns:
-        Thresholded array of the same shape as ``x``.
-    """
+    """Soft thresholding, ``sign(x) * max(|x| - threshold, 0)``."""
     return np.asarray(np.sign(x) * np.maximum(np.abs(x) - threshold, 0.0))
 
 
@@ -117,25 +184,23 @@ def deflate(
     views: list[np.ndarray],
     weights: list[np.ndarray],
 ) -> list[np.ndarray]:
-    """Deflate views by removing the variance explained by current weights.
+    """Remove from each view the variance along its current projection.
 
-    Uses the Gram-Schmidt / projection deflation approach:
-    ``X_deflated = X - (X @ w) (X @ w)^T X / ||(X @ w)||^2``
+    ``X - (X w)(X w)' X / ||X w||^2``.
 
     Args:
-        views: List of arrays each of shape (n_samples, n_features_i).
-        weights: List of weight vectors each of shape (n_features_i, 1) or
-            (n_features_i,).
+        views: Arrays of shape (n_samples, n_features_i).
+        weights: Weight vectors of shape (n_features_i,) or (n_features_i, 1).
 
     Returns:
-        List of deflated arrays with the same shapes as ``views``.
+        The deflated views.
     """
     deflated = []
     for view, w in zip(views, weights):
         w_col = w.reshape(-1, 1) if w.ndim == 1 else w[:, :1]
         score = view @ w_col  # (n, 1)
         norm_sq = float(np.squeeze(score.T @ score))
-        if norm_sq > 1e-12:
-            view = view - score @ (score.T @ view) / norm_sq
-        deflated.append(view)
+        deflated.append(
+            view - score @ (score.T @ view) / norm_sq if norm_sq > 1e-12 else view
+        )
     return deflated

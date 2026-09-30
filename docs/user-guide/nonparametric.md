@@ -28,7 +28,10 @@ in that RKHS and expressed via the *dual* (kernel coefficient) representation.
 
 **When to use:** Nonlinear two-view CCA. The kernel generalises MCCA.
 
-KCCA finds dual variables $\boldsymbol{\alpha}_i$ (one set per view) by solving:
+Each view's kernel $K_i$ is centred in feature space (sklearn's `KernelCenterer`), and a
+new row's kernel against the training rows is centred with the training statistics. KCCA
+is then exactly `MCCA` on each view's kernel feature map: with dual variables
+$\boldsymbol{\alpha}_i$ it solves
 
 $$
 A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
@@ -36,30 +39,35 @@ $$
 
 where:
 
-- $A$ is the block off-diagonal kernel cross-covariance matrix
-- $B = \mathrm{block\_diag}(c_i K_i + (1-c_i) K_i^2)$ regularises the within-view kernel matrices
+- $A$ has off-diagonal blocks $K_i K_j / (n-1)$, the covariances between views' scores
+- $B$ has diagonal blocks $(1-c_i) K_i^2 / (n-1) + c_i K_i$: the variance of the scores
+  $K_i \boldsymbol{\alpha}_i$, shrunk towards the squared norm of the feature-space direction
 
-The parameter `c` controls regularisation: larger `c` → stronger regularisation.
+`shrinkage` ($c_i$) means what it does for `MCCA`: 0 is kernel CCA and 1 kernel PLS. With
+`kernel="linear"`, `KCCA`, `KGCCA` and `KTCCA` are `MCCA`, `GCCA` and `TCCA`, and with any
+kernel `KCCA` equals `MCCA` on `Nystroem` features that use every training row as a
+landmark. For large $n$, a `Nystroem` approximation with fewer landmarks followed by the
+linear model is the scalable form of the same estimator.
 
 ```python
 from cca_zoo.nonparametric import KCCA
 
 # Linear kernel (recovers classical CCA in feature space)
-model = KCCA(latent_dimensions=2, kernel="linear", c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="linear", shrinkage=0.1).fit([X1, X2])
 
 # RBF kernel
-model = KCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit([X1, X2])
 
 # Polynomial kernel
-model = KCCA(latent_dimensions=2, kernel="poly", degree=3, c=0.1).fit([X1, X2])
+model = KCCA(n_components=2, kernel="poly", degree=3, shrinkage=0.1).fit([X1, X2])
 
 # Per-view kernel parameters (list = one entry per view)
 model = KCCA(
-    latent_dimensions=2,
+    n_components=2,
     kernel=["rbf", "poly"],
     gamma=[0.01, None],
     degree=[1, 3],
-    c=[0.1, 0.5],
+    shrinkage=[0.1, 0.5],
 ).fit([X1, X2])
 ```
 
@@ -84,12 +92,12 @@ $$
 Q = \sum_i \mu_i K_i \, B_i^{-1} \, K_i
 $$
 
-where $B_i = c_i K_i + (1-c_i) K_i^2$.
+with centred kernels and $B_i = (1-c_i) K_i^2 / (n-1) + c_i K_i$; it is `GCCA` on each view's kernel feature map.
 
 ```python
 from cca_zoo.nonparametric import KGCCA
 
-model = KGCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2, X3])
+model = KGCCA(n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1).fit([X1, X2, X3])
 ```
 
 ---
@@ -98,15 +106,15 @@ model = KGCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1).fit([X1, X2,
 
 **When to use:** Captures higher-order correlations in the kernel space for three or more views.
 
-KTCCA whitens the kernel matrices and builds a cross-moment tensor in the RKHS, then applies
-PARAFAC decomposition:
+KTCCA is `TCCA` on each view's kernel feature map: it whitens the feature maps, builds their
+cross-moment tensor and applies PARAFAC decomposition:
 
 ```python
 from cca_zoo.nonparametric import KTCCA
 
-model = KTCCA(latent_dimensions=2, kernel="rbf", gamma=0.01, c=0.1, random_state=0).fit(
-    [X1, X2, X3]
-)
+model = KTCCA(
+    n_components=2, kernel="rbf", gamma=0.01, shrinkage=0.1, random_state=0
+).fit([X1, X2, X3])
 ```
 
 ---
@@ -129,16 +137,12 @@ the joint eigenproblem solves for *is* each view's training-set embedding direct
 ```python
 from cca_zoo.nonparametric import ManifoldCCA
 
-model = ManifoldCCA(method="laplacian", n_neighbors=10, latent_dimensions=1).fit(
-    [X1, X2]
-)
-train_embedding = (
-    model.weights
-)  # (n_train, k) per view -- the embedding itself, not a weight matrix
+model = ManifoldCCA(method="laplacian", n_neighbors=10, n_components=1).fit([X1, X2])
+train_embedding = model.embedding_  # (n_train, k) per view
 ```
 
 Before solving, every view's operator is truncated to its own `n_operator_components`
-smallest-eigenvalue directions (default `max(4 * latent_dimensions, 10)`) -- the same truncation
+smallest-eigenvalue directions (default `max(4 * n_components, 10)`) -- the same truncation
 every spectral method already applies, and effectively this class's regularisation strength.
 Set too large (approaching `n_samples - 1`), the joint eigenproblem hands each view as many free
 directions as training points and, like any unregularised multivariate CCA at that
@@ -158,7 +162,12 @@ own established extension rather than a generic auxiliary model:
   `LocallyLinearEmbedding.transform`'s own mechanism (verified directly against it in the tests).
 - `method="laplacian"`: the classical Nystrom extension (Bengio et al. 2003) of each kept
   eigenvector, using the same degree-normalised affinity rule the training graph was built from,
-  then the same combination the joint solve used at training time.
+  then the same combination the joint solve used at training time. The extension divides by
+  `1 - eigenvalue`, so eigenvectors with eigenvalue above 0.95, barely smoother than noise, are
+  left out of the basis rather than amplified.
+
+Either extension returns a training point's own embedding: `transform` of the training views is
+`embedding_`.
 
 ```python
 z1, z2 = model.transform([X1_test, X2_test])
@@ -177,7 +186,7 @@ in place of a standard kernel.
 
 ## Hyperparameter tuning
 
-Kernel hyperparameters (`c`, `gamma`, `degree`) are best selected by cross-validation.
+Kernel hyperparameters (`shrinkage`, `gamma`, `degree`) are best selected by cross-validation.
 Use `GridSearchCV` from `cca_zoo.model_selection`:
 
 ```python
@@ -185,11 +194,11 @@ from cca_zoo.model_selection import GridSearchCV
 from cca_zoo.nonparametric import KCCA
 
 param_grid = {
-    "c": [0.01, 0.1, 1.0],
+    "shrinkage": [0.01, 0.1, 1.0],
     "gamma": [0.001, 0.01, 0.1],
 }
 gs = GridSearchCV(
-    KCCA(latent_dimensions=2, kernel="rbf"),
+    KCCA(n_components=2, kernel="rbf"),
     param_grid=param_grid,
     cv=5,
 )
@@ -202,24 +211,25 @@ best_model = gs.best_estimator_
 
 ## Custom kernels
 
-Pass any callable with signature `k(X, Y, **params) -> np.ndarray`:
+Pass any callable with signature `k(x, y, **params) -> float`. As with sklearn's
+`pairwise_kernels`, it is called on one pair of samples at a time, and `kernel_params`
+supplies its keyword arguments:
 
 ```python
 import numpy as np
 from cca_zoo.nonparametric import KCCA
 
 
-def my_kernel(X, Y, sigma=1.0):
-    """Gaussian kernel with explicit sigma."""
-    diff = X[:, None, :] - Y[None, :, :]
-    return np.exp(-np.sum(diff**2, axis=-1) / (2 * sigma**2))
+def my_kernel(x, y, sigma=1.0):
+    """Gaussian kernel of two samples, with explicit sigma."""
+    return np.exp(-np.sum((x - y) ** 2) / (2 * sigma**2))
 
 
 model = KCCA(
-    latent_dimensions=2,
+    n_components=2,
     kernel=my_kernel,
     kernel_params={"sigma": 0.5},
-    c=0.1,
+    shrinkage=0.1,
 ).fit([X1, X2])
 ```
 
@@ -234,5 +244,5 @@ model = KCCA(
   for moderate training-set sizes rather than very large $n$.
 - For large datasets, prefer the linear EY-loss methods (`CCAEY`, `PLSEY`, `StochasticCCAEY`)
   or deep methods.
-- The `c` parameter is crucial: too small → numerical instability; too large → loss of structure.
+- The `shrinkage` parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see [Model Selection](model-selection.md)).

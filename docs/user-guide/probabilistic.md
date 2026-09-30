@@ -27,18 +27,27 @@ $$
 $$
 
 $$
-\mathbf{x}_i \mid \mathbf{z} \sim \mathcal{N}(W_i \mathbf{z},\; \mathrm{diag}(\boldsymbol{\psi}_i))
+\mathbf{x}_i \mid \mathbf{z} \sim \mathcal{N}(W_i \mathbf{z},\; \Psi_i)
 $$
 
 where:
 
 - $\mathbf{z}$ is the $k$-dimensional shared latent variable
 - $W_i$ is the view-specific loading matrix with a Normal prior
-- $\boldsymbol{\psi}_i$ are per-feature noise variances with a log-Normal prior
+- $\Psi_i$ is a **full** noise covariance per view, with an LKJ prior on its correlation and
+  log-Normal priors on its scales
+
+The full $\Psi_i$ is what makes this CCA rather than factor analysis. With diagonal noise the
+latent has to explain the correlations *within* each view too, so a strong factor private to
+one view captures it; with a full $\Psi_i$ each view's own structure is noise, and the latent
+models only what the views share. At the maximum likelihood each view's posterior mean spans its
+canonical variates (Bach & Jordan 2005), and both classes start inference there. The latent is
+integrated out of the likelihood, so the posterior draws hold loadings and noise, not $z$.
 
 They share this model and the same posterior-mean projection formula for `transform`; they
 differ only in how the posterior is approximated. `GFA` modifies the model itself (per-view ARD,
-per-view scalar noise instead of per-feature) — see its own section below.
+per-view scalar noise, so view-specific structure is taken up by private latent dimensions) —
+see its own section below.
 
 ### Scoring: correlation vs likelihood
 
@@ -53,10 +62,10 @@ $$
 $$
 
 where $\mathbf{x}$ is the concatenation of every view's centred features for one sample, $W$
-stacks every view's loading matrix, and $\Psi$ is the (block-)diagonal noise-variance matrix.
+stacks every view's loading matrix, and $\Psi$ is the block-diagonal noise covariance.
 This is evaluated jointly across the concatenated views rather than per view: because every view
 shares the same $z$, marginalising it induces cross-view covariance that a per-view likelihood
-would silently ignore. Use `log_likelihood` to compare `latent_dimensions` choices, or to compare
+would silently ignore. Use `log_likelihood` to compare `n_components` choices, or to compare
 any of the three classes against each other on the same data — larger (less negative) is better.
 
 ```python
@@ -67,7 +76,7 @@ model.log_likelihood([X1, X2])  # mean log-likelihood per sample
 
 ## `GFA`: per-view ARD, no extra dependencies
 
-`GFA` (Group Factor Analysis; Klami, Virtanen & Kaski 2013) is ported directly from the
+`GFA` (Group Factor Analysis; Klami, Virtanen, Leppäaho & Kaski 2015) is ported directly from the
 reference R package [`CCAGFA`](https://github.com/cran/CCAGFA) — the update equations are
 transliterated from that source, not re-derived. It fits a single shared latent variable $z$,
 but gives **each view its own ARD precision** $\alpha_{i,k}$ per latent dimension, rather than
@@ -82,7 +91,7 @@ blocks: a dimension ends up shared if its $\alpha_{i,k}$ stays small in several 
 and private to view $i$ if it shrinks toward zero loadings in every *other* view. This is the
 actual mechanism behind "Bayesian CCA" that distinguishes it from `VariationalBayesCCA`'s single
 shared ARD parameter per dimension. It also uses a different noise model: $\tau_i$ is a single
-scalar precision per view (homoscedastic), not a per-feature diagonal.
+scalar precision per view (homoscedastic), not a full covariance.
 
 Inference is closed-form coordinate-ascent variational Bayes — fully conjugate, so there's no
 need for NumPyro/JAX at all. `GFA` works with just the base `cca-zoo` install.
@@ -90,15 +99,15 @@ need for NumPyro/JAX at all. `GFA` works with just the base `cca-zoo` install.
 ```python
 from cca_zoo.probabilistic import GFA
 
-# latent_dimensions is an upper bound; drop_k=True (default) prunes it
-model = GFA(latent_dimensions=5, random_state=0)
+# n_components is an upper bound; drop_k=True (default) prunes it
+model = GFA(n_components=5, random_state=0)
 model.fit([X1, X2])
 
 print(model.n_components_)  # <= 5: how many components survived pruning
-print(model.view_relevance_)  # (n_views, n_components_) posterior mean alpha
+print(model.ard_precision_)  # (n_views, n_components_) posterior mean alpha
 ```
 
-`view_relevance_[i, k]` large means "dimension k is shrunk away in view i" — a component with a
+`ard_precision_[i, k]` large means "dimension k is shrunk away in view i" — a component with a
 small value in one view and a huge one in every other view is private to that view; a component
 with small values everywhere is shared.
 
@@ -108,10 +117,11 @@ with small values everywhere is shared.
     monotonic, and so immune to this). Checking against a run with early stopping disabled
     caught this proxy staying below tolerance for 700+ iterations in the middle of a slow
     pruning process before rising again — a patience window makes this less likely, but can't
-    rule it out. If `n_components_` looks larger than you'd expect, raise `max_iter` (default
-    10000) rather than assuming the result is final.
+    rule it out. A fit that reaches `max_iter` (default 10000) without meeting the criterion
+    raises a `ConvergenceWarning`; if `n_components_` looks larger than you'd expect, raise
+    `max_iter` rather than assuming the result is final.
 
-`GFA.transform` and `GFA.weights` behave identically to the other two classes; `n_iter_` reports
+`GFA.transform` and `GFA.weights_` behave identically to the other two classes; `n_iter_` reports
 how many iterations were actually run.
 
 ---
@@ -126,16 +136,16 @@ full-batch NUTS scales poorly with $n$.
 from cca_zoo.probabilistic import ProbabilisticCCA
 
 model = ProbabilisticCCA(
-    latent_dimensions=2,
+    n_components=2,
     center=True,
-    num_warmup=500,
-    num_samples=1000,
+    n_warmup=500,
+    n_posterior_samples=1000,
     random_state=0,
 )
 model.fit([X1, X2])
 ```
 
-After fitting, `model.weights` holds the **posterior mean** loading matrices, and
+After fitting, `model.weights_` holds the **posterior mean** loading matrices, and
 `model.posterior_samples_` holds the full set of MCMC draws.
 
 !!! note "Rotational symmetry"
@@ -143,16 +153,15 @@ After fitting, `model.weights` holds the **posterior mean** loading matrices, an
     shared across views leaves the likelihood unchanged — and different NUTS draws can settle
     on different rotations along that ridge. Averaging un-aligned draws would then be *biased
     toward zero* (draws pointing along different rotations partially cancel), so `fit` aligns
-    every draw's loadings (and that draw's own `z`, to stay internally consistent) to a common
-    reference via generalized Procrustes analysis before computing `weights_` or storing
-    `posterior_samples_`. On a synthetic check, this raised a rotation-invariant coherence
+    every draw's loadings to a common reference via generalized Procrustes analysis before
+    computing `weights_` or storing `posterior_samples_`. On a synthetic check, this raised a rotation-invariant coherence
     ratio (`||mean(W)||²` vs the mean of `||W||²` across draws — 1.0 if every draw agrees on a
     rotation) from 0.81 to 0.99.
 
 ### Transform (posterior mean prediction)
 
 The latent representation is computed via the analytical posterior mean, using the posterior
-mean loadings and noise variances:
+mean loadings and noise covariances:
 
 $$
 \Sigma_z = \left(I + \sum_i W_i^\top \Psi_i^{-1} W_i\right)^{-1}
@@ -163,10 +172,14 @@ $$
 $$
 
 ```python
-z = model.transform(
-    [X1, X2]
-)  # list with one array of shape (n_samples, latent_dimensions)
+z = model.posterior_mean([X1, X2])  # shape (n_samples, n_components)
+z_from_x1 = model.posterior_mean([X1, None])  # conditioning on view 1 alone
 ```
+
+`transform` returns one array per view, as for every model in `cca_zoo`: each view's posterior
+mean given that view alone, the formula above with a single term in each sum. It weights
+features by their noise precision, so noisy features, and variation the view does not share,
+count for less than in the raw projection $X_i W_i$. Correlations, `score` and `predict` then work as they do elsewhere.
 
 ---
 
@@ -181,9 +194,9 @@ $$
 
 Because $\alpha_k$ ties every view's $k$-th loading column together, a shared latent dimension
 is only retained if some view actually uses it — irrelevant dimensions get shrunk toward zero in
-every view at once. The posterior mean of $\alpha_k$ (`model.ard_relevance_`) is a direct
+every view at once. The posterior mean of $\alpha_k$ (`model.ard_precision_`) is a direct
 usefulness score per dimension: large values mean "shrunk away, safe to drop". This gives
-automatic latent-dimensionality selection, as an alternative to sweeping `latent_dimensions` with
+automatic latent-dimensionality selection, as an alternative to sweeping `n_components` with
 `GridSearchCV`.
 
 Inference uses mean-field **stochastic variational inference (SVI)** rather than the closed-form
@@ -195,19 +208,19 @@ full NUTS.
 ```python
 from cca_zoo.probabilistic import VariationalBayesCCA
 
-# latent_dimensions is an upper bound here — set it generously and let ARD prune it
+# n_components is an upper bound here — set it generously and let ARD prune it
 model = VariationalBayesCCA(
-    latent_dimensions=5,
-    num_steps=2000,
+    n_components=5,
+    n_iter=2000,
     learning_rate=1e-2,
     random_state=0,
 )
 model.fit([X1, X2])
 
-print(model.ard_relevance_)  # one score per dimension; large = pruned
+print(model.ard_precision_)  # one score per dimension; large = pruned
 ```
 
-`model.transform` and `model.weights` behave identically to `ProbabilisticCCA`. `model.losses_`
+`model.transform` and `model.weights_` behave identically to `ProbabilisticCCA`. `model.losses_`
 holds the ELBO trace across SVI steps, useful for checking convergence.
 
 ---
@@ -215,50 +228,47 @@ holds the ELBO trace across SVI steps, useful for checking convergence.
 ## Full example
 
 ```python
-import numpy as np
-from cca_zoo.datasets import JointData
+from cca_zoo.datasets import make_joint_data
 from cca_zoo.probabilistic import GFA, ProbabilisticCCA, VariationalBayesCCA
 
 # Simulate correlated views
-data = JointData(
-    n_views=2,
+views = make_joint_data(
     n_samples=100,
     n_features=[10, 10],
-    latent_dimensions=2,
+    n_components=2,
     signal_to_noise=3.0,
     random_state=0,
 )
-views = data.sample()
 
 # Fit with GFA (no extra dependencies), requesting more dimensions than
 # needed to see per-view ARD prune the unsupported ones
-gfa_model = GFA(latent_dimensions=4, random_state=42)
+gfa_model = GFA(n_components=4, random_state=42)
 gfa_model.fit(views)
 print("GFA n_components_ after pruning:", gfa_model.n_components_)
-print("Per-view relevance:", gfa_model.view_relevance_)
+print("Per-view relevance:", gfa_model.ard_precision_)
 
 # Fit with MCMC (reduce warmup/samples for speed in examples)
 mcmc_model = ProbabilisticCCA(
-    latent_dimensions=2,
-    num_warmup=200,
-    num_samples=500,
+    n_components=2,
+    n_warmup=200,
+    n_posterior_samples=500,
     random_state=42,
 )
 mcmc_model.fit(views)
-print("Posterior mean weights shape:", mcmc_model.weights[0].shape)  # (10, 2)
+print("Posterior mean weights shape:", mcmc_model.weights_[0].shape)  # (10, 2)
 
 # Fit with variational inference, requesting more dimensions than needed
 # to see ARD prune the unsupported ones
 vb_model = VariationalBayesCCA(
-    latent_dimensions=4,
-    num_steps=2000,
+    n_components=4,
+    n_iter=2000,
     random_state=42,
 )
 vb_model.fit(views)
-print("ARD relevance per dimension:", vb_model.ard_relevance_)
+print("ARD relevance per dimension:", vb_model.ard_precision_)
 
-z = vb_model.transform(views)
-print("Latent shape:", z[0].shape)  # (100, 4)
+z = vb_model.posterior_mean(views)
+print("Latent shape:", z.shape)  # (100, 4)
 ```
 
 ---
@@ -272,10 +282,11 @@ print("Latent shape:", z[0].shape)  # (100, 4)
   you need the most accurate posterior (e.g. for final reported credible intervals) and $n$ is
   small enough for MCMC to be practical.
 - **Warmup vs samples (MCMC).** NUTS requires a warm-up phase to adapt the step size. A typical
-  setting is `num_warmup=500, num_samples=1000`. For exploration, `num_warmup=100,
-  num_samples=200` is enough.
-- **num_steps vs learning_rate (VB).** Check `model.losses_` — if it hasn't plateaued, increase
-  `num_steps`. If it's noisy or diverging, lower `learning_rate`.
+  setting is `n_warmup=500, n_posterior_samples=1000`. For exploration, `n_warmup=100,
+  n_posterior_samples=200` is enough.
+- **n_iter vs learning_rate (VB).** SVI runs all `n_iter` steps, with no stopping rule. Check
+  `model.losses_` — if it hasn't plateaued, increase `n_iter`. If it's noisy or diverging,
+  lower `learning_rate`.
 - **max_iter vs tol (GFA).** Convergence-based early stopping is a best-effort heuristic (see the
   warning above) — if `n_components_` looks too large, raise `max_iter` rather than lowering
   `tol` further.
@@ -283,9 +294,10 @@ print("Latent shape:", z[0].shape)  # (100, 4)
   uncertainty in the weights is meaningful (rough guide: $n < 500$ for MCMC; VB scales further).
 - **Feature scaling.** Center and scale your views before fitting (`center=True` is the
   default). The priors on $W_i$ assume unit-scale inputs.
-- **Convergence diagnostics.** Use [ArviZ](https://python.arviz.org/) on the NumPyro MCMC object
-  (accessible via `model.mcmc_` on `ProbabilisticCCA`) for R-hat and effective sample size checks.
+- **Convergence diagnostics.** `numpyro.diagnostics.summary(model.posterior_samples_,
+  group_by_chain=False)` gives the split R-hat and effective sample size of every site. The
+  fitted model keeps the draws, not the sampler, which would hold the training data.
 - **Comparing models.** Use `model.log_likelihood(held_out_views)` rather than `model.score(...)`
-  when the question is "which model/latent_dimensions fits this data better" — it's the
+  when the question is "which model/n_components fits this data better" — it's the
   statistically proper Bayesian criterion, unlike the correlation-based `score` every model
   shares for `GridSearchCV` consistency.

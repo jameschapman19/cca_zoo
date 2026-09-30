@@ -1,25 +1,4 @@
-"""Ensures every public API symbol has a docs/api/*.md entry.
-
-This directly guards against the failure mode that let several v2.6.0
-models go undocumented (and briefly GRCCA/PartialCCA/DMCCA/DGCCA too): a
-class gets added to a module's ``__all__`` but nobody remembers to add a
-matching mkdocstrings ``::: `` line to the corresponding API reference
-page. docs/api/*.md isn't auto-generated from ``__all__`` (it's hand
--curated into meaningful categories with headers), so this test is the
-mechanical backstop that catches the gap instead.
-
-It also guards a narrower version of the same failure mode one level
-down: mkdocstrings shows every public member of a documented class by
-default, but ``docs/api/linear.md`` overrides that for ``BaseModel`` with
-an explicit ``members:`` allowlist (to control display order). That
-allowlist is hand-maintained, so ``BaseModel.predict`` shipped in #240
-without being added to it and silently rendered nothing in the API
-reference until #242 noticed. ``BaseDeep``/``JointData``/``objectives``
-have similar ``members:`` overrides but are deliberately curated
-subsets of their class's full public surface, not "all of it", so
-they're not covered here -- only ``BaseModel``, where the allowlist is
-meant to be exhaustive.
-"""
+"""Every public name has an API reference entry."""
 
 from __future__ import annotations
 
@@ -33,8 +12,6 @@ from cca_zoo._base import BaseModel
 
 DOCS_API_DIR = Path(__file__).parent.parent / "docs" / "api"
 
-# Importable module name -> docs/api/*.md filename. Usually the same name;
-# model_selection is the one exception (hyphenated filename).
 MODULE_DOC_PAGES = {
     "cca_zoo.linear": "linear.md",
     "cca_zoo.metrics": "metrics.md",
@@ -105,21 +82,10 @@ def _members_list_for(doc_path: Path, dotted_path: str) -> list[str]:
 
 
 def test_basemodel_members_list_matches_public_api() -> None:
-    """docs/api/linear.md's BaseModel `members:` allowlist tracks its public API.
-
-    BaseModel documents its methods via an explicit `members:` list rather
-    than mkdocstrings' default "show every public member" behaviour, so a
-    newly added public method silently renders nothing in the API
-    reference until someone remembers to add it here by hand -- exactly
-    what happened to `predict` in #240. This is the mechanical backstop
-    for that specific failure mode.
-    """
+    """The API docs' `members:` list for BaseModel names every public method."""
     doc_path = DOCS_API_DIR / MODULE_DOC_PAGES["cca_zoo.linear"]
     documented = set(_members_list_for(doc_path, "cca_zoo._base.BaseModel"))
-    # sklearn's BaseEstimator.__init_subclass__ auto-injects a
-    # set_<method>_request(...) metadata-routing setter onto every
-    # subclass for each method that can take routed metadata -- framework
-    # noise, not part of cca_zoo's own curated public API.
+    # sklearn adds set_<method>_request metadata-routing setters itself.
     actual = {
         name
         for name in vars(BaseModel)

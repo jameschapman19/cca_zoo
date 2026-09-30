@@ -18,10 +18,8 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
         - predict
         - fit_transform
         - score
-        - pairwise_correlations
-        - average_pairwise_correlations
-        - weights
-        - get_factor_loadings
+        - get_feature_names_out
+        - set_output
 
 ---
 
@@ -31,7 +29,7 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
 
 ---
 
-::: cca_zoo.linear.rCCA
+::: cca_zoo.linear.RidgeCCA
 
 ---
 

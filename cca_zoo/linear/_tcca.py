@@ -1,123 +1,117 @@
-"""TCCA — Tensor Canonical Correlation Analysis."""
+"""Tensor CCA."""
 
 from __future__ import annotations
 
-from numbers import Integral
 from typing import Any, ClassVar
 
 import numpy as np
-import tensorly as tl
 from numpy.typing import ArrayLike
-from scipy.linalg import sqrtm
-from sklearn.utils._param_validation import Interval
-from tensorly.decomposition import parafac
+from sklearn.utils._param_validation import StrOptions
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._param_constraints import POSITIVE_EPS, RIDGE_PARAMETER
+from cca_zoo._utils._linalg import cross_moment_tensor, psd_inverse_sqrt
+from cca_zoo._utils._param_constraints import RANDOM_STATE, RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 
 class TCCA(BaseModel):
-    r"""Tensor Canonical Correlation Analysis.
+    r"""Tensor CCA: higher-order correlation of three or more views.
 
-    Extends CCA to more than two views by exploiting higher-order
-    cross-view correlations via a tensor product structure.  The method
-    constructs the order-M cross-moment tensor:
+    Decomposes the cross-moment tensor of the whitened views
+    $\tilde X_i = X_i \Sigma_i^{-1/2}$,
 
     $$
-    \mathcal{M}_{p_1 p_2 \ldots p_M}
-        = \frac{1}{n} \sum_{i=1}^n
-            \tilde{x}_{1,i}^{(p_1)}
-            \tilde{x}_{2,i}^{(p_2)}
-            \cdots
-            \tilde{x}_{M,i}^{(p_M)}
+    \mathcal{M} = \frac{1}{n} \sum_s \tilde x_{1s} \otimes \cdots \otimes \tilde x_{Ms},
     $$
 
-    where $\tilde{X}_j = X_j \Sigma_j^{-1/2}$ are the whitened views,
-    and then decomposes $\mathcal{M}$ using PARAFAC to recover the
-    canonical directions.
-
-    References:
-        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
-        correlation analysis for action classification. *CVPR 2007*. IEEE.
+    by PARAFAC; the factors give the canonical directions.
 
     Args:
-        latent_dimensions: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default True.
-        c: Ridge regularisation in ``[0, 1]``.  Default is 0.
-        eps: Regularisation floor for within-view covariance matrices.
-        random_state: Seed for reproducibility (passed to PARAFAC).
+        n_components: Number of latent dimensions. Default is 1.
+        center: Whether to centre each view. Default is True.
+        shrinkage: Shrinkage of each view's covariance towards the identity,
+            in ``[0, 1]``: 0 is CCA and 1 is PLS. Per-view. Default is 0.
+        init: PARAFAC's initialisation: ``"svd"``, deterministic, or
+            ``"random"``, seeded by ``random_state``; random starts show
+            whether the SVD start found the best of the tensor's local optima.
+            Default is ``"svd"``.
+        random_state: Seed for ``init="random"``, as sklearn's NMF uses it.
+            Default is None.
+
+    Attributes:
+        weights_: Weight matrix of each view, shape (n_features_i, n_components).
+
+    References:
+        Luo, Y., Tao, D., Ramamohanarao, K., Xu, C., & Wen, Y. (2015). Tensor
+        canonical correlation analysis for multi-view dimension reduction.
+        IEEE Transactions on Knowledge and Data Engineering, 27(11), 3111-3124.
 
     Examples:
         >>> import numpy as np
+        >>> from cca_zoo.linear import TCCA
         >>> rng = np.random.default_rng(0)
         >>> X1 = rng.standard_normal((50, 5))
         >>> X2 = rng.standard_normal((50, 5))
         >>> X3 = rng.standard_normal((50, 5))
-        >>> model = TCCA(latent_dimensions=2, random_state=0).fit([X1, X2, X3])
-        >>> scores = model.transform([X1, X2, X3])
+        >>> model = TCCA(n_components=2, random_state=0).fit([X1, X2, X3])
     """
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
-        "c": RIDGE_PARAMETER,
-        "eps": POSITIVE_EPS,
-        "random_state": [None, Interval(Integral, 0, None, closed="left")],
+        "shrinkage": RIDGE_PARAMETER,
+        "init": [StrOptions({"svd", "random"})],
+        "random_state": RANDOM_STATE,
     }
+
+    _EPS: ClassVar[float] = 1e-6
 
     def __init__(
         self,
-        latent_dimensions: int = 1,
+        n_components: int = 1,
+        *,
         center: bool = True,
-        c: float | list[float] = 0.0,
-        eps: float = 1e-6,
-        random_state: int | None = None,
+        shrinkage: float | list[float] = 0.0,
+        init: str = "svd",
+        random_state: int | np.random.RandomState | None = None,
     ) -> None:
-        super().__init__(latent_dimensions=latent_dimensions, center=center)
-        self.c = c
-        self.eps = eps
+        super().__init__(n_components=n_components, center=center)
+        self.shrinkage = shrinkage
+        self.init = init
         self.random_state = random_state
 
     def fit(self, views: list[ArrayLike], y: None = None) -> TCCA:
-        """Fit the TCCA model.
+        """Fit the model.
 
         Args:
-            views: List of arrays, each (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
             y: Ignored.
 
         Returns:
-            self: Fitted estimator.
-
-        Raises:
-            ValueError: If fewer than 2 views are provided.
-            ValueError: If views have inconsistent numbers of samples.
+            self.
         """
         views_: list[np.ndarray] = self._setup_fit(views)
-        c_ = perview_parameter("c", self.c, 0.0, self.n_views_)
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         whitened, cov_invsqrt = self._whiten_views(views_, c_)
 
-        # Build cross-moment tensor via sequential outer products
-        M: np.ndarray | None = None
-        for i, wv in enumerate(whitened):
-            if M is None:
-                M = wv
-            else:
-                for _ in range(len(M.shape) - 1):
-                    wv = np.expand_dims(wv, 1)
-                M = np.expand_dims(M, -1) @ wv
-        assert M is not None
-        M = np.mean(M, 0)
+        M = cross_moment_tensor(whitened)
 
-        tl.set_backend("numpy")
-        parafac_result = parafac(
-            M,
-            self.latent_dimensions,
-            verbose=False,
-            random_state=self.random_state,
-        )
+        # Imported here: importing tensorly prints SyntaxWarnings on Python
+        # 3.12, which every user of cca_zoo would otherwise see.
+        import tensorly as tl
+        from tensorly.decomposition import parafac
+
+        with tl.backend_context("numpy"):
+            parafac_result = parafac(
+                M,
+                self.n_components,
+                init=self.init,
+                random_state=self.random_state,
+                verbose=False,
+            )
         self.weights_: list[np.ndarray] = [
             cov_invsqrt[i] @ fac for i, fac in enumerate(parafac_result.factors)
         ]
+        self._fit_maps_and_importances(views_)
         return self
 
     def _whiten_views(
@@ -125,23 +119,12 @@ class TCCA(BaseModel):
         views: list[np.ndarray],
         c: list[float],
     ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-        """Whiten each view using its regularised covariance.
-
-        Args:
-            views: Centred view arrays.
-            c: Per-view regularisation parameters.
-
-        Returns:
-            Tuple of (whitened_views, inverse_sqrt_covariances).
-        """
+        """Whitened views and each view's inverse square-root covariance."""
         whitened = []
         cov_invsqrt = []
         for i, v in enumerate(views):
             cov = (1.0 - c[i]) * np.cov(v, rowvar=False) + c[i] * np.eye(v.shape[1])
-            min_eig = np.linalg.eigvalsh(cov).min()
-            if min_eig < self.eps:
-                cov += (self.eps - min_eig) * np.eye(cov.shape[0])
-            invsqrt = np.linalg.inv(sqrtm(cov).real)
+            invsqrt = psd_inverse_sqrt(cov, self._EPS)
             whitened.append(v @ invsqrt)
             cov_invsqrt.append(invsqrt)
         return whitened, cov_invsqrt

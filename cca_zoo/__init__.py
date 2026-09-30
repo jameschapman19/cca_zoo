@@ -1,9 +1,4 @@
-"""CCA-Zoo: Multiview Canonical Correlation Analysis library.
-
-A scikit-learn style library implementing a wide range of multiview
-Canonical Correlation Analysis methods including linear, kernel,
-deep learning, tree-based, GAM-based, and probabilistic variants.
-"""
+"""Multiview canonical correlation analysis with a scikit-learn API."""
 
 import importlib.metadata
 

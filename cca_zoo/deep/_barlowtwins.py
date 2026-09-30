@@ -1,109 +1,83 @@
-"""BarlowTwins — Self-supervised learning via redundancy reduction (Zbontar 2021)."""
+"""Barlow Twins."""
 
 from __future__ import annotations
+
+import itertools
 
 import torch
 import torch.nn as nn
 
-from cca_zoo.deep._dcca import DCCA
+from cca_zoo.deep._base import BaseDeep, Batch
 
 
-class BarlowTwins(DCCA):
-    r"""Barlow Twins self-supervised learning model.
-
-    Learns representations by encouraging the cross-correlation matrix
-    between two views to be close to the identity:
+class BarlowTwins(BaseDeep):
+    r"""Barlow Twins: drive the cross-correlation between views to the identity.
 
     $$
-    \mathcal{L} = \sum_i (1 - C_{ii})^2 + \lambda \sum_{i \neq j} C_{ij}^2,
-    \qquad C = \frac{1}{n} Z_1^\top Z_2
+    \mathcal{L} = \sum_{a < b} \Bigl( \sum_i (1 - C^{ab}_{ii})^2
+        + \lambda \sum_{i \neq j} (C^{ab}_{ij})^2 \Bigr),
+    \qquad C^{ab} = \tfrac{1}{n} Z_a^\top Z_b,
     $$
 
-    where $Z_1, Z_2$ are the batch-normalised representations of the
-    two views. Batch normalisation is applied per-view before computing
-    $C$.
-
-    References:
-        Zbontar, J., et al. "Barlow twins: Self-supervised learning via
-        redundancy reduction." ICML 2021.
+    for batch-normalised encodings $Z_a$, summed over pairs of views; with two
+    views this is the original loss.
 
     Args:
-        latent_dimensions: Dimensionality of the shared latent space.
-        encoders: List of :class:`torch.nn.Module` objects, one per view.
-        lam: Weight for the off-diagonal redundancy penalty.
-            Default is 5e-3.
-        objective: Ignored; the Barlow Twins loss is fixed. Accepted for
-            API compatibility.
-        lr: Learning rate. Default is 1e-3.
-        max_epochs: Maximum training epochs. Default is 100.
-        eps: Unused. Present for API compatibility. Default is 1e-6.
+        n_components: Number of latent dimensions.
+        encoders: One module per view.
+        lam: Weight of the off-diagonal term. Default is 5e-3.
+        learning_rate: Adam learning rate. Default is 1e-3.
+
+    References:
+        Zbontar, J., Jing, L., Misra, I., LeCun, Y., & Deny, S. (2021).
+        Barlow twins: Self-supervised learning via redundancy reduction.
+        ICML.
 
     Examples:
-        >>> import torch
         >>> import torch.nn as nn
-        >>> enc1 = nn.Linear(10, 4)
-        >>> enc2 = nn.Linear(8, 4)
-        >>> model = BarlowTwins(latent_dimensions=4, encoders=[enc1, enc2], lam=5e-3)
+        >>> from cca_zoo.deep import BarlowTwins
+        >>> encoders = [nn.Linear(10, 4), nn.Linear(8, 4)]
+        >>> model = BarlowTwins(n_components=4, encoders=encoders)
     """
 
     def __init__(
         self,
-        latent_dimensions: int,
+        n_components: int,
         encoders: list[nn.Module],
         lam: float = 5e-3,
-        objective: nn.Module | None = None,
-        lr: float = 1e-3,
-        max_epochs: int = 100,
-        eps: float = 1e-6,
+        learning_rate: float = 1e-3,
     ) -> None:
         super().__init__(
-            latent_dimensions=latent_dimensions,
+            n_components=n_components,
             encoders=encoders,
-            objective=objective,
-            lr=lr,
-            max_epochs=max_epochs,
-            eps=eps,
+            learning_rate=learning_rate,
         )
         self.lam = lam
         self.bns = nn.ModuleList(
-            [nn.BatchNorm1d(latent_dimensions, affine=False) for _ in encoders]
+            [nn.BatchNorm1d(n_components, affine=False) for _ in encoders]
         )
 
     def forward(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
-        """Encode views and apply batch normalisation.
-
-        Args:
-            views: List of input tensors, one per view.
-
-        Returns:
-            List of batch-normalised latent tensors.
-        """
+        """Batch-normalised encodings of each view."""
         return [bn(enc(v)) for enc, bn, v in zip(self.encoders, self.bns, views)]
 
-    def loss(
-        self,
-        representations: list[torch.Tensor],
-        independent_representations: list[torch.Tensor] | None = None,
-    ) -> dict[str, torch.Tensor]:
-        """Compute the Barlow Twins loss for two batch-normalised views.
+    def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
+        """The Barlow Twins loss of a batch and its terms.
 
         Args:
-            representations: List containing exactly two batch-normalised
-                tensors, each of shape (batch_size, latent_dimensions).
-            independent_representations: Unused.
+            batch: Dictionary with a ``"views"`` list of tensors.
 
         Returns:
-            Dictionary with keys ``"objective"``, ``"invariance"``, and
-            ``"redundancy"``.
+            ``{"objective", "invariance", "redundancy"}``.
         """
-        z1, z2 = representations[0], representations[1]
-        n = z1.shape[0]
-        cross_cov = z1.T @ z2 / n
-
-        invariance = torch.sum(torch.pow(1.0 - torch.diag(cross_cov), 2))
-        # Off-diagonal entries
-        mask = ~torch.eye(cross_cov.shape[0], dtype=torch.bool, device=cross_cov.device)
-        redundancy = torch.sum(torch.pow(cross_cov[mask], 2))
+        representations = self(batch["views"])
+        n, k = representations[0].shape
+        off_diagonal = ~torch.eye(k, dtype=torch.bool, device=representations[0].device)
+        invariance = redundancy = torch.zeros((), device=representations[0].device)
+        for z1, z2 in itertools.combinations(representations, 2):
+            cross = z1.T @ z2 / n
+            invariance = invariance + torch.sum((1.0 - torch.diag(cross)) ** 2)
+            redundancy = redundancy + torch.sum(cross[off_diagonal] ** 2)
         objective = invariance + self.lam * redundancy
         return {
             "objective": objective,

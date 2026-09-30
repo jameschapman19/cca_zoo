@@ -38,10 +38,6 @@ Squares (ALS).
 
 ---
 
-::: cca_zoo.sparse.WaijenborgCCA
-
----
-
 ::: cca_zoo.sparse.ParkhomenkoCCA
 
 ---

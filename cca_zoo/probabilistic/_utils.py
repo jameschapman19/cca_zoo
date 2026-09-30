@@ -2,10 +2,35 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
+from sklearn.utils.validation import check_is_fitted
+
+from cca_zoo._base import BaseModel
+
+
+def _integer_seed(random_state: int | None) -> int:
+    """An integer JAX seed from any ``random_state``."""
+    return int(np.random.default_rng(random_state).integers(2**31 - 1))
+
+
+def _noise_solve(psi: np.ndarray, a: np.ndarray) -> np.ndarray:
+    """``Psi^{-1} a`` for noise given as variances (p,) or a covariance (p, p)."""
+    if psi.ndim == 1:
+        scaled: np.ndarray = a / np.maximum(psi, 1e-8).reshape(-1, *[1] * (a.ndim - 1))
+        return scaled
+    solved: np.ndarray = scipy.linalg.cho_solve(scipy.linalg.cho_factor(psi), a)
+    return solved
+
+
+def _noise_logdet(psi: np.ndarray) -> float:
+    """``log det Psi`` for noise given as variances or a covariance."""
+    if psi.ndim == 1:
+        return float(np.sum(np.log(np.maximum(psi, 1e-300))))
+    return float(np.linalg.slogdet(psi)[1])
 
 
 def posterior_mean_latent(
@@ -13,39 +38,31 @@ def posterior_mean_latent(
     weights: list[np.ndarray],
     psi: list[np.ndarray],
 ) -> np.ndarray:
-    r"""Posterior mean of the shared latent variable given fixed loadings.
-
-    Closed-form posterior mean for a linear-Gaussian multiview factor model
-    with point-estimate loadings ``weights`` and diagonal per-feature noise
-    variances ``psi``:
+    r"""Posterior mean of the shared latent given loadings and noise.
 
     $$
-    \Sigma_{z \mid x} = \left(I + \sum_i W_i^\top \Psi_i^{-1} W_i\right)^{-1}
-    $$
-
-    $$
-    \mu_{z \mid x} = \Sigma_{z \mid x} \sum_i W_i^\top \Psi_i^{-1} x_i
+    \mu_{z \mid x} = \Bigl(I + \sum_i W_i^\top \Psi_i^{-1} W_i\Bigr)^{-1}
+        \sum_i W_i^\top \Psi_i^{-1} x_i
     $$
 
     Args:
-        centered_views: Per-view arrays, each ``(n_samples, n_features_i)``,
-            already centred by the caller.
-        weights: Per-view loading matrices, each ``(n_features_i, k)``.
-        psi: Per-view noise-variance vectors, each ``(n_features_i,)``.
+        centered_views: Centred arrays of shape (n_samples, n_features_i).
+        weights: Loadings of shape (n_features_i, k), one per view.
+        psi: Noise of each view: variances of shape (n_features_i,) or a
+            covariance of shape (n_features_i, n_features_i).
 
     Returns:
-        Array of shape ``(n_samples, k)``: the posterior mean of z.
+        The posterior mean, shape (n_samples, k).
     """
     k = weights[0].shape[1]
-    n = centered_views[0].shape[0]
     precision = np.eye(k)
-    information = np.zeros((n, k))
+    information = np.zeros((centered_views[0].shape[0], k))
     for xi, w_i, psi_i in zip(centered_views, weights, psi):
-        psi_inv = 1.0 / np.maximum(psi_i, 1e-8)
-        precision = precision + w_i.T @ (w_i * psi_inv[:, np.newaxis])
-        information = information + (xi * psi_inv) @ w_i
-    sigma_z = np.linalg.inv(precision)
-    return information @ sigma_z
+        scaled = _noise_solve(psi_i, w_i)
+        precision = precision + w_i.T @ scaled
+        information = information + xi @ scaled
+    mean: np.ndarray = np.linalg.solve(precision, information.T).T
+    return mean
 
 
 def marginal_log_likelihood(
@@ -53,103 +70,143 @@ def marginal_log_likelihood(
     weights: list[np.ndarray],
     psi: list[np.ndarray],
 ) -> float:
-    r"""Mean per-sample log-likelihood with the shared latent variable integrated out.
+    r"""Mean per-sample log-likelihood with the latent integrated out.
 
-    Marginalising $z \sim \mathcal{N}(0, I_k)$ out of the generative model
-    gives, for the concatenation $x$ of every view's centred features for
-    one sample:
-
-    $$
-    x \sim \mathcal{N}\!\left(0,\ \Psi + WW^\top\right)
-    $$
-
-    where $W$ stacks every view's loading matrix row-wise and $\Psi$ is the
-    (block-)diagonal noise-variance matrix. Crucially this is evaluated on
-    the *concatenation* of all views, not per view independently: because
-    every view shares the same $z$, marginalising it induces cross-view
-    covariance ($W_i W_j^\top$ blocks) that a per-view likelihood would
-    silently ignore, understating how well the shared structure fits.
-
-    Uses the Woodbury identity and the matrix determinant lemma so the cost
-    is linear in the total feature dimension $P = \sum_i p_i$ and only cubic
-    in the (typically much smaller) latent dimension $k$, rather than
-    requiring a $P \times P$ inverse.
+    The concatenated views are $x \sim \mathcal{N}(0, \Psi + W W^\top)$ with
+    $\Psi$ block-diagonal, evaluated jointly so the cross-view covariance
+    counts, via the Woodbury identity one view's noise at a time.
 
     Args:
-        centered_views: Per-view arrays, each ``(n_samples, n_features_i)``,
-            already centred by the caller.
-        weights: Per-view loading matrices, each ``(n_features_i, k)``.
-        psi: Per-view noise-variance vectors, each ``(n_features_i,)``.
+        centered_views: Centred arrays of shape (n_samples, n_features_i).
+        weights: Loadings of shape (n_features_i, k), one per view.
+        psi: Noise of each view, as in :func:`posterior_mean_latent`.
 
     Returns:
-        The mean log-likelihood per sample (a scalar), averaged rather than
-        summed so it's comparable across differently-sized held-out sets.
+        The mean log-likelihood per sample.
     """
-    w_full = np.concatenate(weights, axis=0)  # (P, k)
-    psi_full = np.concatenate(psi, axis=0)  # (P,)
-    x_full = np.concatenate(centered_views, axis=1)  # (n, P)
-    n_samples, n_features = x_full.shape
-    k = w_full.shape[1]
-
-    psi_inv = 1.0 / np.maximum(psi_full, 1e-8)  # (P,)
-    m = np.eye(k) + (w_full.T * psi_inv) @ w_full  # I + W^T Psi^-1 W, (k, k)
-    m_inv = np.linalg.inv(m)
-
-    # log det(Psi + W W^T) = log det(Psi) + log det(I + W^T Psi^-1 W)
-    log_det_sigma = np.sum(np.log(np.maximum(psi_full, 1e-300)))
-    log_det_sigma += np.linalg.slogdet(m)[1]
-
-    x_scaled = x_full * psi_inv  # x^T Psi^-1, per sample: (n, P)
-    quad_diag = np.einsum("np,np->n", x_full, x_scaled)  # x^T Psi^-1 x
-    proj = x_scaled @ w_full  # (Psi^-1 x)^T W, per sample: (n, k)
-    quad_correction = np.einsum("nk,kj,nj->n", proj, m_inv, proj)
-    quad = quad_diag - quad_correction  # x^T Sigma^-1 x, via Woodbury
-
-    log_lik_per_sample = -0.5 * (n_features * np.log(2 * np.pi) + log_det_sigma + quad)
-    return float(np.mean(log_lik_per_sample))
+    k = weights[0].shape[1]
+    n_features = sum(w.shape[0] for w in weights)
+    m = np.eye(k)  # I + W' Psi^-1 W
+    projection = np.zeros((centered_views[0].shape[0], k))  # x' Psi^-1 W
+    quad = np.zeros(centered_views[0].shape[0])  # x' Psi^-1 x
+    log_det = 0.0
+    for xi, w_i, psi_i in zip(centered_views, weights, psi):
+        scaled = _noise_solve(psi_i, w_i)
+        m = m + w_i.T @ scaled
+        projection = projection + xi @ scaled
+        quad = quad + np.einsum("np,pn->n", xi, _noise_solve(psi_i, xi.T))
+        log_det += _noise_logdet(psi_i)
+    log_det += float(np.linalg.slogdet(m)[1])
+    quad = quad - np.einsum("nk,kn->n", projection, np.linalg.solve(m, projection.T))
+    log_lik = -0.5 * (n_features * np.log(2 * np.pi) + log_det + quad)
+    return float(np.mean(log_lik))
 
 
-def _orthogonal_procrustes_rotation(
-    source: np.ndarray, target: np.ndarray
-) -> np.ndarray:
-    """Orthogonal ``R`` minimising ``||source @ R - target||_F`` (via SVD)."""
-    u, _, vt = np.linalg.svd(source.T @ target)
-    return u @ vt
+def maximum_likelihood_start(
+    views: list[np.ndarray], n_components: int
+) -> dict[str, np.ndarray]:
+    r"""Bach and Jordan's maximum-likelihood PCCA, as starting values for inference.
+
+    $W_i = \Sigma_{ii} U_i P^{1/2}$ and $\Psi_i = \Sigma_{ii} - W_i W_i^\top$,
+    for canonical directions $U_i$ at unit variance and canonical
+    correlations $P$: the maximum likelihood for two views, and MCCA's
+    analogue for more. Keyed by the sample sites of :func:`pcca_model`.
+
+    Args:
+        views: Centred arrays of shape (n_samples, n_features_i).
+        n_components: Number of latent dimensions.
+
+    Returns:
+        Starting values of ``W_{i}``, ``noise_sd_{i}`` and ``noise_corr_{i}``.
+    """
+    from cca_zoo.linear import MCCA
+    from cca_zoo.metrics import average_pairwise_correlations, pairwise_correlations
+
+    arrays: list[ArrayLike] = list(views)
+    mcca = MCCA(n_components, center=False).fit(arrays)
+    scores = mcca.transform(arrays)
+    rho = np.clip(average_pairwise_correlations(pairwise_correlations(scores)), 0, 0.99)
+    start = {}
+    for i, (view, weights, score) in enumerate(zip(views, mcca.weights_, scores)):
+        sigma = view.T @ view / (len(view) - 1)
+        w = sigma @ (weights / score.std(axis=0, ddof=1)) * np.sqrt(rho)
+        psi = sigma - w @ w.T
+        psi += 1e-6 * np.trace(psi) / len(psi) * np.eye(len(psi))
+        sd = np.sqrt(np.diag(psi))
+        start[f"W_{i}"] = w
+        start[f"noise_sd_{i}"] = sd
+        start[f"noise_corr_{i}"] = np.linalg.cholesky(psi / np.outer(sd, sd))
+    return start
+
+
+def pcca_model(
+    views: list[np.ndarray], n_components: int, weight_scale: Any = 1.0
+) -> None:
+    r"""Numpyro model of probabilistic CCA, the latent integrated out.
+
+    Bach and Jordan's model, $x_i = W_i z + \epsilon_i$ with
+    $\epsilon_i \sim \mathcal{N}(0, \Psi_i)$ and $\Psi_i$ a full covariance,
+    so that the latent explains only what the views share. Each $\Psi_i$ is
+    ``noise_sd_{i}`` times an LKJ correlation ``noise_corr_{i}``. Integrating
+    $z$ out, the stacked views are $\mathcal{N}(0, W W^\top + \Psi)$.
+
+    Args:
+        views: Centred arrays of shape (n_samples, n_features_i).
+        n_components: Number of latent dimensions.
+        weight_scale: Prior standard deviation of the loadings, broadcast to
+            each view's.
+    """
+    import jax.numpy as jnp
+    import jax.scipy.linalg
+    import numpyro
+    import numpyro.distributions as dist
+
+    loadings, noise = [], []
+    for i, x in enumerate(views):
+        p = x.shape[1]
+        loadings.append(
+            numpyro.sample(
+                f"W_{i}",
+                dist.Normal(
+                    jnp.zeros((p, n_components)),
+                    jnp.broadcast_to(weight_scale, (p, n_components)),
+                ).to_event(2),
+            )
+        )
+        sd = numpyro.sample(
+            f"noise_sd_{i}", dist.LogNormal(jnp.zeros(p), jnp.ones(p)).to_event(1)
+        )
+        cholesky = sd[:, None] * (
+            numpyro.sample(f"noise_corr_{i}", dist.LKJCholesky(p, 1.0))
+            if p > 1
+            else jnp.ones((1, 1))
+        )
+        noise.append(cholesky @ cholesky.T)
+    w = jnp.concatenate(loadings, axis=0)
+    covariance = w @ w.T + jax.scipy.linalg.block_diag(*noise)
+    with numpyro.plate("n", views[0].shape[0]):
+        numpyro.sample(
+            "x",
+            dist.MultivariateNormal(jnp.zeros(len(covariance)), covariance),
+            obs=jnp.concatenate([jnp.asarray(x) for x in views], axis=1),
+        )
 
 
 def align_posterior_rotation(
     w_samples: np.ndarray, n_iter: int = 3
 ) -> tuple[np.ndarray, np.ndarray]:
-    r"""Resolve rotational ambiguity across posterior draws via generalized Procrustes.
+    r"""Align posterior draws of the loadings by generalized Procrustes.
 
-    Bayesian CCA (like probabilistic PCA/factor analysis) has an exact
-    symmetry: replacing $z \to zR$ and $W_i \to W_i R$ for *any* orthogonal
-    $R$ (shared across every view) leaves the likelihood completely
-    unchanged, since $(zR)(W_iR)^\top = zRR^\top W_i^\top = zW_i^\top$.
-    Different posterior draws (MCMC steps, in particular) can settle on
-    different rotations along this exact ridge of equal density.
-
-    Averaging *un-aligned* draws for a posterior-mean point estimate is
-    then not just noisy but **biased toward zero**: draws pointing along
-    different rotations of the same subspace partially cancel rather than
-    reinforce each other. This aligns every draw to a shared reference
-    (iterating a few rounds since the reference is itself re-estimated from
-    the aligned draws — generalized orthogonal Procrustes analysis) before
-    any downstream averaging.
+    The likelihood is invariant to $W_i \to W_i R$ for orthogonal $R$, so
+    unaligned draws partly cancel when averaged.
 
     Args:
-        w_samples: Posterior draws of stacked loadings, shape
-            ``(num_samples, P, k)`` where ``P`` is the number of features
-            stacked across every view.
-        n_iter: Number of alignment refinement passes.
+        w_samples: Stacked loadings, shape (n_draws, P, k).
+        n_iter: Alignment passes.
 
     Returns:
-        aligned: ``w_samples`` with each draw right-multiplied by its
-            fitted per-draw rotation, same shape.
-        rotations: The per-draw rotation matrices applied, shape
-            ``(num_samples, k, k)``. Apply the same rotation to that draw's
-            ``z`` (or anything else with a latent-dimension axis) to keep
-            the draw internally consistent.
+        ``(aligned, rotations)``: the rotated draws, and the rotation of each
+        draw, shape (n_draws, k, k).
     """
     num_samples, _, k = w_samples.shape
     reference = w_samples.mean(axis=0)
@@ -157,193 +214,112 @@ def align_posterior_rotation(
     aligned = w_samples.copy()
     for _ in range(n_iter):
         for s in range(num_samples):
-            r = _orthogonal_procrustes_rotation(w_samples[s], reference)
+            r = scipy.linalg.orthogonal_procrustes(w_samples[s], reference)[0]
             rotations[s] = r
             aligned[s] = w_samples[s] @ r
         reference = aligned.mean(axis=0)
     return aligned, rotations
 
 
-class PosteriorMeanTransformMixin:
-    """Shared ``transform`` for models storing posterior samples of ``log_psi_i``.
+class BaseProbabilistic(BaseModel):
+    """Posterior inference of the shared latent for the probabilistic models.
 
-    Requires the including class to set, after fitting: ``n_views_``,
-    ``means_``, ``weights_`` (posterior mean loadings), and
-    ``posterior_samples_`` (a dict with a ``log_psi_{i}`` entry per view,
-    each of shape ``(num_samples, n_features_i)``).
+    Subclasses set ``weights_`` and ``posterior_samples_`` in ``fit``. The
+    samples hold each view's noise standard deviations as ``noise_sd_{i}``
+    and, for a full noise covariance, the Cholesky factor of its correlation
+    as ``noise_corr_{i}``.
     """
 
-    # Declared for mypy: set by the including class's fit(), not here.
-    n_views_: int
-    means_: list[np.ndarray]
     weights_: list[np.ndarray]
     posterior_samples_: dict[str, Any]
 
-    def transform(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Return the posterior mean of the shared latent variable z.
+    _components_bounded_by_features: ClassVar[bool] = False
 
-        Note:
-            Unlike every other model in ``cca_zoo`` (one array per view),
-            this returns a **single-element** list: this is a fully
-            generative joint model with one shared latent variable rather
-            than a per-view projection, so there is only one array to
-            return.
+    def _noise(self) -> list[np.ndarray]:
+        """Posterior-mean noise of each view: a covariance, or variances if diagonal."""
+        noise = []
+        for i in range(self.n_views_):
+            sd = np.asarray(self.posterior_samples_[f"noise_sd_{i}"])
+            correlation = self.posterior_samples_.get(f"noise_corr_{i}")
+            if correlation is None:
+                noise.append(np.mean(sd**2, axis=0))
+            else:
+                cholesky = sd[:, :, None] * np.asarray(correlation)
+                noise.append(np.mean(cholesky @ cholesky.transpose(0, 2, 1), axis=0))
+        return noise
+
+    def _encoder(self, view: int) -> np.ndarray:
+        r"""Matrix mapping a centred view to its own posterior mean latent.
+
+        $\Psi_i^{-1} W_i (I + W_i^\top \Psi_i^{-1} W_i)^{-1}$, of shape
+        (n_features_i, k).
+        """
+        w = self.weights_[view]
+        scaled = _noise_solve(self._noise()[view], w)
+        encoder: np.ndarray = scaled @ np.linalg.inv(np.eye(w.shape[1]) + w.T @ scaled)
+        return encoder
+
+    def _transform_view(self, view: int, centred: np.ndarray) -> np.ndarray:
+        """Posterior mean of the latent given this view alone."""
+        return self._shared_latent({view: centred})
+
+    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
+        """Variance share of each feature in its view's linear posterior mean."""
+        return [
+            train.var(axis=0) * np.sum(self._encoder(i) ** 2, axis=1)
+            for i, train in enumerate(views)
+        ]
+
+    def _shared_latent(self, observed: dict[int, np.ndarray]) -> np.ndarray:
+        """Posterior mean of the latent given the observed views alone."""
+        psi = self._noise()
+        views = list(observed)
+        return posterior_mean_latent(
+            [observed[i] for i in views],
+            [self.weights_[i] for i in views],
+            [psi[i] for i in views],
+        )
+
+    def posterior_mean(self, views: list[ArrayLike | None]) -> np.ndarray:
+        """Posterior mean of the shared latent variable.
+
+        Unlike :meth:`transform`, which infers the latent from each view
+        separately, this combines every view's evidence. ``None`` marks an
+        unobserved view.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: One array of shape (n_samples, n_features_i) or None per view.
 
         Returns:
-            List with exactly one numpy array of shape
-            (n_samples, latent_dimensions) containing the posterior mean of
-            the shared latent variable z for each observation.
+            The posterior mean, shape (n_samples, n_components).
 
         Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            ValueError: If ``views`` has the wrong length or is all None.
         """
-        from sklearn.utils.validation import check_is_fitted
-
-        from cca_zoo._utils._validation import validate_views
-
         check_is_fitted(self)
-        validated = validate_views(views)
-        centered = [v - m for v, m in zip(validated, self.means_)]
-
-        psi = [
-            np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
-            for i in range(self.n_views_)
-        ]
-        return [posterior_mean_latent(centered, self.weights_, psi)]
-
-    def _per_view_projections(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Project each view through its own posterior-mean loadings.
-
-        ``transform`` returns a single shared latent array (there is one
-        joint z, not one per view), which is what a caller wants for
-        prediction but can't be compared *across* views the way every other
-        model's per-view canonical variates can. Pairwise correlation needs
-        a distinct representation per view, so this uses each view's own
-        ``v_i @ W_i`` projection instead — analogous to every other model in
-        the package, and to what ``transform`` would give without the
-        cross-view precision weighting.
-        """
-        from cca_zoo._utils._validation import validate_views
-
-        validated = validate_views(views)
-        centered = [v - m for v, m in zip(validated, self.means_)]
-        return [v @ w for v, w in zip(centered, self.weights_)]
-
-    def pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Compute the full pairwise correlation matrix per latent dimension.
-
-        Uses each view's own posterior-mean projection (see
-        :meth:`_per_view_projections`), not the shared-z ``transform``
-        output, since the latter has no per-view distinction to correlate.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            Array of shape ``(n_views, n_views, latent_dimensions)`` where
-            entry ``[i, j, d]`` is the Pearson correlation between view i's
-            and view j's own projection onto the d-th latent dimension.
-        """
-        from sklearn.utils.validation import check_is_fitted
-
-        from cca_zoo.metrics._correlation import (
-            pairwise_correlations as _pairwise_correlations,
-        )
-
-        check_is_fitted(self)
-        per_view = self._per_view_projections(views)
-        return _pairwise_correlations(per_view)
-
-    def average_pairwise_correlations(self, views: list[ArrayLike]) -> np.ndarray:
-        """Return the mean off-diagonal pairwise correlation per dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            off-diagonal pairwise correlation for each canonical dimension.
-        """
-        from cca_zoo.metrics._correlation import (
-            average_pairwise_correlations as _average_pairwise_correlations,
-        )
-
-        corrs = self.pairwise_correlations(views)
-        return _average_pairwise_correlations(corrs)
-
-    def score(self, views: list[ArrayLike], y: None = None) -> np.ndarray:
-        """Return average pairwise canonical correlations for each dimension.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-            y: Ignored.
-
-        Returns:
-            Array of shape ``(latent_dimensions,)`` with the average
-            pairwise correlation for each canonical dimension.
-        """
-        return self.average_pairwise_correlations(views)
-
-    def get_factor_loadings(self, views: list[ArrayLike]) -> list[np.ndarray]:
-        """Compute canonical factor loadings for each view.
-
-        Uses each view's own posterior-mean projection (see
-        :meth:`_per_view_projections`), not the shared-z ``transform``
-        output: the latter is a single array, so zipping it against every
-        view (as :meth:`~cca_zoo._base.BaseModel.get_factor_loadings` does)
-        would silently pair it with only the first view.
-
-        Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
-
-        Returns:
-            List of arrays, each of shape (n_features_i, latent_dimensions),
-            where entry ``[j, d]`` is the correlation between feature j of
-            view i and view i's own projection onto the d-th latent
-            dimension.
-        """
-        from cca_zoo._utils._validation import validate_views
-        from cca_zoo.metrics._correlation import factor_loadings as _factor_loadings
-
-        validated = validate_views(views)
-        per_view = self._per_view_projections(views)
-        return _factor_loadings(validated, per_view)
+        if len(views) != self.n_views_:
+            raise ValueError(
+                f"Expected {self.n_views_} views (pass None for an "
+                f"unobserved view), got {len(views)}."
+            )
+        observed = {
+            i: self._check_view(i, v) - self.means_[i]
+            for i, v in enumerate(views)
+            if v is not None
+        }
+        if not observed:
+            raise ValueError("At least one view must be observed.")
+        return self._shared_latent(observed)
 
     def log_likelihood(self, views: list[ArrayLike]) -> float:
-        """Mean per-sample log-likelihood under the fitted generative model.
-
-        Unlike :meth:`score` (average pairwise correlation — the same
-        metric every model in ``cca_zoo`` uses, kept for consistency with
-        e.g. `GridSearchCV`), this is the statistically proper Bayesian
-        model-fit criterion for a probabilistic model: the marginal
-        likelihood of held-out data with the shared latent variable
-        integrated out (see
-        :func:`~cca_zoo.probabilistic._utils.marginal_log_likelihood`).
-        Larger (less negative) is better; useful for comparing different
-        ``latent_dimensions`` or comparing this fit against another
-        probabilistic model on the same data.
+        """Mean per-sample marginal log-likelihood of the views; higher is better.
 
         Args:
-            views: List of arrays, each of shape (n_samples, n_features_i).
+            views: Arrays of shape (n_samples, n_features_i), one per view.
 
         Returns:
-            Mean log-likelihood per sample (a scalar).
-
-        Raises:
-            sklearn.exceptions.NotFittedError: If ``fit`` has not been called.
+            The mean log-likelihood per sample.
         """
-        from sklearn.utils.validation import check_is_fitted
-
-        from cca_zoo._utils._validation import validate_views
-
-        check_is_fitted(self)
-        validated = validate_views(views)
+        validated = self._check_views(views)
         centered = [v - m for v, m in zip(validated, self.means_)]
-        psi = [
-            np.exp(np.array(self.posterior_samples_[f"log_psi_{i}"])).mean(axis=0)
-            for i in range(self.n_views_)
-        ]
-        return marginal_log_likelihood(centered, self.weights_, psi)
+        return marginal_log_likelihood(centered, self.weights_, self._noise())

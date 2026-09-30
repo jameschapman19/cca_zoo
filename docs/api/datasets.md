@@ -4,10 +4,7 @@ Utilities for generating and loading multiview datasets.
 
 ---
 
-::: cca_zoo.datasets.JointData
-    options:
-      members:
-        - sample
+::: cca_zoo.datasets.make_joint_data
 
 ---
 

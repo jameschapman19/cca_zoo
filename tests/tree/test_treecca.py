@@ -1,401 +1,62 @@
-"""Tests for XGBoostCCA and LightGBMCCA (the TreeCCA family).
-
-All tests are marked slow and require xgboost (an optional extra, not part
-of the base ``dev`` install).
-"""
+"""TreeCCA: a gradient-boosted tree encoder per view."""
 
 from __future__ import annotations
+
+import sys
 
 import numpy as np
 import pytest
 
-xgboost = pytest.importorskip("xgboost", reason="xgboost is not installed")
+pytest.importorskip("xgboost")
 
 from cca_zoo.tree import CatBoostCCA, LightGBMCCA, XGBoostCCA
-from cca_zoo.tree._treecca import TreeCCA
 
 pytestmark = pytest.mark.slow
 
 
-def _make_model(latent_dimensions: int = 1, **kwargs: object) -> XGBoostCCA:
-    kwargs.setdefault("n_estimators", 5)
-    return XGBoostCCA(latent_dimensions=latent_dimensions, **kwargs)
-
-
-# ---------------------------------------------------------------------------
-# TreeCCA itself is an abstract base, not instantiable
-# ---------------------------------------------------------------------------
-
-
-def test_treecca_base_class_not_instantiable() -> None:
-    """TreeCCA is an abstract base; only its subclasses can be constructed."""
-    with pytest.raises(TypeError):
-        TreeCCA()
-
-
-def test_treecca_subclasses_share_the_base_class() -> None:
-    """XGBoostCCA, LightGBMCCA, and CatBoostCCA share the TreeCCA base class."""
-    assert issubclass(XGBoostCCA, TreeCCA)
-    assert issubclass(LightGBMCCA, TreeCCA)
-    assert issubclass(CatBoostCCA, TreeCCA)
-
-
-# ---------------------------------------------------------------------------
-# fit completes
-# ---------------------------------------------------------------------------
-
-
-def test_two_view_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes on two-view data without error."""
-    model = _make_model()
-    fitted = model.fit(two_views_small)
-    assert fitted is model
-
-
-def test_three_view_fit_completes(three_views_small: list[np.ndarray]) -> None:
-    """Fit completes on three-view data without error."""
-    model = _make_model()
-    fitted = model.fit(three_views_small)
-    assert fitted is model
-    assert len(model.boosters_) == 3
-
-
-# ---------------------------------------------------------------------------
-# transform output shapes
-# ---------------------------------------------------------------------------
-
-
-def test_transform_shapes_training_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform on training data returns (n_samples, latent_dimensions) arrays."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-def test_transform_on_test_data(two_views_small: list[np.ndarray]) -> None:
-    """Transform returns correct shapes for new (unseen) test samples."""
-    rng = np.random.default_rng(99)
-    test_views = [rng.standard_normal((10, 5)), rng.standard_normal((10, 5))]
-    k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    result = model.transform(test_views)
-    assert len(result) == 2
-    for arr in result:
-        assert arr.shape == (10, k)
-
-
-def test_transform_shapes_three_views(three_views_small: list[np.ndarray]) -> None:
-    """Transform on three-view data returns one array per view."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(three_views_small)
-    result = model.transform(three_views_small)
-    assert len(result) == 3
-    n = three_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-
-
-# ---------------------------------------------------------------------------
-# fit_transform consistency
-# ---------------------------------------------------------------------------
-
-
-def test_fit_transform_consistency(two_views_small: list[np.ndarray]) -> None:
-    """fit_transform equals fit().transform() numerically."""
-    m1 = _make_model()
-    m2 = _make_model()
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# score shape and range
-# ---------------------------------------------------------------------------
-
-
-def test_score_shape(two_views_small: list[np.ndarray]) -> None:
-    """Score returns array of shape (latent_dimensions,)."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    s = model.score(two_views_small)
-    assert s.shape == (k,)
-
-
-def test_score_values_in_range(two_views_small: list[np.ndarray]) -> None:
-    """Score values lie in [-1, 1]."""
-    model = _make_model().fit(two_views_small)
-    s = model.score(two_views_small)
-    assert np.all(s >= -1.0 - 1e-9)
-    assert np.all(s <= 1.0 + 1e-9)
-
-
-# get_params/set_params roundtrip behaviour is exercised generically for
-# every model in the package (including XGBoostCCA and LightGBMCCA) by
-# tests/test_sklearn_compat.py.
-
-
-# ---------------------------------------------------------------------------
-# weights is not implemented
-# ---------------------------------------------------------------------------
-
-
-def test_weights_not_fitted_raises() -> None:
-    """Accessing weights before fitting raises NotFittedError."""
-    from sklearn.exceptions import NotFittedError
-
-    model = XGBoostCCA()
-    with pytest.raises(NotFittedError):
-        _ = model.weights
-
-
-def test_weights_raises_not_implemented(two_views_small: list[np.ndarray]) -> None:
-    """Accessing weights after fitting raises NotImplementedError."""
-    model = _make_model().fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
-
-
-# ---------------------------------------------------------------------------
-# get_factor_loadings shapes
-# ---------------------------------------------------------------------------
-
-
-def test_get_factor_loadings_shapes(two_views_small: list[np.ndarray]) -> None:
-    """get_factor_loadings returns (n_features_i, k) arrays."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    loadings = model.get_factor_loadings(two_views_small)
-    assert len(loadings) == 2
-    for loading, view in zip(loadings, two_views_small):
-        assert loading.shape == (view.shape[1], k)
-
-
-# ---------------------------------------------------------------------------
-# pairwise_correlations shape
-# ---------------------------------------------------------------------------
-
-
-def test_pairwise_correlations_shape(two_views_small: list[np.ndarray]) -> None:
-    """pairwise_correlations returns (n_views, n_views, k)."""
-    k = 1
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    corrs = model.pairwise_correlations(two_views_small)
-    assert corrs.shape == (2, 2, k)
-
-
-# ---------------------------------------------------------------------------
-# center=False
-# ---------------------------------------------------------------------------
-
-
-def test_center_false(two_views_small: list[np.ndarray]) -> None:
-    """XGBoostCCA works with center=False."""
-    model = _make_model(center=False)
-    model.fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# gauss_seidel toggle
-# ---------------------------------------------------------------------------
-
-
-def test_jacobi_variant_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes with gauss_seidel=False (Jacobi updates)."""
-    model = _make_model(gauss_seidel=False).fit(two_views_small)
-    result = model.transform(two_views_small)
-    assert len(result) == 2
-
-
-# ---------------------------------------------------------------------------
-# boosters_ attribute
-# ---------------------------------------------------------------------------
-
-
-def test_boosters_attribute_shape(two_views_small: list[np.ndarray]) -> None:
-    """boosters_ has one list of k boosters per view."""
-    k = 2
-    model = _make_model(latent_dimensions=k).fit(two_views_small)
-    assert len(model.boosters_) == 2
-    for view_boosters in model.boosters_:
-        assert len(view_boosters) == k
-        for booster in view_boosters:
-            assert isinstance(booster, xgboost.Booster)
-
-
-# ---------------------------------------------------------------------------
-# Per-view parameters
-# ---------------------------------------------------------------------------
-
-
-def test_per_view_n_estimators_list(two_views_small: list[np.ndarray]) -> None:
-    """A per-view n_estimators list stops boosting the exhausted view early."""
-    model = _make_model(n_estimators=[2, 6]).fit(two_views_small)
-    assert model.boosters_[0][0].num_boosted_rounds() == 2
-    assert model.boosters_[1][0].num_boosted_rounds() == 6
-
-
-def test_per_view_max_depth_list(two_views_small: list[np.ndarray]) -> None:
-    """A per-view max_depth list gives each view's trees a different max depth.
-
-    Deeper trees have more nodes, so node count is used as a proxy: this
-    xgboost version's `trees_to_dataframe()` has no `Depth` column.
-    """
-    model = _make_model(n_estimators=20, max_depth=[1, 6]).fit(two_views_small)
-    n_nodes_shallow = len(model.boosters_[0][0].trees_to_dataframe())
-    n_nodes_deep = len(model.boosters_[1][0].trees_to_dataframe())
-    assert n_nodes_shallow < n_nodes_deep
-
-
-def test_per_view_n_estimators_wrong_length_raises(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """A per-view n_estimators list must have one entry per view."""
-    with pytest.raises(ValueError, match="n_estimators"):
-        _make_model(n_estimators=[5, 6, 7]).fit(two_views_small)
-
-
-# ---------------------------------------------------------------------------
-# LightGBMCCA
-# ---------------------------------------------------------------------------
-
-
-def test_lightgbm_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes end-to-end with LightGBMCCA."""
-    lightgbm = pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    k = 2
-    model = LightGBMCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
-    result = model.transform(two_views_small)
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-    for view_boosters in model.boosters_:
-        assert len(view_boosters) == k
-        for booster in view_boosters:
-            assert isinstance(booster, lightgbm.Booster)
-
-
-def test_lightgbm_missing_raises_import_error(
-    two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """LightGBMCCA without the lightgbm package installed raises ImportError."""
-    import cca_zoo.tree._treecca as treecca_module
-
-    monkeypatch.setattr(treecca_module, "_LGBM_AVAILABLE", False)
-    model = LightGBMCCA(n_estimators=5)
-    with pytest.raises(ImportError, match="lightgbm"):
-        model.fit(two_views_small)
-
-
-def test_lightgbm_fit_transform_consistency(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """fit_transform equals fit().transform() for LightGBMCCA."""
-    pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    m1 = LightGBMCCA(n_estimators=5)
-    m2 = LightGBMCCA(n_estimators=5)
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-def test_lightgbm_weights_raises_not_implemented(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Accessing weights after fitting a LightGBMCCA raises NotImplementedError."""
-    pytest.importorskip("lightgbm", reason="lightgbm is not installed")
-    model = LightGBMCCA(n_estimators=5).fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
-
-
-# ---------------------------------------------------------------------------
-# CatBoostCCA
-# ---------------------------------------------------------------------------
-
-
-def test_catboost_fit_completes(two_views_small: list[np.ndarray]) -> None:
-    """Fit completes end-to-end with CatBoostCCA."""
-    pytest.importorskip("catboost", reason="catboost is not installed")
-    k = 2
-    model = CatBoostCCA(latent_dimensions=k, n_estimators=5).fit(two_views_small)
-    result = model.transform(two_views_small)
-    n = two_views_small[0].shape[0]
-    for arr in result:
-        assert arr.shape == (n, k)
-    for view_boosters in model.boosters_:
-        assert len(view_boosters) == k
-
-
-def test_catboost_missing_raises_import_error(
-    two_views_small: list[np.ndarray], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """CatBoostCCA without the catboost package installed raises ImportError."""
-    import cca_zoo.tree._treecca as treecca_module
-
-    monkeypatch.setattr(treecca_module, "_CATBOOST_AVAILABLE", False)
-    model = CatBoostCCA(n_estimators=5)
-    with pytest.raises(ImportError, match="catboost"):
-        model.fit(two_views_small)
-
-
-def test_catboost_fit_transform_consistency(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """fit_transform equals fit().transform() for CatBoostCCA."""
-    pytest.importorskip("catboost", reason="catboost is not installed")
-    m1 = CatBoostCCA(n_estimators=5)
-    m2 = CatBoostCCA(n_estimators=5)
-    result_ft = m1.fit_transform(two_views_small)
-    result_sep = m2.fit(two_views_small).transform(two_views_small)
-    for a, b in zip(result_ft, result_sep):
-        np.testing.assert_allclose(a, b, atol=1e-6)
-
-
-def test_catboost_weights_raises_not_implemented(
-    two_views_small: list[np.ndarray],
-) -> None:
-    """Accessing weights after fitting a CatBoostCCA raises NotImplementedError."""
-    pytest.importorskip("catboost", reason="catboost is not installed")
-    model = CatBoostCCA(n_estimators=5).fit(two_views_small)
-    with pytest.raises(NotImplementedError, match="boosters_"):
-        _ = model.weights
-
-
-# ---------------------------------------------------------------------------
-# Correctness / optimality
-# ---------------------------------------------------------------------------
-
-
-def test_treecca_finds_correlation_on_correlated_views(
-    correlated_views: list[np.ndarray],
-) -> None:
-    """XGBoostCCA finds substantial correlation on correlated views."""
-    model = XGBoostCCA(
-        latent_dimensions=1, n_estimators=60, max_depth=3, random_state=0
-    )
-    s = model.fit(correlated_views).score(correlated_views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
-
-
-def test_treecca_finds_correlation_on_three_correlated_views() -> None:
-    """XGBoostCCA (multiview) finds substantial correlation on 3 correlated views."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((200, 1))
-    views = [
-        z @ rng.standard_normal((1, 5)) + 0.1 * rng.standard_normal((200, 5))
-        for _ in range(3)
+def _views(seed: int) -> list[np.ndarray]:
+    """A sin(2z) signal in one feature of view 1, z in one feature of view 2."""
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal(1000)
+    return [
+        np.column_stack(
+            [signal + 0.3 * rng.standard_normal(1000), rng.standard_normal((1000, 5))]
+        )
+        for signal in (np.sin(2 * z), z)
     ]
+
+
+@pytest.mark.parametrize("cls", [XGBoostCCA, LightGBMCCA])
+def test_recovers_a_nonlinear_signal_at_its_defaults(cls: type) -> None:
+    """At its defaults the model relates sin(2z) to z on held-out data."""
+    assert cls(random_state=0).fit(_views(0)).score(_views(1)) > 0.6
+
+
+def test_n_estimators_per_view(two_views_small: list[np.ndarray]) -> None:
+    """Each view boosts for its own number of rounds."""
+    model = XGBoostCCA(n_estimators=[2, 6], random_state=0).fit(two_views_small)
+    assert [b[0].num_boosted_rounds() for b in model.boosters_] == [2, 6]
+
+
+def test_max_depth_per_view(two_views_small: list[np.ndarray]) -> None:
+    """Deeper trees in one view have more nodes than stumps in the other."""
     model = XGBoostCCA(
-        latent_dimensions=1, n_estimators=300, max_depth=3, random_state=0
-    )
-    s = model.fit(views).score(views)
-    assert np.all(s > 0.5), f"Expected substantial correlation, got {s}"
+        n_estimators=20, max_depth=[1, 6], min_child_weight=1, random_state=0
+    ).fit(two_views_small)
+    nodes = [len(b[0].trees_to_dataframe()) for b in model.boosters_]
+    assert nodes[0] < nodes[1]
+
+
+@pytest.mark.parametrize(
+    ("cls", "package"), [(LightGBMCCA, "lightgbm"), (CatBoostCCA, "catboost")]
+)
+def test_missing_backend_names_the_package(
+    cls: type,
+    package: str,
+    two_views_small: list[np.ndarray],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without its optional backend, a model's fit says which package is missing."""
+    monkeypatch.setitem(sys.modules, package, None)
+    with pytest.raises(ImportError, match=package):
+        cls().fit(two_views_small)

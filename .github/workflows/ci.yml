@@ -81,8 +81,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
         os: [ubuntu-latest, macos-latest]
+    env:
+      # .python-version pins 3.12 for local work, and uv run follows it over
+      # the environment uv sync built, so the matrix version is set for both.
+      UV_PYTHON: ${{ matrix.python-version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -103,19 +107,21 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --group dev --locked --python ${{ matrix.python-version }}
+        run: uv sync --group dev --locked
 
       - name: Run fast tests
         run: uv run pytest -m "not slow" --cov=cca_zoo --cov-report=xml
 
+      # scipy reads SCIPY_ARRAY_API at import, so the Array API tests run in
+      # a process of their own.
+      - name: Run Array API tests (array-api-strict)
+        env:
+          SCIPY_ARRAY_API: "1"
+        run: uv run pytest tests/test_array_api.py --no-cov
+
       # Only the modules importable without optional heavy deps (torch,
       # xgboost, numpyro/jax) — same rationale as the "not slow" filter
       # above. Runs once since doctest results don't vary by interpreter.
-      # cca_zoo/stochastic must be collected alongside cca_zoo/linear (not
-      # on its own): importing it standalone hits a circular import, since
-      # cca_zoo.linear._moved imports StochasticCCAEY back from
-      # cca_zoo.stochastic before cca_zoo.linear itself has finished
-      # initialising.
       - name: Run doctests
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         run: |
@@ -129,6 +135,30 @@ jobs:
         with:
           files: coverage.xml
           fail_ci_if_error: false
+
+  # -------------------------------------------------------------------------
+  # Job 3b: Fast tests at the lowest versions pyproject.toml allows, so its
+  # lower bounds are ones the package has been tested against.
+  # -------------------------------------------------------------------------
+  test-minimum:
+    name: Test minimum dependency versions
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.11"
+      UV_RESOLUTION: lowest-direct
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Run fast tests
+        run: uv run --extra dev pytest -m "not slow" --no-cov
 
   # -------------------------------------------------------------------------
   # Job 4: Slow tests (deep / probabilistic / tree — optional heavy deps)
@@ -155,15 +185,20 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --group dev --extra deep --extra probabilistic --extra tree --locked
+        run: uv sync --group dev --extra deep --extra probabilistic --extra tree --extra optuna --locked
 
       - name: Run slow tests
         run: uv run pytest -m slow --cov=cca_zoo --cov-report=xml
 
+      - name: Run Array API tests (array-api-strict and torch)
+        env:
+          SCIPY_ARRAY_API: "1"
+        run: uv run pytest tests/test_array_api.py --no-cov
+
       - name: Run doctests
         run: |
           uv run pytest --doctest-modules --no-cov \
-            cca_zoo/deep cca_zoo/probabilistic cca_zoo/tree
+            cca_zoo/deep cca_zoo/probabilistic cca_zoo/tree cca_zoo/model_selection/_search.py
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -219,7 +254,7 @@ jobs:
 # -------------------------------------------------------------------------
   publish:
     name: Publish to PyPI
-    needs: [lint, typecheck, test, test-slow, docs]
+    needs: [lint, typecheck, test, test-minimum, test-slow, docs]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     environment:

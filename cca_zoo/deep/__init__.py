@@ -1,9 +1,4 @@
-"""Deep multiview CCA models powered by PyTorch Lightning.
-
-This module is only available when both ``torch`` and ``lightning``
-are installed.  Import errors are deferred to usage time rather than
-raised at import of ``cca_zoo``.
-"""
+"""Deep multiview models in PyTorch Lightning; requires the ``deep`` extra."""
 
 from __future__ import annotations
 
@@ -18,39 +13,67 @@ if _torch_available and _lightning_available:
     from cca_zoo.deep._base import BaseDeep
     from cca_zoo.deep._data import MultiviewDataset
     from cca_zoo.deep._dcca import DCCA
-    from cca_zoo.deep._dcca_ey import DCCA_EY as DCCA_EY
     from cca_zoo.deep._dcca_ey import DCCAEY
-    from cca_zoo.deep._dcca_noi import DCCA_NOI as DCCA_NOI
     from cca_zoo.deep._dcca_noi import DCCANOI
-    from cca_zoo.deep._dcca_sdl import DCCA_SDL as DCCA_SDL
     from cca_zoo.deep._dcca_sdl import DCCASDL
     from cca_zoo.deep._dccae import DCCAE
     from cca_zoo.deep._dgcca import DGCCA
     from cca_zoo.deep._dmcca import DMCCA
+    from cca_zoo.deep._dpcca import DPCCA
     from cca_zoo.deep._dtcca import DTCCA
-    from cca_zoo.deep._dvcca import DVCCA
+    from cca_zoo.deep._dvcca import DVCCA, DVCCAPrivate
+    from cca_zoo.deep._lejepa import LeJEPA
+    from cca_zoo.deep._nrdcca import NRDCCA
     from cca_zoo.deep._splitae import SplitAE
     from cca_zoo.deep._vicreg import VICReg
 
     __all__ = [
-        "BaseDeep",
-        "BarlowTwins",
         "DCCA",
+        "DCCAE",
         "DCCAEY",
         "DCCANOI",
         "DCCASDL",
-        "DCCAE",
         "DGCCA",
         "DMCCA",
+        "DPCCA",
         "DTCCA",
         "DVCCA",
+        "NRDCCA",
+        "BarlowTwins",
+        "BaseDeep",
+        "DVCCAPrivate",
+        "LeJEPA",
         "MultiviewDataset",
         "SplitAE",
         "VICReg",
         "objectives",
     ]
-    # Deprecated aliases DCCA_EY, DCCA_NOI, DCCA_SDL stay importable for
-    # backward compatibility but are intentionally left out of
-    # __all__/docs.
 else:
     __all__ = []
+
+    def __getattr__(name: str) -> object:
+        if name in {
+            "DCCA",
+            "DCCAE",
+            "DCCAEY",
+            "DCCANOI",
+            "DCCASDL",
+            "DGCCA",
+            "DMCCA",
+            "DPCCA",
+            "DTCCA",
+            "DVCCA",
+            "NRDCCA",
+            "BarlowTwins",
+            "BaseDeep",
+            "DVCCAPrivate",
+            "LeJEPA",
+            "MultiviewDataset",
+            "SplitAE",
+            "VICReg",
+            "objectives",
+        }:
+            raise ImportError(
+                f"{name} requires the deep extra: pip install 'cca-zoo[deep]'."
+            )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
