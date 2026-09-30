@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 from numpy.typing import ArrayLike
 
 from cca_zoo.linear._ridge_cca import RidgeCCA
@@ -38,6 +40,11 @@ class PLS(RidgeCCA):
         >>> X2 = rng.standard_normal((50, 8))
         >>> Z1, Z2 = PLS(n_components=2).fit_transform([X1, X2])
     """
+
+    # shrinkage is fixed, not a parameter.
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        k: v for k, v in RidgeCCA._parameter_constraints.items() if k != "shrinkage"
+    }
 
     def __init__(
         self,

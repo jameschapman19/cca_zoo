@@ -9,6 +9,7 @@ per-view encoder, the number and shapes of views, parameter validation and
 
 from __future__ import annotations
 
+import inspect
 import warnings
 from numbers import Integral
 
@@ -82,7 +83,12 @@ def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
         model.predict([views[0], views[1][:10]])
 
 
-_BOUNDED = [c for c in MODEL_CLASSES if c._components_bounded_by_features]
+# TrimmedCCA fits exactly one component, which its constraint enforces first.
+_BOUNDED = [
+    c
+    for c in MODEL_CLASSES
+    if c._components_bounded_by_features and c.__name__ != "TrimmedCCA"
+]
 
 
 @pytest.mark.parametrize("cls", model_params(_BOUNDED))
@@ -96,9 +102,7 @@ def test_n_components_beyond_the_narrowest_view_raises(cls: type[BaseModel]) -> 
 def test_every_parameter_is_validated(cls: type[BaseModel]) -> None:
     """Each constructor parameter has a constraint that a nonsense value fails."""
     model = make_model(cls)
-    params = model.get_params()
-    assert set(params) <= set(cls._parameter_constraints)
-    for name in params:
+    for name in model.get_params():
         invalid = make_model(cls).set_params(**{name: object()})
         with pytest.raises(InvalidParameterError, match=name):
             fit(invalid, _views(0))
@@ -350,3 +354,10 @@ def test_views_are_not_routable_metadata(cls: type[BaseModel]) -> None:
     for method in ("fit", "transform", "predict", "score", "inverse_transform"):
         routed = getattr(requests, method).requests
         assert "views" not in routed and "scores" not in routed, method
+
+
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
+def test_every_parameter_is_constrained(cls: type[BaseModel]) -> None:
+    """The constraints name exactly the constructor's parameters."""
+    params = set(inspect.signature(cls.__init__).parameters) - {"self"}
+    assert set(cls._parameter_constraints) == params

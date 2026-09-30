@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Integral
 
 import numpy as np
 import scipy.linalg
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils import check_random_state
+from sklearn.utils._param_validation import HasMethods, Interval, validate_params
 from sklearn.utils.parallel import Parallel, delayed
 
 from cca_zoo._utils._validation import validate_views
@@ -52,6 +54,16 @@ def _correlations_and_loadings(
     return correlations, factor_loadings(views, scores)
 
 
+@validate_params(
+    {
+        "estimator": [HasMethods(["fit", "transform"])],
+        "views": [list],
+        "n_permutations": [Interval(Integral, 1, None, closed="left")],
+        "random_state": ["random_state"],
+        "n_jobs": [Integral, None],
+    },
+    prefer_skip_nested_validation=False,
+)
 def permutation_test_significance(
     estimator: BaseEstimator,
     views: list[ArrayLike],
@@ -106,8 +118,6 @@ def permutation_test_significance(
         0.02
     """
     arrays = validate_views(views)
-    if n_permutations < 1:
-        raise ValueError(f"n_permutations must be positive, got {n_permutations}.")
     n_views = len(arrays)
 
     fitted = clone(estimator).fit(arrays)

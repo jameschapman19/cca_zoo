@@ -68,7 +68,7 @@ class GRCCA(MCCA):
 
     _supports_array_api: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **MCCA._parameter_constraints,
+        **{k: v for k, v in MCCA._parameter_constraints.items() if k != "pca"},
         "mu": NONNEGATIVE_PER_VIEW,
         "feature_groups": [None, list],
     }

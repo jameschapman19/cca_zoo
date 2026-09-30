@@ -181,7 +181,7 @@ def test_trimmed_subset_selection_is_near_optimal() -> None:
 
 def test_trimmed_is_one_dimensional(two_views_small: list[np.ndarray]) -> None:
     """TrimmedCCA fits a single component."""
-    with pytest.raises(ValueError, match="n_components=1"):
+    with pytest.raises(ValueError, match="n_components"):
         TrimmedCCA(n_components=2).fit(two_views_small)
 
 

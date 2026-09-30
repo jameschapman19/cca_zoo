@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from numbers import Integral, Real
 from typing import Literal, TypeVar, overload
 
 import numpy as np
 from sklearn.utils import check_random_state
+from sklearn.utils._param_validation import Interval, validate_params
 
 _T = TypeVar("_T", int, float)
 
@@ -47,6 +49,18 @@ def make_joint_data(
 ) -> tuple[list[np.ndarray], np.ndarray]: ...
 
 
+@validate_params(
+    {
+        "n_samples": [Interval(Integral, 1, None, closed="left")],
+        "n_features": [Interval(Integral, 1, None, closed="left"), list],
+        "n_views": [Interval(Integral, 1, None, closed="left")],
+        "n_components": [Interval(Integral, 1, None, closed="left")],
+        "signal_to_noise": [Interval(Real, 0, None, closed="neither"), list],
+        "random_state": ["random_state"],
+        "return_latent": ["boolean"],
+    },
+    prefer_skip_nested_validation=True,
+)
 def make_joint_data(
     n_samples: int = 100,
     n_features: int | list[int] = 10,

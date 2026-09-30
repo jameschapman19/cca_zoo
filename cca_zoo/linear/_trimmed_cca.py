@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.utils._param_validation import Interval
+from sklearn.utils._param_validation import Interval, Options
 
 from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import weight_gram_mean
@@ -145,6 +145,7 @@ class TrimmedCCA(CCAEY):
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **CCAEY._parameter_constraints,
+        "n_components": [Options(Integral, {1})],
         "support_fraction": [Interval(Real, 0, 1, closed="right")],
         "n_init": POSITIVE_INT,
     }
@@ -181,16 +182,8 @@ class TrimmedCCA(CCAEY):
 
         Returns:
             self.
-
-        Raises:
-            ValueError: If ``n_components`` is not 1.
         """
         views_ = self._setup_fit(views)
-        if self.n_components != 1:
-            raise ValueError(
-                "TrimmedCCA currently supports only n_components=1, "
-                f"got {self.n_components}."
-            )
         n = self.n_samples_
         h = max(2, round(self.support_fraction * n))
         rng = np.random.default_rng(self.random_state)

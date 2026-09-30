@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from itertools import pairwise
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -60,6 +60,11 @@ class PartialCCA(MCCA):
     """
 
     _supports_array_api: ClassVar[bool] = False
+
+    # pca is fixed, not a parameter.
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        k: v for k, v in MCCA._parameter_constraints.items() if k != "pca"
+    }
 
     def __init__(
         self,

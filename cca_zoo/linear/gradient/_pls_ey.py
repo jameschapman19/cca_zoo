@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -41,6 +43,11 @@ class PLSEY(CCAEY):
         >>> X2 = rng.standard_normal((200, 400))
         >>> model = PLSEY(n_components=4, random_state=0).fit([X1, X2])
     """
+
+    # shrinkage is fixed, not a parameter.
+    _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
+        k: v for k, v in CCAEY._parameter_constraints.items() if k != "shrinkage"
+    }
 
     def __init__(
         self,
