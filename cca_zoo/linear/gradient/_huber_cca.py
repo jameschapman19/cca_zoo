@@ -46,8 +46,12 @@ class HuberCCA(CCAEY):
     recomputed at every evaluation, so high-leverage samples have bounded
     influence. Fitted by full-batch L-BFGS-B, with each evaluation's weights
     held fixed in its gradient, as in iteratively reweighted least squares.
-    Filzmoser, Dehon and Croux (2000) bound influence in the same way, but in
-    alternating regressions rather than in the moments of the EY loss.
+    The closest precedent is Branco et al.'s (2005) PP-M, a Huber M-estimate
+    of the correlation between the projected scores, also bounding influence
+    in the low-dimensional score space. Classical robust CCA instead plugs a
+    Huber M-estimate of the full covariance into CCA (Karnel, 1991), which
+    loses robustness as the number of features grows; Filzmoser, Dehon and
+    Croux (2000) reweight alternating regressions.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -73,6 +77,12 @@ class HuberCCA(CCAEY):
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
         Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
         arXiv:2310.01012.
+        Branco, J. A., Croux, C., Filzmoser, P., & Oliveira, M. R. (2005).
+        Robust canonical correlations: A comparative study. Computational
+        Statistics, 20(2), 203-229.
+        Karnel, G. (1991). Robust canonical correlation and correspondence
+        analysis. In The Frontiers of Statistical Scientific and Industrial
+        Applications (Vol. 2, pp. 335-354). American Sciences Press.
         Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant
         estimators for canonical correlation analysis. In COMPSTAT:
         Proceedings in Computational Statistics 2000 (pp. 301-306).
