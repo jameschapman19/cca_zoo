@@ -371,6 +371,8 @@ The table below gives each replacement.
 
 ### Removed
 
+Removed outright, with no deprecation period; the table above gives each replacement.
+
 - Python 3.10, which reaches end of life in October 2026 and which scikit-learn 1.8
   dropped. The dependency floors are now the oldest versions the test suite passes on,
   and CI tests them: numpy 2.0, scipy 1.13 and scikit-learn 1.8 (was numpy 1.26,
@@ -380,7 +382,6 @@ The table below gives each replacement.
   reached the next regression. With two views their weights had the same directions and
   sparsity; with more, `WaijenborgCCA`'s unscaled weights let one view dominate the
   target. Use `IPLSCCA(l1_ratio=0.5)`, whose references now include Waaijenborg et al.
-Removed outright, with no deprecation period; the table above gives each replacement.
 
 - The `weights` property, which duplicated the `weights_` attribute.
 - `MultiviewWrapper` is private. The searches and cross-validation functions cover what it

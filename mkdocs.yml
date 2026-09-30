@@ -129,4 +129,6 @@ nav:
       - Datasets: api/datasets.md
       - Model Selection: api/model-selection.md
       - Preprocessing: api/preprocessing.md
+  - Release Notes:
+      - "4.0": release-notes/4.0.md
   - Contributing: contributing.md
