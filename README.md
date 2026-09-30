@@ -96,10 +96,10 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
 | `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
-| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | Filzmoser, Dehon & Croux (2000) | ≥2 |
+| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | Chapman et al. (2021) | ≥2 |
 | `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | Chapman et al. (2021) | ≥2 |
 | `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | Rousseeuw & Van Driessen (1999) | ≥2 |
-| `ProjectionPursuitCCA` | Robust CCA by projection pursuit, maximising Spearman's rank correlation | Alfons, Croux & Filzmoser (2017) | ≥2 |
+| `ProjectionPursuitCCA` | Robust CCA by projection pursuit, maximising Spearman's rank correlation | Branco et al. (2005); Alfons, Croux & Filzmoser (2017) | ≥2 |
 
 ### `cca_zoo.nonparametric`
 

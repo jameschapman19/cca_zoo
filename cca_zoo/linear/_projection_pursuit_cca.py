@@ -66,7 +66,7 @@ class ProjectionPursuitCCA(BaseModel):
 
     Searches directly for unit directions maximising a robust correlation,
     the projection index PI, averaged over pairs of views. PI is Spearman's
-    rank correlation, Alfons et al.'s ``PP-SPM``:
+    rank correlation, Branco et al.'s ``PP-SPM``:
 
     $$
     \max_{\|a_1\| = \dots = \|a_M\| = 1}

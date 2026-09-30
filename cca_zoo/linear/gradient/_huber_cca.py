@@ -46,6 +46,8 @@ class HuberCCA(CCAEY):
     recomputed at every evaluation, so high-leverage samples have bounded
     influence. Fitted by full-batch L-BFGS-B, with each evaluation's weights
     held fixed in its gradient, as in iteratively reweighted least squares.
+    Filzmoser, Dehon and Croux (2000) bound influence in the same way, but in
+    alternating regressions rather than in the moments of the EY loss.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -64,6 +66,13 @@ class HuberCCA(CCAEY):
         n_iter_: L-BFGS-B iterations run.
 
     References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
         Filzmoser, P., Dehon, C., & Croux, C. (2000). Outlier resistant
         estimators for canonical correlation analysis. In COMPSTAT:
         Proceedings in Computational Statistics 2000 (pp. 301-306).
