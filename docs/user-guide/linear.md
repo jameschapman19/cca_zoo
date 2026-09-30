@@ -237,9 +237,9 @@ model.fit([X1, X2])
 inliers = model.inlier_mask_  # boolean array over the training rows
 ```
 
-`support_fraction` is a prior on the contamination rate, not something fit from the data — set it too high and
-good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
-once true contamination exceeds `1 - support_fraction`. `TrimmedCCA` supports any number of views (2 or more)
+`support_fraction` is the fraction of rows kept, a prior on the clean fraction rather than something fit
+from the data. Set it too high and contaminated rows are forced into every fit once true contamination
+exceeds `1 - support_fraction`; set it too low and good rows are discarded for nothing. `TrimmedCCA` supports any number of views (2 or more)
 but only `n_components=1`: the selection rule's closed-form derivation relies on `CCAEY`'s
 penalty being the square of a *single* linear functional of the selection, which holds for any
 number of views but not past one latent dimension — with `k > 1` the same penalty becomes a genuine
