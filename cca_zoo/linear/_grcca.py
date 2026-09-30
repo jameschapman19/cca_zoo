@@ -51,9 +51,9 @@ class GRCCA(MCCA):
         ValueError: If a view's ``feature_groups`` does not label each feature.
 
     References:
-        Tuzhilina, E., Tozzi, L., & Hastie, T. (2021). Canonical correlation
+        Tuzhilina, E., Tozzi, L., & Hastie, T. (2023). Canonical correlation
         analysis in high dimensions with structured regularization.
-        Statistical Modelling.
+        Statistical Modelling, 23(3), 203-227.
 
     Examples:
         >>> import numpy as np

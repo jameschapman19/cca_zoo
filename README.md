@@ -87,10 +87,10 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `RidgeCCA` | Regularised CCA / canonical ridge | Vinod (1976) | 2 |
 | `PLS` | Partial Least Squares | Wold (1975) | 2 |
 | `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
-| `GCCA` | Generalised CCA — shared latent projection | Tenenhaus & Tenenhaus (2011) | ≥2 |
-| `TCCA` | Tensor CCA — higher-order cross-moment | Kim, Wong & Cipolla (2007) | ≥2 |
+| `GCCA` | Generalised CCA — shared latent projection | Carroll (1968) | ≥2 |
+| `TCCA` | Tensor CCA — higher-order cross-moment | Luo et al. (2015) | ≥2 |
 | `PartialCCA` | CCA adjusted for confounding variables | Rao (1969) | ≥2 |
-| `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2021) | ≥2 |
+| `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2023) | ≥2 |
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions | Donnat & Tuzhilina (2024) | 2 |
 | `ECCA` | CCA via reduced-rank regression, entrywise-sparse (ccar3 package's `ecca`) | Donnat & Tuzhilina (2024) | 2 |
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
@@ -107,7 +107,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 |---|---|---|
 | `KCCA` | Kernel CCA | Hardoon, Szedmak & Shawe-Taylor (2004) |
 | `KGCCA` | Kernel Generalised CCA | Tenenhaus, Philippe & Frouin (2015) |
-| `KTCCA` | Kernel Tensor CCA | Kim, Wong & Cipolla (2007) |
+| `KTCCA` | Kernel Tensor CCA | Luo et al. (2015) |
 | `ManifoldCCA` | Transductive CCA over a shared graph Laplacian or LLE operator | Belkin & Niyogi (2003); Roweis & Saul (2000) |
 
 ### `cca_zoo.tree` *(requires `[tree]`)*
@@ -139,7 +139,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | — | ≥2 |
 | `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | — | ≥2 |
 | `PMDCCA` | Sparse CCA via PMD | Witten, Tibshirani & Hastie (2009) | ≥2 |
-| `ADMMCCA` | Sparse CCA via ADMM | Suo, Mineiro & Anandkumar (2017) | ≥2 |
+| `ADMMCCA` | Sparse CCA via ADMM | Suo et al. (2017) | ≥2 |
 | `IPLSCCA` | Sparse CCA by alternating elastic-net regressions | Waaijenborg, de Witt Hamer & Zwinderman (2008); Mai & Zhang (2019) | ≥2 |
 | `SpanCCA` | Hard-threshold ALS inspired by the SpanCCA algorithm | Asteris, Kyrillidis, Koyejo & Poldrack (2016) | ≥2 |
 | `ParkhomenkoCCA` | Soft-threshold sparse CCA | Parkhomenko, Tritchler & Beyene (2009) | ≥2 |
@@ -183,7 +183,7 @@ published loss.
 
 | Class | Description | Citation |
 |---|---|---|
-| `GFA` | Group Factor Analysis, per-view ARD; no extra dependencies | Klami, Virtanen & Kaski (2013) |
+| `GFA` | Group Factor Analysis, per-view ARD; no extra dependencies | Klami et al. (2015) |
 | `ProbabilisticCCA` *(requires `[probabilistic]`)* | MCMC via NumPyro | Bach & Jordan (2005) |
 | `VariationalBayesCCA` *(requires `[probabilistic]`)* | Variational inference + ARD via NumPyro | Wang (2007) |
 

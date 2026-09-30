@@ -76,7 +76,7 @@ model.log_likelihood([X1, X2])  # mean log-likelihood per sample
 
 ## `GFA`: per-view ARD, no extra dependencies
 
-`GFA` (Group Factor Analysis; Klami, Virtanen & Kaski 2013) is ported directly from the
+`GFA` (Group Factor Analysis; Klami, Virtanen, Leppäaho & Kaski 2015) is ported directly from the
 reference R package [`CCAGFA`](https://github.com/cran/CCAGFA) — the update equations are
 transliterated from that source, not re-derived. It fits a single shared latent variable $z$,
 but gives **each view its own ARD precision** $\alpha_{i,k}$ per latent dimension, rather than

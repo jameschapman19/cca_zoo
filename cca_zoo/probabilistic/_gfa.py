@@ -206,6 +206,9 @@ class GFA(BaseProbabilistic):
         n_iter_: Number of iterations run.
 
     References:
+        Klami, A., Virtanen, S., Leppäaho, E., & Kaski, S. (2015). Group factor
+        analysis. IEEE Transactions on Neural Networks and Learning Systems,
+        26(9), 2136-2147.
         Klami, A., Virtanen, S., & Kaski, S. (2013). Bayesian Canonical
         Correlation Analysis. Journal of Machine Learning Research, 14,
         965-1003.

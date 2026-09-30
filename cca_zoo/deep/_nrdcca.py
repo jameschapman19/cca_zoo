@@ -57,8 +57,8 @@ class NRDCCA(BaseDeep):
         ValueError: If ``alpha`` is negative.
 
     References:
-        He et al. (2024). Preventing Model Collapse in Deep Canonical
-        Correlation Analysis by Noise Regularization. NeurIPS.
+        He, J., Du, J., Xu, S., & Ma, W. (2024). Preventing model collapse in
+        deep canonical correlation analysis by noise regularization. NeurIPS.
 
     Examples:
         >>> import torch.nn as nn

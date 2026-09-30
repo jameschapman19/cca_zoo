@@ -190,8 +190,7 @@ model = PMDCCA(n_components=2, l1_bound=0.5, random_state=0).fit([X1, X2])
 ### ADMMCCA
 
 Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
-vector and a unit-ball constraint on each view's *score* (Suo, Mineiro & Anandkumar
-2017):
+vector and a unit-ball constraint on each view's *score* (Suo et al., 2017):
 
 $$
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \tfrac{1}{n} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2

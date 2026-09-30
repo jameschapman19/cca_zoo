@@ -42,8 +42,9 @@ class TCCA(BaseModel):
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
     References:
-        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
-        correlation analysis for action classification. CVPR.
+        Luo, Y., Tao, D., Ramamohanarao, K., Xu, C., & Wen, Y. (2015). Tensor
+        canonical correlation analysis for multi-view dimension reduction.
+        IEEE Transactions on Knowledge and Data Engineering, 27(11), 3111-3124.
 
     Examples:
         >>> import numpy as np

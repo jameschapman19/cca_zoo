@@ -196,8 +196,9 @@ class TCCALoss(nn.Module):
         eps: Whitening ridge. Default is 1e-5.
 
     References:
-        Kim, T.-K., Wong, S.-F., & Cipolla, R. (2007). Tensor canonical
-        correlation analysis for action classification. CVPR.
+        Luo, Y., Tao, D., Ramamohanarao, K., Xu, C., & Wen, Y. (2015). Tensor
+        canonical correlation analysis for multi-view dimension reduction.
+        IEEE Transactions on Knowledge and Data Engineering, 27(11), 3111-3124.
 
     Examples:
         >>> import torch

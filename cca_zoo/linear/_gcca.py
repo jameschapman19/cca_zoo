@@ -41,8 +41,11 @@ class GCCA(BaseModel):
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
 
     References:
-        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
-        canonical correlation analysis. Psychometrika, 76(2), 257-284.
+        Carroll, J. D. (1968). Generalization of canonical correlation analysis
+        to three or more sets of variables. Proceedings of the 76th Annual
+        Convention of the American Psychological Association, 3, 227-228.
+        Kettenring, J. R. (1971). Canonical analysis of several sets of
+        variables. Biometrika, 58(3), 433-451.
 
     Examples:
         >>> import numpy as np

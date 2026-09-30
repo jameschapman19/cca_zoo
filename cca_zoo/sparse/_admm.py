@@ -54,8 +54,8 @@ class ADMMCCA(BaseModel):
         n_iter_: Most iterations run by any component.
 
     References:
-        Suo, X., Mineiro, P., & Anandkumar, A. (2017). Sparse canonical
-        correlation analysis. arXiv:1705.10865.
+        Suo, X., Minden, V., Nelson, B., Tibshirani, R., & Saunders, M. (2017).
+        Sparse canonical correlation analysis. arXiv:1705.10865.
 
     Examples:
         >>> import numpy as np
