@@ -163,12 +163,8 @@ def test_partial_cca_ignores_where_a_confound_is_measured_from() -> None:
         np.testing.assert_allclose(b.T @ (confound - confound.mean()), 0.0, atol=1e-8)
 
 
-def test_grcca_weights_are_on_the_original_features(
-    two_views: list[np.ndarray],
-) -> None:
-    """Group penalties augment the features internally, not in weights_."""
-    groups = [np.arange(v.shape[1]) % 3 for v in two_views]
-    model = GRCCA(shrinkage=[0.5, 0.0], feature_groups=groups).fit(two_views)
-    assert [w.shape[0] for w in model.weights_] == [10, 8]
-    with pytest.warns(UserWarning, match="feature_groups"):
-        GRCCA(shrinkage=0.5).fit(two_views)
+def test_grcca_needs_a_group_label_per_feature(two_views: list[np.ndarray]) -> None:
+    """A view's group labels must cover its features."""
+    groups = [np.arange(4), np.arange(8)]
+    with pytest.raises(ValueError, match="feature_groups has 4 labels"):
+        GRCCA(shrinkage=0.5, feature_groups=groups).fit(two_views)

@@ -162,7 +162,12 @@ own established extension rather than a generic auxiliary model:
   `LocallyLinearEmbedding.transform`'s own mechanism (verified directly against it in the tests).
 - `method="laplacian"`: the classical Nystrom extension (Bengio et al. 2003) of each kept
   eigenvector, using the same degree-normalised affinity rule the training graph was built from,
-  then the same combination the joint solve used at training time.
+  then the same combination the joint solve used at training time. The extension divides by
+  `1 - eigenvalue`, so eigenvectors with eigenvalue above 0.95, barely smoother than noise, are
+  left out of the basis rather than amplified.
+
+Either extension returns a training point's own embedding: `transform` of the training views is
+`embedding_`.
 
 ```python
 z1, z2 = model.transform([X1_test, X2_test])

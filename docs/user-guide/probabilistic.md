@@ -27,18 +27,27 @@ $$
 $$
 
 $$
-\mathbf{x}_i \mid \mathbf{z} \sim \mathcal{N}(W_i \mathbf{z},\; \mathrm{diag}(\boldsymbol{\psi}_i))
+\mathbf{x}_i \mid \mathbf{z} \sim \mathcal{N}(W_i \mathbf{z},\; \Psi_i)
 $$
 
 where:
 
 - $\mathbf{z}$ is the $k$-dimensional shared latent variable
 - $W_i$ is the view-specific loading matrix with a Normal prior
-- $\boldsymbol{\psi}_i$ are per-feature noise variances with a log-Normal prior
+- $\Psi_i$ is a **full** noise covariance per view, with an LKJ prior on its correlation and
+  log-Normal priors on its scales
+
+The full $\Psi_i$ is what makes this CCA rather than factor analysis. With diagonal noise the
+latent has to explain the correlations *within* each view too, so a strong factor private to
+one view captures it; with a full $\Psi_i$ each view's own structure is noise, and the latent
+models only what the views share. At the maximum likelihood each view's posterior mean spans its
+canonical variates (Bach & Jordan 2005), and both classes start inference there. The latent is
+integrated out of the likelihood, so the posterior draws hold loadings and noise, not $z$.
 
 They share this model and the same posterior-mean projection formula for `transform`; they
 differ only in how the posterior is approximated. `GFA` modifies the model itself (per-view ARD,
-per-view scalar noise instead of per-feature) — see its own section below.
+per-view scalar noise, so view-specific structure is taken up by private latent dimensions) —
+see its own section below.
 
 ### Scoring: correlation vs likelihood
 
@@ -53,7 +62,7 @@ $$
 $$
 
 where $\mathbf{x}$ is the concatenation of every view's centred features for one sample, $W$
-stacks every view's loading matrix, and $\Psi$ is the (block-)diagonal noise-variance matrix.
+stacks every view's loading matrix, and $\Psi$ is the block-diagonal noise covariance.
 This is evaluated jointly across the concatenated views rather than per view: because every view
 shares the same $z$, marginalising it induces cross-view covariance that a per-view likelihood
 would silently ignore. Use `log_likelihood` to compare `n_components` choices, or to compare
@@ -82,7 +91,7 @@ blocks: a dimension ends up shared if its $\alpha_{i,k}$ stays small in several 
 and private to view $i$ if it shrinks toward zero loadings in every *other* view. This is the
 actual mechanism behind "Bayesian CCA" that distinguishes it from `VariationalBayesCCA`'s single
 shared ARD parameter per dimension. It also uses a different noise model: $\tau_i$ is a single
-scalar precision per view (homoscedastic), not a per-feature diagonal.
+scalar precision per view (homoscedastic), not a full covariance.
 
 Inference is closed-form coordinate-ascent variational Bayes — fully conjugate, so there's no
 need for NumPyro/JAX at all. `GFA` works with just the base `cca-zoo` install.
@@ -144,16 +153,15 @@ After fitting, `model.weights_` holds the **posterior mean** loading matrices, a
     shared across views leaves the likelihood unchanged — and different NUTS draws can settle
     on different rotations along that ridge. Averaging un-aligned draws would then be *biased
     toward zero* (draws pointing along different rotations partially cancel), so `fit` aligns
-    every draw's loadings (and that draw's own `z`, to stay internally consistent) to a common
-    reference via generalized Procrustes analysis before computing `weights_` or storing
-    `posterior_samples_`. On a synthetic check, this raised a rotation-invariant coherence
+    every draw's loadings to a common reference via generalized Procrustes analysis before
+    computing `weights_` or storing `posterior_samples_`. On a synthetic check, this raised a rotation-invariant coherence
     ratio (`||mean(W)||²` vs the mean of `||W||²` across draws — 1.0 if every draw agrees on a
     rotation) from 0.81 to 0.99.
 
 ### Transform (posterior mean prediction)
 
 The latent representation is computed via the analytical posterior mean, using the posterior
-mean loadings and noise variances:
+mean loadings and noise covariances:
 
 $$
 \Sigma_z = \left(I + \sum_i W_i^\top \Psi_i^{-1} W_i\right)^{-1}
@@ -170,8 +178,8 @@ z_from_x1 = model.posterior_mean([X1, None])  # conditioning on view 1 alone
 
 `transform` returns one array per view, as for every model in `cca_zoo`: each view's posterior
 mean given that view alone, the formula above with a single term in each sum. It weights
-features by their noise precision, so noisy features count for less than in the raw projection
-$X_i W_i$. Correlations, `score` and `predict` then work as they do elsewhere.
+features by their noise precision, so noisy features, and variation the view does not share,
+count for less than in the raw projection $X_i W_i$. Correlations, `score` and `predict` then work as they do elsewhere.
 
 ---
 

@@ -254,8 +254,11 @@ model = SpanCCA(n_components=2, span=10, random_state=0).fit([X1, X2])
 Sparse Alternating Regression (Wilms & Croux 2015): the same alternating-regression
 structure as IPLSCCA, but the lasso penalty at each step is picked automatically
 by BIC rather than left as a hyperparameter, so there is no `alpha`/`l1_bound`/`span` to
-tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
-requires and an OLS-based one does not (see the class docstring for why).
+tune. Each component starts at the ridge-CCA direction: from the PLS direction the other
+models start at, a view dominated by variance the others do not share gives the first lasso a
+target it barely correlates with, and BIC selects nothing. Latent dimensions beyond the first
+need an extra re-expression step a lasso fit requires and an OLS-based one does not (see the
+class docstring for why).
 
 ```python
 from cca_zoo.sparse import SAR

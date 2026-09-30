@@ -58,7 +58,15 @@ class TwoViewAdapter(_MultiviewWrapper):
 _MARS_SMALL_DATA = (
     "MARS needs more samples per view than the check's data to place a knot"
 )
+_MANIFOLD_SMALL_DATA = (
+    "the check's 10 samples with n_neighbors=10 make a complete graph, which "
+    "has no smooth eigenvectors to embed"
+)
 _EXPECTED_FAILURES = {
+    "ManifoldCCA": {
+        "check_estimators_nan_inf": _MANIFOLD_SMALL_DATA,
+        "check_fit2d_1feature": _MANIFOLD_SMALL_DATA,
+    },
     "MARSCCA": {
         "check_estimators_nan_inf": _MARS_SMALL_DATA,
         "check_fit2d_1feature": _MARS_SMALL_DATA,

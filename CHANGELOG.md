@@ -67,6 +67,11 @@ The table below gives each replacement.
 | `ManifoldCCA(lle_reg=)` | `reg=`, as sklearn's `LocallyLinearEmbedding` |
 | `CCAR3(highdim=False)` | `alpha=0`, now solved by least squares as in `ECCA`; `highdim` is removed |
 | `GRCCA().fit(views, feature_groups=groups)` | `GRCCA(feature_groups=groups).fit(views)`: groups describe the features, not the samples |
+| `GRCCA(mu=0)`, the default, fitted as `mu=1` | `mu` is the penalty on group means relative to the deviations from them: `mu=1` is ridge MCCA and `mu=0` shrinks each weight towards its group's mean; `shrinkage=0` is CCA whatever `mu` |
+| `SAR(random_state=)` | removed: SAR starts from the ridge-CCA direction, which needs no seed |
+| `GraphicalLassoCCA(alpha=)` on each view's covariance | `alpha` penalises each view's correlations, so it is the same in any units; for features of variance `s**2`, the old `alpha` is roughly `alpha / s**2` now |
+| `ProbabilisticCCA`/`VariationalBayesCCA` `posterior_samples_["log_psi_{i}"]`, `["z"]` | `["noise_sd_{i}"]` and `["noise_corr_{i}"]`, each view's noise scales and correlation Cholesky factor; the latent is integrated out, so there are no `z` draws (`posterior_mean` gives it) |
+| `GFA.posterior_samples_["log_psi_{i}"]` | `["noise_sd_{i}"]`, as the other probabilistic models |
 | `X1, X2 = load_linnerud()`, `load_breast_cancer()` | `load_linnerud(return_views=True)`; without it a `Bunch` with `views`, `feature_names` and `DESCR`, as sklearn's loaders |
 | `GaussianProcessCCA.transform(views, return_std=True)` | `transform(views)` and `posterior_std(views)`, as the probabilistic models' `posterior_mean`: `transform` takes views alone on every model |
 | `GaussianProcessCCA(max_iter=..., tol=...)`, `n_iter_` | removed: the fit is solved in closed form (see Changed) |
@@ -237,9 +242,10 @@ The table below gives each replacement.
   default `alpha` the model memorised (training correlations 0.97, held-out 0.30), and
   at `alpha >= 0.1` it returned zeros. It now holds out at 0.94, 0.91 and 0.87 where
   CCA gets 0.97, 0.91 and 0.71, and its default fit ignores the data's units.
-- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `ParkhomenkoCCA`,
-  `SAR`) start each component at the leading cross-covariance (PLS)
-  direction of the deflated views, as sklearn's PLS does, rather than at random weights.
+- The deflation models (`PMDCCA`, `ADMMCCA`, `IPLSCCA`, `SpanCCA`, `ParkhomenkoCCA`)
+  start each component at the leading cross-covariance (PLS) direction of the deflated
+  views, as sklearn's PLS does, rather than at random weights. `SAR` starts at the
+  leading ridge-CCA direction (see Fixed).
 - `StochasticCCAEY`'s `learning_rate` is relative, each view stepping by
   `learning_rate / L_i` with `L_i` the largest eigenvalue of its constraint matrix, so
   one default (now 0.2) suits views in any units; the old default diverged on
@@ -395,6 +401,36 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `ProbabilisticCCA` and `VariationalBayesCCA` gave each view diagonal noise, which makes
+  them factor analysis of the stacked views rather than CCA: given views each dominated
+  by a private factor three times the scale of the one factor they share, the latent
+  followed the private factor (correlation 0.998) and missed the shared one (0.041).
+  Each view's noise is now a full covariance, as in Bach and Jordan's model, with an
+  LKJ prior on its correlation; the latent is integrated out, and NUTS and SVI start at
+  the closed-form maximum likelihood. Both now find the shared factor (0.97).
+- `GCCA`'s weights were the least-squares fit `pinv(X_i) T` whatever the shrinkage, so
+  shrinkage changed only `T`: the training fit stayed perfect, and held-out correlation
+  fell as shrinkage rose while MCCA's rose. The weights are now each view's regularised
+  regression onto `T`, the minimiser of the MAXVAR objective the docstring now states.
+  `KGCCA` inherits the fix.
+- `GRCCA` treated its default `mu=0` as `mu=1`, ignored `mu` at `shrinkage=0`, and scaled
+  its feature augmentation by the shrinkage where Tuzhilina et al.'s change of variables
+  needs its square root. The group penalty is now a quadratic form in `MCCA`'s `B`,
+  `(1 - c) Sigma + c ((I - H) + mu H)` with `H` the group averaging, which is the paper's
+  penalty exactly, with no augmentation.
+- `SAR` returned all-zero weights when each view was dominated by variance the others do
+  not share: from the PLS start, the first BIC lasso selected nothing. It now starts at
+  the ridge-CCA direction and finds the shared factor.
+- `GraphicalLassoCCA` failed at any `alpha` on views with a strong common factor: sklearn's
+  solver fails on covariances far from unit scale. The graphical lasso is fitted to
+  each view's correlations and rescaled.
+- `ManifoldCCA`'s Laplacian extension did not return the training embedding (subspace
+  agreement 0.968): new points were joined to the k-NN graph without its
+  symmetrisation, self-loops that the Laplacian ignores were kept, the basis projected
+  out the constant vector rather than the normalised Laplacian's null vector, and
+  `1 - eigenvalue` was floored at 0.05, which also flipped the sign of eigenvectors past
+  1. Each is fixed, eigenvectors the extension cannot carry are dropped from the basis,
+  and `transform` of the training views is now the embedding exactly, for LLE too.
 - `PartialCCA` regressed the centred views on uncentred confounds, without an intercept,
   so where a confound was measured from changed the fit: adding 100 to it moved the
   scores' subspace to 0.18 of its original, and left them correlated with the
@@ -467,6 +503,7 @@ Removed outright, with no deprecation period; the table above gives each replace
   Gaussian data rose from about 0.2 to MCCA's 0.7.
 - `SAR` could return all-zero components on a strong signal: from a random start, the
   first lasso could select nothing, and a zero target keeps every later one at zero.
+  It now starts at the ridge-CCA direction (see above).
 
 - `GAMCCA` lost the linear fit at large `sp`: the penalised eigenproblem mixed penalty
   eigenvalues of order `sp` with rewards of order 1, so rounding in the penalty's null
