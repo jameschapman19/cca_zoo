@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator, clone
-from sklearn.utils import Tags
+from sklearn.utils import Tags, metadata_routing
 from sklearn.utils.validation import check_is_fitted
 
 from cca_zoo._utils._validation import validate_views
@@ -39,6 +41,11 @@ class PerViewTransformer(BaseEstimator):
         ... ])
         >>> Z1, Z2 = pipe.fit_transform([X1, X2])
     """
+
+    # The views are the data, not routable metadata (see BaseModel).
+    __metadata_request__fit: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__transform: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__inverse_transform: ClassVar = {"views": metadata_routing.UNUSED}
 
     def __init__(self, transformer: BaseEstimator | list[BaseEstimator]) -> None:
         self.transformer = transformer

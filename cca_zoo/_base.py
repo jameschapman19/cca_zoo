@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn import get_config
 from sklearn.base import BaseEstimator
-from sklearn.utils import Tags, TransformerTags, check_random_state
+from sklearn.utils import Tags, TransformerTags, check_random_state, metadata_routing
 from sklearn.utils._array_api import (
     _convert_to_numpy,
     _is_numpy_namespace,
@@ -117,6 +117,15 @@ class BaseModel(BaseEstimator, ABC):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         "n_components": [Interval(Integral, 1, None, closed="left")],
         "center": ["boolean"],
+    }
+    # sklearn treats every argument but X and y as routable metadata, and would
+    # generate set_fit_request(views=...) and the like; the views are the data.
+    __metadata_request__fit: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__transform: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__predict: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__score: ClassVar = {"views": metadata_routing.UNUSED}
+    __metadata_request__inverse_transform: ClassVar = {
+        "scores": metadata_routing.UNUSED
     }
     # Input dtypes the model fits and transforms in; others become float64.
     _preserved_dtypes: ClassVar[list[type]] = [np.float64]

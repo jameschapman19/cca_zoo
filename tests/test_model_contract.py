@@ -341,3 +341,12 @@ def test_training_scores_are_centred(cls: type[BaseModel]) -> None:
     views = _views(0, shift=5.0)
     for scores in fit(make_model(cls), views).transform(views):
         np.testing.assert_allclose(scores.mean(axis=0), 0.0, atol=1e-8 * scores.std())
+
+
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
+def test_views_are_not_routable_metadata(cls: type[BaseModel]) -> None:
+    """No set_*_request method offers to route the views, which are the data."""
+    requests = cls().get_metadata_routing()
+    for method in ("fit", "transform", "predict", "score", "inverse_transform"):
+        routed = getattr(requests, method).requests
+        assert "views" not in routed and "scores" not in routed, method
