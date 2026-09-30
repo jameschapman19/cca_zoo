@@ -27,7 +27,7 @@
     
     
       
-        <title>GAM Methods - CCA-Zoo</title>
+        <title>GAM & MARS Methods - CCA-Zoo</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gam-methods" class="md-skip">
+        <a href="#gam-mars-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              GAM Methods
+              GAM & MARS Methods
             
           </span>
         </div>
@@ -304,6 +304,28 @@
     
   
   API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
 
         </a>
       </li>
@@ -629,7 +651,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -647,7 +669,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -673,57 +695,91 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
+  <a href="#gamcca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Background
+        GAMCCA
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GAMCCA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choosing-the-smoothing-parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the smoothing parameter
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-fitted-smooths" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic usage
+        Inspecting fitted smooths
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#inspecting-fitted-shape-functions" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inspecting fitted shape functions
+        Parameters
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#key-parameters" class="md-nav__link">
+  <a href="#marscca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key parameters
+        MARSCCA
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MARSCCA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pruning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pruning
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#practical-notes" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#variable-importance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Practical notes
+        Variable importance
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1160,7 +1216,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1411,6 +1467,99 @@
   
   
   
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../contributing/" class="md-nav__link">
         
@@ -1459,57 +1608,91 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
+  <a href="#gamcca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Background
+        GAMCCA
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GAMCCA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choosing-the-smoothing-parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the smoothing parameter
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-fitted-smooths" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic usage
+        Inspecting fitted smooths
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#inspecting-fitted-shape-functions" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inspecting fitted shape functions
+        Parameters
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#key-parameters" class="md-nav__link">
+  <a href="#marscca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key parameters
+        MARSCCA
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MARSCCA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pruning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pruning
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#practical-notes" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#variable-importance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Practical notes
+        Variable importance
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1586,111 +1769,197 @@
   
 
 
-<h1 id="gam-methods">GAM Methods<a class="headerlink" href="#gam-methods" title="Permanent link">&para;</a></h1>
-<p>The <code>cca_zoo.gam</code> module provides <code>GAMCCA</code>, a nonlinear multiview CCA method that uses a
-generalized additive model (GAM) — one smooth univariate B-spline per input feature — as the
-per-view encoder. It has no optional dependency: the spline basis is built entirely from
-scikit-learn's own <code>SplineTransformer</code>, with <code>scipy.optimize</code> doing the Newton solve, all already
-required by <code>cca_zoo</code>, rather than reimplemented from scratch.</p>
+<h1 id="gam-mars-methods">GAM &amp; MARS Methods<a class="headerlink" href="#gam-mars-methods" title="Permanent link">&para;</a></h1>
+<p>The <code>cca_zoo.gam</code> module provides two spline-based nonlinear multiview CCA methods, each modelled
+on the R package its users will know: <code>GAMCCA</code> follows <code>mgcv</code>, and <code>MARSCCA</code> (see
+<a href="#marscca">below</a>) follows <code>earth</code>. Both are built on scikit-learn's <code>SplineTransformer</code> and
+SciPy, with no optional dependency.</p>
 <hr />
-<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
-<p><code>GAMCCA</code> minimises the same unconstrained Eckart-Young (EY) objective used by the stochastic
-<code>*_EY</code> models in <code>cca_zoo.linear</code>, by <code>DCCAEY</code> in <code>cca_zoo.deep</code>, and by <code>TreeCCA</code> in
-<code>cca_zoo.tree</code> (the numpy-based models share the exact same implementation, in
-<code>cca_zoo._utils._ey</code>):</p>
+<h2 id="gamcca">GAMCCA<a class="headerlink" href="#gamcca" title="Permanent link">&para;</a></h2>
+<p><code>GAMCCA</code> gives each view a generalized additive model — <span class="arithmatex">\(f_i(x) = \sum_j s_{ij}(x_j)\)</span>, one smooth
+per input feature — where each smooth is <code>mgcv</code>'s P-spline, <code>s(x, bs="ps", k=k, m=m)</code>: a
+<code>k</code>-dimensional B-spline basis on evenly spaced knots with a difference penalty on neighbouring
+coefficients (Eilers and Marx, 1996). The embeddings minimise the Eckart-Young (EY) objective
+shared with <code>CCAEY</code>, <code>DCCAEY</code> and <code>TreeCCA</code>,</p>
 <div class="arithmatex">\[
 \mathcal{L}_{EY} = -2 \operatorname{tr}(C) + \operatorname{tr}(V V)
 \]</div>
-<p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean pairwise cross-covariance (including
-<span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean auto-covariance across all views. <code>GAMCCA</code> uses a generalized
-additive model — <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span>, one B-spline term per input feature — in place of a
-linear map (<code>CCAEY</code>) or a boosted-tree ensemble (<code>TreeCCA</code>) as the function class for each
-<span class="arithmatex">\(f_i\)</span>.</p>
-<p>Writing <span class="arithmatex">\(f_i(x) = \sum_j s_j(x_j)\)</span> as a fixed per-feature B-spline basis times a coefficient
-matrix, fitting those coefficients is conceptually a <strong>P-IRLS</strong> recipe — the same iteration
-structure GAM software such as R's <code>mgcv</code> uses, applied directly to the EY loss rather than a
-per-observation likelihood. Rather than hand-rolling that solve (or even cycling over views one
-at a time), every view's coefficients — every latent component, every view, all at once — are
-updated in a single call to <code>scipy.optimize.minimize(method="trust-krylov")</code>, a standard
-off-the-shelf trust-region Newton-CG solver, given the EY loss's exact gradient and an exact
-Hessian-vector product across the whole stacked parameter vector.</p>
-<p>Because each latent component decomposes exactly into one additive term per input feature, the
-fitted shape of any feature's contribution is available directly via <code>model.shape_function(...)</code>
-— the GAM analogue of <code>TreeCCA</code>'s split-gain feature importance, but an exact curve rather than a
-single importance score, and smooth by construction rather than a step function.</p>
-<p><strong>When to use:</strong> Nonlinear multiview CCA where the true per-feature relationship is expected to
-be <em>smooth</em> (rather than needing feature interactions or sharp thresholds) — a GAM's smoothness
-assumption is then a genuine inductive-bias advantage, not just a cosmetic one.</p>
-<p>If cross-view structure instead depends on an <em>interaction</em> between two features of the same view
-(e.g. <span class="arithmatex">\(x_1 x_2\)</span>), a GAM's additive structure cannot represent that the way a tree's multivariate
-splits or a Gaussian process's joint kernel can — prefer <code>TreeCCA</code> or <code>GaussianProcessCCA</code> there.</p>
-<hr />
-<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<p>(<span class="arithmatex">\(C\)</span> the mean pairwise cross-covariance including <span class="arithmatex">\(i = j\)</span> terms, <span class="arithmatex">\(V\)</span> the mean auto-covariance),
+plus each view's smoothing penalty <span class="arithmatex">\(\tfrac12\,\mathrm{sp}_i \sum_j \beta_{ij}^\top D^\top D
+\beta_{ij}\)</span>. The penalty shrinks every smooth towards a polynomial — a straight line for the
+default second-difference penalty — rather than towards zero.</p>
+<p>With the basis fixed, the whole fit is one generalized eigenproblem, solved in closed form at its
+global optimum: no iterations, no tolerance, no random start. It is the same solver <code>MARSCCA</code>
+uses. A P-spline basis is rank-deficient by design — splines with no data under them are kept
+for the penalty to fill in, and every feature's splines sum to a constant — so, as <code>mgcv</code>
+resolves identifiability by reparametrisation, the problem is first rewritten exactly on the
+basis's row space.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gam</span><span class="w"> </span><span class="kn">import</span> <span class="n">GAMCCA</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">corr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>  <span class="c1"># mean canonical correlation</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># GAMCCA also supports more than two views</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># mgcv-style controls, per view where useful</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="n">m</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">sp</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<h2 id="inspecting-fitted-shape-functions">Inspecting fitted shape functions<a class="headerlink" href="#inspecting-fitted-shape-functions" title="Permanent link">&para;</a></h2>
-<p><code>GAMCCA</code> has no linear weight matrices, so <code>model.weights</code> raises <code>NotImplementedError</code>. Use
-<code>shape_function</code> instead to evaluate a single feature's fitted additive term directly:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<h3 id="choosing-the-smoothing-parameter">Choosing the smoothing parameter<a class="headerlink" href="#choosing-the-smoothing-parameter" title="Permanent link">&para;</a></h3>
+<p><code>mgcv</code> estimates each <code>sp</code> by GCV or REML, both likelihood or residual criteria with no EY-loss
+counterpart, so here <code>sp</code> is chosen by cross-validation:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GAMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">x_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">200</span><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">shape</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">shape_function</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">feature</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x_grid</span><span class="p">)</span>  <span class="c1"># (200, 1)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">GAMCCA</span><span class="p">(),</span> <span class="p">{</span><span class="s2">&quot;sp&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e-1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">]})</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<p><code>shape</code> is that feature's contribution alone, in the units of the latent component — plot it
-against <code>x_grid</code> to see the exact fitted curve for that feature, rather than a single importance
-score. Summing every feature's <code>shape_function</code> at the training values reproduces
-<code>model.encoders_[view].predict()</code> exactly.</p>
-<hr />
-<h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
+<p>To prefer the smoothest fit whose score is statistically indistinguishable from the best, pass
+a <a href="../model-selection/#custom-refit-rules">custom refit rule</a> that picks the largest <code>sp</code>.</p>
+<h3 id="inspecting-fitted-smooths">Inspecting fitted smooths<a class="headerlink" href="#inspecting-fitted-smooths" title="Permanent link">&para;</a></h3>
+<p><code>GAMCCA</code> has no linear weight matrices. <code>feature_importances_per_view_</code> is each smooth's variance over the
+training data (normalised to sum to 1 per view), and <code>shape_function</code> evaluates one feature's
+fitted smooth, <code>plot.gam</code>'s partial effect:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">x_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">X1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">shape</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">shape_function</span><span class="p">(</span><span class="n">view</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">feature</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x_grid</span><span class="p">)</span>  <span class="c1"># (200, n_components)</span>
+</span></code></pre></div>
+<p>Summing every feature's <code>shape_function</code> at the training values reproduces
+<code>model.encoders_[view].predict()</code>.</p>
+<h3 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h3>
+<p>Parameters share <code>mgcv</code>'s names and meanings for <code>bs="ps"</code> smooths.</p>
 <table>
 <thead>
 <tr>
 <th>Parameter</th>
+<th><code>mgcv</code></th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>n_knots</code></td>
-<td>Knots per feature's B-spline term, passed straight through to <code>SplineTransformer(n_knots=...)</code>. More knots allow wigglier per-feature curves.</td>
+<td><code>k</code></td>
+<td><code>k</code></td>
+<td>Basis dimension: B-splines per feature. Default 10, <code>mgcv</code>'s; raise it when a relationship needs more wiggles, and the penalty keeps the larger basis in check. Cost grows with the cube of the total basis size. Scalar or per-view list.</td>
 </tr>
 <tr>
-<td><code>alpha</code></td>
-<td>Ridge (smoothing) penalty strength applied to every spline coefficient. There is no automatic smoothing-parameter selection — tune this directly.</td>
+<td><code>m</code></td>
+<td><code>m</code></td>
+<td><code>(order, penalty order)</code>: B-splines of degree <code>order + 1</code> and a <code>penalty order</code>-th difference penalty; a single value sets both. Default 2 (cubic, second differences), <code>mgcv</code>'s. An int or tuple, or a list of per-view values.</td>
 </tr>
 <tr>
-<td><code>max_iter</code></td>
-<td>Maximum number of outer Newton iterations in the single joint <code>trust-krylov</code> solve (<code>scipy.optimize.minimize</code>'s own <code>maxiter</code> option).</td>
-</tr>
-<tr>
-<td><code>tol</code></td>
-<td>Gradient-norm convergence tolerance for the joint solve (<code>scipy.optimize.minimize</code>'s own <code>gtol</code> option).</td>
-</tr>
-<tr>
-<td><code>random_state</code></td>
-<td>Seed for the initial coefficients.</td>
+<td><code>sp</code></td>
+<td><code>sp</code></td>
+<td>Smoothing parameter; larger is smoother. Default 0.01. <code>mgcv</code> estimates it; here choose it by cross-validation (above). Scalar or per-view list.</td>
 </tr>
 </tbody>
 </table>
+<p><strong>When to use:</strong> nonlinear multiview CCA where each feature's relationship is expected to be
+smooth. A GAM is additive, so it cannot represent an interaction between two features of the
+same view (e.g. <span class="arithmatex">\(x_1 x_2\)</span>); <code>MARSCCA</code> with <code>degree &gt;= 2</code>, <code>TreeCCA</code> or <code>GaussianProcessCCA</code> can.</p>
 <hr />
-<h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
-<ul>
-<li><code>GAMCCA</code> supports 2 or more views.</li>
-<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
-<li>Unlike <code>KCCA</code>, <code>GAMCCA</code> does not store the training data for inference — new data is passed
-  directly through the fitted per-feature splines, so <code>transform</code> on held-out data is inexpensive.</li>
-<li>No optional dependency is required (unlike <code>cca_zoo.tree</code>, which needs <code>xgboost</code>/<code>lightgbm</code>):
-  <code>GAMCCA</code> is built entirely on <code>scikit-learn</code>'s <code>SplineTransformer</code> and <code>scipy.optimize</code>.</li>
-</ul>
+<h2 id="marscca">MARSCCA<a class="headerlink" href="#marscca" title="Permanent link">&para;</a></h2>
+<p><code>MARSCCA</code> swaps <code>GAMCCA</code>'s fixed B-spline basis for a multivariate adaptive regression spline
+(Friedman, 1991): each view's encoder is a linear combination of basis functions, each a product
+of up to <code>degree</code> hinges <span class="arithmatex">\(\max(0, \pm(x_j - t))\)</span>, and the basis is <em>grown</em> rather than fixed.</p>
+<p>Every forward step scores each candidate reflected hinge pair — any existing term (or the
+constant) as parent, any feature not already in that parent, any knot <code>earth</code>'s <code>minspan</code> and
+<code>endspan</code> rules allow within the parent's support — by how much of the current EY gradient the
+pair can absorb once orthogonalised against the current basis: classical MARS's
+residual-sum-of-squares criterion with the residual replaced by the EY loss's negative gradient.
+The best ten of those are then re-ranked by their exact loss after a refit, the criterion
+<code>earth</code> applies to every candidate (scoring all of them exactly would take an eigenproblem
+each). The best pair is added to each view in
+turn, then every view's coefficients are refit jointly. On a fixed basis the ridge-EY fit is a
+generalized eigenproblem — the one ridge-regularised MCCA solves — so each refit is its exact
+global optimum in closed form. Knots therefore land only where the cross-view signal needs them.</p>
+<p>With <code>degree=1</code> (the default, as in R's <code>earth</code>) the encoder is additive, like <code>GAMCCA</code> but
+with adaptive knots. With <code>degree=2</code> a term can represent a within-view interaction such as
+<span class="arithmatex">\(x_1 x_2\)</span> — exactly the case the note above says <code>GAMCCA</code> cannot handle — while staying
+inspectable term by term.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.gam</span><span class="w"> </span><span class="kn">import</span> <span class="n">MARSCCA</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MARSCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nk</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">terms</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">basis_functions</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># e.g. [&#39;h(x1 - 0.41)&#39;, &#39;h(0.41 - x1)&#39;, ...]</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">coefs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoders_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">coef_</span>  <span class="c1"># (len(terms), n_components), row m ↔ terms[m]</span>
+</span></code></pre></div>
+<p>Products appear as e.g. <code>'h(x1 - 0.41) * h(x0 + 0.2)'</code>, with <code>h(u) = max(0, u)</code> and knots in the
+raw feature units.</p>
+<h3 id="pruning">Pruning<a class="headerlink" href="#pruning" title="Permanent link">&para;</a></h3>
+<p>The forward pass deliberately overshoots, so, as in R's <code>earth</code>, a backward pass prunes it: from
+every term the forward pass added, it repeatedly deletes the term (from whichever view) whose
+removal raises the refit training EY loss least, down to <code>nprune</code> terms in total. Every refit
+being a closed-form eigenproblem, each deletion is exact: removing a term restricts that
+eigenproblem by one linear constraint, so every candidate's new eigenvalues follow from one
+eigendecomposition per step, the eigenvalue analogue of <code>earth</code>'s least-squares downdates.
+Unlike truncating the forward sequence, the backward pass can drop a stepping-stone term — a
+lone hinge in <span class="arithmatex">\(x_1\)</span>, say — once the interaction it led to has taken over its job. The forward
+pass itself also stops early, as <code>earth</code>'s does, once a round lowers the loss by less than a
+fraction <code>thresh</code> (default 0.001).</p>
+<p><code>earth</code> then picks the size by GCV, a squared-error quantity with no EY-loss counterpart. Its
+alternative, choosing the size along the backward sequence by cross-validation
+(<code>pmethod="cv"</code>), which carries over exactly as a search over <code>nprune</code> and, like <code>earth</code>, takes
+the best mean score:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">MARSCCA</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nk</span><span class="o">=</span><span class="mi">40</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;nprune&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">80</span><span class="p">]}</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span></code></pre></div>
+<p>Without GCV's per-knot penalty the best mean can keep a few noise terms; a
+<a href="../model-selection/#custom-refit-rules">custom refit rule</a> such as the one-standard-error rule
+trades them for a smaller model.</p>
+<h3 id="variable-importance">Variable importance<a class="headerlink" href="#variable-importance" title="Permanent link">&para;</a></h3>
+<p><code>feature_importances_per_view_</code> is <code>earth</code>'s <code>evimp</code> with its <code>rss</code> criterion, computed over the backward
+pass's nested subsets from the fitted model down: each subset's decrease in EY loss over the next
+smaller one is credited to every feature it uses. As for every model in the package, it is one
+array per view, normalised to sum to 1 (where <code>evimp</code> scales the largest to 100):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">imp1</span><span class="p">,</span> <span class="n">imp2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">feature_importances_per_view_</span>
+</span></code></pre></div>
+<p>Parameters share <code>earth</code>'s names and defaults wherever <code>earth</code> has one. <code>earth</code> counts an
+intercept in <code>nk</code> and <code>nprune</code>; views here are centred, so neither counts one. The one default
+that differs from <code>earth</code>'s is <code>minspan</code> (see the table). As elsewhere in
+the package, every parameter that configures one view's basis takes a single value or a list
+with one entry per view (<code>None</code> entries take that view's default). <code>thresh</code> and <code>nprune</code> are
+global: both are judged on the joint fit across views.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th><code>earth</code></th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>degree</code></td>
+<td><code>degree</code></td>
+<td>Maximum hinge factors per term: 1 is additive (default), 2 allows pairwise interactions. Scalar or per-view list.</td>
+</tr>
+<tr>
+<td><code>nk</code></td>
+<td><code>nk</code></td>
+<td>Maximum terms per view in the forward pass. Default <code>min(200, max(20, 2 * n_features))</code>, <code>earth</code>'s less its intercept. Scalar or per-view list.</td>
+</tr>
+<tr>
+<td><code>nprune</code></td>
+<td><code>nprune</code></td>
+<td>Total terms, across views, kept by the backward pass. <code>None</code> keeps the whole forward pass, since <code>earth</code>'s default of choosing it by GCV has no EY counterpart — search it by cross-validation instead.</td>
+</tr>
+<tr>
+<td><code>thresh</code></td>
+<td><code>thresh</code></td>
+<td>Forward-pass stopping threshold (default 0.001): stop once a round lowers the loss by less than <code>thresh</code> times its magnitude.</td>
+</tr>
+<tr>
+<td><code>minspan</code>, <code>endspan</code></td>
+<td><code>minspan</code>, <code>endspan</code></td>
+<td>Knot rules within each parent's support: at least <code>minspan</code> points between knots, none within <code>endspan</code> points of either end (doubled for interaction terms, as <code>Adjust.endspan=2</code>). <code>endspan=None</code> is Friedman's formula, <code>earth</code>'s default. <code>minspan=0</code> is Friedman's spacing exactly, as in <code>earth</code>; the default <code>None</code> widens it to leave at most 20 knots per feature, which markedly helps this forward pass find interactions (held-out 0.94 against 0.61 on a pure three-way interaction). Raising <code>minspan</code> is also the lever for speed on large data. Scalar or per-view list.</td>
+</tr>
+<tr>
+<td><code>alpha</code></td>
+<td>—</td>
+<td>Ridge penalty on every basis function's coefficient at unit variance, so it ignores each feature's units (CCA needs it; the EY fit is otherwise unregularised). Default 0.01. Scalar or per-view list.</td>
+</tr>
+</tbody>
+</table>
 
 
 

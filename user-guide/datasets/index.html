@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../contributing/" class="md-tabs__link">
         
@@ -620,7 +642,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -841,15 +863,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#jointdata-simulated-multiview-data" class="md-nav__link">
+  <a href="#make_joint_data-simulated-multiview-data" class="md-nav__link">
     <span class="md-ellipsis">
       
-        JointData — simulated multiview data
+        make_joint_data — simulated multiview data
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="JointData — simulated multiview data">
+    <nav class="md-nav" aria-label="make_joint_data — simulated multiview data">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1183,7 +1205,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1434,6 +1456,99 @@
   
   
   
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../contributing/" class="md-nav__link">
         
@@ -1482,15 +1597,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#jointdata-simulated-multiview-data" class="md-nav__link">
+  <a href="#make_joint_data-simulated-multiview-data" class="md-nav__link">
     <span class="md-ellipsis">
       
-        JointData — simulated multiview data
+        make_joint_data — simulated multiview data
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="JointData — simulated multiview data">
+    <nav class="md-nav" aria-label="make_joint_data — simulated multiview data">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1636,32 +1751,32 @@
 <p><code>cca_zoo.datasets</code> provides utilities for generating synthetic multiview data and loading
 small real-world datasets.</p>
 <hr />
-<h2 id="jointdata-simulated-multiview-data">JointData — simulated multiview data<a class="headerlink" href="#jointdata-simulated-multiview-data" title="Permanent link">&para;</a></h2>
-<p><code>JointData</code> generates data from a <strong>linear latent variable model</strong>:</p>
+<h2 id="make_joint_data-simulated-multiview-data"><code>make_joint_data</code> — simulated multiview data<a class="headerlink" href="#make_joint_data-simulated-multiview-data" title="Permanent link">&para;</a></h2>
+<p><code>make_joint_data</code> generates data from a <strong>linear latent variable model</strong>, in the style of
+<code>sklearn.datasets</code>' <code>make_*</code> generators:</p>
 <div class="arithmatex">\[
 X_i = Z W_i^\top + E_i
 \]</div>
 <p>where:</p>
 <ul>
-<li><span class="arithmatex">\(Z \in \mathbb{R}^{n \times k}\)</span> is the shared latent variable (<span class="arithmatex">\(k\)</span> = <code>latent_dimensions</code>)</li>
-<li><span class="arithmatex">\(W_i \in \mathbb{R}^{p_i \times k}\)</span> is the view-specific loading matrix (drawn once at construction)</li>
+<li><span class="arithmatex">\(Z \in \mathbb{R}^{n \times k}\)</span> is the shared latent variable (<span class="arithmatex">\(k\)</span> = <code>n_components</code>)</li>
+<li><span class="arithmatex">\(W_i \in \mathbb{R}^{p_i \times k}\)</span> is the view-specific loading matrix</li>
 <li><span class="arithmatex">\(E_i\)</span> is independent Gaussian noise, with variance controlled by <code>signal_to_noise</code></li>
 </ul>
-<p>The loading matrices are fixed at construction so that successive calls to <code>sample()</code> share
-the same generative parameters.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
+<p>For independent training and test sets, generate once and split every view together with
+<code>sklearn.model_selection.train_test_split</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>  <span class="c1"># different feature counts per view</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># higher = less noise</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">train_views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>  <span class="c1"># list of 2 arrays: (200, 50), (200, 40)</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">test_views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>  <span class="c1"># independent sample from the same model</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_joint_data</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">views</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>  <span class="c1"># different feature counts per view</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># higher = less noise</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">X1_train</span><span class="p">,</span> <span class="n">X1_test</span><span class="p">,</span> <span class="n">X2_train</span><span class="p">,</span> <span class="n">X2_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="o">*</span><span class="n">views</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h3>
 <table>
@@ -1675,16 +1790,10 @@ the same generative parameters.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>n_views</code></td>
-<td><code>int</code></td>
-<td><code>2</code></td>
-<td>Number of views</td>
-</tr>
-<tr>
 <td><code>n_samples</code></td>
 <td><code>int</code></td>
 <td><code>100</code></td>
-<td>Observations per call to <code>sample()</code></td>
+<td>Observations</td>
 </tr>
 <tr>
 <td><code>n_features</code></td>
@@ -1693,7 +1802,13 @@ the same generative parameters.</p>
 <td>Features per view (scalar broadcasts)</td>
 </tr>
 <tr>
-<td><code>latent_dimensions</code></td>
+<td><code>n_views</code></td>
+<td><code>int</code></td>
+<td><code>2</code></td>
+<td>Number of views</td>
+</tr>
+<tr>
+<td><code>n_components</code></td>
 <td><code>int</code></td>
 <td><code>1</code></td>
 <td>Shared latent dimension</td>
@@ -1706,38 +1821,42 @@ the same generative parameters.</p>
 </tr>
 <tr>
 <td><code>random_state</code></td>
-<td><code>int</code> or <code>None</code></td>
+<td><code>int</code>, <code>RandomState</code> or <code>None</code></td>
 <td><code>None</code></td>
 <td>Seed for reproducibility</td>
+</tr>
+<tr>
+<td><code>return_latent</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Also return the latent variable <code>z</code></td>
 </tr>
 </tbody>
 </table>
 <h3 id="usage-patterns">Usage patterns<a class="headerlink" href="#usage-patterns" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Same features for all views (scalar broadcasts)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Different SNR per view</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">signal_to_noise</span><span class="o">=</span><span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Callable shorthand (same as sample())</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Three views, same feature count (scalar broadcasts)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">views</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_views</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Different SNR per view</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">views</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">signal_to_noise</span><span class="o">=</span><span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># The true latent variable too, e.g. to check recovery</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">views</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">return_latent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="toy-real-world-datasets">Toy real-world datasets<a class="headerlink" href="#toy-real-world-datasets" title="Permanent link">&para;</a></h2>
 <p>Two small real-world datasets are included for quick experimentation:</p>
 <h3 id="load_linnerud"><code>load_linnerud</code><a class="headerlink" href="#load_linnerud" title="Permanent link">&para;</a></h3>
-<p>Wraps <code>sklearn.datasets.load_linnerud</code>. Returns two arrays:</p>
+<p>Wraps <code>sklearn.datasets.load_linnerud</code>. Like sklearn's loaders it returns a <code>Bunch</code>, with the
+views in <code>views</code> and each view's <code>feature_names</code>; <code>return_views=True</code> returns the views alone,
+as sklearn's <code>return_X_y</code>:</p>
 <ul>
 <li><strong>View 1:</strong> exercise measurements (chin-ups, sit-ups, jumps) — shape <code>(20, 3)</code></li>
 <li><strong>View 2:</strong> physiological measurements (weight, waist, pulse) — shape <code>(20, 3)</code></li>
 </ul>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_linnerud</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">exercise</span><span class="p">,</span> <span class="n">physiological</span> <span class="o">=</span> <span class="n">load_linnerud</span><span class="p">()</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">exercise</span><span class="p">,</span> <span class="n">physiological</span> <span class="o">=</span> <span class="n">load_linnerud</span><span class="p">(</span><span class="n">return_views</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">exercise</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (20, 3)</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">physiological</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (20, 3)</span>
 </span></code></pre></div>
@@ -1750,7 +1869,7 @@ a two-view dataset:</p>
 </ul>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">view1</span><span class="p">,</span> <span class="n">view2</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">()</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">view1</span><span class="p">,</span> <span class="n">view2</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_views</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">view1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (569, 15)</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">view2</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (569, 15)</span>
 </span></code></pre></div>

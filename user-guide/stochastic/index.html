@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../contributing/" class="md-tabs__link">
         
@@ -620,7 +642,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -1116,7 +1138,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1367,6 +1389,99 @@
   
   
   
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../contributing/" class="md-nav__link">
         
@@ -1505,20 +1620,23 @@ full-batch gradient step in memory.</p>
 <h2 id="stochasticccaey">StochasticCCAEY<a class="headerlink" href="#stochasticccaey" title="Permanent link">&para;</a></h2>
 <p><code>StochasticCCAEY</code> fits the same unconstrained Eckart-Young (EY) objective as
 <a href="../linear/#ey-loss-methods"><code>cca_zoo.linear.CCAEY</code></a> — see that page's Background section for the
-objective itself — by mini-batch momentum SGD instead of full-batch L-BFGS-B:</p>
+objective itself — by mini-batch SGD instead of full-batch L-BFGS-B, with the adaptive step of
+sklearn's <code>SGDRegressor(learning_rate="adaptive")</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.stochastic</span><span class="w"> </span><span class="kn">import</span> <span class="n">StochasticCCAEY</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">StochasticCCAEY</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">StochasticCCAEY</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <p><strong>When to use:</strong> the dataset doesn't fit comfortably in memory for a full-batch gradient step, or
 is naturally streamed/out-of-core. Otherwise, <code>CCAEY</code> is simpler to tune (no <code>learning_rate</code> or
 <code>batch_size</code>) and converges more predictably.</p>
-<p><code>batch_size</code> trades off gradient-estimate noise against per-step cost; <code>learning_rate</code> and the
-momentum term interact with it the same way they do for any mini-batch SGD method — too large a
-learning rate for a given batch size can diverge, too small converges slowly. <code>random_state</code>
+<p><code>learning_rate</code> is relative: the step is <code>learning_rate / L</code>, where <code>L</code> is the largest variance
+along any direction of any view, so the default suits data at any scale without standardising.
+<code>batch_size</code> trades off gradient-estimate noise against per-step cost. A mini-batch step cannot
+converge at a fixed size: it hovers at a distance set by the batches' noise. So, as in sklearn,
+whenever the epoch loss fails to improve by <code>tol</code> for <code>n_iter_no_change</code> epochs the step is divided
+by 5, and the fit stops once the step is negligible. Too large a <code>learning_rate</code> for a small batch
+can still diverge; the error says so. <code>random_state</code>
 controls both the initial weights and the batch sampling order, so it must be fixed for
 reproducible fits.</p>
 

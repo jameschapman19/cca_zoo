@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../contributing/" class="md-tabs__link">
         
@@ -612,10 +634,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#rcca-regularised-cca" class="md-nav__link">
+  <a href="#ridgecca-regularised-cca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        rCCA — Regularised CCA
+        RidgeCCA — Regularised CCA
       
     </span>
   </a>
@@ -728,6 +750,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gpus-and-the-array-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPUs and the Array API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choosing-a-method" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -817,7 +850,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -1255,7 +1288,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1506,6 +1539,99 @@
   
   
   
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../contributing/" class="md-nav__link">
         
@@ -1577,10 +1703,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#rcca-regularised-cca" class="md-nav__link">
+  <a href="#ridgecca-regularised-cca" class="md-nav__link">
     <span class="md-ellipsis">
       
-        rCCA — Regularised CCA
+        RidgeCCA — Regularised CCA
       
     </span>
   </a>
@@ -1693,6 +1819,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gpus-and-the-array-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPUs and the Array API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choosing-a-method" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1794,34 +1931,34 @@ projected views:</p>
 numerically stable result even for high-dimensional views.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]))</span>  <span class="c1"># canonical correlations</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]))</span>  <span class="c1"># mean canonical correlation</span>
 </span></code></pre></div>
-<h3 id="rcca-regularised-cca">rCCA — Regularised CCA<a class="headerlink" href="#rcca-regularised-cca" title="Permanent link">&para;</a></h3>
-<p><strong>When to use:</strong> CCA breaks down when <span class="arithmatex">\(n &lt; p\)</span> (more features than samples). rCCA adds a ridge
+<h3 id="ridgecca-regularised-cca">RidgeCCA — Regularised CCA<a class="headerlink" href="#ridgecca-regularised-cca" title="Permanent link">&para;</a></h3>
+<p><strong>When to use:</strong> CCA breaks down when <span class="arithmatex">\(n &lt; p\)</span> (more features than samples). RidgeCCA adds a ridge
 penalty to stabilise the covariance matrices.</p>
-<p>The parameter <code>c</code> controls the regularisation strength:</p>
+<p>The parameter <code>shrinkage</code> controls the regularisation strength:</p>
 <ul>
-<li><code>c=0</code> → equivalent to <code>CCA</code></li>
-<li><code>c=1</code> → equivalent to <code>PLS</code></li>
+<li><code>shrinkage=0</code> → equivalent to <code>CCA</code></li>
+<li><code>shrinkage=1</code> → equivalent to <code>PLS</code></li>
 <li><code>0 &lt; c &lt; 1</code> → interpolates between the two</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">rCCA</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">RidgeCCA</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">rCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">RidgeCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="pls-partial-least-squares">PLS — Partial Least Squares<a class="headerlink" href="#pls-partial-least-squares" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> When you want to maximise <em>covariance</em> rather than <em>correlation</em>. PLS is
 more robust to noise and does not require invertible covariance matrices.</p>
-<p>PLS is a special case of rCCA with <code>c=1</code>:</p>
+<p>PLS is a special case of RidgeCCA with <code>shrinkage=1</code>:</p>
 <div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
 \quad \text{s.t.} \quad \|\mathbf{w}_i\|_2 = 1
 \]</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">PLS</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PLS</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="multiview-methods-2-views">Multiview methods (≥2 views)<a class="headerlink" href="#multiview-methods-2-views" title="Permanent link">&para;</a></h2>
@@ -1836,7 +1973,7 @@ A \mathbf{v} = \lambda B \mathbf{v}
 <p>where <span class="arithmatex">\(A\)</span> contains the cross-view covariances and <span class="arithmatex">\(B\)</span> the regularised within-view covariances.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCCA</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="gcca-generalised-cca">GCCA — Generalised CCA<a class="headerlink" href="#gcca-generalised-cca" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> Multiple views with potentially different numbers of features; best when you
@@ -1850,7 +1987,7 @@ reconstructed from it:</p>
 the shared projection.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">GCCA</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="tcca-tensor-cca">TCCA — Tensor CCA<a class="headerlink" href="#tcca-tensor-cca" title="Permanent link">&para;</a></h3>
 <p><strong>When to use:</strong> When you want to capture higher-order (beyond pairwise) correlations among
@@ -1862,7 +1999,7 @@ T = \frac{1}{n} \sum_{j} \tilde{\mathbf{x}}^{(1)}_j \otimes \cdots \otimes \tild
 \]</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">TCCA</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="ey-loss-methods">EY-loss methods<a class="headerlink" href="#ey-loss-methods" title="Permanent link">&para;</a></h2>
@@ -1886,7 +2023,7 @@ directions on its own.</p>
 </tr>
 <tr>
 <td><code>CCAEY</code></td>
-<td>Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with <code>PLSEY</code> via <code>c</code></td>
+<td>Eckart-Young CCA for 2 or more views, full-batch L-BFGS-B, ridge-blended with <code>PLSEY</code> via <code>shrinkage</code></td>
 </tr>
 <tr>
 <td><code>HuberCCA</code></td>
@@ -1896,15 +2033,15 @@ directions on its own.</p>
 </table>
 <p>For datasets too large to fit comfortably in memory, see
 <a href="../stochastic/"><code>cca_zoo.stochastic.StochasticCCAEY</code></a>, which fits the same
-objective as <code>CCAEY</code> with mini-batch momentum SGD instead.</p>
-<p><code>CCAEY</code>'s <code>c</code> parameter (default <code>0</code>) blends its loss towards <code>PLSEY</code>'s (<code>c=1</code>) — in fact
-<code>PLSEY</code> is implemented as <code>CCAEY</code> with <code>c</code> fixed at <code>1</code>. Optimising the raw, unregularised
-(<code>c=0</code>) objective can be poorly conditioned when the number of samples doesn't outnumber the
-number of features by a healthy margin; if you see <code>nan</code> weights, increase <code>c</code> (0.1-0.3 is
+objective as <code>CCAEY</code> with mini-batch SGD instead.</p>
+<p><code>CCAEY</code>'s <code>shrinkage</code> parameter (default <code>0</code>) blends its loss towards <code>PLSEY</code>'s (<code>shrinkage=1</code>) — in fact
+<code>PLSEY</code> is implemented as <code>CCAEY</code> with <code>shrinkage</code> fixed at <code>1</code>. Optimising the raw, unregularised
+(<code>shrinkage=0</code>) objective can be poorly conditioned when the number of samples doesn't outnumber the
+number of features by a healthy margin; if you see <code>nan</code> weights, increase <code>shrinkage</code> (0.1-0.3 is
 usually enough).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCAEY</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCAEY</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCAEY</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="hubercca-bounded-influence-ey-cca">HuberCCA — bounded-influence EY-CCA<a class="headerlink" href="#hubercca-bounded-influence-ey-cca" title="Permanent link">&para;</a></h3>
@@ -1915,13 +2052,13 @@ forming those statistics — the same bounded-influence mechanism
 <code>sklearn.linear_model.HuberRegressor</code> uses against outliers, applied to the EY loss's own
 statistics. Every sample still contributes <em>something</em> (smooth downweighting, never exactly
 zero). Fit by the same full-batch L-BFGS-B as <code>CCAEY</code>, so it shares that class's <code>nan</code>-on
-ill-conditioned-data caveat above; it has no ridge-blend <code>c</code> of its own. The <code>delta</code> parameter
+ill-conditioned-data caveat above; it has no ridge-blend <code>shrinkage</code> of its own. The <code>delta</code> parameter
 sets the cutoff as a multiple of the dataset's own median sample leverage (self-calibrating, so
-it doesn't need re-tuning per <code>latent_dimensions</code>); values below 1 downweight the majority of the
+it doesn't need re-tuning per <code>n_components</code>); values below 1 downweight the majority of the
 data and are not recommended.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">HuberCCA</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">HuberCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">HuberCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
@@ -1939,12 +2076,12 @@ for a final refit. Since it measures agreement with a candidate direction rather
 magnitude, it catches exactly the contamination <code>HuberCCA</code> can't:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">RANSACCCA</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">RANSACCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">RANSACCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">inliers</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">inlier_mask_</span>  <span class="c1"># boolean array over the training rows</span>
 </span></code></pre></div>
 <p><code>min_samples</code> (a fraction or an absolute count) trades off two things: smaller subsets are more
-likely to be drawn free of contamination, but need <code>c</code> (a small ridge, default <code>0.1</code>) to stay
+likely to be drawn free of contamination, but need <code>shrinkage</code> (a small ridge, default <code>0.1</code>) to stay
 numerically well-posed. <code>residual_threshold</code> defaults to <code>0</code> — the natural zero point of the
 per-sample agreement score under no real relationship — rather than anything estimated from the
 data. Like <code>MCCA</code>, this isn't convex, and the random subset draws add their own instability on top:
@@ -1955,20 +2092,20 @@ where this helps and where the problem becomes too ambiguous for any method to r
 breakdown point, a random <code>min_samples</code>-sized draw becomes close to a coin flip on being usably
 clean, however many trials are tried. <code>TrimmedCCA</code> takes a different approach borrowed from
 Rousseeuw's Least Trimmed Squares / Minimum Covariance Determinant: rather than gambling on a lucky
-small draw, it starts from a large random subset of <code>h_frac * n</code> rows and alternates <em>concentration
+small draw, it starts from a large random subset of <code>support_fraction * n</code> rows and alternates <em>concentration
 steps</em> — rank every row by its own contribution to <code>CCAEY</code>'s exact loss and keep the best <code>h</code>, then
-re-fit on exactly those rows — each step provably non-increasing in the real loss. With <code>h_frac</code> set
+re-fit on exactly those rows — each step provably non-increasing in the real loss. With <code>support_fraction</code> set
 close to the true clean fraction, this holds up where <code>RANSACCCA</code>'s search degrades:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrimmedCCA</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TrimmedCCA</span><span class="p">(</span><span class="n">h_frac</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span> <span class="n">n_starts</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TrimmedCCA</span><span class="p">(</span><span class="n">support_fraction</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">inliers</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">inlier_mask_</span>  <span class="c1"># boolean array over the training rows</span>
 </span></code></pre></div>
-<p><code>h_frac</code> is a prior on the contamination rate, not something fit from the data — set it too high and
+<p><code>support_fraction</code> is a prior on the contamination rate, not something fit from the data — set it too high and
 good rows get discarded for nothing; set it too low and contaminated rows get forced into every fit
-once true contamination exceeds <code>1 - h_frac</code>. <code>TrimmedCCA</code> supports any number of views (2 or more)
-but only <code>latent_dimensions=1</code>: the selection rule's closed-form derivation relies on <code>CCAEY</code>'s
+once true contamination exceeds <code>1 - support_fraction</code>. <code>TrimmedCCA</code> supports any number of views (2 or more)
+but only <code>n_components=1</code>: the selection rule's closed-form derivation relies on <code>CCAEY</code>'s
 penalty being the square of a <em>single</em> linear functional of the selection, which holds for any
 number of views but not past one latent dimension — with <code>k &gt; 1</code> the same penalty becomes a genuine
 matrix-valued quadratic form (rank up to <code>k(k+1)/2</code>) that the same single-multiplier bisection can't
@@ -1981,17 +2118,12 @@ pair maximising a robust bivariate correlation measure (the <em>projection index
 resulting scores, never forming a covariance matrix at all.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectionPursuitCCA</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProjectionPursuitCCA</span><span class="p">(</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">projection_index</span><span class="o">=</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ProjectionPursuitCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
-<p>Two projection indices are available: <code>"spearman"</code> (default, Spearman rank correlation —
-insensitive to an outlier's exact magnitude, only its rank) and <code>"mcd"</code> (a
-minimum-covariance-determinant-based correlation, cheaper per evaluation than a full
-robust-covariance-plugin CCA fit since it only ever fits a 2-dimensional projected
-scatter). Each direction is parametrised by unconstrained hyperspherical angles and found
-by derivative-free search (<code>n_restarts</code> random restarts of <code>scipy.optimize.minimize</code> with
+<p>The projection index is Spearman's rank correlation, insensitive to an outlier's exact
+magnitude, only its rank. Each direction is parametrised by unconstrained hyperspherical angles and found
+by derivative-free search (<code>n_init</code> random restarts of <code>scipy.optimize.minimize</code> with
 Powell's method — a rank-correlation-based objective is non-smooth, so gradient-based
 solvers don't apply). Unlike the other three estimators here, there is no <code>inlier_mask_</code>:
 its robustness comes from the projection index's own insensitivity to extreme values, not
@@ -2009,7 +2141,7 @@ projection directions), tracing back to Huber's original projection pursuit (198
 Alfons, Croux &amp; Filzmoser (2017) put the same paradigm on firmer statistical footing
 (efficiency, breakdown point, a wider family of projection indices) and ship it as the
 R package <code>ccaPP</code> (Alfons, Croux &amp; Filzmoser, 2016), the reference implementation
-<code>ProjectionPursuitCCA</code>'s <code>"spearman"</code> and <code>"mcd"</code> projection indices follow.</p>
+<code>ProjectionPursuitCCA</code>'s Spearman projection index follows.</p>
 <blockquote>
 <p>Filzmoser, P., Dehon, C., &amp; Croux, C. (2000). Outlier resistant estimators for canonical
 correlation analysis. In <em>COMPSTAT: Proceedings in Computational Statistics 2000</em> (pp.
@@ -2025,6 +2157,27 @@ correlations: A comparative study. <em>Computational Statistics</em>, 20(2), 203
 sets: The R package ccaPP. <em>Austrian Journal of Statistics</em>, 45(1), 71-79.</p>
 </blockquote>
 <hr />
+<h2 id="gpus-and-the-array-api">GPUs and the Array API<a class="headerlink" href="#gpus-and-the-array-api" title="Permanent link">&para;</a></h2>
+<p><code>CCA</code>, <code>RidgeCCA</code>, <code>PLS</code>, <code>MCCA</code> and <code>GCCA</code> compute in the namespace of their inputs
+under scikit-learn's <a href="https://scikit-learn.org/stable/modules/array_api.html">Array API dispatch</a>,
+so PyTorch or CuPy arrays on a GPU are fitted and transformed on the GPU. Their cost is
+the covariance products and one eigendecomposition, both of which a GPU accelerates.
+scipy must be told before it is imported:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;SCIPY_ARRAY_API&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sklearn</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCCA</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X2</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">)]</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="k">with</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">config_context</span><span class="p">(</span><span class="n">array_api_dispatch</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>  <span class="c1"># torch tensors on the GPU</span>
+</span></code></pre></div>
+<p>The other models compute with numpy and raise a <code>TypeError</code> on other arrays under
+dispatch.</p>
 <h2 id="choosing-a-method">Choosing a method<a class="headerlink" href="#choosing-a-method" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2040,7 +2193,7 @@ sets: The R package ccaPP. <em>Austrian Journal of Statistics</em>, 45(1), 71-79
 </tr>
 <tr>
 <td><span class="arithmatex">\(n &lt; p\)</span> or ill-conditioned</td>
-<td><code>rCCA</code> (tune <code>c</code>)</td>
+<td><code>RidgeCCA</code> (tune <code>shrinkage</code>)</td>
 </tr>
 <tr>
 <td>Maximise covariance, not correlation</td>

@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../contributing/" class="md-tabs__link">
         
@@ -858,7 +880,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -1296,7 +1318,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1521,6 +1543,99 @@
     
   
     Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
   
 
     
@@ -1826,7 +1941,7 @@
 <p>Install the core package with pip:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo
 </span></code></pre></div>
-<p>The core package requires Python ≥ 3.10 and provides all linear and nonparametric methods.</p>
+<p>The core package requires Python ≥ 3.11 and provides all linear and nonparametric methods.</p>
 <h3 id="optional-extras">Optional extras<a class="headerlink" href="#optional-extras" title="Permanent link">&para;</a></h3>
 <p>Install extras for additional method families:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cca-zoo<span class="o">[</span>deep<span class="o">]</span><span class="w">          </span><span class="c1"># DCCA variants (PyTorch + Lightning)</span>
@@ -1844,29 +1959,35 @@ installing <code>cca-zoo[deep]</code>.</p>
 <h2 id="core-concepts">Core concepts<a class="headerlink" href="#core-concepts" title="Permanent link">&para;</a></h2>
 <h3 id="views">Views<a class="headerlink" href="#views" title="Permanent link">&para;</a></h3>
 <p>CCA-Zoo expects data as a <strong>list of arrays</strong>, one per view:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>  <span class="c1"># two views</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">]</span>  <span class="c1"># three views</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">]</span>  <span class="c1"># three views</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>  <span class="c1"># two views</span>
 </span></code></pre></div>
 <p>Each array has shape <code>(n_samples, n_features_i)</code>. All views must share the same number of rows.</p>
 <h3 id="the-estimator-api">The estimator API<a class="headerlink" href="#the-estimator-api" title="Permanent link">&para;</a></h3>
 <p>Every model follows the same three-step pattern:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># 1. construct</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># 1. construct</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>  <span class="c1"># 2. fit</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>  <span class="c1"># 3. use</span>
 </span></code></pre></div>
 <p>Or equivalently:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">z</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">z</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="evaluating-fit-quality">Evaluating fit quality<a class="headerlink" href="#evaluating-fit-quality" title="Permanent link">&para;</a></h3>
-<p><code>score</code> returns the average pairwise canonical correlation per latent dimension:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>  <span class="c1"># np.ndarray, shape (latent_dimensions,)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">corrs</span><span class="p">)</span>  <span class="c1"># e.g. [0.94, 0.87]</span>
+<p><code>score</code> returns the mean canonical correlation, one float as sklearn expects (so it works
+directly as a <code>GridSearchCV</code> criterion). The per-dimension values come from <code>cca_zoo.metrics</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">average_pairwise_correlations</span><span class="p">,</span> <span class="n">pairwise_correlations</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>  <span class="c1"># e.g. 0.905</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">average_pairwise_correlations</span><span class="p">(</span><span class="n">pairwise_correlations</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>  <span class="c1"># e.g. [0.94, 0.87]</span>
 </span></code></pre></div>
 <h3 id="inspecting-weights">Inspecting weights<a class="headerlink" href="#inspecting-weights" title="Permanent link">&para;</a></h3>
-<p>After fitting, <code>model.weights</code> is a list of weight matrices (one per view):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">W1</span><span class="p">,</span> <span class="n">W2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">weights</span>  <span class="c1"># each shape (n_features_i, latent_dimensions)</span>
+<p>After fitting, a linear model's <code>weights_</code> is a list of weight matrices (one per view), and
+every model's <code>feature_importances_per_view_</code> gives one non-negative array per view summing to 1:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">W1</span><span class="p">,</span> <span class="n">W2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">weights_</span>  <span class="c1"># each shape (n_features_i, n_components)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">imp1</span><span class="p">,</span> <span class="n">imp2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">feature_importances_per_view_</span>  <span class="c1"># each shape (n_features_i,)</span>
 </span></code></pre></div>
 <h3 id="predicting-a-missing-view">Predicting a missing view<a class="headerlink" href="#predicting-a-missing-view" title="Permanent link">&para;</a></h3>
 <p><code>predict</code> reconstructs every view from whichever ones you pass — pass <code>None</code> for a view
@@ -1889,49 +2010,50 @@ have some views but not others.</p>
 <hr />
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <h3 id="two-view-cca">Two-view CCA<a class="headerlink" href="#two-view-cca" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">JointData</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># Simulate data from a linear latent variable model</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">n_views</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_joint_data</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCA</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Simulate data from a linear latent variable model</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">views</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">n_samples</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
 </span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">n_features</span><span class="o">=</span><span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 </span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">signal_to_noise</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
 </span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="p">)</span>
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="n">train_views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="n">test_views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
-</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="c1"># Fit and evaluate</span>
-</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
-</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Canonical correlations:&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">test_views</span><span class="p">))</span>
-</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>
-</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="c1"># Project into the shared latent space</span>
-</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_views</span><span class="p">)</span>
-</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Latent shape:&quot;</span><span class="p">,</span> <span class="n">z1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (200, 2)</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="n">X1_train</span><span class="p">,</span> <span class="n">X1_test</span><span class="p">,</span> <span class="n">X2_train</span><span class="p">,</span> <span class="n">X2_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="o">*</span><span class="n">views</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="p">)</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="n">train_views</span><span class="p">,</span> <span class="n">test_views</span> <span class="o">=</span> <span class="p">[</span><span class="n">X1_train</span><span class="p">,</span> <span class="n">X2_train</span><span class="p">],</span> <span class="p">[</span><span class="n">X1_test</span><span class="p">,</span> <span class="n">X2_test</span><span class="p">]</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="c1"># Fit and evaluate</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="n">model</span> <span class="o">=</span> <span class="n">CCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mean canonical correlation:&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">test_views</span><span class="p">))</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="c1"># Project into the shared latent space</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_views</span><span class="p">)</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Latent shape:&quot;</span><span class="p">,</span> <span class="n">z1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (200, 2)</span>
 </span></code></pre></div>
 <h3 id="multiview-cca-2-views">Multiview CCA (≥2 views)<a class="headerlink" href="#multiview-cca-2-views" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCCA</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">data</span> <span class="o">=</span> <span class="n">JointData</span><span class="p">(</span><span class="n">n_views</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">views</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">views</span><span class="p">))</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">views</span> <span class="o">=</span> <span class="n">make_joint_data</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">n_views</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">views</span><span class="p">)</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">views</span><span class="p">))</span>
 </span></code></pre></div>
 <h3 id="regularised-cca">Regularised CCA<a class="headerlink" href="#regularised-cca" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">rCCA</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">RidgeCCA</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># c controls the ridge penalty (0 = CCA, 1 = PLS)</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">rCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">RidgeCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="kernel-cca">Kernel CCA<a class="headerlink" href="#kernel-cca" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_views</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="hyperparameter-search">Hyperparameter search<a class="headerlink" href="#hyperparameter-search" title="Permanent link">&para;</a></h3>
@@ -1939,14 +2061,14 @@ have some views but not others.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]}</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">),</span> <span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;shrinkage&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]}</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">),</span> <span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">gs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_views</span><span class="p">)</span>
 </span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Best params:&quot;</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>RandomizedSearchCV</code> and the underlying <code>MultiviewWrapper</code> adapter are also available for
-sampling distributions or plugging cca_zoo models into other sklearn model-selection tools
-directly — see <a href="../user-guide/model-selection/">Model Selection</a>.</p>
+<p><code>RandomizedSearchCV</code>, the successive-halving searches and sklearn's cross-validation
+functions are also available for lists of views — see
+<a href="../user-guide/model-selection/">Model Selection</a>.</p>
 <hr />
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>

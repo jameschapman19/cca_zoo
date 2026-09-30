@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../contributing/" class="md-tabs__link">
         
@@ -789,7 +811,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -1227,7 +1249,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1452,6 +1474,99 @@
     
   
     Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
   
 
     
@@ -1769,34 +1884,42 @@ in that RKHS and expressed via the <em>dual</em> (kernel coefficient) representa
 <hr />
 <h2 id="kcca-kernel-cca">KCCA — Kernel CCA<a class="headerlink" href="#kcca-kernel-cca" title="Permanent link">&para;</a></h2>
 <p><strong>When to use:</strong> Nonlinear two-view CCA. The kernel generalises MCCA.</p>
-<p>KCCA finds dual variables <span class="arithmatex">\(\boldsymbol{\alpha}_i\)</span> (one set per view) by solving:</p>
+<p>Each view's kernel <span class="arithmatex">\(K_i\)</span> is centred in feature space (sklearn's <code>KernelCenterer</code>), and a
+new row's kernel against the training rows is centred with the training statistics. KCCA
+is then exactly <code>MCCA</code> on each view's kernel feature map: with dual variables
+<span class="arithmatex">\(\boldsymbol{\alpha}_i\)</span> it solves</p>
 <div class="arithmatex">\[
 A \boldsymbol{\alpha} = \lambda B \boldsymbol{\alpha}
 \]</div>
 <p>where:</p>
 <ul>
-<li><span class="arithmatex">\(A\)</span> is the block off-diagonal kernel cross-covariance matrix</li>
-<li><span class="arithmatex">\(B = \mathrm{block\_diag}(c_i K_i + (1-c_i) K_i^2)\)</span> regularises the within-view kernel matrices</li>
+<li><span class="arithmatex">\(A\)</span> has off-diagonal blocks <span class="arithmatex">\(K_i K_j / (n-1)\)</span>, the covariances between views' scores</li>
+<li><span class="arithmatex">\(B\)</span> has diagonal blocks <span class="arithmatex">\((1-c_i) K_i^2 / (n-1) + c_i K_i\)</span>: the variance of the scores
+  <span class="arithmatex">\(K_i \boldsymbol{\alpha}_i\)</span>, shrunk towards the squared norm of the feature-space direction</li>
 </ul>
-<p>The parameter <code>c</code> controls regularisation: larger <code>c</code> → stronger regularisation.</p>
+<p><code>shrinkage</code> (<span class="arithmatex">\(c_i\)</span>) means what it does for <code>MCCA</code>: 0 is kernel CCA and 1 kernel PLS. With
+<code>kernel="linear"</code>, <code>KCCA</code>, <code>KGCCA</code> and <code>KTCCA</code> are <code>MCCA</code>, <code>GCCA</code> and <code>TCCA</code>, and with any
+kernel <code>KCCA</code> equals <code>MCCA</code> on <code>Nystroem</code> features that use every training row as a
+landmark. For large <span class="arithmatex">\(n\)</span>, a <code>Nystroem</code> approximation with fewer landmarks followed by the
+linear model is the scalable form of the same estimator.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Linear kernel (recovers classical CCA in feature space)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># RBF kernel</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Polynomial kernel</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;poly&quot;</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;poly&quot;</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># Per-view kernel parameters (list = one entry per view)</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">kernel</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="s2">&quot;poly&quot;</span><span class="p">],</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">gamma</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">degree</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">c</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">shrinkage</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="transform">Transform<a class="headerlink" href="#transform" title="Permanent link">&para;</a></h3>
@@ -1811,21 +1934,21 @@ the fitted dual variables:</p>
 <div class="arithmatex">\[
 Q = \sum_i \mu_i K_i \, B_i^{-1} \, K_i
 \]</div>
-<p>where <span class="arithmatex">\(B_i = c_i K_i + (1-c_i) K_i^2\)</span>.</p>
+<p>with centred kernels and <span class="arithmatex">\(B_i = (1-c_i) K_i^2 / (n-1) + c_i K_i\)</span>; it is <code>GCCA</code> on each view's kernel feature map.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KGCCA</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KGCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KGCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="ktcca-kernel-tensor-cca">KTCCA — Kernel Tensor CCA<a class="headerlink" href="#ktcca-kernel-tensor-cca" title="Permanent link">&para;</a></h2>
 <p><strong>When to use:</strong> Captures higher-order correlations in the kernel space for three or more views.</p>
-<p>KTCCA whitens the kernel matrices and builds a cross-moment tensor in the RKHS, then applies
-PARAFAC decomposition:</p>
+<p>KTCCA is <code>TCCA</code> on each view's kernel feature map: it whitens the feature maps, builds their
+cross-moment tensor and applies PARAFAC decomposition:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KTCCA</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KTCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">]</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KTCCA</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="manifoldcca-transductive-manifold-cca">ManifoldCCA — transductive manifold CCA<a class="headerlink" href="#manifoldcca-transductive-manifold-cca" title="Permanent link">&para;</a></h2>
@@ -1842,15 +1965,11 @@ matching <code>sklearn.manifold.SpectralEmbedding</code>) or the LLE reconstruct
 the joint eigenproblem solves for <em>is</em> each view's training-set embedding directly:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">ManifoldCCA</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ManifoldCCA</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;laplacian&quot;</span><span class="p">,</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">train_embedding</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">model</span><span class="o">.</span><span class="n">weights</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>  <span class="c1"># (n_train, k) per view -- the embedding itself, not a weight matrix</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ManifoldCCA</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;laplacian&quot;</span><span class="p">,</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">train_embedding</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">embedding_</span>  <span class="c1"># (n_train, k) per view</span>
 </span></code></pre></div>
 <p>Before solving, every view's operator is truncated to its own <code>n_operator_components</code>
-smallest-eigenvalue directions (default <code>max(4 * latent_dimensions, 10)</code>) -- the same truncation
+smallest-eigenvalue directions (default <code>max(4 * n_components, 10)</code>) -- the same truncation
 every spectral method already applies, and effectively this class's regularisation strength.
 Set too large (approaching <code>n_samples - 1</code>), the joint eigenproblem hands each view as many free
 directions as training points and, like any unregularised multivariate CCA at that
@@ -1868,8 +1987,12 @@ own established extension rather than a generic auxiliary model:</p>
   <code>LocallyLinearEmbedding.transform</code>'s own mechanism (verified directly against it in the tests).</li>
 <li><code>method="laplacian"</code>: the classical Nystrom extension (Bengio et al. 2003) of each kept
   eigenvector, using the same degree-normalised affinity rule the training graph was built from,
-  then the same combination the joint solve used at training time.</li>
+  then the same combination the joint solve used at training time. The extension divides by
+  <code>1 - eigenvalue</code>, so eigenvectors with eigenvalue above 0.95, barely smoother than noise, are
+  left out of the basis rather than amplified.</li>
 </ul>
+<p>Either extension returns a training point's own embedding: <code>transform</code> of the training views is
+<code>embedding_</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1_test</span><span class="p">,</span> <span class="n">X2_test</span><span class="p">])</span>
 </span></code></pre></div>
 <p><code>inverse_transform</code>/<code>predict</code> are not supported (same limitation as <code>KCCA</code>): both assume a
@@ -1881,17 +2004,17 @@ distance) regularisation is achievable today via <code>KCCA</code> with a precom
 in place of a standard kernel.</p>
 <hr />
 <h2 id="hyperparameter-tuning">Hyperparameter tuning<a class="headerlink" href="#hyperparameter-tuning" title="Permanent link">&para;</a></h2>
-<p>Kernel hyperparameters (<code>c</code>, <code>gamma</code>, <code>degree</code>) are best selected by cross-validation.
+<p>Kernel hyperparameters (<code>shrinkage</code>, <code>gamma</code>, <code>degree</code>) are best selected by cross-validation.
 Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="s2">&quot;shrinkage&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">gs</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">),</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">KCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">),</span>
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 </span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">)</span>
@@ -1901,23 +2024,24 @@ Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
 </span></code></pre></div>
 <hr />
 <h2 id="custom-kernels">Custom kernels<a class="headerlink" href="#custom-kernels" title="Permanent link">&para;</a></h2>
-<p>Pass any callable with signature <code>k(X, Y, **params) -&gt; np.ndarray</code>:</p>
+<p>Pass any callable with signature <code>k(x, y, **params) -&gt; float</code>. As with sklearn's
+<code>pairwise_kernels</code>, it is called on one pair of samples at a time, and <code>kernel_params</code>
+supplies its keyword arguments:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.nonparametric</span><span class="w"> </span><span class="kn">import</span> <span class="n">KCCA</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_kernel</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gaussian kernel with explicit sigma.&quot;&quot;&quot;</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">diff</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_kernel</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gaussian kernel of two samples, with explicit sigma.&quot;&quot;&quot;</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="n">kernel</span><span class="o">=</span><span class="n">my_kernel</span><span class="p">,</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">kernel_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">},</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="n">c</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">model</span> <span class="o">=</span> <span class="n">KCCA</span><span class="p">(</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">kernel</span><span class="o">=</span><span class="n">my_kernel</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="n">kernel_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">},</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">shrinkage</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
@@ -1929,7 +2053,7 @@ Use <code>GridSearchCV</code> from <code>cca_zoo.model_selection</code>:</p>
   for moderate training-set sizes rather than very large <span class="arithmatex">\(n\)</span>.</li>
 <li>For large datasets, prefer the linear EY-loss methods (<code>CCAEY</code>, <code>PLSEY</code>, <code>StochasticCCAEY</code>)
   or deep methods.</li>
-<li>The <code>c</code> parameter is crucial: too small → numerical instability; too large → loss of structure.
+<li>The <code>shrinkage</code> parameter is crucial: too small → numerical instability; too large → loss of structure.
   Use cross-validation (see <a href="../model-selection/">Model Selection</a>).</li>
 </ul>
 

@@ -316,6 +316,28 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../contributing/" class="md-tabs__link">
         
@@ -620,7 +642,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -833,17 +855,6 @@
     <span class="md-ellipsis">
       
         IPLSCCA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#waijenborgcca" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WaijenborgCCA
       
     </span>
   </a>
@@ -1265,7 +1276,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1516,6 +1527,99 @@
   
   
   
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../contributing/" class="md-nav__link">
         
@@ -1675,17 +1779,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#waijenborgcca" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WaijenborgCCA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#parkhomenkocca" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1801,8 +1894,8 @@
 mechanism families. Three are EY-loss coordinate descent, each the EY-loss analogue of a
 scikit-learn regularised linear regressor: <code>ElasticNetCCA</code> (elastic net),
 <code>MultiTaskElasticNetCCA</code> (multi-task elastic net — row-group sparsity across latent dimensions),
-and <code>OrthogonalMatchingPursuitCCA</code> (greedy fixed-cardinality selection). The remaining seven —
-<code>PMDCCA</code>, <code>ADMMCCA</code>, <code>IPLSCCA</code>, <code>WaijenborgCCA</code>, <code>ParkhomenkoCCA</code>, <code>SpanCCA</code>, <code>SAR</code> — are
+and <code>OrthogonalMatchingPursuitCCA</code> (greedy fixed-cardinality selection). The remaining six —
+<code>PMDCCA</code>, <code>ADMMCCA</code>, <code>IPLSCCA</code>, <code>ParkhomenkoCCA</code>, <code>SpanCCA</code>, <code>SAR</code> — are
 Alternating Least Squares (ALS) methods, each a from-the-literature sparse CCA algorithm with its
 own penalty and fitting loop; see <a href="#alternating-least-squares-methods">below</a>. None has an
 optional dependency: all are built entirely on numpy, already required by <code>cca_zoo</code>.</p>
@@ -1829,12 +1922,12 @@ coordinate instead gives an <strong>exact quartic</strong> (not quadratic), whic
 exact global minimiser directly — no line search, no step size, and no local-optimum risk from
 linearising the loss.</p>
 <p>Because every embedding stays exactly linear in the raw (centred) view throughout fitting,
-<code>model.weights</code> returns real per-view canonical weight matrices, unlike <code>TreeCCA</code>, <code>GAMCCA</code>, and
-<code>GaussianProcessCCA</code>, where it raises <code>NotImplementedError</code>.</p>
+<code>model.weights_</code> holds real per-view canonical weight matrices, which <code>TreeCCA</code>, <code>GAMCCA</code> and
+<code>GaussianProcessCCA</code> don't have.</p>
 <p><strong>When to use:</strong> Multiview CCA where the true relationship is linear but only a subset of
 features in each view actually drive the shared structure — <code>l1_ratio &gt; 0</code> drives irrelevant
 features' weights to exactly zero, giving feature selection alongside the fitted canonical
-directions. When every feature is expected to contribute, plain <code>CCAEY</code>/<code>rCCA</code> need less
+directions. When every feature is expected to contribute, plain <code>CCAEY</code>/<code>RidgeCCA</code> need less
 hyperparameter tuning (no <code>alpha</code>/<code>l1_ratio</code> to select).</p>
 <p>Passing <code>positive=True</code> additionally constrains every weight to be non-negative, mirroring
 <code>sklearn.linear_model.Lasso</code>/<code>ElasticNet</code>'s own <code>positive=True</code>.</p>
@@ -1849,10 +1942,8 @@ a more natural fit for CCA than for ordinary multi-task regression, since a CCA 
 dimensions are not independent "tasks" fit separately but different views of the same features.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiTaskElasticNetCCA</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MultiTaskElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">active_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># same mask for every component</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">MultiTaskElasticNetCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">active_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># same mask for every component</span>
 </span></code></pre></div>
 <p>Unlike <code>ElasticNetCCA</code>'s exact per-scalar quartic solve, a whole row's <span class="arithmatex">\(k\)</span> coefficients are
 coupled by <span class="arithmatex">\(\mathcal{L}_{EY}\)</span>'s auto-covariance cross terms, so there's no closed-form joint
@@ -1865,16 +1956,15 @@ decrease the exact penalised objective — so fitting is still provably monotoni
 <p>Where <code>ElasticNetCCA</code>/<code>MultiTaskElasticNetCCA</code> reach a sparsity level indirectly, by tuning a
 continuous penalty strength, <code>OrthogonalMatchingPursuitCCA</code> (the EY-loss analogue of
 <code>sklearn.linear_model.OrthogonalMatchingPursuit</code>) fixes it directly: specify how many features
-each view is allowed to use, and features are added one at a time — by the same residual-
-correlation criterion classical OMP uses — with the active coefficients re-solved to their exact
-joint (unpenalised) optimum after every addition.</p>
+each view is allowed to use, and features are added one at a time, by the largest EY gradient,
+the analogue of the residual correlation classical OMP uses. Once the active sets settle, the
+weights are the exact joint (unpenalised) EY optimum on them, CCA on the selected features, as
+classical OMP's coefficients are the least-squares fit on its support.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrthogonalMatchingPursuitCCA</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">OrthogonalMatchingPursuitCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_nonzero_coefs</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">active_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">assert</span> <span class="n">active_features</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">OrthogonalMatchingPursuitCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_nonzero_coefs</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">active_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">assert</span> <span class="n">active_features</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span>
 </span></code></pre></div>
 <p><code>n_nonzero_coefs</code> can be a single <code>int</code> (applied to every view) or a list (one budget per view);
 left as <code>None</code>, each view defaults to <code>max(1, n_features_i // 10)</code>, mirroring sklearn's own
@@ -1883,17 +1973,17 @@ default.</p>
 <h2 id="elasticnetcca-usage">ElasticNetCCA usage<a class="headerlink" href="#elasticnetcca-usage" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElasticNetCCA</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">corrs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">corr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>  <span class="c1"># mean canonical correlation</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># ElasticNetCCA also supports more than two views</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">model3</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">])</span>
 </span></code></pre></div>
 <p><code>l1_ratio=0</code> is pure ridge (no sparsity); <code>l1_ratio=1</code> is pure lasso. Increasing <code>alpha</code> shrinks
 more weights to exactly zero:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">nonzero_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ElasticNetCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">nonzero_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">weights_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="key-parameters">Key parameters<a class="headerlink" href="#key-parameters" title="Permanent link">&para;</a></h2>
@@ -1963,7 +2053,7 @@ more weights to exactly zero:</p>
 <h2 id="practical-notes">Practical notes<a class="headerlink" href="#practical-notes" title="Permanent link">&para;</a></h2>
 <ul>
 <li>All three support 2 or more views.</li>
-<li><code>latent_dimensions</code> must not exceed the number of features in any view.</li>
+<li><code>n_components</code> must not exceed the number of features in any view.</li>
 <li>Like every EY-loss model, <span class="arithmatex">\(\mathcal{L}_{EY}\)</span> is not convex in <span class="arithmatex">\(W\)</span> jointly, so fitting is only
   guaranteed to reach a stationary point, and different <code>random_state</code> initialisations can land
   on different ones — the same caveat that already applies to <code>CCAEY</code>'s gradient descent.</li>
@@ -1971,15 +2061,15 @@ more weights to exactly zero:</p>
 </ul>
 <hr />
 <h2 id="alternating-least-squares-methods">Alternating Least Squares methods<a class="headerlink" href="#alternating-least-squares-methods" title="Permanent link">&para;</a></h2>
-<p>These seven methods use an <strong>Alternating Least Squares (ALS)</strong> loop with Gram-Schmidt deflation
-to extract multiple canonical directions, rather than EY-loss coordinate descent.</p>
+<p>These six methods use an <strong>Alternating Least Squares (ALS)</strong> loop, deflating the views by each
+component's scores before the next, as PLS does, rather than EY-loss coordinate descent. PMDCCA,
+ParkhomenkoCCA and SpanCCA are one power iteration with three different thresholds.</p>
 <div class="admonition tip">
 <p class="admonition-title">Choosing an ALS method</p>
 <ul>
 <li><strong>PMDCCA</strong> — fast, interpretable L1 bound; good default for sparse CCA</li>
 <li><strong>ADMMCCA</strong> — more principled L1 penalty via ADMM</li>
 <li><strong>IPLSCCA</strong> — elastic net penalty; handles both L1 and L2 regularisation</li>
-<li><strong>WaijenborgCCA</strong> — elastic net applied to the multiview sum-of-scores target</li>
 <li><strong>ParkhomenkoCCA</strong> — simple fixed soft-threshold; fast but less adaptive</li>
 <li><strong>SpanCCA</strong> — hard threshold (top-k entries); useful when sparsity level is known</li>
 <li><strong>SAR</strong> — penalty strength chosen automatically by BIC; no sparsity hyperparameter to tune</li>
@@ -1989,56 +2079,46 @@ to extract multiple canonical directions, rather than EY-loss coordinate descent
 <p>Imposes L1 constraints via bisection-based soft-thresholding (Witten 2009):</p>
 <div class="arithmatex">\[
 \max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq \tau_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
+\quad \text{s.t.} \quad \|\mathbf{w}_i\|_1 \leq b_i\sqrt{p_i},\; \|\mathbf{w}_i\|_2 = 1
 \]</div>
-<p><code>tau=1</code> (default) gives no sparsity; smaller values give sparser solutions.</p>
+<p><code>l1_bound</code> is <span class="arithmatex">\(b_i\)</span>: <code>l1_bound=1</code> (default) gives no sparsity; smaller values give sparser
+solutions.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">PMDCCA</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PMDCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">PMDCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">l1_bound</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="admmcca">ADMMCCA<a class="headerlink" href="#admmcca" title="Permanent link">&para;</a></h3>
 <p>Maximises the cross-view covariance directly, subject to an L1 penalty on each weight
-vector and a unit-ball constraint on each view's <em>score</em> (Suo, Mineiro &amp; Anandkumar
-2017):</p>
+vector and a unit-ball constraint on each view's <em>score</em> (Suo et al., 2017):</p>
 <div class="arithmatex">\[
-\max_{\mathbf{w}_1, \mathbf{w}_2} \; \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
-    - \tau_1\|\mathbf{w}_1\|_1 - \tau_2\|\mathbf{w}_2\|_1
-\quad \text{s.t.} \quad \|X_i\mathbf{w}_i\|_2 \leq 1
+\max_{\mathbf{w}_1, \mathbf{w}_2} \; \tfrac{1}{n} \mathbf{w}_1^\top X_1^\top X_2 \mathbf{w}_2
+    - \alpha_1\|\mathbf{w}_1\|_1 - \alpha_2\|\mathbf{w}_2\|_1
+\quad \text{s.t.} \quad \tfrac{1}{n} \|X_i\mathbf{w}_i\|_2^2 \leq 1
 \]</div>
 <p>solved via a linearised Alternating Direction Method of Multipliers, needed because the
 constraint couples <span class="arithmatex">\(\mathbf{w}_i\)</span> to <span class="arithmatex">\(X_i\mathbf{w}_i\)</span> through a linear map rather than
-the identity.</p>
+the identity. It is Suo et al.'s problem on <span class="arithmatex">\(X_i / \sqrt{n}\)</span>: the constraint is unit
+variance, so <code>alpha</code> means the same at any sample size, as sklearn's penalties do.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ADMMCCA</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ADMMCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ADMMCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="iplscca">IPLSCCA<a class="headerlink" href="#iplscca" title="Permanent link">&para;</a></h3>
-<p>Uses an elastic net regression (sklearn) at each ALS step (Mai &amp; Zhang 2019).
-<code>alpha</code> controls overall regularisation; <code>l1_ratio=1</code> gives Lasso, <code>l1_ratio=0</code> gives Ridge.</p>
+<p>Uses an elastic net regression (sklearn) at each ALS step, rescaled to a unit-variance score
+(Waaijenborg et al. 2008; Mai &amp; Zhang 2019). <code>alpha</code> controls overall regularisation;
+<code>l1_ratio=1</code> gives Mai and Zhang's lasso, <code>l1_ratio=0.5</code> Waaijenborg et al.'s elastic net, and
+<code>l1_ratio=0</code> a ridge.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">IPLSCCA</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">IPLSCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="p">[</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">]</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="waijenborgcca">WaijenborgCCA<a class="headerlink" href="#waijenborgcca" title="Permanent link">&para;</a></h3>
-<p>Elastic net CCA (Waaijenborg 2008). Each weight vector is estimated by regressing
-the sum-of-all-other-view scores against the current view via elastic net. Named after
-the paper's author to disambiguate it from <code>ElasticNetCCA</code> above (a different algorithm: an
-elastic-net penalty on the actual Eckart-Young CCA loss, not an alternating-regression
-heuristic).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaijenborgCCA</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">WaijenborgCCA</span><span class="p">(</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">IPLSCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="parkhomenkocca">ParkhomenkoCCA<a class="headerlink" href="#parkhomenkocca" title="Permanent link">&para;</a></h3>
-<p>Fixed soft-threshold applied after each power step (Parkhomenko 2009). Simpler than PMD
-but <code>tau</code> is a fixed threshold, not an L1 bound.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParkhomenkoCCA</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ParkhomenkoCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<p>Fixed soft-threshold applied after each power step (Parkhomenko 2009): each standardised
+feature's correlation with the other views' score is soft-thresholded at <code>alpha</code>. Simpler
+than PMD, but <code>alpha</code> is a fixed threshold, not an L1 bound.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParkhomenkoCCA</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ParkhomenkoCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="spancca">SpanCCA<a class="headerlink" href="#spancca" title="Permanent link">&para;</a></h3>
 <p>Hard-thresholding retaining only the top <code>span</code> entries, an ALS heuristic
@@ -2046,19 +2126,22 @@ inspired by Asteris et al.'s SpanCCA (2016) rather than a reimplementation
 of its own randomized low-rank sampling algorithm (this class shares that
 paper's algorithm name, not its method). Useful when the number of active
 features is known in advance.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpanCCA</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SpanCCA</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">span</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpanCCA</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SpanCCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">span</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="sar">SAR<a class="headerlink" href="#sar" title="Permanent link">&para;</a></h3>
 <p>Sparse Alternating Regression (Wilms &amp; Croux 2015): the same alternating-regression
-structure as WaijenborgCCA, but the lasso penalty at each step is picked automatically
-by BIC rather than left as a hyperparameter, so there is no <code>alpha</code>/<code>tau</code>/<code>span</code> to
-tune. Latent dimensions beyond the first need an extra re-expression step a lasso fit
-requires and an OLS-based one does not (see the class docstring for why).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">SAR</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SAR</span><span class="p">(</span><span class="n">latent_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
+structure as IPLSCCA, but the lasso penalty at each step is picked automatically
+by BIC rather than left as a hyperparameter, so there is no <code>alpha</code>/<code>l1_bound</code>/<code>span</code> to
+tune. Each component starts at the ridge-CCA direction: from the PLS direction the other
+models start at, a view dominated by variance the others do not share gives the first lasso a
+target it barely correlates with, and BIC selects nothing. Latent dimensions beyond the first
+need an extra re-expression step a lasso fit requires and an OLS-based one does not (see the
+class docstring for why).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cca_zoo.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">SAR</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SAR</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">([</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">])</span>
 </span></code></pre></div>
 
 

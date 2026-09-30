@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/contributing/">
       
       
-        <link rel="prev" href="../api/preprocessing/">
+        <link rel="prev" href="../release-notes/4.0/">
       
       
       
@@ -300,6 +300,28 @@
     
   
   API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes/4.0/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
 
         </a>
       </li>
@@ -615,7 +637,7 @@
   <span class="md-ellipsis">
     
   
-    GAM Methods
+    GAM & MARS Methods
   
 
     
@@ -1053,7 +1075,7 @@
   <span class="md-ellipsis">
     
   
-    GAM
+    GAM & MARS
   
 
     
@@ -1278,6 +1300,99 @@
     
   
     Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes/4.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
   
 
     
@@ -1709,9 +1824,15 @@ on every commit:</p>
 <h2 id="coding-standards">Coding standards<a class="headerlink" href="#coding-standards" title="Permanent link">&para;</a></h2>
 <p>All contributions must comply with the following:</p>
 <ul>
-<li><strong>Python ≥ 3.10 only.</strong> Use <code>X | Y</code> unions, <code>list[x]</code>/<code>dict[x]</code>/<code>tuple[x]</code> generics.</li>
-<li><strong>Google-style docstrings</strong> on all public classes and methods with Args, Returns, Raises,
-  and Example sections.</li>
+<li><strong>Python ≥ 3.11 only.</strong> Use <code>X | Y</code> unions, <code>list[x]</code>/<code>dict[x]</code>/<code>tuple[x]</code> generics.</li>
+<li><strong>Google-style docstrings</strong>, short and factual. A public class docstring has a one-line
+  summary, the objective and method in a few sentences (maths where it defines the model),
+  then <code>Args</code> (each ending "Default is X."; "Per-view." for parameters that take a scalar or
+  one value per view), <code>Attributes</code> (the fitted attributes specific to the model; the common
+  ones are on <code>BaseModel</code>), <code>References</code> and a runnable <code>Examples</code> section. <code>fit</code> docstrings take
+  the form "Fit the model." with <code>Args</code>, <code>Returns: self.</code> and only model-specific <code>Raises</code>.
+  Private helpers get a line or two. Design rationale, history and comparisons belong in the
+  user guide, not the docstring.</li>
 <li><strong>Full type annotations</strong> — <code>mypy --strict</code> must pass cleanly.</li>
 <li><strong>No <code>try/except</code></strong> — write code that does not need them.</li>
 <li><strong>No <code>print</code></strong> — use <code>logging</code> if diagnostic output is needed.</li>
@@ -1724,26 +1845,44 @@ on every commit:</p>
 <li>Create the implementation file in the appropriate subpackage
    (e.g. <code>cca_zoo/linear/_mymodel.py</code>).</li>
 <li>Inherit from <code>BaseModel</code> (linear/nonparametric) or <code>BaseDeep</code> (deep). This gets you
-   <code>transform</code>, <code>fit_transform</code>, <code>score</code>, <code>pairwise_correlations</code>, <code>get_factor_loadings</code>,
-   and correct sklearn <code>get_params</code>/<code>set_params</code>/tags for free — implement <code>fit</code> only.</li>
+   <code>transform</code>, <code>fit_transform</code>, <code>predict</code>, <code>inverse_transform</code>, <code>score</code>, and correct
+   sklearn <code>get_params</code>/<code>set_params</code>/tags for free. Implement <code>fit</code>, starting with
+   <code>views = self._setup_fit(views)</code> and ending with
+   <code>self._fit_maps_and_importances(views)</code> then <code>return self</code>, and
+   set <code>weights_</code> for a linear model; a nonlinear one overrides
+   <code>_transform_view(view, centred)</code>, its per-view encoder, which every other method goes
+   through. <code>_fit_maps_and_importances</code> records what <code>predict</code>, <code>inverse_transform</code> and
+   <code>feature_importances_per_view_</code> need, so the model does not keep its training data.
+   Override <code>_feature_importances(views)</code> if the model has a native importance (one
+   non-negative array per view); otherwise permutation importance is used.
+   An iterative model reports <code>n_iter_</code> and warns with sklearn's <code>ConvergenceWarning</code>
+   when it stops at <code>max_iter</code>.</li>
 <li>Add Google-style docstrings including the mathematical objective and reference(s).</li>
-<li>If any constructor parameter has a documented range (e.g. a ridge parameter in
-   <code>[0, 1]</code>), declare it in <code>_parameter_constraints</code> (merging in the parent class's, e.g.
-   <code>{**BaseModel._parameter_constraints, "c": RIDGE_PARAMETER}</code> — see
-   <code>cca_zoo/_utils/_param_constraints.py</code> for shared constraint fragments and
-   <code>cca_zoo/linear/_mcca.py</code> for an example). This is optional but recommended: it turns
-   an invalid parameter into a clear error at <code>fit()</code> time instead of a cryptic failure
-   deep in the linear algebra.</li>
-<li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>. Doing this is also
-   what gets your model automatically covered by <code>tests/test_sklearn_compat.py</code>'s
-   generic sklearn-estimator-contract checks (<code>get_params</code>/<code>set_params</code> round-tripping,
-   <code>repr</code>, init purity) — no per-model test needed for that part.</li>
-<li>Write tests in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code> covering, at minimum: <code>fit</code>
-   completing without error, <code>transform</code>/<code>fit_transform</code> output shapes, <code>score</code> shape and
-   value range, and — where a closed-form or known-correct reference solution exists — a
-   correctness check against it (see <code>tests/linear/test_eigendecomposition.py</code> for the
-   established pattern). If you added <code>_parameter_constraints</code>, add a rejection test per
-   constraint (see <code>tests/linear/test_parameter_constraints.py</code>).</li>
+<li>Declare every constructor parameter in <code>_parameter_constraints</code>, merging in the
+   parent class's (e.g. <code>{**BaseModel._parameter_constraints, "shrinkage": RIDGE_PARAMETER}</code>;
+   <code>cca_zoo/_utils/_param_constraints.py</code> has shared fragments). An invalid value then
+   fails clearly at <code>fit()</code>, as in sklearn.</li>
+<li>Export from the subpackage's <code>__init__.py</code> and add to <code>__all__</code>. This is what puts the
+   model under the generic tests, so it needs no tests of its own for anything they check:</li>
+<li><code>tests/test_estimator_checks.py</code> runs scikit-learn's estimator checks on it through
+     a two-view adapter: input validation, fitted-state errors, pickling, cloning,
+     idempotent refits, invariance to sample order, and more.</li>
+<li><code>tests/test_model_contract.py</code> checks the multiview contract: <code>transform</code>,
+     <code>predict</code> and <code>inverse_transform</code>, the number and shapes of views, that every
+     parameter is validated, <code>center=False</code>, <code>feature_importances_per_view_</code>,
+     convergence warnings, and that the model
+     recovers a strong shared signal at its defaults.</li>
+<li><code>tests/test_invariances.py</code> checks what the fit must not depend on: stacking the
+     data on itself, the order of the rows and columns, and a whole view's units.
+   If a check cannot apply to the model, add it to that file's expected failures or
+   exemptions with the reason. A model with a hyperparameter that reduces it to another
+   model (no penalty to CCA, no sparsity to <code>PLSCanonical</code>) belongs in
+   <code>tests/test_limits.py</code>.</li>
+<li>Test only what is specific to the model in <code>tests/&lt;subpackage&gt;/test_mymodel.py</code>:
+   agreement with a known answer where one exists (a closed form, another model it
+   reduces to, a brute-force optimum), what its parameters do, and the behaviour that
+   motivates it (robustness to outliers, sparsity, an interaction it captures). Do not
+   repeat the generic checks.</li>
 <li>Add a <code>cca_zoo.&lt;subpackage&gt;.MyModel</code> entry to the relevant <code>docs/api/*.md</code> page —
    <code>tests/test_docs_coverage.py</code> enforces this.</li>
 <li>Open a pull request against <code>main</code>.</li>
@@ -1801,7 +1940,7 @@ request features. Please include:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../api/preprocessing/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Preprocessing">
+          <a href="../release-notes/4.0/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 4.0">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1811,7 +1950,7 @@ request features. Please include:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Preprocessing
+                4.0
               </div>
             </div>
           </a>

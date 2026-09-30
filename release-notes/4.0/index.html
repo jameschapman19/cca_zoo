@@ -1,0 +1,2481 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Multiview CCA methods in a scikit-learn style framework">
+      
+      
+      
+        <link rel="canonical" href="https://jameschapman19.github.io/cca_zoo/release-notes/4.0/">
+      
+      
+        <link rel="prev" href="../../api/preprocessing/">
+      
+      
+        <link rel="next" href="../../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../logos/favicon.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>4.0 - CCA-Zoo</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cca-zoo-40" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="CCA-Zoo" class="md-header__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+      
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CCA-Zoo
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              4.0
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jameschapman19/cca_zoo" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jameschapman19/cca_zoo
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user-guide/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CCA-Zoo" class="md-nav__button md-logo" aria-label="CCA-Zoo" data-md-component="logo">
+      
+  <img src="../../logos/cca-zoo-logo.svg" alt="logo">
+
+    </a>
+    CCA-Zoo
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jameschapman19/cca_zoo" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jameschapman19/cca_zoo
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../user-guide/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/linear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linear Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/nonparametric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonparametric Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/gam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GAM & MARS Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/gp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GP Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/stochastic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/deep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/probabilistic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Probabilistic CCA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/model-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/linear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linear
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/nonparametric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonparametric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/gam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GAM & MARS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/gp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/sparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/stochastic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/deep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/probabilistic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Probabilistic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/model-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-a-major-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why a major version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-n_components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why n_components
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#names-follow-scikit-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Names follow scikit-learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-contract-for-every-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One contract for every model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-selection-without-a-wrapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model selection without a wrapper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deep-models-are-lightning-native" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deep models are Lightning-native
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-to-what-a-parameter-means" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes to what a parameter means
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-that-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results that change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-in-40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New in 4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-a-major-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why a major version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-n_components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why n_components
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#names-follow-scikit-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Names follow scikit-learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-contract-for-every-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One contract for every model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-selection-without-a-wrapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model selection without a wrapper
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deep-models-are-lightning-native" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deep models are Lightning-native
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-to-what-a-parameter-means" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes to what a parameter means
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-that-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results that change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-in-40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New in 4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Release Notes
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/jameschapman19/cca_zoo/edit/main/docs/release-notes/4.0.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="cca-zoo-40">CCA-Zoo 4.0<a class="headerlink" href="#cca-zoo-40" title="Permanent link">&para;</a></h1>
+<p>CCA-Zoo 4.0 is a breaking release. This page explains what changed and why, section by
+section, and ends with a table giving the replacement for every removed or renamed name.
+The <a href="https://github.com/jameschapman19/cca_zoo/blob/main/CHANGELOG.md">changelog</a>
+lists every change individually.</p>
+<h2 id="why-a-major-version">Why a major version<a class="headerlink" href="#why-a-major-version" title="Permanent link">&para;</a></h2>
+<p>Across 3.x, CCA-Zoo grew to more than forty models. Each one kept the conventions of
+whoever wrote it, which meant three problems:</p>
+<ul>
+<li><strong>Names.</strong> The same concept had several names. The number of latent dimensions was
+  <code>latent_dimensions</code>, the ridge was <code>c</code>, and <code>tau</code> meant an L1 bound in one model and an
+  L1 penalty in another.</li>
+<li><strong>Contracts.</strong> Models broke scikit-learn's contract in ways its tooling notices:
+  <code>score</code> returned an array, a constructor parameter ended in <code>_</code>, and <code>n_features_in_</code>
+  was a list.</li>
+<li><strong>Duplicates.</strong> Deprecated aliases (<code>SCCA_PMD</code>, <code>CCA_EY</code>, <code>GPCCA</code> and a dozen more)
+  sat alongside their replacements, so every concept had two or three spellings in
+  tutorials, issues and user code.</li>
+</ul>
+<p>4.0 fixes all three at once. Every model now follows one contract: <code>fit</code>, <code>transform</code>,
+<code>predict</code>, <code>inverse_transform</code>, <code>score</code> and <code>feature_importances_per_view_</code>. Wherever
+scikit-learn has a name for a concept, CCA-Zoo uses it. Every deprecated alias is gone.</p>
+<p><strong>Why there is no deprecation period.</strong> The aliases being removed were already
+deprecated through 3.x, and adding another round of warnings for the new renames would
+double the API surface for another major cycle. Instead, every removal has a
+one-to-one replacement in the <a href="#migration-table">migration table</a>, and most migrations
+are a find-and-replace.</p>
+<p><strong>What stays the same.</strong> The fitted models are unchanged except where 3.x was wrong
+(see <a href="#results-that-change">Results that change</a>). Inputs are still a list of views,
+each an <code>(n_samples, n_features_i)</code> array, and outputs are still one array of scores
+per view.</p>
+<h2 id="why-n_components">Why <code>n_components</code><a class="headerlink" href="#why-n_components" title="Permanent link">&para;</a></h2>
+<p>This is the rename every user will meet, so here is the reasoning in full.</p>
+<p><strong>It is the name the rest of the ecosystem uses.</strong> scikit-learn calls the number of
+dimensions a model extracts <code>n_components</code> in <code>CCA</code>, <code>PLSCanonical</code>, <code>PLSRegression</code>,
+<code>PCA</code>, <code>KernelPCA</code>, <code>FactorAnalysis</code>, <code>FastICA</code>, <code>NMF</code>, <code>TruncatedSVD</code>,
+<code>SpectralEmbedding</code> and <code>LocallyLinearEmbedding</code>. With the same name,
+<code>cca_zoo.linear.CCA(n_components=2)</code> and <code>sklearn.cross_decomposition.CCA(n_components=2)</code>
+are called identically, and code, tutorials and habits carry over between them.</p>
+<p><strong>Tools key on it.</strong> Search grids, <code>Pipeline</code> parameter paths
+(<code>cca__n_components</code>), <code>get_feature_names_out</code> (which names the outputs <code>cca0</code>,
+<code>cca1</code>, ...) and the fitted <code>n_components_</code> attribute all use scikit-learn's naming. A
+different name meant writing <code>latent_dimensions</code> in some places and <code>n_components</code> in
+others within the same pipeline.</p>
+<p><strong><code>latent_dimensions</code> was ambiguous.</strong> In the probabilistic and deep models, the latent
+variable itself has dimensions, and in <code>GFA</code> the parameter is only an upper bound on
+them. "Dimensions" was also easy to confuse with the number of features. <code>n_components</code>
+names what you choose for every model: the number of columns <code>transform</code> returns per
+view. <code>n_components_</code> then says how many were actually fitted, which is fewer when
+<code>GFA</code> prunes dimensions or the data are too narrow.</p>
+<p><strong>Migrating is mechanical.</strong> It is still the first parameter, so <code>CCA(2)</code> works
+unchanged. Keyword calls need <code>latent_dimensions=</code> replaced by <code>n_components=</code>, and search
+grids need <code>"latent_dimensions"</code> replaced by <code>"n_components"</code>.</p>
+<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<p>4.0 requires <strong>Python 3.11+, numpy 2.0, scipy 1.13 and scikit-learn 1.8</strong>.</p>
+<p>3.x declared numpy 1.26 and scikit-learn 1.6 as minimums, but CI never tested those
+versions, and most models failed on them. These are now the oldest versions the test
+suite passes on, and a CI job runs the suite against them, so the minimums in
+<code>pyproject.toml</code> are true.</p>
+<p>Python 3.10 is dropped for three reasons:</p>
+<ul>
+<li>It reaches end of life in October 2026.</li>
+<li>scikit-learn 1.8 no longer supports it, so 3.10 users would be stuck on an older
+  scikit-learn than the one CCA-Zoo is tested against.</li>
+</ul>
+<h2 id="names-follow-scikit-learn">Names follow scikit-learn<a class="headerlink" href="#names-follow-scikit-learn" title="Permanent link">&para;</a></h2>
+<p>A model that uses scikit-learn's names works with scikit-learn's tools without
+adapters: <code>clone</code>, <code>get_params</code>, <code>GridSearchCV</code>, <code>Pipeline</code> and <code>check_is_fitted</code>. It
+also reads the same to anyone who already knows scikit-learn.</p>
+<ul>
+<li><strong><code>latent_dimensions</code> → <code>n_components</code>,</strong> the name scikit-learn uses in <code>CCA</code>,
+  <code>PLSCanonical</code> and <code>PCA</code>. Parameters after <code>n_components</code> are keyword-only, as in
+  scikit-learn, so <code>CCA(2, False)</code> must be written <code>CCA(2, center=False)</code>. Positional
+  calls silently broke whenever a parameter was added or reordered.</li>
+<li><strong><code>c</code> → <code>shrinkage</code>.</strong> <code>c</code> read as the SVM's inverse penalty <code>C</code>, which runs the
+  opposite way. <code>shrinkage</code> in <code>[0, 1]</code> is the name scikit-learn's covariance estimators
+  and LDA use for this convex combination with the identity.</li>
+<li><strong>One name, one meaning.</strong></li>
+<li><code>tau</code> was an L1 bound in <code>PMDCCA</code> and an L1 penalty in <code>ADMMCCA</code> and
+    <code>ParkhomenkoCCA</code>. It is now <code>l1_bound</code> for the bound and <code>alpha</code> for the penalty.</li>
+<li>ADMM's <code>mu</code> is <code>rho</code>, the name of the augmented-Lagrangian parameter in the ADMM
+    literature (Boyd et al., 2011).</li>
+<li><strong>scikit-learn's names for the same knobs:</strong></li>
+<li><code>n_init</code> for random restarts (<code>n_starts</code>, <code>n_restarts</code>)</li>
+<li><code>support_fraction</code> as in <code>MinCovDet</code> (<code>h_frac</code>)</li>
+<li><code>reg</code> as in <code>LocallyLinearEmbedding</code> (<code>lle_reg</code>)</li>
+<li><code>n_alphas</code> (<code>n_lambda</code>)</li>
+<li><code>learning_rate</code> (<code>lr</code>)</li>
+<li><code>reg_covar</code> for the deep models' covariance ridge (<code>eps</code>), as in <code>GaussianMixture</code></li>
+<li><code>n_iter_no_change</code></li>
+<li><code>n_warmup</code> and <code>n_posterior_samples</code> in place of NumPyro's <code>num_*</code></li>
+<li><strong>No trailing underscore on parameters.</strong> <code>CCAR3(lambda_=)</code> and <code>ECCA(lambda_=)</code> are
+  now <code>alpha=</code>. scikit-learn reserves a trailing <code>_</code> for fitted attributes, and
+  <code>check_is_fitted</code> treated these models as fitted before <code>fit</code>.</li>
+<li><strong>Per-view attributes are named for it.</strong></li>
+<li><code>n_features_in_</code> (a list) → <code>n_features_per_view_</code></li>
+<li><code>feature_importances_</code> → <code>feature_importances_per_view_</code></li>
+</ul>
+<p>scikit-learn defines both originals as a single integer or array, and tools such as
+  <code>SelectFromModel</code> read them that way. Keeping the names with a different shape broke
+  those tools silently.
+- <strong>Class and function names:</strong>
+  - <code>rCCA</code> → <code>RidgeCCA</code>, matching every other class's CapWords.
+  - <code>JointData(...).sample()</code> → <code>make_joint_data(...)</code>, a scikit-learn-style <code>make_*</code>
+    generator.
+  - The loaders return a <code>Bunch</code>, as scikit-learn's do; <code>return_views=True</code> gives the
+    list of views.
+- <strong><code>random_state</code> defaults to <code>None</code> everywhere,</strong> as in scikit-learn. The
+  probabilistic models, <code>GaussianProcessCCA</code> and the tree models defaulted to <code>0</code>, so their fits looked reproducible while every other model's varied
+  between runs. Pass <code>random_state=0</code> to get the old behaviour.
+- <strong>The <code>eps</code> parameter is removed from the linear and kernel models.</strong> It was a
+  numerical floor, never a modelling choice, and it is now fixed internally. In the
+  deep models, where it is a ridge you tune, it is <code>reg_covar</code>. It is also relative to each view's scale
+  (see <a href="#results-that-change">Results that change</a>).</p>
+<h2 id="one-contract-for-every-model">One contract for every model<a class="headerlink" href="#one-contract-for-every-model" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>score</code> returns a float,</strong> the mean canonical correlation. scikit-learn's searches
+  and <code>cross_val_score</code> need a scalar, and 3.x returned an array. For per-dimension
+  correlations, use
+  <code>average_pairwise_correlations(pairwise_correlations(model.transform(views)))</code> from
+  <code>cca_zoo.metrics</code>.</li>
+<li><strong>Duplicated methods are removed.</strong> Models carried <code>pairwise_correlations</code>,
+  <code>average_pairwise_correlations</code> and <code>get_factor_loadings</code>, copies of the functions in
+  <code>cca_zoo.metrics</code>. The <code>weights</code> property duplicated <code>weights_</code>, and
+  <code>procrustes_rotation</code> duplicated <code>scipy.linalg.orthogonal_procrustes</code>. Each existed in
+  two places, which could drift apart. The functions now take the model's output, so
+  they work the same on every model, including ones that have no weights.</li>
+<li><strong><code>transform</code> takes views and returns one array per view, on every model.</strong></li>
+<li>The probabilistic models returned a single-element list holding the joint posterior
+    mean. They now return each view's posterior mean given that view. The joint mean
+    given any subset of views is <code>posterior_mean(views)</code>, with <code>None</code> for missing views.</li>
+<li><code>GaussianProcessCCA.transform(views, return_std=True)</code> is now
+    <code>transform(views)</code> plus <code>posterior_std(views)</code>.</li>
+<li><strong><code>ManifoldCCA.weights_</code> → <code>embedding_</code>,</strong> the name scikit-learn's manifold learners
+  use. Everywhere else, <code>weights_</code> is a weight matrix.</li>
+<li><strong>Also on every model:</strong></li>
+<li><code>n_components_</code></li>
+<li><code>n_iter_</code> as an int (it was a list, or <code>None</code>)</li>
+<li><code>ConvergenceWarning</code> when a fit stops at <code>max_iter</code></li>
+<li>validated parameters</li>
+<li>a <code>ValueError</code> when <code>n_components</code> exceeds a view's width. <code>CCA</code> silently returned
+    fewer components; other models returned degenerate ones or failed inside numpy.</li>
+<li><strong>Fitted models no longer store their training data.</strong> A pickled model no longer
+  carries the dataset. The exceptions are the kernel and manifold models, whose
+  out-of-sample map is built from the training rows; they keep them as <code>views_fit_</code>.</li>
+</ul>
+<h2 id="model-selection-without-a-wrapper">Model selection without a wrapper<a class="headerlink" href="#model-selection-without-a-wrapper" title="Permanent link">&para;</a></h2>
+<p>3.x's <code>MultiviewWrapper</code> stacked the views into one array so that scikit-learn's
+searches could slice them. 4.0 provides the searches directly:</p>
+<ul>
+<li><code>GridSearchCV</code>, <code>RandomizedSearchCV</code> and the two halving searches, plus
+  <code>OptunaSearchCV</code> with the <code>optuna</code> extra.</li>
+<li><code>cross_val_score</code>, <code>cross_validate</code>, <code>cross_val_predict</code>, <code>learning_curve</code> and
+  <code>validation_curve</code>.</li>
+</ul>
+<p>All of them take the list of views, and per-view parameters are named like
+<code>shrinkage__1</code>. The search classes subclass their scikit-learn namesakes rather than
+copying them, so they take exactly scikit-learn's parameters and follow its changes;
+<code>isinstance(search, sklearn.model_selection.GridSearchCV)</code> holds. <code>MultiviewWrapper</code> is
+now private.</p>
+<h2 id="deep-models-are-lightning-native">Deep models are Lightning-native<a class="headerlink" href="#deep-models-are-lightning-native" title="Permanent link">&para;</a></h2>
+<p>The deep models had their own <code>transform</code> and <code>score</code> next to Lightning's. The old
+<code>score</code> fitted a CCA to the very data it scored, so it was optimistic.</p>
+<p>4.0 makes Lightning the only interface:</p>
+<ul>
+<li><code>trainer.predict(model, loader)</code> returns each view's encoding. For canonical
+  variates, fit <code>cca_zoo.linear.CCA</code> or <code>MCCA</code> to the training encodings.</li>
+<li><code>loss(batch)</code> takes the whole batch. The autoencoder models now log their full loss
+  when validating and testing; <code>DVCCA</code> and <code>SplitAE</code> previously logged 0.</li>
+<li>Hyperparameters are saved to checkpoints.</li>
+</ul>
+<p><strong><code>DCCA</code> is the two-view method, as <code>CCA</code> is.</strong> <code>DCCA(objective=MCCALoss())</code> duplicated
+<code>DMCCA</code>, and the same held for <code>DGCCA</code> and <code>DTCCA</code>, so the <code>objective</code> argument is gone.
+<code>DVCCA</code> takes one <code>encoder</code>: the published model encodes only the first view.</p>
+<h2 id="changes-to-what-a-parameter-means">Changes to what a parameter means<a class="headerlink" href="#changes-to-what-a-parameter-means" title="Permanent link">&para;</a></h2>
+<p>These changes affect your results even if your code still runs, so check any model you
+use from this list:</p>
+<ul>
+<li><strong><code>GRCCA(mu=)</code>.</strong></li>
+<li><strong>What was wrong:</strong> the default <code>mu=0</code> was fitted as <code>mu=1</code>, <code>mu</code> was ignored at
+    <code>shrinkage=0</code>, and the shrinkage entered the penalty where the paper needs its
+    square root.</li>
+<li><strong>Now:</strong> <code>mu</code> is the penalty on group means relative to the deviations from them.
+    <code>mu=1</code> is ridge MCCA, and <code>mu=0</code> shrinks each weight towards its group's mean.</li>
+<li><strong>Also:</strong> <code>feature_groups</code> moves from <code>fit</code> to the constructor, since groups
+    describe the features, not the samples.</li>
+<li><strong><code>GraphicalLassoCCA(alpha=)</code></strong> now penalises each view's correlations, not its
+  covariance, so the same <code>alpha</code> works in any units. For features of variance <code>s**2</code>,
+  the old <code>alpha</code> is roughly <code>alpha / s**2</code>.</li>
+<li>The graphical lasso is now solved by ADMM (Boyd et al., 2011). scikit-learn's
+    solver raised on strongly correlated features, or stopped away from the optimum, at
+    scattered penalties.</li>
+<li><code>mode=</code> is gone.</li>
+<li><strong><code>DCCANOI(rho=)</code></strong> is now Wang et al.'s time constant, the weight of the previous
+  running moments, as <code>DPCCA</code>'s already was. 3.x's <code>rho=x</code> is 4.0's <code>rho=1 - x</code>. The
+  default behaves as before.</li>
+<li><strong><code>StochasticCCAEY</code>:</strong></li>
+<li><code>momentum</code> is gone. Momentum at a fixed step hovers at the noise of its
+    mini-batches instead of converging. The model now uses the adaptive step of
+    scikit-learn's <code>SGDRegressor(learning_rate="adaptive")</code>: the step is divided by 5
+    whenever the loss stalls.</li>
+<li><code>learning_rate</code> is now relative to each view's curvature, so the default suits
+    views in any units.</li>
+<li><strong><code>GAMCCA</code> follows <code>mgcv</code>.</strong></li>
+<li><code>n_knots</code> and <code>alpha</code> become <code>k</code> and <code>sp</code>, and <code>m</code> is new.</li>
+<li>Each smooth is <code>s(x, bs="ps", k, m)</code>. 3.x cited P-splines but applied a ridge
+    towards zero rather than their difference penalty.</li>
+<li>The fit is now one closed-form solve, so <code>max_iter</code>, <code>tol</code> and <code>random_state</code> are
+    gone.</li>
+<li><code>GAMCCA</code> shipped only in 3.3.0, so this has no deprecation.</li>
+<li><strong><code>GaussianProcessCCA</code></strong> is solved in closed form, which replaces an L-BFGS-B run that
+  stopped short of the optimum. <code>max_iter</code>, <code>tol</code> and <code>n_iter_</code> are gone.</li>
+<li><strong><code>ProjectionPursuitCCA</code>:</strong></li>
+<li><code>projection_index</code> and <code>mcd_support_fraction</code> are gone. The MCD index fits a robust
+    covariance at every evaluation, so a default fit took hours.</li>
+<li>The index is Spearman's correlation, which was already the default.</li>
+<li><strong><code>SAR(random_state=)</code></strong> is gone. SAR starts from the ridge-CCA direction, which needs
+  no seed. From 3.x's random start it could return all-zero weights.</li>
+<li><strong><code>WaijenborgCCA</code></strong> is merged into <code>IPLSCCA</code>. The two ran the same regressions and gave
+  weights with the same directions and sparsity. <code>IPLSCCA(l1_ratio=0.5)</code> is Waaijenborg
+  et al.'s elastic net.</li>
+<li><strong><code>ProbabilisticCCA</code> and <code>VariationalBayesCCA</code> posterior samples</strong> hold
+  <code>noise_sd_{i}</code> and <code>noise_corr_{i}</code> in place of <code>log_psi_{i}</code>, and no <code>z</code>. See the
+  next section for why.</li>
+<li><strong>The tree models</strong> now default to <code>n_estimators=200</code>, <code>max_depth=3</code> and
+  <code>min_child_weight=20</code>, alongside the fix to the boosting itself.</li>
+<li><strong>The kernel models' <code>degree</code></strong> default is 3, scikit-learn's default for
+  <code>kernel="poly"</code>; it was 1.</li>
+</ul>
+<h2 id="results-that-change">Results that change<a class="headerlink" href="#results-that-change" title="Permanent link">&para;</a></h2>
+<p>These fits change without any change to your code, because 3.x computed the wrong
+thing. Each fix is covered by a test that compares against an answer from outside
+CCA-Zoo.</p>
+<ul>
+<li><strong><code>ProbabilisticCCA</code> and <code>VariationalBayesCCA</code> were factor analysis, not CCA.</strong></li>
+<li><strong>What was wrong:</strong> each view's noise was diagonal, so the latent variable had to
+    explain each view's own correlations as well as the shared ones.</li>
+<li><strong>Effect:</strong> on views dominated by a private factor, the latent tracked that factor
+    (correlation 0.998) and missed the shared one (0.041).</li>
+<li><strong>Now:</strong> noise is a full covariance, as in Bach and Jordan (2005), and the models
+    find the shared factor (0.97).</li>
+<li><strong>Kernel models solved an inconsistent eigenproblem.</strong> The kernel was never centred.
+  <code>KCCA</code>, <code>KGCCA</code> and <code>KTCCA</code> now match Nyström features plus the linear model to
+  machine precision.</li>
+<li><strong>Deflation models returned the wrong later components.</strong></li>
+<li><strong>What was wrong:</strong> PMD, ADMM, IPLS, Span, Parkhomenko and ProjectionPursuitCCA
+    applied weights fitted on the deflated views to the original views.</li>
+<li><strong>Now:</strong> the weights are <code>W (P'W)^-1</code>, as in scikit-learn's PLS.</li>
+<li><strong>Sparse penalties depended on the sample size.</strong> Stacking a dataset on itself leaves
+  every covariance unchanged, but it took <code>IPLSCCA(alpha=0.05)</code> from four nonzero
+  weights per view to none. The penalties now mean the same at any <code>n</code>.</li>
+<li><strong><code>GCCA</code> ignored <code>shrinkage</code> in its weights.</strong></li>
+<li><strong>Fits depended on a view's units</strong> through an absolute eigenvalue floor in <code>MCCA</code>,
+  <code>GCCA</code>, <code>TCCA</code>, <code>GRCCA</code>, <code>PartialCCA</code> and <code>GraphicalLassoCCA</code>. The floor is now
+  relative to each view's largest eigenvalue.</li>
+<li><strong><code>ManifoldCCA</code>'s <code>transform</code> of the training views</strong> now returns the training
+  embedding exactly.</li>
+<li><strong>Training scores are centred.</strong> <code>GaussianProcessCCA</code> with inducing points, the tree
+  models and <code>ManifoldCCA</code> returned scores with a nonzero mean. <code>predict</code> and
+  <code>inverse_transform</code> have no intercept, so this turned into error.</li>
+<li><strong>Unchanged:</strong> the plain linear models (<code>CCA</code>, <code>RidgeCCA</code>, <code>PLS</code>, <code>MCCA</code>) give the
+  same fits as in 3.x, apart from the unit fix above.</li>
+</ul>
+<h2 id="migration-table">Migration table<a class="headerlink" href="#migration-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>3.x</th>
+<th>4.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>latent_dimensions=</code></td>
+<td><code>n_components=</code></td>
+</tr>
+<tr>
+<td>positional arguments after <code>n_components</code></td>
+<td>keywords</td>
+</tr>
+<tr>
+<td><code>c=</code>, <code>c__0</code></td>
+<td><code>shrinkage=</code>, <code>shrinkage__0</code></td>
+</tr>
+<tr>
+<td><code>eps=</code></td>
+<td>removed</td>
+</tr>
+<tr>
+<td><code>rCCA</code></td>
+<td><code>RidgeCCA</code></td>
+</tr>
+<tr>
+<td><code>JointData(...).sample()</code></td>
+<td><code>make_joint_data(...)</code></td>
+</tr>
+<tr>
+<td><code>X1, X2 = load_linnerud()</code></td>
+<td><code>load_linnerud(return_views=True)</code></td>
+</tr>
+<tr>
+<td><code>PMDCCA(tau=)</code></td>
+<td><code>l1_bound=</code></td>
+</tr>
+<tr>
+<td><code>ADMMCCA(tau=, mu=)</code>, <code>ParkhomenkoCCA(tau=)</code></td>
+<td><code>alpha=</code>, <code>rho=</code></td>
+</tr>
+<tr>
+<td><code>CCAR3(lambda_=)</code>, <code>ECCA(lambda_=)</code></td>
+<td><code>alpha=</code></td>
+</tr>
+<tr>
+<td><code>CCAR3(highdim=False)</code></td>
+<td><code>alpha=0</code></td>
+</tr>
+<tr>
+<td><code>TrimmedCCA(n_starts=, h_frac=)</code>, <code>ProjectionPursuitCCA(n_restarts=)</code></td>
+<td><code>n_init=</code>, <code>support_fraction=</code></td>
+</tr>
+<tr>
+<td><code>SAR(n_lambda=, random_state=)</code></td>
+<td><code>n_alphas=</code>; no seed</td>
+</tr>
+<tr>
+<td><code>ManifoldCCA(lle_reg=)</code>, <code>.weights_</code></td>
+<td><code>reg=</code>, <code>.embedding_</code></td>
+</tr>
+<tr>
+<td><code>GRCCA().fit(views, feature_groups=g)</code></td>
+<td><code>GRCCA(feature_groups=g).fit(views)</code></td>
+</tr>
+<tr>
+<td><code>GraphicalLassoCCA(mode=)</code></td>
+<td>removed</td>
+</tr>
+<tr>
+<td><code>ProjectionPursuitCCA(projection_index=, mcd_support_fraction=)</code></td>
+<td>removed</td>
+</tr>
+<tr>
+<td><code>StochasticCCAEY(momentum=)</code></td>
+<td>removed</td>
+</tr>
+<tr>
+<td><code>GAMCCA(n_knots=, alpha=)</code></td>
+<td><code>GAMCCA(k=, sp=)</code></td>
+</tr>
+<tr>
+<td><code>GaussianProcessCCA(max_iter=, tol=)</code>, <code>transform(views, return_std=True)</code></td>
+<td>removed; <code>posterior_std(views)</code></td>
+</tr>
+<tr>
+<td><code>ProbabilisticCCA(num_warmup=, num_samples=)</code>, <code>.mcmc_</code></td>
+<td><code>n_warmup=</code>, <code>n_posterior_samples=</code>, <code>.posterior_samples_</code></td>
+</tr>
+<tr>
+<td><code>VariationalBayesCCA(num_steps=, num_posterior_samples=)</code>, <code>.guide_</code>, <code>.svi_result_</code></td>
+<td><code>n_iter=</code>, <code>n_posterior_samples=</code>, <code>.posterior_samples_</code>, <code>.losses_</code></td>
+</tr>
+<tr>
+<td><code>GFA(num_posterior_samples=)</code></td>
+<td><code>n_posterior_samples=</code></td>
+</tr>
+<tr>
+<td><code>posterior_samples_["log_psi_{i}"]</code>, <code>["z"]</code></td>
+<td><code>["noise_sd_{i}"]</code>, <code>["noise_corr_{i}"]</code>; <code>posterior_mean(views)</code></td>
+</tr>
+<tr>
+<td>probabilistic <code>transform(views)[0]</code></td>
+<td><code>posterior_mean(views)</code></td>
+</tr>
+<tr>
+<td><code>GFA.view_relevance_</code>, <code>VariationalBayesCCA.ard_relevance_</code></td>
+<td><code>ard_precision_</code></td>
+</tr>
+<tr>
+<td><code>train_views_</code> (kernel, manifold)</td>
+<td><code>views_fit_</code></td>
+</tr>
+<tr>
+<td><code>n_features_in_</code> (list)</td>
+<td><code>n_features_per_view_</code></td>
+</tr>
+<tr>
+<td><code>feature_importances_</code></td>
+<td><code>feature_importances_per_view_</code></td>
+</tr>
+<tr>
+<td><code>n_iter_</code> as a list or <code>None</code></td>
+<td>an int</td>
+</tr>
+<tr>
+<td><code>random_state=0</code> default</td>
+<td><code>None</code>; pass <code>0</code> for the old behaviour</td>
+</tr>
+<tr>
+<td><code>model.score(views)</code> → array</td>
+<td>float; per dimension via <code>cca_zoo.metrics</code></td>
+</tr>
+<tr>
+<td><code>model.weights</code></td>
+<td><code>model.weights_</code></td>
+</tr>
+<tr>
+<td><code>model.pairwise_correlations(views)</code></td>
+<td><code>metrics.pairwise_correlations(model.transform(views))</code></td>
+</tr>
+<tr>
+<td><code>model.average_pairwise_correlations(views)</code></td>
+<td><code>metrics.average_pairwise_correlations(...)</code></td>
+</tr>
+<tr>
+<td><code>model.get_factor_loadings(views)</code></td>
+<td><code>metrics.factor_loadings(views, model.transform(views))</code></td>
+</tr>
+<tr>
+<td><code>model_selection.procrustes_rotation(ref, tgt)</code></td>
+<td><code>scipy.linalg.orthogonal_procrustes(tgt, ref)[0]</code></td>
+</tr>
+<tr>
+<td><code>MultiviewWrapper</code></td>
+<td><code>cca_zoo.model_selection</code> searches; <code>PerViewTransformer</code> in a <code>Pipeline</code></td>
+</tr>
+<tr>
+<td><code>PermutationTestResult.p_values_</code> etc.</td>
+<td>same names without <code>_</code></td>
+</tr>
+<tr>
+<td><code>DCCANOI(rho=x)</code></td>
+<td><code>DCCANOI(rho=1 - x)</code></td>
+</tr>
+<tr>
+<td><code>DCCA(objective=MCCALoss())</code> etc.</td>
+<td><code>DMCCA</code>, <code>DGCCA</code>, <code>DTCCA</code></td>
+</tr>
+<tr>
+<td><code>DVCCA(encoders=[e1, e2])</code></td>
+<td><code>DVCCA(encoder=e1)</code></td>
+</tr>
+<tr>
+<td>deep <code>lr=</code>, <code>max_epochs=</code></td>
+<td><code>learning_rate=</code>; the <code>Trainer</code>'s <code>max_epochs</code></td>
+</tr>
+<tr>
+<td>deep models' and losses' <code>eps=</code></td>
+<td><code>reg_covar=</code></td>
+</tr>
+<tr>
+<td>deep <code>model.transform(loader)</code>, <code>model.score(loader)</code></td>
+<td><code>trainer.predict(model, loader)</code>; <code>cca_zoo.metrics</code></td>
+</tr>
+<tr>
+<td>custom <code>loss(representations, independent_representations)</code></td>
+<td><code>loss(batch)</code></td>
+</tr>
+<tr>
+<td><code>SCCA_PMD</code>, <code>SCCAPMD</code></td>
+<td><code>cca_zoo.sparse.PMDCCA</code></td>
+</tr>
+<tr>
+<td><code>SCCA_ADMM</code>, <code>SCCAADMM</code></td>
+<td><code>cca_zoo.sparse.ADMMCCA</code></td>
+</tr>
+<tr>
+<td><code>SCCA_IPLS</code>, <code>SCCAIPLS</code></td>
+<td><code>cca_zoo.sparse.IPLSCCA</code></td>
+</tr>
+<tr>
+<td><code>SCCA_Span</code>, <code>SCCASpan</code></td>
+<td><code>cca_zoo.sparse.SpanCCA</code></td>
+</tr>
+<tr>
+<td><code>ElasticCCA</code>, <code>WaijenborgCCA</code></td>
+<td><code>cca_zoo.sparse.IPLSCCA(l1_ratio=0.5)</code></td>
+</tr>
+<tr>
+<td><code>cca_zoo.linear.ParkhomenkoCCA</code>, <code>.SAR</code>, <code>.StochasticCCAEY</code></td>
+<td><code>cca_zoo.sparse.*</code>, <code>cca_zoo.stochastic.StochasticCCAEY</code></td>
+</tr>
+<tr>
+<td><code>CCA_EY</code>, <code>MCCAEY</code>, <code>MCCA_EY</code>, <code>PLS_EY</code></td>
+<td><code>CCAEY</code>, <code>PLSEY</code></td>
+</tr>
+<tr>
+<td><code>GPCCA</code></td>
+<td><code>cca_zoo.gp.GaussianProcessCCA</code></td>
+</tr>
+<tr>
+<td><code>DCCA_EY</code>, <code>DCCA_NOI</code>, <code>DCCA_SDL</code></td>
+<td><code>DCCAEY</code>, <code>DCCANOI</code>, <code>DCCASDL</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="new-in-40">New in 4.0<a class="headerlink" href="#new-in-40" title="Permanent link">&para;</a></h2>
+<p>These are covered in detail in the changelog:</p>
+<ul>
+<li><strong>New models:</strong> <code>MARSCCA</code>, which follows R's <code>earth</code>; <code>NRDCCA</code>; <code>LeJEPA</code>; <code>DPCCA</code>;
+  <code>DVCCAPrivate</code>.</li>
+<li><strong>scikit-learn integration:</strong></li>
+<li><code>sample_weight</code> on the models fitted from second moments</li>
+<li>Array API support (PyTorch and CuPy, on GPU) in <code>CCA</code>, <code>RidgeCCA</code>, <code>PLS</code>, <code>MCCA</code> and
+    <code>GCCA</code></li>
+<li>feature names, and <code>set_output</code> for pandas and polars</li>
+<li><code>skops</code> serialisation</li>
+<li><strong>Speed:</strong> KTCCA at n=1000 goes from 49 s to under 2 s, TCCA is about 19× faster, and
+  GCCA is 17× faster at n=4000.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../api/preprocessing/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Preprocessing">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Preprocessing
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../contributing/" class="md-footer__link md-footer__link--next" aria-label="Next: Contributing">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Contributing
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 James Chapman
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/jameschapman19/cca_zoo" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/cca-zoo/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.action.edit", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
