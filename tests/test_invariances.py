@@ -58,6 +58,7 @@ _UNITS_EXEMPT = {
     "ECCA": "alpha is an absolute lasso penalty",
     "CCAR3": "alpha is an absolute group-lasso penalty",
     "KCCA": _SHRINKAGE,
+    "KGCCA": _SHRINKAGE,
     "KTCCA": _SHRINKAGE,
     "RANSACCCA": _SHRINKAGE,
     "TrimmedCCA": _SHRINKAGE,
