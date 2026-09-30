@@ -39,7 +39,7 @@ from cca_zoo.deep._dcca_ey import _cca_cv
 from cca_zoo.deep._lejepa import _sigreg
 from cca_zoo.deep._nrdcca import _mean_canonical_correlation
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
-from cca_zoo.linear import CCA, GCCA, MCCA, TCCA
+from cca_zoo.linear import CCA, GCCA, MCCA, TCCA, PartialCCA
 from cca_zoo.metrics import pairwise_correlations
 
 pytestmark = pytest.mark.slow
@@ -278,7 +278,7 @@ def test_dcca_noi_whitens_with_running_covariance_in_eval() -> None:
 
 def test_encoder_widths_are_checked() -> None:
     """Constructor arguments and encoder widths are checked."""
-    for model, argument in [(DCCANOI, "rho"), (DPCCA, "rho"), (DCCAE, "lam")]:
+    for model, argument in [(DCCANOI, "rho"), (DCCAE, "lam")]:
         kwargs = {argument: 2.0}
         if model is DCCAE:
             kwargs["decoders"] = [nn.Linear(K, p) for p in P]
@@ -488,6 +488,35 @@ def test_dpcca_finds_the_signal_the_partials_do_not_explain(
     _trainer(max_epochs=30).fit(model, train)
     (z1, _) = _predict(model, _loader(views))  # no partials needed to predict
     assert abs(np.corrcoef(z1[:, 0], p)[0, 1]) > 0.8
+
+
+def test_linear_dpcca_is_partial_cca() -> None:
+    """Minimised over linear encoders, DPCCA's loss is linear partial CCA's."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((500, 3)) * [3, 2, 1]
+    confound = rng.standard_normal((500, 2))
+    views = [
+        np.column_stack([z, confound]) @ rng.standard_normal((5, p))
+        + rng.standard_normal((500, p))
+        for p in (6, 5)
+    ]
+    centred = torch.tensor(confound - confound.mean(axis=0))
+    model = DPCCA(K, [nn.Identity(), nn.Identity()], eps=1e-12)
+    encodings = _minimised_over_linear_encoders(
+        lambda reps: model.loss({"views": reps, "partials": centred})["objective"],
+        views,
+        K,
+    )
+    partial_cca = PartialCCA(K).fit(views, partials=confound)
+
+    def partialled(f: np.ndarray) -> np.ndarray:
+        f = f - f.mean(axis=0)
+        return f - confound @ np.linalg.lstsq(confound, f, rcond=None)[0]
+
+    _same_subspace(
+        [partialled(e) for e in encodings],
+        [partialled(r) for r in partial_cca.transform(views, partials=confound)],
+    )
 
 
 def test_dpcca_needs_partials_to_train() -> None:

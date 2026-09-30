@@ -18,7 +18,7 @@ The table below gives each replacement.
 |---|---|
 | `latent_dimensions=` (every model) | `n_components=`, sklearn's name (as in its `CCA`, `PLSCanonical` and `PCA`) |
 | `rCCA` | `RidgeCCA` (CapWords, like every other class) |
-| `DCCANOI(rho=0.1)`, the weight of each new batch in the running covariance | `DCCANOI(rho=0.9)`: `rho` is now Wang et al.'s time constant, the weight of the previous running moments, as `DPCCA`'s `rho` already was; the default is unchanged in effect |
+| `DCCANOI(rho=0.1)`, the weight of each new batch in the running covariance | `DCCANOI(rho=0.9)`: `rho` is now Wang et al.'s time constant, the weight of the previous running moments; the default is unchanged in effect |
 | `StochasticCCAEY(momentum=)` | removed: plain SGD with sklearn's adaptive step, as `SGDRegressor(learning_rate="adaptive")`, converges where momentum at a fixed step hovered |
 | `JointData(...).sample()` | `make_joint_data(...)`, an sklearn-style `make_*` generator; for train and test sets, split its output with `sklearn.model_selection.train_test_split(*views)` |
 | `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
@@ -121,8 +121,9 @@ The table below gives each replacement.
 - `cca_zoo.deep.DPCCA`, deep partial CCA (Rotman, Vulić & Reichart, 2018): the views'
   correlation conditioned on a variable given as `partials`, used as given or encoded by a
   `partial_encoder` (the paper's variants A and B), and needed only for training. It
-  minimises the EY loss of the partialled encodings rather than the paper's nonlinear
-  orthogonal iterations, which needs no whitening. The partial encoder is trained to
+  partials each batch by its own regression and minimises the EY loss of the partialled
+  encodings, rather than the paper's nonlinear orthogonal iterations with running
+  covariance estimates, which needs no whitening and no running estimates. The partial encoder is trained to
   explain the encodings by least squares, not on the correlation loss as in the paper,
   which rewards it for leaving the confound in. The prediction-time linear CCA is fitted
   on partialled encodings. `MultiviewDataset` takes `partials`.

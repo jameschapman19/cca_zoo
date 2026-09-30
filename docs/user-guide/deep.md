@@ -154,8 +154,10 @@ languages' texts, given as `partials` and needed only for training. It uses $Z$ 
 or encodes it with `partial_encoder` (the paper's variants A and B). The model is Rotman
 et al.'s, trained differently in two ways:
 
-- **Loss:** where they use nonlinear orthogonal iterations, `DPCCA` minimises the EY loss
-  of the partialled encodings, as `DCCAEY` does, which needs no whitening.
+- **Loss:** where they use nonlinear orthogonal iterations with running covariance
+  estimates, `DPCCA` partials each batch by its own regression and minimises the EY loss
+  of the partialled encodings, as `DCCAEY` does, which needs no whitening and no running
+  estimates.
 - **Partial encoder:** they train it on the correlation loss, which rewards it for *not*
   explaining the confound (in testing it collapsed on 2 of 8 seeds). Here it is trained
   to explain the encodings by least squares, so partialling removes all it can.
