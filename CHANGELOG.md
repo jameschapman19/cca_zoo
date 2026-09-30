@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [4.0.0] - Unreleased
+## [4.0.0] - 2026-09-30
 
 A major release that settles the public API: every model follows one scikit-learn-style
 contract (`fit`/`transform`/`predict`/`inverse_transform`/`score`/`feature_importances_per_view_`),
