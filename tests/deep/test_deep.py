@@ -348,12 +348,14 @@ def _minimised_over_linear_encoders(
     return [(x @ w).detach().numpy() for x, w in zip(xs, weights)]
 
 
-def _same_subspace(a: list[np.ndarray], b: list[np.ndarray]) -> None:
+def _same_subspace(
+    a: list[np.ndarray], b: list[np.ndarray], atol: float = 1e-4
+) -> None:
     for x, y in zip(a, b):
         qx = np.linalg.qr(x - x.mean(axis=0))[0]
         qy = np.linalg.qr(y - y.mean(axis=0))[0]
         np.testing.assert_allclose(
-            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=1e-4
+            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=atol
         )
 
 
@@ -541,3 +543,34 @@ def test_nrdcca_without_regularisation_is_dmcca() -> None:
     nr = NRDCCA(K, encoders, alpha=0.0).loss({"views": views})
     dmcca = DMCCA(K, encoders).loss({"views": views})
     torch.testing.assert_close(nr["objective"], dmcca["objective"])
+
+
+def test_linear_lejepa_is_cca() -> None:
+    """With little SIGReg, linear encoders minimising LeJEPA's loss span CCA's.
+
+    SIGReg then acts as a whitening constraint, under which the distance to
+    the views' centre is CCA's objective.
+    """
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((300, 2)) * [1.0, 0.6]
+    views = [
+        z @ rng.standard_normal((2, p)) + 0.5 * rng.standard_normal((300, p)) for p in P
+    ]
+    xs = [torch.tensor(v - v.mean(axis=0)) for v in views]
+    model = LeJEPA(K, [nn.Identity(), nn.Identity()], lam=0.05, n_slices=16)
+    torch.manual_seed(0)
+    weights = [
+        torch.randn(x.shape[1], K, dtype=x.dtype, requires_grad=True) for x in xs
+    ]
+    optimiser = torch.optim.Adam(weights, lr=3e-2)
+    for _ in range(2000):
+        optimiser.zero_grad()
+        model.loss({"views": [x @ w for x, w in zip(xs, weights)]})[
+            "objective"
+        ].backward()
+        optimiser.step()
+    _same_subspace(
+        [(x @ w).detach().numpy() for x, w in zip(xs, weights)],
+        CCA(K).fit(views).transform(views),
+        atol=5e-3,
+    )
