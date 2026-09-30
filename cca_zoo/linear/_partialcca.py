@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
 from typing import ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._linalg import block_diag, gevp
 from cca_zoo._utils._validation import perview_parameter
 from cca_zoo.linear._mcca import MCCA
 
@@ -21,8 +22,15 @@ class PartialCCA(MCCA):
     w_i^\top X_i^\top X_i w_i = 1, \quad w_i^\top X_i^\top Z = 0,
     $$
 
-    for confounds $Z$ (``partials``), solved as ridge CCA of the
-    residuals of each view regressed on $Z$.
+    for confounds $Z$ (``partials``). The constraints leave MCCA's
+    eigenproblem on the views' partial covariance given the confounds,
+
+    $$
+    \Sigma_{XX|Z} = \Sigma_{XX} - \Sigma_{XZ} \Sigma_{ZZ}^{-1} \Sigma_{ZX},
+    $$
+
+    whose off-diagonal blocks form $A$ and whose diagonal blocks, with
+    ``shrinkage``, form $B$, as :class:`MCCA` forms them from the covariance.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -32,8 +40,9 @@ class PartialCCA(MCCA):
 
     Attributes:
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
-        confound_betas_: Regression of each view on the confounds, shape
-            (n_confounds, n_features_i).
+        confound_betas_: Regression of each view on the centred confounds,
+            shape (n_confounds, n_features_i).
+        partials_mean_: Mean of the training confounds, shape (n_confounds,).
 
     References:
         Rao, B. R. (1969). Partial canonical correlations. Trabajos de
@@ -88,19 +97,26 @@ class PartialCCA(MCCA):
         if partials is None:
             raise ValueError("PartialCCA requires `partials` to be provided to fit().")
         views_ = self._setup_fit(views)
-        partials_arr = np.asarray(partials, dtype=float)
-        self.confound_betas_: list[np.ndarray] = [
-            np.linalg.pinv(partials_arr) @ v for v in views_
-        ]
-        deconfounded = [
-            v - partials_arr @ beta for v, beta in zip(views_, self.confound_betas_)
-        ]
+        self.partials_mean_: np.ndarray = np.asarray(partials, dtype=float).mean(axis=0)
+        z = np.asarray(partials, dtype=float) - self.partials_mean_
+        x = np.hstack(views_)
+        x = x - x.mean(axis=0)
+        betas = np.linalg.pinv(z.T @ z) @ (z.T @ x)
+        # The views' partial covariance given the confounds.
+        partial = (x.T @ x - (x.T @ z) @ betas) / (len(x) - 1)
+        edges = np.cumsum([0, *self.n_features_per_view_])
+        within = [partial[a:b, a:b] for a, b in pairwise(edges)]
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
-        A = self._build_A(deconfounded)
-        B = self._build_B(deconfounded, c_)
+        A = (partial - block_diag(within)) / self.n_views_
+        B = self._floored(
+            block_diag(
+                [(1.0 - ci) * w + ci * np.eye(len(w)) for w, ci in zip(within, c_)]
+            )
+            / self.n_views_
+        )
         _, eigvecs = gevp(A, B, self.n_components)
-        splits = np.cumsum([v.shape[1] for v in deconfounded])
-        self.weights_: list[np.ndarray] = np.split(eigvecs, splits[:-1], axis=0)
+        self.weights_: list[np.ndarray] = np.split(eigvecs, edges[1:-1], axis=0)
+        self.confound_betas_: list[np.ndarray] = np.split(betas, edges[1:-1], axis=1)
         self._fit_maps_and_importances(views_)
         return self
 
@@ -122,11 +138,9 @@ class PartialCCA(MCCA):
         if partials is None:
             return super().transform(views)
         validated = self._check_views(views)
-        partials_arr = np.asarray(partials, dtype=float)
+        z = np.asarray(partials, dtype=float) - self.partials_mean_
         centred = [v - m for v, m in zip(validated, self.means_)]
-        deconfounded = [
-            v - partials_arr @ beta for v, beta in zip(centred, self.confound_betas_)
-        ]
+        deconfounded = [v - z @ beta for v, beta in zip(centred, self.confound_betas_)]
         return [v @ w for v, w in zip(deconfounded, self.weights_)]
 
     def fit_transform(

@@ -395,6 +395,12 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `PartialCCA` regressed the centred views on uncentred confounds, without an intercept,
+  so where a confound was measured from changed the fit: adding 100 to it moved the
+  scores' subspace to 0.18 of its original, and left them correlated with the
+  confound. It now solves MCCA's eigenproblem on the views' partial covariance given
+  the centred confounds, as `DPCCA` minimises the EY loss of it, and `transform`
+  centres new confounds by the training mean (`partials_mean_`).
 - `DCCANOI` whitened each view's target by its running second moment, not its
   covariance, so an encoder's bias leaked into the target: with linear encoders its
   fit reached only 0.11 of CCA's subspace. The whitening now keeps a running mean,

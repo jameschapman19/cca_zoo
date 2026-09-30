@@ -141,6 +141,28 @@ def test_partial_cca_removes_a_confound() -> None:
         PartialCCA().fit(views)
 
 
+def test_partial_cca_ignores_where_a_confound_is_measured_from() -> None:
+    """Shifting the confounds leaves the fit, and partialled scores ignore them."""
+    rng = np.random.default_rng(0)
+    z, confound = rng.standard_normal((300, 2)), rng.standard_normal((300, 1))
+    views = [
+        np.column_stack([z, confound]) @ rng.standard_normal((3, p))
+        + rng.standard_normal((300, p))
+        for p in (6, 5)
+    ]
+    scores = (
+        PartialCCA(2).fit(views, partials=confound).transform(views, partials=confound)
+    )
+    shifted = (
+        PartialCCA(2)
+        .fit(views, partials=confound + 100.0)
+        .transform(views, partials=confound + 100.0)
+    )
+    for a, b in zip(scores, shifted):
+        np.testing.assert_allclose(np.abs(a), np.abs(b), atol=1e-8)
+        np.testing.assert_allclose(b.T @ (confound - confound.mean()), 0.0, atol=1e-8)
+
+
 def test_grcca_weights_are_on_the_original_features(
     two_views: list[np.ndarray],
 ) -> None:
