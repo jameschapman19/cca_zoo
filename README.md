@@ -96,8 +96,8 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
 | `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
-| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | — | ≥2 |
-| `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | — | ≥2 |
+| `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | Filzmoser, Dehon & Croux (2000) | ≥2 |
+| `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | Chapman et al. (2021) | ≥2 |
 | `TrimmedCCA` | Robust CCA via LTS/MCD-style concentration steps, holds up near ~50% contamination | Rousseeuw & Van Driessen (1999) | ≥2 |
 | `ProjectionPursuitCCA` | Robust CCA by projection pursuit, maximising Spearman's rank correlation | Alfons, Croux & Filzmoser (2017) | ≥2 |
 
@@ -135,9 +135,9 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 
 | Class | Description | Citation | Views |
 |---|---|---|---|
-| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | — | ≥2 |
-| `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | — | ≥2 |
-| `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | — | ≥2 |
+| `ElasticNetCCA` | Sparse linear CCA via coordinate descent (Eckart-Young objective) | Chapman et al. (2021) | ≥2 |
+| `MultiTaskElasticNetCCA` | `ElasticNetCCA` with row-group sparsity shared across latent dimensions | Chapman et al. (2021) | ≥2 |
+| `OrthogonalMatchingPursuitCCA` | Fixed-cardinality sparse linear CCA via greedy selection (Eckart-Young objective) | Chapman et al. (2021) | ≥2 |
 | `PMDCCA` | Sparse CCA via PMD | Witten, Tibshirani & Hastie (2009) | ≥2 |
 | `ADMMCCA` | Sparse CCA via ADMM | Suo et al. (2017) | ≥2 |
 | `IPLSCCA` | Sparse CCA by alternating elastic-net regressions | Waaijenborg, de Witt Hamer & Zwinderman (2008); Mai & Zhang (2019) | ≥2 |
@@ -169,7 +169,7 @@ Built on PyTorch Lightning — models are trained with a standard `lightning.Tra
 | `DCCAE` | Deep CCA with autoencoder reconstruction | Wang et al. (2015) | ≥2 |
 | `DVCCA` | Deep variational CCA | Wang et al. (2016) | ≥2 |
 | `DVCCAPrivate` | Deep variational CCA with private latents per view | Wang et al. (2016) | ≥2 |
-| `SplitAE` | Split autoencoder baseline | — | ≥2 |
+| `SplitAE` | Split autoencoder baseline | Wang et al. (2015) | ≥2 |
 | `BarlowTwins` | Self-supervised learning via redundancy reduction | Zbontar et al. (2021) | ≥2 |
 | `VICReg` | Variance-Invariance-Covariance Regularization | Bardes, Ponce & LeCun (2022) | ≥2 |
 | `NRDCCA` | Deep CCA with noise regularisation against model collapse | He et al. (2024) | ≥2 |

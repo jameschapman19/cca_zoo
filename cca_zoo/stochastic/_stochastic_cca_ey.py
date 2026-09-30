@@ -50,6 +50,11 @@ class StochasticCCAEY(CCAEY):
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
         n_iter_: Epochs run.
 
+    References:
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
+
     Examples:
         >>> import numpy as np
         >>> from cca_zoo.stochastic import StochasticCCAEY

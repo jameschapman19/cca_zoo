@@ -392,6 +392,10 @@ class XGBoostCCA(TreeCCA):
 
     Parameters and attributes are those of :class:`TreeCCA`.
 
+    References:
+        Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
+        Gradient-Boosted Trees. arXiv:2607.27027.
+
     Examples:
         >>> import numpy as np
         >>> from cca_zoo.tree import XGBoostCCA
@@ -446,6 +450,10 @@ class LightGBMCCA(TreeCCA):
 
     Parameters and attributes are those of :class:`TreeCCA`. Requires
     ``lightgbm``, in the ``tree`` extra.
+
+    References:
+        Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
+        Gradient-Boosted Trees. arXiv:2607.27027.
 
     Examples:
         >>> import numpy as np
@@ -521,6 +529,10 @@ class CatBoostCCA(TreeCCA):
     Parameters and attributes are those of :class:`TreeCCA`. Requires
     ``catboost``, in the ``tree`` extra. Slower per round than the other
     backends, since CatBoost rebuilds each booster to add a tree.
+
+    References:
+        Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
+        Gradient-Boosted Trees. arXiv:2607.27027.
 
     Examples:
         >>> import numpy as np

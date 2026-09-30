@@ -53,6 +53,12 @@ class OrthogonalMatchingPursuitCCA(BaseModel):
         weights_: Weight matrix of each view, shape (n_features_i, n_components).
         n_iter_: Rounds of regrowing the active sets.
 
+    References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+
     Examples:
         >>> import numpy as np
         >>> from cca_zoo.sparse import OrthogonalMatchingPursuitCCA
