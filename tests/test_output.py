@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import warnings
 
-import numpy as np
 import pandas as pd
 import polars as pl
 import sklearn
@@ -12,14 +11,7 @@ from sklearn.base import clone
 
 from cca_zoo.linear import CCA, RidgeCCA
 from cca_zoo.model_selection import GridSearchCV, cross_val_predict
-from tests._helpers import linear_views
-
-
-def _frames(views: list[np.ndarray]) -> list[pd.DataFrame]:
-    return [
-        pd.DataFrame(v, columns=[f"v{i}_{j}" for j in range(v.shape[1])])
-        for i, v in enumerate(views)
-    ]
+from tests._helpers import as_frames, linear_views
 
 
 def test_feature_names_out_follow_sklearn() -> None:
@@ -47,7 +39,7 @@ def test_global_config_and_clone_keep_the_container() -> None:
 
 def test_search_keeps_feature_names() -> None:
     """Searches and cross-validation pass each view's names to the model."""
-    frames = _frames(linear_views(0, 60))
+    frames = as_frames(linear_views(0, 60))
     search = GridSearchCV(RidgeCCA(), {"shrinkage": [0.1, 0.5]}, cv=3).fit(frames)
     assert [list(n) for n in search.best_estimator_.feature_names_per_view_] == [
         list(f.columns) for f in frames

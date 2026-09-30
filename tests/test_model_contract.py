@@ -14,7 +14,6 @@ import warnings
 from numbers import Integral
 
 import numpy as np
-import pandas as pd
 import pytest
 import skops.io
 from sklearn.exceptions import ConvergenceWarning
@@ -22,7 +21,14 @@ from sklearn.utils._param_validation import InvalidParameterError
 
 import cca_zoo._base
 from cca_zoo._base import BaseModel
-from tests._helpers import MODEL_CLASSES, fit, linear_views, make_model, model_params
+from tests._helpers import (
+    MODEL_CLASSES,
+    as_frames,
+    fit,
+    linear_views,
+    make_model,
+    model_params,
+)
 
 _TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA"}
 
@@ -277,17 +283,10 @@ def test_importance_finds_the_signal_feature(name: str) -> None:
     assert [int(np.argmax(imp)) for imp in importances] == [0, 0]
 
 
-def _frames(views: list[np.ndarray]) -> list[pd.DataFrame]:
-    return [
-        pd.DataFrame(v, columns=[f"v{i}_{j}" for j in range(v.shape[1])])
-        for i, v in enumerate(views)
-    ]
-
-
 @pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_feature_names_are_recorded_and_checked(cls: type[BaseModel]) -> None:
     """Views' column names are kept at fit and checked on new views, as in sklearn."""
-    frames = _frames(_views(0))
+    frames = as_frames(_views(0))
     model = fit(make_model(cls), frames)
     assert [list(n) for n in model.feature_names_per_view_] == [
         list(f.columns) for f in frames
@@ -305,7 +304,7 @@ def test_feature_names_are_recorded_and_checked(cls: type[BaseModel]) -> None:
 @pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_set_output_returns_named_frames(cls: type[BaseModel]) -> None:
     """set_output(transform="pandas") gives one DataFrame per view, input-indexed."""
-    frames = [f.set_axis(range(100, 160)) for f in _frames(_views(0))]
+    frames = [f.set_axis(range(100, 160)) for f in as_frames(_views(0))]
     model = fit(make_model(cls), frames).set_output(transform="pandas")
     for scores, names, frame in zip(
         model.transform(frames), model.get_feature_names_out(), frames

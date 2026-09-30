@@ -6,6 +6,7 @@ import importlib
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from cca_zoo._base import BaseModel
@@ -112,6 +113,14 @@ def ordered_views(
     return [
         z @ rng.standard_normal((len(scales), p)) + noise * rng.standard_normal((n, p))
         for p in widths
+    ]
+
+
+def as_frames(views: list[np.ndarray]) -> list[pd.DataFrame]:
+    """The views as DataFrames with named columns, ``v<view>_<feature>``."""
+    return [
+        pd.DataFrame(v, columns=[f"v{i}_{j}" for j in range(v.shape[1])])
+        for i, v in enumerate(views)
     ]
 
 

@@ -16,16 +16,11 @@ from cca_zoo.linear import (
     PartialCCA,
     RidgeCCA,
 )
-from tests._helpers import canonical_correlations
+from tests._helpers import canonical_correlations, ordered_views
 
 
 def _two_factor_views(n: int = 500) -> list[np.ndarray]:
-    rng = np.random.default_rng(1)
-    z = rng.standard_normal((n, 2)) * [1.0, 0.6]
-    return [
-        z @ rng.standard_normal((2, p)) + 0.5 * rng.standard_normal((n, p))
-        for p in (8, 6)
-    ]
+    return ordered_views(1, n, (8, 6), scales=(1.0, 0.6), noise=0.5)
 
 
 def test_cca_variates_are_uncorrelated_and_ordered() -> None:
