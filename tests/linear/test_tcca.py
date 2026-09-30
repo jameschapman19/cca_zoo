@@ -5,15 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from cca_zoo.linear import TCCA
-
-
-def _three_views() -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((500, 3)) * [3, 2, 1]
-    return [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((500, p))
-        for p in (6, 5, 4)
-    ]
+from tests._helpers import ordered_views
 
 
 def _third_moment(scores: list[np.ndarray]) -> float:
@@ -24,7 +16,7 @@ def _third_moment(scores: list[np.ndarray]) -> float:
 
 def test_no_random_start_beats_the_svd_start() -> None:
     """PARAFAC has local optima; random starts find none better than the SVD start."""
-    views = _three_views()
+    views = ordered_views(0, 500, (6, 5, 4))
     svd = _third_moment(TCCA(1).fit(views).transform(views))
     starts = [
         _third_moment(

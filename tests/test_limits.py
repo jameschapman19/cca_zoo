@@ -24,28 +24,7 @@ from cca_zoo.sparse import (
     SpanCCA,
 )
 from cca_zoo.stochastic import StochasticCCAEY
-
-
-def _views() -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((300, 3)) * [3, 2, 1]
-    return [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
-    ]
-
-
-def _subspace_cosines(a: list[np.ndarray], b: list[np.ndarray]) -> np.ndarray:
-    """Cosines of the principal angles between each view's two score subspaces."""
-    return np.concatenate(
-        [
-            np.linalg.svd(
-                np.linalg.qr(x - x.mean(axis=0))[0].T
-                @ np.linalg.qr(y - y.mean(axis=0))[0],
-                compute_uv=False,
-            )
-            for x, y in zip(a, b)
-        ]
-    )
+from tests._helpers import assert_same_subspace, ordered_views
 
 
 @pytest.mark.parametrize(
@@ -61,13 +40,9 @@ def _subspace_cosines(a: list[np.ndarray], b: list[np.ndarray]) -> np.ndarray:
 )
 def test_without_a_penalty_is_cca(model: BaseModel) -> None:
     """With no penalty, trimming or budget, the scores span CCA's."""
-    views = _views()
-    np.testing.assert_allclose(
-        _subspace_cosines(
-            model.fit(views).transform(views), CCA(2).fit(views).transform(views)
-        ),
-        1.0,
-        atol=1e-3,
+    views = ordered_views()
+    assert_same_subspace(
+        model.fit(views).transform(views), CCA(2).fit(views).transform(views), atol=1e-3
     )
 
 
@@ -75,13 +50,11 @@ def test_without_a_penalty_is_cca(model: BaseModel) -> None:
 @pytest.mark.parametrize("units", [1.0, 100.0])
 def test_full_shrinkage_is_pls(cls: type, units: float) -> None:
     """At shrinkage=1 the EY models find PLS's subspace, in any units."""
-    views = _views()
+    views = ordered_views()
     views = [views[0] * units, views[1]]
     model = cls(2, shrinkage=1.0, max_iter=5000, random_state=0).fit(views)
-    np.testing.assert_allclose(
-        _subspace_cosines(model.transform(views), PLS(2).fit(views).transform(views)),
-        1.0,
-        atol=0.05,
+    assert_same_subspace(
+        model.transform(views), PLS(2).fit(views).transform(views), atol=0.05
     )
 
 
@@ -97,17 +70,10 @@ def test_stochastic_reaches_cca_at_any_batch_size(
     views are ill-conditioned, and their canonical correlations (0.98, 0.91,
     0.77) leave the two-dimensional subspace identifiable.
     """
-    rng = np.random.default_rng(1)
-    z = rng.standard_normal((1000, 3)) * [2.0, 1.0, 0.5]
-    views = [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((1000, p))
-        for p in (20, 15)
-    ]
+    views = ordered_views(1, 1000, (20, 15), (2.0, 1.0, 0.5))
     model = StochasticCCAEY(2, batch_size=batch_size, random_state=0).fit(views)
-    np.testing.assert_allclose(
-        _subspace_cosines(model.transform(views), CCA(2).fit(views).transform(views)),
-        1.0,
-        atol=atol,
+    assert_same_subspace(
+        model.transform(views), CCA(2).fit(views).transform(views), atol=atol
     )
 
 
@@ -122,7 +88,7 @@ def test_stochastic_reaches_cca_at_any_batch_size(
 )
 def test_without_sparsity_is_pls_canonical(model: BaseModel, scale: bool) -> None:
     """Unthresholded, the power iterations deflate as PLSCanonical does."""
-    views = _views()
+    views = ordered_views()
     ours = model.fit(views).transform(views)
     theirs = PLSCanonical(3, scale=scale).fit(*views).transform(*views)
     for x, y in zip(ours, theirs):
@@ -146,7 +112,7 @@ def test_sparsity_grows_with_the_penalty_until_every_weight_is_zero(
     cls: type, name: str, strengthening: list[float]
 ) -> None:
     """Nonzero weights never increase along the path, and end at none."""
-    views = _views()
+    views = ordered_views()
     nonzero = [
         sum(
             int(np.sum(np.abs(w) > 1e-10))

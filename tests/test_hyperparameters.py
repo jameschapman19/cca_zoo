@@ -10,16 +10,14 @@ named with the reason.
 
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
 import numpy as np
 import pytest
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process.kernels import RBF
 
 from cca_zoo._base import BaseModel
-from tests._helpers import MODEL_CLASSES, SLOW_MODULES, linear_views
+from tests._helpers import MODEL_CLASSES, fit, linear_views, slow_marks
 
 # Parameters that change how a solution is reached, not which: at convergence
 # the fit does not depend on them.
@@ -140,7 +138,6 @@ def _cases() -> list[Any]:
     cases = []
     for cls in MODEL_CLASSES:
         name = cls.__name__
-        slow = cls.__module__.rsplit(".", 1)[0] in SLOW_MODULES
         for param in cls().get_params():
             if (
                 param in _SOLVER
@@ -148,22 +145,17 @@ def _cases() -> list[Any]:
                 or (name, param) in _MODEL_SOLVER
             ):
                 continue
-            marks = [pytest.mark.slow] if slow else []
-            cases.append(pytest.param(cls, param, id=f"{name}-{param}", marks=marks))
+            cases.append(
+                pytest.param(cls, param, id=f"{name}-{param}", marks=slow_marks(cls))
+            )
     return cases
 
 
 def _scores(model: BaseModel, views: list[np.ndarray]) -> list[np.ndarray]:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", ConvergenceWarning)
-        if type(model).__name__ == "PartialCCA":
-            partials = np.random.default_rng(1).standard_normal((len(views[0]), 1))
-            model.fit(views, partials=partials)
-        else:
-            model.fit(views)
-    return [np.abs(np.asarray(s)) for s in model.transform(views)]
+    return [np.abs(np.asarray(s)) for s in fit(model, views).transform(views)]
 
 
+@pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize(("cls", "param"), _cases())
 def test_the_parameter_changes_the_fit(cls: type[BaseModel], param: str) -> None:
     """Moving the parameter from its base value changes the scores."""

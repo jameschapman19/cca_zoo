@@ -7,7 +7,6 @@ from typing import Any, ClassVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import block_diag
 from sklearn.covariance import GraphicalLassoCV
 from sklearn.utils._param_validation import Interval
 
@@ -198,12 +197,10 @@ class GraphicalLassoCCA(MCCA):
         self.covariance_: list[np.ndarray] = covariances
         self.precision_: list[np.ndarray] = precisions
 
-        blocks = [
-            (1.0 - c[i]) * cov + c[i] * np.eye(cov.shape[0])
-            for i, cov in enumerate(covariances)
-        ]
-        B: np.ndarray = np.asarray(block_diag(*blocks))
-        min_eig = np.linalg.eigvalsh(B).min()
-        if min_eig < self._EPS:
-            B += (self._EPS - min_eig) * np.eye(B.shape[0])
-        return np.asarray(B / len(views))
+        B: np.ndarray = self._floored_blocks(
+            [
+                (1.0 - c[i]) * cov + c[i] * np.eye(cov.shape[0])
+                for i, cov in enumerate(covariances)
+            ]
+        )
+        return B

@@ -7,7 +7,7 @@ from typing import Any, ClassVar, cast
 import numpy as np
 from numpy.typing import ArrayLike
 
-from cca_zoo._utils._linalg import block_diag, covariance
+from cca_zoo._utils._linalg import covariance
 from cca_zoo._utils._param_constraints import NONNEGATIVE_PER_VIEW
 from cca_zoo._utils._validation import perview_parameter
 from cca_zoo.linear._mcca import MCCA
@@ -127,5 +127,5 @@ class GRCCA(MCCA):
             averaging = same / same.sum(axis=1, keepdims=True)  # H
             penalty = np.eye(len(g)) - averaging + mi * averaging
             blocks.append((1.0 - ci) * covariance(v) + ci * penalty)
-        B: np.ndarray = self._floored(block_diag(blocks) / len(views))
+        B: np.ndarray = self._floored_blocks(blocks)
         return B

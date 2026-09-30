@@ -403,6 +403,11 @@ Removed outright, with no deprecation period; the table above gives each replace
 
 ### Fixed
 
+- `MCCA`, `GCCA`, `TCCA`, `GRCCA`, `PartialCCA` and `GraphicalLassoCCA` raised each
+  covariance's spectrum to an absolute floor of 1e-6, so a view in small units (its
+  eigenvalues near 1e-6) was regularised and the fit depended on its units: dividing a
+  view by 1000 moved GCCA's subspace to 0.99. The floor is now relative to each view's
+  largest eigenvalue.
 - A search grid point setting both a parameter and one view's value of it, as
   `{"shrinkage": [0.1], "shrinkage__1": [0.5]}`, expanded the per-view list from the
   estimator's value before the grid's: view 0 kept the old shrinkage. Per-view values now

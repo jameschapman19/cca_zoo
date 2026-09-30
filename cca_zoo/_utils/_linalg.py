@@ -65,22 +65,44 @@ def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
     return X @ W, W
 
 
-def psd_inverse_sqrt(matrix: Any, floor: float) -> Any:
-    """Inverse square root of a symmetric matrix, shifted to be positive definite.
+def floored(matrix: Any, floor: float) -> Any:
+    """A symmetric matrix shifted to be positive definite, relative to its scale.
 
-    The spectrum is raised so its smallest eigenvalue is at least ``floor``.
+    The spectrum is raised so its smallest eigenvalue is at least ``floor``
+    times its largest, so the shift does not depend on the data's units.
 
     Args:
         matrix: Symmetric matrix of shape (p, p).
-        floor: Smallest eigenvalue allowed.
+        floor: Smallest eigenvalue allowed, as a fraction of the largest.
+
+    Returns:
+        Symmetric matrix of shape (p, p).
+    """
+    xp, _ = get_namespace(matrix)
+    eigenvalues = xp.linalg.eigvalsh(matrix)
+    shift = max(0.0, floor * float(eigenvalues[-1]) - float(eigenvalues[0]))
+    return matrix + shift * xp.eye(
+        matrix.shape[0], dtype=matrix.dtype, device=device(matrix)
+    )
+
+
+def psd_inverse_sqrt(matrix: Any, floor: float) -> Any:
+    """Inverse square root of a symmetric matrix, shifted to be positive definite.
+
+    The spectrum is raised so its smallest eigenvalue is at least ``floor``
+    times its largest, as :func:`floored`.
+
+    Args:
+        matrix: Symmetric matrix of shape (p, p).
+        floor: Smallest eigenvalue allowed, as a fraction of the largest.
 
     Returns:
         Symmetric matrix of shape (p, p).
     """
     xp, _ = get_namespace(matrix)
     eigenvalues, vectors = xp.linalg.eigh(matrix)
-    eigenvalues = eigenvalues + max(0.0, floor - float(eigenvalues[0]))
-    return (vectors / xp.sqrt(eigenvalues)) @ vectors.T
+    shift = max(0.0, floor * float(eigenvalues[-1]) - float(eigenvalues[0]))
+    return (vectors / xp.sqrt(eigenvalues + shift)) @ vectors.T
 
 
 def cross_moment_tensor(views: list[np.ndarray]) -> np.ndarray:

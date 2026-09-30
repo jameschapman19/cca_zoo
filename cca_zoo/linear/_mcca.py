@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 from sklearn.utils._array_api import device, get_namespace
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import block_diag, covariance, gevp
+from cca_zoo._utils._linalg import block_diag, covariance, floored, gevp
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -139,7 +139,7 @@ class MCCA(BaseModel):
             (1.0 - ci) * covariance(v) + ci * _eye(v.shape[1], v)
             for v, ci in zip(views, c)
         ]
-        return self._floored(block_diag(blocks) / len(views))
+        return self._floored_blocks(blocks)
 
     def _build_B_pca(self, pca_models: list[PCA], c: list[float]) -> Any:
         """Diagonal ``B`` from the PCA explained variances."""
@@ -147,11 +147,11 @@ class MCCA(BaseModel):
             _eye(v.shape[0], v) * ((1.0 - ci) * v + ci)
             for v, ci in zip((m.explained_variance_ for m in pca_models), c)
         ]
-        return self._floored(block_diag(blocks) / len(pca_models))
+        return self._floored_blocks(blocks)
 
-    def _floored(self, B: Any) -> Any:
-        """``B`` with its spectrum raised to at least ``_EPS / n_views``."""
-        xp, _ = get_namespace(B)
-        floor = self._EPS / self.n_views_
-        min_eig = float(xp.min(xp.linalg.eigvalsh(B)))
-        return B + max(0.0, floor - min_eig) * _eye(B.shape[0], B)
+    def _floored_blocks(self, blocks: list[Any]) -> Any:
+        """``B`` from each view's block, each floored relative to its own scale.
+
+        A floor on the whole of ``B`` would swamp a view in small units.
+        """
+        return block_diag([floored(b, self._EPS) for b in blocks]) / len(blocks)

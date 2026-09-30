@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from cca_zoo._base import BaseModel
-from tests._helpers import MODEL_CLASSES, SLOW_MODULES, make_model
+from tests._helpers import MODEL_CLASSES, fit, make_model, model_params
 
 _N = 400
 
@@ -67,18 +67,8 @@ def _views() -> tuple[list[np.ndarray], np.ndarray]:
     return views, shared[:, 0]
 
 
-def _params(classes: list[type[BaseModel]]) -> list[object]:
-    """The models to check, the slow backends marked."""
-    return [
-        pytest.param(c, marks=pytest.mark.slow)
-        if c.__module__.rsplit(".", 1)[0] in SLOW_MODULES
-        else c
-        for c in classes
-    ]
-
-
 @pytest.mark.parametrize(
-    "cls", _params([c for c in MODEL_CLASSES if c.__name__ not in _EXEMPT])
+    "cls", model_params([c for c in MODEL_CLASSES if c.__name__ not in _EXEMPT])
 )
 def test_the_first_component_is_the_shared_factor(cls: type[BaseModel]) -> None:
     """Each view's first score follows the shared factor."""
@@ -87,10 +77,6 @@ def test_the_first_component_is_the_shared_factor(cls: type[BaseModel]) -> None:
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
     model.set_params(**_SETTINGS.get(cls.__name__, {}))
-    if cls.__name__ == "PartialCCA":
-        model.fit(views, partials=np.random.default_rng(1).standard_normal((_N, 1)))
-    else:
-        model.fit(views)
-    for scores in model.transform(views):
+    for scores in fit(model, views).transform(views):
         correlation = abs(np.corrcoef(np.asarray(scores)[:, 0], shared)[0, 1])
         assert correlation > (0.8 if cls.__name__ in _TREES else 0.9)

@@ -34,7 +34,7 @@ from cca_zoo.model_selection import (
 )
 from cca_zoo.model_selection._search import _MultiviewWrapper
 from cca_zoo.preprocessing import PerViewTransformer
-from tests._helpers import MODEL_CLASSES, SLOW_MODULES, make_model
+from tests._helpers import MODEL_CLASSES, make_model, slow_marks
 
 
 class TwoViewAdapter(_MultiviewWrapper):
@@ -84,7 +84,7 @@ def _adapters(slow: bool) -> list[TwoViewAdapter]:
         TwoViewAdapter(make_model(cls))
         for cls in MODEL_CLASSES
         if cls.__name__ != "PartialCCA"  # fit requires the partials
-        and (cls.__module__.rsplit(".", 1)[0] in SLOW_MODULES) == slow
+        and bool(slow_marks(cls)) == slow
     ]
 
 

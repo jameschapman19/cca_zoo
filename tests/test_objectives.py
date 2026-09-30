@@ -11,16 +11,12 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import GCCA, GRCCA, MCCA, GraphicalLassoCCA
-from tests._helpers import principal_cosines
+from tests._helpers import linear_views, principal_cosines
 
 
-def _views(n: int = 80) -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((n, 2))
-    views = [
-        z @ rng.standard_normal((2, p)) + rng.standard_normal((n, p)) for p in (6, 5, 4)
-    ]
-    return [v - v.mean(axis=0) for v in views]
+def _views() -> list[np.ndarray]:
+    """Three centred views: the formulas below take centred data."""
+    return [v - v.mean(axis=0) for v in linear_views(0, 80, (6, 5, 4))]
 
 
 def _regularised_covariance(view: np.ndarray, shrinkage: float) -> np.ndarray:

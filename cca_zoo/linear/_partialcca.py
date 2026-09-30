@@ -108,11 +108,8 @@ class PartialCCA(MCCA):
         within = [partial[a:b, a:b] for a, b in pairwise(edges)]
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
         A = (partial - block_diag(within)) / self.n_views_
-        B = self._floored(
-            block_diag(
-                [(1.0 - ci) * w + ci * np.eye(len(w)) for w, ci in zip(within, c_)]
-            )
-            / self.n_views_
+        B = self._floored_blocks(
+            [(1.0 - ci) * w + ci * np.eye(len(w)) for w, ci in zip(within, c_)]
         )
         _, eigvecs = gevp(A, B, self.n_components)
         self.weights_: list[np.ndarray] = np.split(eigvecs, edges[1:-1], axis=0)

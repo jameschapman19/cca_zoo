@@ -7,16 +7,11 @@ import pytest
 
 from cca_zoo.linear import CCA, CCAEY, MCCA, PLS, PLSEY, HuberCCA
 from cca_zoo.stochastic import StochasticCCAEY
-from tests._helpers import canonical_correlations
+from tests._helpers import canonical_correlations, linear_views
 
 
 def _views(n_views: int) -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((300, 2))
-    return [
-        z @ rng.standard_normal((2, p)) + 0.1 * rng.standard_normal((300, p))
-        for p in (10, 8, 6)[:n_views]
-    ]
+    return linear_views(0, 300, (10, 8, 6)[:n_views], noise=0.1)
 
 
 @pytest.mark.parametrize(

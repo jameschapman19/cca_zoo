@@ -13,7 +13,13 @@ import numpy as np
 import pytest
 
 from cca_zoo._base import BaseModel
-from tests._helpers import MODEL_CLASSES, make_model
+from tests._helpers import (
+    MODEL_CLASSES,
+    assert_same_subspace,
+    linear_views,
+    make_model,
+    model_params,
+)
 
 _N = 150
 
@@ -47,6 +53,10 @@ _COLUMN_ORDER_EXEMPT = {
     **_STOCHASTIC,
     "ProjectionPursuitCCA": "each feature's random start weight follows its position",
     "StochasticCCAEY": "each feature's random start weight follows its position",
+    "ElasticNetCCA": (
+        "each feature's random start weight follows its position, and the "
+        "penalised loss has more than one optimum"
+    ),
 }
 _UNITS_EXEMPT = {
     "ProbabilisticCCA": _MONTE_CARLO,
@@ -65,14 +75,6 @@ _UNITS_EXEMPT = {
 }
 
 
-def _views() -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((_N, 2))
-    return [
-        z @ rng.standard_normal((2, p)) + rng.standard_normal((_N, p)) for p in (8, 6)
-    ]
-
-
 def _scores(
     cls: type[BaseModel], fit_on: list[np.ndarray], score: list[np.ndarray]
 ) -> list[np.ndarray]:
@@ -87,47 +89,39 @@ def _scores(
     return model.fit(fit_on).transform(score)
 
 
-def _same_subspace(a: list[np.ndarray], b: list[np.ndarray]) -> None:
-    for x, y in zip(a, b):
-        qx = np.linalg.qr(x - x.mean(axis=0))[0]
-        qy = np.linalg.qr(y - y.mean(axis=0))[0]
-        cosines = np.linalg.svd(qx.T @ qy, compute_uv=False)
-        np.testing.assert_allclose(cosines, 1.0, atol=1e-3)
+def _ids(exempt: dict[str, str]) -> list[object]:
+    return model_params([c for c in MODEL_CLASSES if c.__name__ not in exempt])
 
 
-def _ids(exempt: dict[str, str]) -> list[type[BaseModel]]:
-    return [c for c in MODEL_CLASSES if c.__name__ not in exempt]
-
-
-@pytest.mark.parametrize("cls", _ids(_STACKING_EXEMPT), ids=lambda c: c.__name__)
+@pytest.mark.parametrize("cls", _ids(_STACKING_EXEMPT))
 def test_stacking_the_data_changes_nothing(cls: type[BaseModel]) -> None:
     """Stacking the data on itself keeps every covariance."""
-    views = _views()
+    views = linear_views(0, _N, (8, 6))
     stacked = [np.vstack([v, v]) for v in views]
-    _same_subspace(_scores(cls, views, views), _scores(cls, stacked, views))
+    assert_same_subspace(_scores(cls, views, views), _scores(cls, stacked, views))
 
 
-@pytest.mark.parametrize("cls", _ids(_ROW_ORDER_EXEMPT), ids=lambda c: c.__name__)
+@pytest.mark.parametrize("cls", _ids(_ROW_ORDER_EXEMPT))
 def test_row_order_changes_nothing(cls: type[BaseModel]) -> None:
     """Samples are exchangeable."""
-    views = _views()
+    views = linear_views(0, _N, (8, 6))
     order = np.random.default_rng(1).permutation(_N)
     shuffled = [v[order] for v in views]
-    _same_subspace(_scores(cls, views, views), _scores(cls, shuffled, views))
+    assert_same_subspace(_scores(cls, views, views), _scores(cls, shuffled, views))
 
 
-@pytest.mark.parametrize("cls", _ids(_COLUMN_ORDER_EXEMPT), ids=lambda c: c.__name__)
+@pytest.mark.parametrize("cls", _ids(_COLUMN_ORDER_EXEMPT))
 def test_column_order_only_reorders_the_weights(cls: type[BaseModel]) -> None:
     """Features are exchangeable."""
-    views = _views()
+    views = linear_views(0, _N, (8, 6))
     rng = np.random.default_rng(1)
     permuted = [v[:, rng.permutation(v.shape[1])] for v in views]
-    _same_subspace(_scores(cls, views, views), _scores(cls, permuted, permuted))
+    assert_same_subspace(_scores(cls, views, views), _scores(cls, permuted, permuted))
 
 
-@pytest.mark.parametrize("cls", _ids(_UNITS_EXEMPT), ids=lambda c: c.__name__)
+@pytest.mark.parametrize("cls", _ids(_UNITS_EXEMPT))
 def test_a_views_units_change_nothing(cls: type[BaseModel]) -> None:
     """Rescaling a whole view keeps every correlation."""
-    views = _views()
+    views = linear_views(0, _N, (8, 6))
     rescaled = [views[0] * 1000.0, views[1] / 1000.0]
-    _same_subspace(_scores(cls, views, views), _scores(cls, rescaled, rescaled))
+    assert_same_subspace(_scores(cls, views, views), _scores(cls, rescaled, rescaled))

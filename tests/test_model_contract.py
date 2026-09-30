@@ -21,35 +21,23 @@ from sklearn.utils._param_validation import InvalidParameterError
 
 import cca_zoo._base
 from cca_zoo._base import BaseModel
-from tests._helpers import MODEL_CLASSES, make_model
+from tests._helpers import MODEL_CLASSES, fit, linear_views, make_model, model_params
 
-_IDS = [c.__name__ for c in MODEL_CLASSES]
 _TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA"}
 
 
 def _views(
-    seed: int, shift: float = 0.0, n_views: int = 2, n: int = 60, noise: float = 0.5
+    seed: int = 0, shift: float = 0.0, n_views: int = 2, n: int = 60, noise: float = 0.5
 ) -> list[np.ndarray]:
-    rng = np.random.default_rng(seed)
-    z = rng.standard_normal((n, 1))
-    return [
-        shift + z @ rng.standard_normal((1, p)) + noise * rng.standard_normal((n, p))
-        for p in (4, 3, 5)[:n_views]
-    ]
+    """One shared factor in views of 4, 3 and 5 features."""
+    return linear_views(seed, n, (4, 3, 5)[:n_views], 1, noise, shift)
 
 
-def _fit(model: BaseModel, views: list[np.ndarray]) -> BaseModel:
-    if type(model).__name__ == "PartialCCA":
-        partials = np.random.default_rng(1).standard_normal((len(views[0]), 1))
-        return model.fit(views, partials=partials)
-    return model.fit(views)
-
-
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
     """Every model transforms per view and reconstructs from any observed view."""
     views = _views(0, shift=5.0)
-    model = _fit(make_model(cls), views)
+    model = fit(make_model(cls), views)
     scores = model.transform(views)
     assert all(s.shape == (60, 1) and np.all(np.isfinite(s)) for s in scores)
     assert model.n_components_ == 1
@@ -63,23 +51,23 @@ def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
     assert [r.shape for r in inverted] == [v.shape for v in views]
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_number_of_views(cls: type[BaseModel]) -> None:
     """Two-view methods reject a third view by name; the rest take it."""
     views = _views(0, n_views=3)
     model = make_model(cls)
     if cls.__name__ in _TWO_VIEW_ONLY:
         with pytest.raises(ValueError, match=f"{cls.__name__} requires exactly 2"):
-            _fit(model, views)
+            fit(model, views)
     else:
-        assert len(_fit(model, views).transform(views)) == 3
+        assert len(fit(model, views).transform(views)) == 3
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
     """A wrong number of views, width or sample count raises."""
     views = _views(0)
-    model = _fit(make_model(cls), views)
+    model = fit(make_model(cls), views)
     with pytest.raises(ValueError, match="Expected 2 views"):
         model.transform(views[:1])
     with pytest.raises(ValueError, match="View 1 has 4 features"):
@@ -97,14 +85,14 @@ def test_new_views_must_match_the_fitted_shapes(cls: type[BaseModel]) -> None:
 _BOUNDED = [c for c in MODEL_CLASSES if c._components_bounded_by_features]
 
 
-@pytest.mark.parametrize("cls", _BOUNDED, ids=[c.__name__ for c in _BOUNDED])
+@pytest.mark.parametrize("cls", model_params(_BOUNDED))
 def test_n_components_beyond_the_narrowest_view_raises(cls: type[BaseModel]) -> None:
     """A model projecting the features has at most the narrowest view's components."""
     with pytest.raises(ValueError, match="must be at most 3"):
-        _fit(make_model(cls).set_params(n_components=4), _views(0))
+        fit(make_model(cls).set_params(n_components=4), _views(0))
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_every_parameter_is_validated(cls: type[BaseModel]) -> None:
     """Each constructor parameter has a constraint that a nonsense value fails."""
     model = make_model(cls)
@@ -113,7 +101,7 @@ def test_every_parameter_is_validated(cls: type[BaseModel]) -> None:
     for name in params:
         invalid = make_model(cls).set_params(**{name: object()})
         with pytest.raises(InvalidParameterError, match=name):
-            _fit(invalid, _views(0))
+            fit(invalid, _views(0))
 
 
 # Settings for the models whose quick test settings are too short to converge.
@@ -126,14 +114,14 @@ _ADEQUATE = {
 
 
 @pytest.mark.filterwarnings("error::sklearn.exceptions.ConvergenceWarning")
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_recovers_a_shared_signal(cls: type[BaseModel]) -> None:
     """At its defaults, each model finds a strong one-dimensional shared signal."""
     views = _views(0, n=200, noise=0.3)
     model = cls(**_ADEQUATE.get(cls.__name__, {}))
     if "random_state" in model.get_params():
         model.set_params(random_state=0)
-    assert _fit(model, views).score(views) > 0.8
+    assert fit(model, views).score(views) > 0.8
 
 
 _ITERATIVE = [c for c in MODEL_CLASSES if "max_iter" in make_model(c).get_params()]
@@ -147,34 +135,34 @@ _ITERATING = {
 }
 
 
-@pytest.mark.parametrize("cls", _ITERATIVE, ids=[c.__name__ for c in _ITERATIVE])
+@pytest.mark.parametrize("cls", model_params(_ITERATIVE))
 def test_stopping_at_max_iter_warns(cls: type[BaseModel]) -> None:
     """A fit cut short by max_iter warns, and n_iter_ is the one int it ran."""
     model = make_model(cls).set_params(max_iter=1, **_ITERATING.get(cls.__name__, {}))
     with pytest.warns(ConvergenceWarning):
-        _fit(model, _views(0))
+        fit(model, _views(0))
     assert isinstance(model.n_iter_, Integral)
     assert model.n_iter_ == 1
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_center_false(cls: type[BaseModel]) -> None:
     """Uncentred models keep zero means and still transform."""
     views = _views(0)
-    model = _fit(make_model(cls).set_params(center=False), views)
+    model = fit(make_model(cls).set_params(center=False), views)
     assert all(not m.any() for m in model.means_)
     assert all(np.all(np.isfinite(s)) for s in model.transform(views))
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_refit_leaves_no_stale_state(cls: type[BaseModel]) -> None:
     """After a refit, predictions match a fresh fit on the new data."""
     first, second = _views(0), _views(1, shift=3.0)
-    model = _fit(make_model(cls), first)
+    model = fit(make_model(cls), first)
     model.predict([first[0], None])
     model.inverse_transform(model.transform(first))
-    _fit(model, second)
-    fresh = _fit(make_model(cls), second)
+    fit(model, second)
+    fresh = fit(make_model(cls), second)
     np.testing.assert_allclose(
         model.predict([second[0], None])[1],
         fresh.predict([second[0], None])[1],
@@ -211,7 +199,7 @@ def _arrays(obj: object, seen: set[int]) -> list[np.ndarray]:
 def test_fitted_model_keeps_no_training_data(cls: type[BaseModel]) -> None:
     """No array in the fitted model holds a training view, raw or centred."""
     views = _views(0)
-    model = _fit(make_model(cls), views)
+    model = fit(make_model(cls), views)
     training = views + [v - v.mean(axis=0) for v in views]
     for array in _arrays(model, set()):
         assert not any(
@@ -219,11 +207,11 @@ def test_fitted_model_keeps_no_training_data(cls: type[BaseModel]) -> None:
         )
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_feature_importances(cls: type[BaseModel]) -> None:
     """One non-negative array per view summing to one, or zero if no feature is used."""
     views = _views(0)
-    importances = _fit(make_model(cls), views).feature_importances_per_view_
+    importances = fit(make_model(cls), views).feature_importances_per_view_
     assert [imp.shape for imp in importances] == [(v.shape[1],) for v in views]
     for imp in importances:
         assert np.all(imp >= 0)
@@ -292,11 +280,11 @@ def _frames(views: list[np.ndarray]) -> list[pd.DataFrame]:
     ]
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_feature_names_are_recorded_and_checked(cls: type[BaseModel]) -> None:
     """Views' column names are kept at fit and checked on new views, as in sklearn."""
     frames = _frames(_views(0))
-    model = _fit(make_model(cls), frames)
+    model = fit(make_model(cls), frames)
     assert [list(n) for n in model.feature_names_per_view_] == [
         list(f.columns) for f in frames
     ]
@@ -310,11 +298,11 @@ def test_feature_names_are_recorded_and_checked(cls: type[BaseModel]) -> None:
         model.transform([f.to_numpy() for f in frames])
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_set_output_returns_named_frames(cls: type[BaseModel]) -> None:
     """set_output(transform="pandas") gives one DataFrame per view, input-indexed."""
     frames = [f.set_axis(range(100, 160)) for f in _frames(_views(0))]
-    model = _fit(make_model(cls), frames).set_output(transform="pandas")
+    model = fit(make_model(cls), frames).set_output(transform="pandas")
     for scores, names, frame in zip(
         model.transform(frames), model.get_feature_names_out(), frames
     ):
@@ -322,11 +310,11 @@ def test_set_output_returns_named_frames(cls: type[BaseModel]) -> None:
         assert scores.index.equals(frame.index)
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_skops_round_trip(cls: type[BaseModel]) -> None:
     """Every fitted model survives skops, sklearn's safe alternative to pickle."""
     views = _views(0)
-    model = _fit(make_model(cls), views)
+    model = fit(make_model(cls), views)
     data = skops.io.dumps(model)
     loaded = skops.io.loads(data, trusted=skops.io.get_untrusted_types(data=data))
     for a, b in zip(model.transform(views), loaded.transform(views)):
@@ -336,20 +324,20 @@ def test_skops_round_trip(cls: type[BaseModel]) -> None:
 _EMBEDDERS = [c for c in MODEL_CLASSES if "embedding_:" in (c.__doc__ or "")]
 
 
-@pytest.mark.parametrize("cls", _EMBEDDERS, ids=[c.__name__ for c in _EMBEDDERS])
+@pytest.mark.parametrize("cls", model_params(_EMBEDDERS))
 def test_transform_of_the_training_views_is_the_fitted_embedding(
     cls: type[BaseModel],
 ) -> None:
     """A model storing its training embedding transforms the training views to it."""
     views = _views(0)
-    model = _fit(make_model(cls), views)
+    model = fit(make_model(cls), views)
     for scores, embedding in zip(model.transform(views), model.embedding_):
         np.testing.assert_allclose(scores, embedding, atol=1e-10)
 
 
-@pytest.mark.parametrize("cls", MODEL_CLASSES, ids=_IDS)
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_training_scores_are_centred(cls: type[BaseModel]) -> None:
     """Training scores have zero mean: predict and inverse_transform assume it."""
     views = _views(0, shift=5.0)
-    for scores in _fit(make_model(cls), views).transform(views):
+    for scores in fit(make_model(cls), views).transform(views):
         np.testing.assert_allclose(scores.mean(axis=0), 0.0, atol=1e-8 * scores.std())

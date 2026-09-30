@@ -8,6 +8,7 @@ import pytest
 from cca_zoo._utils._linalg import (
     cross_moment_tensor,
     deflate,
+    floored,
     gevp,
     psd_inverse_sqrt,
     soft_threshold,
@@ -88,7 +89,7 @@ def test_deflate_removes_each_views_projection() -> None:
 
 
 def test_psd_inverse_sqrt() -> None:
-    """W C W = I, with a singular C lifted so its smallest eigenvalue is the floor."""
+    """W C W = I, with a singular C lifted to the floor times its largest eigenvalue."""
     rng = np.random.default_rng(0)
     a = rng.standard_normal((50, 8))
     cov = a.T @ a / 49
@@ -96,9 +97,20 @@ def test_psd_inverse_sqrt() -> None:
     np.testing.assert_allclose(w @ cov @ w, np.eye(8), atol=1e-10)
     singular = rng.standard_normal((3, 6))
     singular = singular.T @ singular
-    lifted = singular + (1e-3 - np.linalg.eigvalsh(singular)[0]) * np.eye(6)
+    lifted = floored(singular, 1e-3)
+    eigenvalues = np.linalg.eigvalsh(lifted)
+    assert eigenvalues[0] == pytest.approx(1e-3 * eigenvalues[-1], rel=1e-3)
     w = psd_inverse_sqrt(singular, 1e-3)
     np.testing.assert_allclose(w @ lifted @ w, np.eye(6), atol=1e-8)
+
+
+def test_floor_scales_with_the_matrix() -> None:
+    """Flooring commutes with rescaling, so it does not depend on units."""
+    singular = np.random.default_rng(0).standard_normal((3, 6))
+    singular = singular.T @ singular
+    np.testing.assert_allclose(
+        floored(1e-6 * singular, 1e-3), 1e-6 * floored(singular, 1e-3), rtol=1e-10
+    )
 
 
 def test_cross_moment_tensor() -> None:

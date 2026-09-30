@@ -41,6 +41,7 @@ from cca_zoo.deep._nrdcca import _mean_canonical_correlation
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
 from cca_zoo.linear import CCA, GCCA, MCCA, TCCA, PartialCCA
 from cca_zoo.metrics import pairwise_correlations
+from tests._helpers import assert_same_subspace, linear_views, ordered_views
 
 pytestmark = pytest.mark.slow
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
@@ -50,16 +51,9 @@ P = (6, 5)
 
 
 def _views(n: int = 64, seed: int = 0, n_views: int = 2) -> list[np.ndarray]:
-    """Views sharing a two-dimensional latent signal."""
-    rng = np.random.default_rng(seed)
-    z = rng.standard_normal((n, K))
-    widths = (*P, 4)[:n_views]
-    return [
-        (z @ rng.standard_normal((K, p)) + 0.3 * rng.standard_normal((n, p))).astype(
-            np.float32
-        )
-        for p in widths
-    ]
+    """Views sharing a two-dimensional latent signal, in torch's float32."""
+    views = linear_views(seed, n, (*P, 4)[:n_views], K, noise=0.3)
+    return [v.astype(np.float32) for v in views]
 
 
 def _loader(views: list[np.ndarray], shuffle: bool = False) -> DataLoader:
@@ -303,13 +297,8 @@ def test_encoder_widths_are_checked() -> None:
         private.loss({"views": [torch.randn(4, p) for p in P]})
 
 
-def _linear_views(n_views: int) -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((500, 3)) * [3, 2, 1]
-    return [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((500, p))
-        for p in (6, 5, 4)[:n_views]
-    ]
+def _ordered(n_views: int) -> list[np.ndarray]:
+    return ordered_views(0, 500, (6, 5, 4)[:n_views])
 
 
 def _ey_loss(representations: list[torch.Tensor]) -> torch.Tensor:
@@ -348,17 +337,6 @@ def _minimised_over_linear_encoders(
     return [(x @ w).detach().numpy() for x, w in zip(xs, weights)]
 
 
-def _same_subspace(
-    a: list[np.ndarray], b: list[np.ndarray], atol: float = 1e-4
-) -> None:
-    for x, y in zip(a, b):
-        qx = np.linalg.qr(x - x.mean(axis=0))[0]
-        qy = np.linalg.qr(y - y.mean(axis=0))[0]
-        np.testing.assert_allclose(
-            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=atol
-        )
-
-
 @pytest.mark.parametrize(
     ("loss", "linear", "n_views"),
     [
@@ -376,10 +354,11 @@ def test_linear_encoders_minimising_a_loss_are_its_linear_model(
     n_views: int,
 ) -> None:
     """Each deep objective, over linear encoders, is minimised by its linear model."""
-    views = _linear_views(n_views)
-    _same_subspace(
+    views = _ordered(n_views)
+    assert_same_subspace(
         _minimised_over_linear_encoders(loss, views, 2),
         linear.fit(views).transform(views),  # type: ignore[attr-defined]
+        atol=1e-4,
     )
 
 
@@ -388,7 +367,7 @@ def test_tcca_attains_the_minimum_of_its_loss() -> None:
 
     The tensor loss has local minima, so a single descent may stop above it.
     """
-    views = _linear_views(3)
+    views = _ordered(3)
     loss = TCCALoss(eps=1e-10)
     tcca = [
         torch.tensor(z) for z in TCCA(1, random_state=0).fit(views).transform(views)
@@ -418,31 +397,21 @@ def test_gcca_loss_is_minus_k_per_view_when_the_encodings_agree(
 @pytest.mark.parametrize("cls", [DCCANOI, DCCASDL])
 def test_trained_linear_encoders_reach_cca(cls: type[BaseDeep]) -> None:
     """With linear encoders, full-batch training converges to CCA's subspace."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((500, 2)) * [1.0, 0.6]
     views = [
-        (z @ rng.standard_normal((2, p)) + 0.5 * rng.standard_normal((500, p))).astype(
-            np.float32
-        )
-        for p in P
+        v.astype(np.float32) for v in ordered_views(0, 500, P, (1.0, 0.6), noise=0.5)
     ]
     torch.manual_seed(0)
     model = cls(K, _encoders(), learning_rate=1e-2)
     full_batch = DataLoader(MultiviewDataset(views), batch_size=len(views[0]))
     _trainer(max_epochs=300).fit(model, full_batch)
-    for ours, cca in zip(
-        _predict(model, full_batch), CCA(K).fit(views).transform(views)
-    ):
-        qx = np.linalg.qr(ours - ours.mean(axis=0))[0]
-        qy = np.linalg.qr(cca - cca.mean(axis=0))[0]
-        np.testing.assert_allclose(
-            np.linalg.svd(qx.T @ qy, compute_uv=False), 1.0, atol=5e-3
-        )
+    assert_same_subspace(
+        _predict(model, full_batch), CCA(K).fit(views).transform(views), atol=5e-3
+    )
 
 
 def test_cca_loss_is_minus_the_squared_canonical_correlations() -> None:
     """At CCA's scores, whatever each view's invertible mixing of them."""
-    views = _linear_views(2)
+    views = _ordered(2)
     model = CCA(2).fit(views)
     scores = [torch.tensor(z) for z in model.transform(views)]
     squared = np.sum(pairwise_correlations(model.transform(views))[0, 1] ** 2)
@@ -513,9 +482,10 @@ def test_linear_dpcca_is_partial_cca() -> None:
         f = f - f.mean(axis=0)
         return f - confound @ np.linalg.lstsq(confound, f, rcond=None)[0]
 
-    _same_subspace(
+    assert_same_subspace(
         [partialled(e) for e in encodings],
         [partialled(r) for r in partial_cca.transform(views, partials=confound)],
+        atol=1e-4,
     )
 
 
@@ -598,7 +568,7 @@ def test_linear_lejepa_is_cca() -> None:
             "objective"
         ].backward()
         optimiser.step()
-    _same_subspace(
+    assert_same_subspace(
         [(x @ w).detach().numpy() for x, w in zip(xs, weights)],
         CCA(K).fit(views).transform(views),
         atol=5e-3,
