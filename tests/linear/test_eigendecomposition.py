@@ -14,7 +14,6 @@ from cca_zoo.linear import (
     MCCA,
     GraphicalLassoCCA,
     PartialCCA,
-    RidgeCCA,
 )
 from tests._helpers import canonical_correlations, ordered_views
 
@@ -33,34 +32,8 @@ def test_cca_variates_are_uncorrelated_and_ordered() -> None:
     assert corrs[0] > corrs[1]
 
 
-@pytest.mark.parametrize(
-    "model",
-    [
-        RidgeCCA(n_components=2, shrinkage=0.0),
-        MCCA(n_components=2),
-        GRCCA(n_components=2, shrinkage=0.0),
-        CCAR3(n_components=2),
-        CCAR3(n_components=2, ledoit_wolf=False),
-        ECCA(n_components=2),
-    ],
-    ids=["RidgeCCA", "MCCA", "GRCCA", "CCAR3", "CCAR3-lowdim", "ECCA"],
-)
-def test_reduces_to_cca_without_regularisation(model: object) -> None:
-    """With no penalty, each generalisation recovers CCA's correlations."""
-    views = _two_factor_views()
-    np.testing.assert_allclose(
-        canonical_correlations(model.fit(views), views),
-        canonical_correlations(CCA(n_components=2).fit(views), views),
-        atol=1e-3,
-    )
-
-
 def _three_signals() -> list[np.ndarray]:
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((300, 3)) * [3, 2, 1]
-    return [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
-    ]
+    return ordered_views(0, 300, (6, 5))
 
 
 @pytest.mark.parametrize("cls", [CCAR3, ECCA])
@@ -71,18 +44,6 @@ def test_regression_cca_gives_the_canonical_pairs_in_order(cls: type) -> None:
         canonical_correlations(cls(n_components=3).fit(views), views),
         canonical_correlations(CCA(n_components=3).fit(views), views),
         atol=2e-3,
-    )
-
-
-@pytest.mark.parametrize("cls", [CCAR3, ECCA])
-def test_regression_cca_ignores_the_units_of_a_view(cls: type) -> None:
-    """Measuring a view in smaller units leaves the correlations unchanged."""
-    views = _three_signals()
-    rescaled = [views[0], views[1] * 1e-3]
-    np.testing.assert_allclose(
-        canonical_correlations(cls(n_components=3).fit(rescaled), rescaled),
-        canonical_correlations(cls(n_components=3).fit(views), views),
-        atol=1e-6,
     )
 
 

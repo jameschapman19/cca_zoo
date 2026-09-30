@@ -20,6 +20,7 @@ from cca_zoo.sparse import (
     ParkhomenkoCCA,
     SpanCCA,
 )
+from tests._helpers import ordered_views
 
 
 def _active_rows(w: np.ndarray) -> int:
@@ -159,11 +160,7 @@ def test_omp_keeps_its_budget_of_features(
 @pytest.mark.parametrize("cls", [IPLSCCA, ADMMCCA])
 def test_unpenalised_deflation_is_cca_on_every_component(cls: type) -> None:
     """At alpha=0 each deflated component is the next canonical pair."""
-    rng = np.random.default_rng(0)
-    z = rng.standard_normal((300, 3)) * [3, 2, 1]
-    views = [
-        z @ rng.standard_normal((3, p)) + rng.standard_normal((300, p)) for p in (6, 5)
-    ]
+    views = ordered_views(0, 300, (6, 5))
     model = cls(n_components=3, alpha=0.0, random_state=0).fit(views)
     np.testing.assert_allclose(
         pairwise_correlations(model.transform(views))[0, 1],

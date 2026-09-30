@@ -12,7 +12,18 @@ import pytest
 from sklearn.cross_decomposition import PLSCanonical
 
 from cca_zoo._base import BaseModel
-from cca_zoo.linear import CCA, CCAEY, GCCA, PLS, HuberCCA
+from cca_zoo.linear import (
+    CCA,
+    CCAEY,
+    CCAR3,
+    ECCA,
+    GCCA,
+    GRCCA,
+    MCCA,
+    PLS,
+    HuberCCA,
+    RidgeCCA,
+)
 from cca_zoo.sparse import (
     ADMMCCA,
     IPLSCCA,
@@ -30,7 +41,12 @@ from tests._helpers import assert_same_subspace, ordered_views
 @pytest.mark.parametrize(
     "model",
     [
+        RidgeCCA(2, shrinkage=0.0),
+        MCCA(2),
         GCCA(2),
+        GRCCA(2, shrinkage=0.0),
+        CCAR3(2, ledoit_wolf=False),
+        ECCA(2),
         HuberCCA(2, delta=1e6, random_state=0),
         ElasticNetCCA(2, alpha=0.0, random_state=0),
         MultiTaskElasticNetCCA(2, alpha=0.0, random_state=0),

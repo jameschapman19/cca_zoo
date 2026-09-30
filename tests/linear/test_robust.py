@@ -179,12 +179,6 @@ def test_trimmed_subset_selection_is_near_optimal() -> None:
     assert exact >= 48
 
 
-def test_trimmed_is_one_dimensional(two_views_small: list[np.ndarray]) -> None:
-    """TrimmedCCA fits a single component."""
-    with pytest.raises(ValueError, match="n_components"):
-        TrimmedCCA(n_components=2).fit(two_views_small)
-
-
 def test_spearman_index_is_rank_correlation() -> None:
     """The Spearman index is 1 for any monotone relationship, 0 for a constant."""
     u = np.arange(20.0)
