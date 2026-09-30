@@ -10,18 +10,18 @@ from cca_zoo.deep.objectives import MCCALoss, _inv_sqrtm
 
 
 def _mean_canonical_correlation(
-    a: torch.Tensor, b: torch.Tensor, eps: float
+    a: torch.Tensor, b: torch.Tensor, reg_covar: float
 ) -> torch.Tensor:
-    """Mean canonical correlation of two batches, with ridge ``eps``."""
+    """Mean canonical correlation of two batches, with ridge ``reg_covar``."""
     a, b = a - a.mean(dim=0), b - b.mean(dim=0)
     n = a.shape[0]
 
     def whitener(x: torch.Tensor) -> torch.Tensor:
         eye = torch.eye(x.shape[1], device=x.device, dtype=x.dtype)
-        return _inv_sqrtm(x.T @ x / (n - 1) + eps * eye, eps)
+        return _inv_sqrtm(x.T @ x / (n - 1) + reg_covar * eye, reg_covar)
 
     t = whitener(a) @ (a.T @ b / (n - 1)) @ whitener(b)
-    squared = torch.linalg.eigvalsh(t.T @ t).clamp(min=eps)
+    squared = torch.linalg.eigvalsh(t.T @ t).clamp(min=reg_covar)
     return torch.sqrt(squared).mean()
 
 
@@ -35,7 +35,7 @@ class NRDCCA(BaseDeep):
 
     $$
     \mathcal{L} = \mathcal{L}_{DCCA}\bigl(f_1(X_1), \dots, f_K(X_K)\bigr)
-        + \alpha \sum_{k=1}^{K} \bigl\lvert
+        + \lambda \sum_{k=1}^{K} \bigl\lvert
         \operatorname{Corr}(f_k(X_k), f_k(A_k)) - \operatorname{Corr}(X_k, A_k)
         \bigr\rvert
     $$
@@ -44,17 +44,18 @@ class NRDCCA(BaseDeep):
     :class:`~cca_zoo.deep.objectives.MCCALoss`, :class:`DCCA`'s loss summed
     over pairs of views, and $\operatorname{Corr}$ is the mean canonical
     correlation, which compares a view's $d_k$ canonical correlations with its
-    encoding's. With ``alpha=0`` this is :class:`DMCCA`.
+    encoding's. With ``lam=0`` this is :class:`DMCCA`.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
-        alpha: Weight of the noise regularisation. Default is 1.0.
+        lam: Weight of the noise regularisation. Default is 1.0.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge of the within-view covariances. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     Raises:
-        ValueError: If ``alpha`` is negative.
+        ValueError: If ``lam`` is negative.
 
     References:
         He, J., Du, J., Xu, S., & Ma, W. (2024). Preventing model collapse in
@@ -70,20 +71,20 @@ class NRDCCA(BaseDeep):
         self,
         n_components: int,
         encoders: list[nn.Module],
-        alpha: float = 1.0,
+        lam: float = 1.0,
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
-        if alpha < 0.0:
-            raise ValueError(f"alpha must be non-negative, got {alpha}.")
+        if lam < 0.0:
+            raise ValueError(f"lam must be non-negative, got {lam}.")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.alpha = alpha
-        self.eps = eps
-        self.objective = MCCALoss(eps=eps)
+        self.lam = lam
+        self.reg_covar = reg_covar
+        self.objective = MCCALoss(reg_covar=reg_covar)
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The DCCA loss and the noise regularisation of a batch.
@@ -100,15 +101,15 @@ class NRDCCA(BaseDeep):
         regularisation = torch.stack(
             [
                 torch.abs(
-                    _mean_canonical_correlation(f, g, self.eps)
-                    - _mean_canonical_correlation(x, a, self.eps)
+                    _mean_canonical_correlation(f, g, self.reg_covar)
+                    - _mean_canonical_correlation(x, a, self.reg_covar)
                 )
                 for x, a, f, g in zip(views, noise, encodings, noise_encodings)
             ]
         ).sum()
         dcca = self.objective(encodings)
         return {
-            "objective": dcca + self.alpha * regularisation,
+            "objective": dcca + self.lam * regularisation,
             "dcca": dcca,
             "noise_regularisation": regularisation,
         }

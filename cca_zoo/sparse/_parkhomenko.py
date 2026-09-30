@@ -44,7 +44,7 @@ class ParkhomenkoCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         alpha: Soft-threshold on each feature's correlation with the other
             views' score; 1 or more zeroes every weight. Per-view. Default
             is 0.1.

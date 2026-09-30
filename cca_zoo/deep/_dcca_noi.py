@@ -21,19 +21,20 @@ class _BatchWhiten(nn.Module):
         num_features: Input dimension.
         rho: Weight of the previous running moments in ``[0, 1)``, the
             paper's time constant. Default is 0.9.
-        eps: Floor on the covariance eigenvalues. Default is 1e-5.
+        reg_covar: Regularisation added to the running covariance's diagonal.
+            Default is 1e-6.
     """
 
     def __init__(
         self,
         num_features: int,
         rho: float = 0.9,
-        eps: float = 1e-5,
+        reg_covar: float = 1e-6,
     ) -> None:
         super().__init__()
         self.num_features = num_features
         self.rho = rho
-        self.eps = eps
+        self.reg_covar = reg_covar
         self.register_buffer("running_mean", torch.zeros(num_features))
         self.register_buffer(
             "running_covar",
@@ -60,7 +61,9 @@ class _BatchWhiten(nn.Module):
                     centred.T @ centred / (x.shape[0] - 1), 1.0 - self.rho
                 )
                 self.num_batches_tracked.add_(1)
-        return (x - self.running_mean) @ _inv_sqrtm(self.running_covar, self.eps)
+        eye = torch.eye(self.num_features, device=x.device, dtype=x.dtype)
+        whitener = _inv_sqrtm(self.running_covar + self.reg_covar * eye, self.reg_covar)
+        return (x - self.running_mean) @ whitener
 
 
 class DCCANOI(BaseDeep):
@@ -79,12 +82,13 @@ class DCCANOI(BaseDeep):
     \widehat{\Sigma}_j$, and $\mu_j$ likewise.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         rho: Weight of the previous running moments in ``[0, 1)``, the paper's
             time constant. Default is 0.9.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Floor on the whitening eigenvalues. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     Raises:
         ValueError: If ``rho`` is outside ``[0, 1)``.
@@ -107,7 +111,7 @@ class DCCANOI(BaseDeep):
         encoders: list[nn.Module],
         rho: float = 0.9,
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         if not 0.0 <= rho < 1.0:
             raise ValueError(f"rho must be in [0, 1), got {rho}.")
@@ -116,11 +120,11 @@ class DCCANOI(BaseDeep):
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.eps = eps
+        self.reg_covar = reg_covar
         self.rho = rho
         self.mse = nn.MSELoss(reduction="sum")
         self.bws = nn.ModuleList(
-            [_BatchWhiten(n_components, rho=rho, eps=eps) for _ in encoders]
+            [_BatchWhiten(n_components, rho=rho, reg_covar=reg_covar) for _ in encoders]
         )
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:

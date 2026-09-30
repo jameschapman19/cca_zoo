@@ -114,7 +114,7 @@ def maximum_likelihood_start(
 
     Args:
         views: Centred arrays of shape (n_samples, n_features_i).
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
 
     Returns:
         Starting values of ``W_{i}``, ``noise_sd_{i}`` and ``noise_corr_{i}``.
@@ -152,7 +152,7 @@ def pcca_model(
 
     Args:
         views: Centred arrays of shape (n_samples, n_features_i).
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         weight_scale: Prior standard deviation of the loadings, broadcast to
             each view's.
     """

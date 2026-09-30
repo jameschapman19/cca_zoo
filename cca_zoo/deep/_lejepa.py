@@ -51,7 +51,7 @@ class LeJEPA(BaseDeep):
     global view, so the centre is the mean over all views.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view; two or more.
         lam: Weight $\lambda \in [0, 1]$ of SIGReg against the predictive
             term. Default is 0.05.

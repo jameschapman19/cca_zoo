@@ -40,7 +40,7 @@ class DCCAEY(BaseDeep):
     $\operatorname{tr}(V V_{\text{ind}})$, an unbiased estimate.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
 

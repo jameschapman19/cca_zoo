@@ -340,11 +340,11 @@ def _minimised_over_linear_encoders(
 @pytest.mark.parametrize(
     ("loss", "linear", "n_views"),
     [
-        (CCALoss(eps=1e-10), CCA(2), 2),
-        (MCCALoss(eps=1e-10), CCA(2), 2),
+        (CCALoss(reg_covar=1e-10), CCA(2), 2),
+        (MCCALoss(reg_covar=1e-10), CCA(2), 2),
         (_ey_loss, CCA(2), 2),
         (_ey_loss, MCCA(2), 3),
-        (GCCALoss(eps=1e-10), GCCA(2), 3),
+        (GCCALoss(reg_covar=1e-10), GCCA(2), 3),
     ],
     ids=["CCALoss", "MCCALoss", "EY", "EY-3-views", "GCCALoss"],
 )
@@ -368,7 +368,7 @@ def test_tcca_attains_the_minimum_of_its_loss() -> None:
     The tensor loss has local minima, so a single descent may stop above it.
     """
     views = _ordered(3)
-    loss = TCCALoss(eps=1e-10)
+    loss = TCCALoss(reg_covar=1e-10)
     tcca = [
         torch.tensor(z) for z in TCCA(1, random_state=0).fit(views).transform(views)
     ]
@@ -384,7 +384,7 @@ def test_gcca_loss_is_minus_k_per_view_when_the_encodings_agree(
 ) -> None:
     """Every view's projection is the same, so the top k eigenvalues are M each."""
     z = torch.randn(batch_size, 2, dtype=torch.float64)
-    loss = GCCALoss(eps=1e-10)(
+    loss = GCCALoss(reg_covar=1e-10)(
         [
             z,
             2.0 * z + 1.0,
@@ -417,7 +417,9 @@ def test_cca_loss_is_minus_the_squared_canonical_correlations() -> None:
     squared = np.sum(pairwise_correlations(model.transform(views))[0, 1] ** 2)
     mixing = torch.tensor(np.random.default_rng(1).standard_normal((2, 2)))
     for pair in (scores, [scores[0] @ mixing, scores[1]]):
-        assert float(CCALoss(eps=1e-10)(pair)) == pytest.approx(-squared, abs=1e-8)
+        assert float(CCALoss(reg_covar=1e-10)(pair)) == pytest.approx(
+            -squared, abs=1e-8
+        )
     with pytest.raises(ValueError, match="exactly 2"):
         CCALoss()([scores[0]] * 3)
 
@@ -470,7 +472,7 @@ def test_linear_dpcca_is_partial_cca() -> None:
         for p in (6, 5)
     ]
     centred = torch.tensor(confound - confound.mean(axis=0))
-    model = DPCCA(K, [nn.Identity(), nn.Identity()], eps=1e-12)
+    model = DPCCA(K, [nn.Identity(), nn.Identity()], reg_covar=1e-12)
     encodings = _minimised_over_linear_encoders(
         lambda reps: model.loss({"views": reps, "partials": centred})["objective"],
         views,
@@ -536,10 +538,10 @@ def test_noise_correlation_is_invariant_to_an_invertible_linear_map() -> None:
 
 
 def test_nrdcca_without_regularisation_is_dmcca() -> None:
-    """At alpha=0 the objective is DMCCA's."""
+    """At lam=0 the objective is DMCCA's."""
     views = [torch.randn(32, p) for p in P]
     encoders = _encoders()
-    nr = NRDCCA(K, encoders, alpha=0.0).loss({"views": views})
+    nr = NRDCCA(K, encoders, lam=0.0).loss({"views": views})
     dmcca = DMCCA(K, encoders).loss({"views": views})
     torch.testing.assert_close(nr["objective"], dmcca["objective"])
 

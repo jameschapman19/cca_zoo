@@ -37,7 +37,7 @@ class VICReg(BaseDeep):
     original loss.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         sim_coeff: Weight of the invariance term. Default is 25.0.
         std_coeff: Weight of the variance term. Default is 25.0.

@@ -30,14 +30,15 @@ class DCCAE(_ObjectiveModel):
     independent autoencoders.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         decoders: One module per view mapping its encoding back.
         lam: Reconstruction weight in ``[0, 1]``. Default is 0.5.
-        objective: Correlation loss; None uses ``MCCALoss(eps)``, the sum of
+        objective: Correlation loss; None uses ``MCCALoss(reg_covar)``, the sum of
             ``CCALoss`` over pairs of views. Default is None.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge of the default loss. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     Raises:
         ValueError: If ``lam`` is outside ``[0, 1]``.
@@ -64,7 +65,7 @@ class DCCAE(_ObjectiveModel):
         lam: float = 0.5,
         objective: nn.Module | None = None,
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         if not 0.0 <= lam <= 1.0:
             raise ValueError(f"lam must be in [0, 1], got {lam}.")
@@ -73,8 +74,10 @@ class DCCAE(_ObjectiveModel):
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.eps = eps
-        self.objective = MCCALoss(eps=eps) if objective is None else objective
+        self.reg_covar = reg_covar
+        self.objective = (
+            MCCALoss(reg_covar=reg_covar) if objective is None else objective
+        )
         self.lam = lam
         self.decoders = nn.ModuleList(decoders)
 

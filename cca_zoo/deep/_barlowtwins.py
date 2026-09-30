@@ -23,7 +23,7 @@ class BarlowTwins(BaseDeep):
     views this is the original loss.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         lam: Weight of the off-diagonal term. Default is 5e-3.
         learning_rate: Adam learning rate. Default is 1e-3.

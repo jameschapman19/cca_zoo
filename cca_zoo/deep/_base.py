@@ -25,7 +25,7 @@ class BaseDeep(pl.LightningModule):
     one.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view, each mapping it to ``n_components``
             outputs.
         learning_rate: Adam learning rate. Default is 1e-3.

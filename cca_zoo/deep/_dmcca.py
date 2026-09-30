@@ -18,10 +18,11 @@ class DMCCA(_ObjectiveModel):
     (:class:`~cca_zoo.deep.objectives.MCCALoss`), for any number of views.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge of each pairwise loss. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Somandepalli, K., Kumar, N., Travadi, R., & Narayanan, S. (2019).
@@ -40,12 +41,12 @@ class DMCCA(_ObjectiveModel):
         n_components: int,
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.eps = eps
-        self.objective = MCCALoss(eps=eps)
+        self.reg_covar = reg_covar
+        self.objective = MCCALoss(reg_covar=reg_covar)

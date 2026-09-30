@@ -27,7 +27,7 @@ class SAR(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         n_alphas: Penalties on each lasso path. Default is 100.
         max_iter: Maximum iterations per latent dimension. Default is 500.
         tol: Convergence tolerance of the alternating loop and each lasso path.

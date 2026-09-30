@@ -6,10 +6,10 @@ import torch
 import torch.nn as nn
 
 
-def _inv_sqrtm(A: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
-    """Inverse square root of a symmetric matrix, eigenvalues floored at ``eps``."""
+def _inv_sqrtm(A: torch.Tensor, floor: float) -> torch.Tensor:
+    """Inverse square root of a symmetric matrix, eigenvalues floored at ``floor``."""
     L, V = torch.linalg.eigh(A)
-    L = torch.clamp(L, min=eps)
+    L = torch.clamp(L, min=floor)
     inv_sqrt: torch.Tensor = V @ torch.diag(1.0 / torch.sqrt(L)) @ V.T
     return inv_sqrt
 
@@ -25,7 +25,8 @@ class CCALoss(nn.Module):
     ridge-regularised within-view covariances.
 
     Args:
-        eps: Ridge added to the within-view covariances. Default is 1e-5.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Andrew, G., Arora, R., Bilmes, J., & Livescu, K. (2013). Deep
@@ -34,12 +35,12 @@ class CCALoss(nn.Module):
     Examples:
         >>> import torch
         >>> from cca_zoo.deep.objectives import CCALoss
-        >>> loss = CCALoss(eps=1e-4)([torch.randn(32, 4), torch.randn(32, 4)])
+        >>> loss = CCALoss(reg_covar=1e-4)([torch.randn(32, 4), torch.randn(32, 4)])
     """
 
-    def __init__(self, eps: float = 1e-5) -> None:
+    def __init__(self, reg_covar: float = 1e-6) -> None:
         super().__init__()
-        self.eps = eps
+        self.reg_covar = reg_covar
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
         """The loss of two views.
@@ -66,16 +67,16 @@ class CCALoss(nn.Module):
         z1 = z1 - z1.mean(dim=0)
         z2 = z2 - z2.mean(dim=0)
 
-        s11 = (z1.T @ z1) / (n - 1) + self.eps * torch.eye(
+        s11 = (z1.T @ z1) / (n - 1) + self.reg_covar * torch.eye(
             d1, device=z1.device, dtype=z1.dtype
         )
-        s22 = (z2.T @ z2) / (n - 1) + self.eps * torch.eye(
+        s22 = (z2.T @ z2) / (n - 1) + self.reg_covar * torch.eye(
             d2, device=z2.device, dtype=z2.dtype
         )
         s12 = (z1.T @ z2) / (n - 1)
 
-        s11_inv_sqrt = _inv_sqrtm(s11, self.eps)
-        s22_inv_sqrt = _inv_sqrtm(s22, self.eps)
+        s11_inv_sqrt = _inv_sqrtm(s11, self.reg_covar)
+        s22_inv_sqrt = _inv_sqrtm(s22, self.reg_covar)
 
         t = s11_inv_sqrt @ s12 @ s22_inv_sqrt
         # Squared singular values = eigenvalues of T^T T
@@ -89,7 +90,8 @@ class MCCALoss(nn.Module):
     """Sum of :class:`CCALoss` over every pair of views.
 
     Args:
-        eps: Ridge of each pairwise loss. Default is 1e-5.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Kettenring, J. R. (1971). Canonical analysis of several sets of
@@ -98,13 +100,13 @@ class MCCALoss(nn.Module):
     Examples:
         >>> import torch
         >>> from cca_zoo.deep.objectives import MCCALoss
-        >>> loss = MCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
+        >>> loss = MCCALoss(reg_covar=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
-    def __init__(self, eps: float = 1e-5) -> None:
+    def __init__(self, reg_covar: float = 1e-6) -> None:
         super().__init__()
-        self.eps = eps
-        self._cca_loss = CCALoss(eps=eps)
+        self.reg_covar = reg_covar
+        self._cca_loss = CCALoss(reg_covar=reg_covar)
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
         """The summed pairwise loss.
@@ -137,7 +139,8 @@ class GCCALoss(nn.Module):
     batch size, and is $-kM$ when every view's encodings agree.
 
     Args:
-        eps: Whitening ridge. Default is 1e-5.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Benton, A., Khayrallah, H., Gujral, B., Reisinger, D. A., Zhang, S.,
@@ -147,12 +150,12 @@ class GCCALoss(nn.Module):
     Examples:
         >>> import torch
         >>> from cca_zoo.deep.objectives import GCCALoss
-        >>> loss = GCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
+        >>> loss = GCCALoss(reg_covar=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
-    def __init__(self, eps: float = 1e-5) -> None:
+    def __init__(self, reg_covar: float = 1e-6) -> None:
         super().__init__()
-        self.eps = eps
+        self.reg_covar = reg_covar
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
         """The generalized CCA loss.
@@ -168,10 +171,10 @@ class GCCALoss(nn.Module):
         whitened = []
         for z in representations:
             z_c = z - z.mean(dim=0)
-            cov = (z_c.T @ z_c) / (n - 1) + self.eps * torch.eye(
+            cov = (z_c.T @ z_c) / (n - 1) + self.reg_covar * torch.eye(
                 z_c.shape[1], device=z_c.device, dtype=z_c.dtype
             )
-            whitened.append(z_c @ _inv_sqrtm(cov, self.eps))
+            whitened.append(z_c @ _inv_sqrtm(cov, self.reg_covar))
 
         # The summed projections onto each view's encodings, shape (n, n).
         m = sum(h @ h.T for h in whitened) / (n - 1)
@@ -193,7 +196,8 @@ class TCCALoss(nn.Module):
     for ridge-whitened, centred encodings $H_i$.
 
     Args:
-        eps: Whitening ridge. Default is 1e-5.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Luo, Y., Tao, D., Ramamohanarao, K., Xu, C., & Wen, Y. (2015). Tensor
@@ -203,12 +207,12 @@ class TCCALoss(nn.Module):
     Examples:
         >>> import torch
         >>> from cca_zoo.deep.objectives import TCCALoss
-        >>> loss = TCCALoss(eps=1e-4)([torch.randn(32, 4) for _ in range(3)])
+        >>> loss = TCCALoss(reg_covar=1e-4)([torch.randn(32, 4) for _ in range(3)])
     """
 
-    def __init__(self, eps: float = 1e-5) -> None:
+    def __init__(self, reg_covar: float = 1e-6) -> None:
         super().__init__()
-        self.eps = eps
+        self.reg_covar = reg_covar
 
     def forward(self, representations: list[torch.Tensor]) -> torch.Tensor:
         """The tensor CCA loss.
@@ -224,10 +228,10 @@ class TCCALoss(nn.Module):
         whitened = []
         for z in representations:
             z_c = z - z.mean(dim=0)
-            cov = (z_c.T @ z_c) / (n - 1) + self.eps * torch.eye(
+            cov = (z_c.T @ z_c) / (n - 1) + self.reg_covar * torch.eye(
                 z_c.shape[1], device=z_c.device, dtype=z_c.dtype
             )
-            whitened.append(z_c @ _inv_sqrtm(cov, self.eps))
+            whitened.append(z_c @ _inv_sqrtm(cov, self.reg_covar))
 
         # Build outer product tensor iteratively, shape (d, d, ..., d)
         m: torch.Tensor = whitened[0]

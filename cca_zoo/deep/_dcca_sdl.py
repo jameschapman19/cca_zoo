@@ -35,7 +35,7 @@ class DCCASDL(BaseDeep):
     batches, as in :class:`DPCCA`. Use batches well above ``n_components``.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         lam: Weight of the decorrelation term. Default is 0.5.
         learning_rate: Adam learning rate. Default is 1e-3.

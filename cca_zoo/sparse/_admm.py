@@ -41,7 +41,7 @@ class ADMMCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         alpha: L1 penalty. Per-view. Default is 0.1.
         rho: ADMM augmented-Lagrangian penalty. Default is 1.0.
         max_iter: Maximum outer iterations per latent dimension. Default is 500.

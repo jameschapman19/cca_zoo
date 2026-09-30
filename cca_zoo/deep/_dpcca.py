@@ -40,12 +40,13 @@ class DPCCA(BaseDeep):
     model is theirs; more views are handled as in :class:`DCCAEY`.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         partial_encoder: Module encoding the conditioning variable, or None to
             use it as given. Default is None.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge added to $Z^\top Z$ before inversion. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     Raises:
         ValueError: If a training batch has no ``"partials"``.
@@ -71,7 +72,7 @@ class DPCCA(BaseDeep):
         encoders: list[nn.Module],
         partial_encoder: nn.Module | None = None,
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
@@ -79,7 +80,7 @@ class DPCCA(BaseDeep):
             learning_rate=learning_rate,
         )
         self.partial_encoder = partial_encoder
-        self.eps = eps
+        self.reg_covar = reg_covar
 
     def _conditioning(self, batch: Batch) -> torch.Tensor:
         """The batch's centred conditioning variable, encoded if configured."""
@@ -106,7 +107,7 @@ class DPCCA(BaseDeep):
         z = self._conditioning(batch)
         f = torch.cat([f - f.mean(dim=0) for f in self(batch["views"])], dim=1)
         n, m, k = f.shape[0], len(batch["views"]), self.n_components
-        eye = self.eps * torch.eye(z.shape[1], device=z.device, dtype=z.dtype)
+        eye = self.reg_covar * torch.eye(z.shape[1], device=z.device, dtype=z.dtype)
         # The partial covariance of the encodings given Z, held fixed.
         z_fixed = z.detach()
         zf = z_fixed.T @ f

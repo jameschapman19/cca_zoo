@@ -33,10 +33,11 @@ class DCCA(_ObjectiveModel):
     :class:`DGCCA` and :class:`DTCCA`.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Ridge of the within-view covariances. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     Raises:
         ValueError: If there are not two encoders.
@@ -73,7 +74,7 @@ class DCCA(_ObjectiveModel):
         n_components: int,
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         if len(encoders) != 2:
             raise ValueError(
@@ -85,5 +86,5 @@ class DCCA(_ObjectiveModel):
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.eps = eps
-        self.objective = CCALoss(eps=eps)
+        self.reg_covar = reg_covar
+        self.objective = CCALoss(reg_covar=reg_covar)

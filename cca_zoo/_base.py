@@ -90,7 +90,7 @@ class BaseModel(BaseEstimator, ABC):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract per-view column means before fitting.
+        center: Whether to centre each view.
             Default is True.
 
     Attributes:

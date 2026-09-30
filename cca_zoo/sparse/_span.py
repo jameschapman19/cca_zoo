@@ -32,7 +32,7 @@ class SpanCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         span: Number of nonzero weights kept; ``None`` keeps all. Per-view.
             Default is None.
         max_iter: Maximum iterations per latent dimension. Default is 500.

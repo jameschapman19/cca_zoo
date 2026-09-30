@@ -64,7 +64,7 @@ class DVCCA(BaseDeep):
     returns a single array, the posterior mean $\mu$.
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoder: Module mapping the first view to ``2 * n_components`` outputs,
             the mean then the log-variance.
         decoders: One module per view mapping the latent back to that view.

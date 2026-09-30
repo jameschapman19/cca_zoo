@@ -24,6 +24,7 @@ The table below gives each replacement.
 | `CCAR3(lambda_=)`, `ECCA(lambda_=)` | `alpha=` (a trailing underscore marks fitted attributes in sklearn, and broke `check_is_fitted`) |
 | `TrimmedCCA(n_starts=)`, `ProjectionPursuitCCA(n_restarts=)` | `n_init=`, sklearn's name for random restarts |
 | deep models' `lr=` | `learning_rate=`, as for every other model |
+| deep models' and losses' `eps=` | `reg_covar=`, scikit-learn's name (in `GaussianMixture`) for a non-negative amount added to the diagonal of each covariance; the losses' default is 1e-6, as the models' was, and `DCCANOI` adds it to its running covariance rather than flooring the eigenvalues |
 | `ProbabilisticCCA(num_warmup=, num_samples=)` | `n_warmup=`, `n_posterior_samples=` |
 | `VariationalBayesCCA(num_steps=, num_posterior_samples=)`, `GFA(num_posterior_samples=)` | `n_iter=` (a fixed number of SVI steps), `n_posterior_samples=` |
 | `MultiviewWrapper` on stacked views | the `cca_zoo.model_selection` searches and cross-validation functions on the list of views; `Pipeline` with `cca_zoo.preprocessing.PerViewTransformer` for preprocessing |

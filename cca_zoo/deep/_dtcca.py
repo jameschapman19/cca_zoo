@@ -17,10 +17,11 @@ class DTCCA(_ObjectiveModel):
     (:class:`~cca_zoo.deep.objectives.TCCALoss`).
 
     Args:
-        n_components: Latent dimension.
+        n_components: Number of latent dimensions.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
-        eps: Whitening ridge. Default is 1e-6.
+        reg_covar: Non-negative regularisation added to the diagonal of each
+            covariance, as scikit-learn's ``GaussianMixture``. Default is 1e-6.
 
     References:
         Wong, H. S., Wang, L., Chan, R., & Zeng, T. (2021). Deep tensor
@@ -38,12 +39,12 @@ class DTCCA(_ObjectiveModel):
         n_components: int,
         encoders: list[nn.Module],
         learning_rate: float = 1e-3,
-        eps: float = 1e-6,
+        reg_covar: float = 1e-6,
     ) -> None:
         super().__init__(
             n_components=n_components,
             encoders=encoders,
             learning_rate=learning_rate,
         )
-        self.eps = eps
-        self.objective = TCCALoss(eps=eps)
+        self.reg_covar = reg_covar
+        self.objective = TCCALoss(reg_covar=reg_covar)

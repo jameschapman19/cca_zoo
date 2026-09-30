@@ -231,7 +231,7 @@ class ManifoldCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means before fitting. Default is True.
+        center: Whether to centre each view. Default is True.
         method: ``"laplacian"`` or ``"lle"``, for every view. Default is
             ``"laplacian"``.
         n_neighbors: Neighbours in each view's graph. Per-view. Default is 10.

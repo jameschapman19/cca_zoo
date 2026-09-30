@@ -40,7 +40,7 @@ class IPLSCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         alpha: Penalty strength. Per-view. Default is 0.
         l1_ratio: Share of the penalty that is L1: 1 is Mai and Zhang's lasso,
             and Waaijenborg et al. use an elastic net. Per-view. Default is 1.

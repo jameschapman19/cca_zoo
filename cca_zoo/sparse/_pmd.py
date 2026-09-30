@@ -41,7 +41,7 @@ class PMDCCA(BaseModel):
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
-        center: Whether to subtract column means. Default is True.
+        center: Whether to centre each view. Default is True.
         l1_bound: Bound $b_i$ on the L1 norm, as a fraction of
             ``sqrt(n_features_i)``, in ``(0, 1]``;
             1 imposes no sparsity. Per-view. Default is 1.
