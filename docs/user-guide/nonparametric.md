@@ -142,15 +142,29 @@ train_embedding = model.embedding_  # (n_train, k) per view
 ```
 
 Before solving, every view's operator is truncated to its own `n_operator_components`
-smallest-eigenvalue directions (default `max(4 * n_components, 10)`) -- the same truncation
-every spectral method already applies, and effectively this class's regularisation strength.
-Set too large (approaching `n_samples - 1`), the joint eigenproblem hands each view as many free
-directions as training points and, like any unregularised multivariate CCA at that
-dimensionality-to-sample-size ratio, starts fabricating cross-view correlation out of pure noise;
-set too small, it can discard real manifold structure. On two identical views, with this in
-place, `ManifoldCCA` reduces *exactly* to plain single-view spectral embedding of that view --
-the concrete check that this is the natural multiview generalisation of `SpectralEmbedding`,
-not an unrelated construction that happens to reuse its graph.
+smallest-eigenvalue directions (default `max(4 * n_components, 40)`) -- the same truncation
+every spectral method already applies. Set too small, it discards real manifold structure; set
+very large with `shrinkage` near 0, the joint eigenproblem hands each view as many free
+directions as training points and, like any unregularised CCA at that dimensionality-to-sample
+ratio, can fabricate cross-view correlation. On two identical views with `shrinkage > 0`,
+`ManifoldCCA` reduces exactly to that view's LLE embedding, and up to centring to its spectral
+embedding -- the concrete check that this is the natural multiview generalisation of
+`LocallyLinearEmbedding` and `SpectralEmbedding`, not an unrelated construction that happens to
+reuse their graphs.
+
+`shrinkage` works as for `MCCA` and `KCCA`. Each view's constraint blends its embedding's
+variance with its roughness on the view's graph, $(1-c)\,\mathrm{Cov}(Z_i, Z_i) + c\,\kappa_i Z_i^\top M_i Z_i$,
+where $\kappa_i$ rescales the roughness of the kept eigenvectors to the same trace as their
+variance, so that a given `shrinkage` means the same for the LLE operator (whose smooth
+eigenvalues are tiny) and the normalised Laplacian (whose are not):
+`shrinkage=0` is CCA between the views' smooth graph coordinates, and `shrinkage=1` is PLS,
+which maximises covariance per unit of roughness and so trades correlation for smoothness. The
+fit is exactly `MCCA(shrinkage=c)` on each view's kept operator eigenvectors, each scaled by the
+inverse square root of its rescaled eigenvalue. The default, 0.1, is `KCCA`'s.
+
+```python
+model = ManifoldCCA(method="lle", shrinkage=0.01, n_neighbors=10).fit([X1, X2])
+```
 
 ### Transform
 
