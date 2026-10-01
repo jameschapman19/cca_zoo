@@ -19,6 +19,7 @@ from sklearn.utils._param_validation import Interval, StrOptions
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import gevp
+from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
 #: Least ``1 - eigenvalue`` of a Laplacian eigenvector kept in the basis. The
@@ -213,16 +214,24 @@ def _laplacian_parts(
 class ManifoldCCA(BaseModel):
     r"""Multiview CCA with a graph-operator constraint per view.
 
-    Maximises cross-view covariance of the training embeddings subject to each
-    view's spectral-embedding constraint, a graph Laplacian or LLE operator
-    ``M_i`` built from that view's neighbourhoods:
+    Maximises cross-view covariance of the training embeddings, restricted to
+    each view's smoothest eigenvectors of a graph Laplacian or LLE operator
+    ``M_i`` built from that view's neighbourhoods, subject to a blend of each
+    view's variance and its roughness on its graph:
 
     $$
     \max_{Z_1, \dots, Z_M} \sum_{i \neq j} \operatorname{Cov}(Z_i, Z_j)
-    \quad \text{subject to} \quad Z_i^\top M_i Z_i = I.
+    \quad \text{subject to} \quad
+    \sum_i (1 - c_i) \operatorname{Cov}(Z_i, Z_i) + c_i Z_i^\top M_i Z_i = I.
     $$
 
-    With identical views it reduces to :class:`~sklearn.manifold.SpectralEmbedding`.
+    This is :class:`~cca_zoo.linear.MCCA` with ``shrinkage=c`` on each view's
+    operator eigenvectors scaled by the inverse square root of their
+    eigenvalues: ``shrinkage=0`` is CCA between the views' smooth graph
+    coordinates, and ``shrinkage=1`` PLS, which trades correlation for
+    smoothness. With identical views and ``shrinkage > 0`` it reduces to the
+    view's :class:`~sklearn.manifold.LocallyLinearEmbedding` or, up to centring,
+    :class:`~sklearn.manifold.SpectralEmbedding`.
     New points are embedded with each method's standard out-of-sample extension:
     LLE barycentric weights for ``method="lle"``, the Nystrom extension for
     ``method="laplacian"``; either returns a training point's own embedding.
@@ -232,6 +241,10 @@ class ManifoldCCA(BaseModel):
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
+        shrinkage: Blend of each view's constraint from its embedding's variance
+            (0, CCA) to its roughness on the view's graph (1, PLS), as
+            :class:`~cca_zoo.linear.MCCA`'s ``shrinkage``. Per-view. Default is
+            0.1.
         method: ``"laplacian"`` or ``"lle"``, for every view. Default is
             ``"laplacian"``.
         n_neighbors: Neighbours in each view's graph. Per-view. Default is 10.
@@ -272,6 +285,7 @@ class ManifoldCCA(BaseModel):
     _components_bounded_by_features: ClassVar[bool] = False
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
+        "shrinkage": RIDGE_PARAMETER,
         "method": [StrOptions({"laplacian", "lle"})],
         "n_neighbors": [Interval(Integral, 1, None, closed="left"), "array-like"],
         "affinity": [StrOptions({"nearest_neighbors", "rbf"}), "array-like"],
@@ -291,6 +305,7 @@ class ManifoldCCA(BaseModel):
         n_components: int = 1,
         *,
         center: bool = True,
+        shrinkage: float | list[float] = 0.1,
         method: str = "laplacian",
         n_neighbors: int | list[int] = 10,
         affinity: str | list[str] = "nearest_neighbors",
@@ -299,6 +314,7 @@ class ManifoldCCA(BaseModel):
         n_operator_components: int | list[int | None] | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
+        self.shrinkage = shrinkage
         self.method = method
         self.n_neighbors = n_neighbors
         self.affinity = affinity
@@ -327,6 +343,7 @@ class ManifoldCCA(BaseModel):
         n = self.n_samples_
         m = self.n_views_
 
+        c_ = perview_parameter("shrinkage", self.shrinkage, 0.1, m)
         n_neighbors_ = perview_parameter("n_neighbors", self.n_neighbors, 10, m)
         affinity_ = perview_parameter("affinity", self.affinity, "nearest_neighbors", m)
         gamma_ = perview_parameter("gamma", self.gamma, None, m)
@@ -367,7 +384,13 @@ class ManifoldCCA(BaseModel):
         stacked = np.hstack(full_bases)
         A = stacked.T @ C @ stacked
         A -= block_diag(*[b.T @ C @ b for b in full_bases])
-        B = block_diag(*[np.diag(ev) for ev in eigenvalue_blocks])
+        # Each view's variance blended with its roughness, U' M U = diag(ev).
+        B = block_diag(
+            *[
+                (1 - c) * b.T @ C @ b + c * np.diag(ev)
+                for b, ev, c in zip(full_bases, eigenvalue_blocks, c_)
+            ]
+        )
         _, eigvecs = gevp(A / m, B / m, self.n_components)
         sizes = [b.shape[1] for b in full_bases]
         blocks = np.split(eigvecs, np.cumsum(sizes)[:-1], axis=0)

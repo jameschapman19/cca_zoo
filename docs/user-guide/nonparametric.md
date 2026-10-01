@@ -147,10 +147,22 @@ every spectral method already applies, and effectively this class's regularisati
 Set too large (approaching `n_samples - 1`), the joint eigenproblem hands each view as many free
 directions as training points and, like any unregularised multivariate CCA at that
 dimensionality-to-sample-size ratio, starts fabricating cross-view correlation out of pure noise;
-set too small, it can discard real manifold structure. On two identical views, with this in
-place, `ManifoldCCA` reduces *exactly* to plain single-view spectral embedding of that view --
+set too small, it can discard real manifold structure. On two identical views with `shrinkage > 0`,
+`ManifoldCCA` reduces exactly to that view's LLE embedding, and up to centring to its spectral
+embedding --
 the concrete check that this is the natural multiview generalisation of `SpectralEmbedding`,
 not an unrelated construction that happens to reuse its graph.
+
+`shrinkage` works as for `MCCA` and `KCCA`. Each view's constraint blends its embedding's
+variance with its roughness on the view's graph, $(1-c)\,\mathrm{Cov}(Z_i, Z_i) + c\,Z_i^\top M_i Z_i$:
+`shrinkage=0` is CCA between the views' smooth graph coordinates, and `shrinkage=1` is PLS,
+which maximises covariance per unit of roughness and so trades correlation for smoothness. The
+fit is exactly `MCCA(shrinkage=c)` on each view's kept operator eigenvectors, each scaled by the
+inverse square root of its eigenvalue. The default, 0.1, is `KCCA`'s.
+
+```python
+model = ManifoldCCA(method="lle", shrinkage=0.01, n_neighbors=10).fit([X1, X2])
+```
 
 ### Transform
 

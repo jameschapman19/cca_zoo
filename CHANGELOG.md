@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `ManifoldCCA` is now a CCA method rather than PLS by default. It takes `shrinkage`, as
+  `MCCA` and `KCCA` do: each view's constraint blends its embedding's variance (0, CCA)
+  with its roughness on the view's graph (1, PLS). Its fit is exactly `MCCA` with that
+  shrinkage on each view's smooth operator eigenvectors scaled by the inverse square root
+  of their eigenvalues. Before, the constraint was roughness alone (`shrinkage=1`), which
+  maximised covariance per unit of roughness and gave up correlation for smoothness; the
+  default is now `shrinkage=0.1`, KCCA's default. Pass `shrinkage=1` for the 4.0 fit.
+
 ## [4.0.0] - 2026-09-30
 
 A major release that settles the public API: every model follows one scikit-learn-style

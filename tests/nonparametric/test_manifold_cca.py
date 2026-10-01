@@ -65,3 +65,30 @@ def test_relates_two_differently_wound_spirals() -> None:
     train, test = (spirals(np.sort(rng.uniform(0.5, 4 * np.pi, 200))) for _ in range(2))
     manifold = ManifoldCCA(n_neighbors=10).fit(train).score(test)
     assert manifold > MCCA(shrinkage=0.1, pca=False).fit(train).score(test) + 0.3
+
+
+def test_is_mcca_on_scaled_operator_eigenvectors() -> None:
+    """Shrinkage blends CCA (0) and PLS (1) as MCCA's does, on U Lambda^{-1/2}."""
+    from cca_zoo.nonparametric._manifold_cca import (
+        _lle_operator,
+        _orthonormal_complement,
+        _smooth_basis,
+    )
+
+    rng = np.random.default_rng(0)
+    views = [rng.standard_normal((150, 4)), rng.standard_normal((150, 3))]
+    views[1][:, 0] += views[0][:, 0] ** 2
+    centred = [v - v.mean(0) for v in views]
+    features = []
+    for v in centred:
+        P = _orthonormal_complement(np.ones(len(v)))
+        operator = P.T @ _lle_operator(v, 10, 1e-3) @ P
+        basis, eigenvalues = _smooth_basis(operator, 12, 1e-6)
+        features.append(P @ basis / np.sqrt(eigenvalues))
+    for shrinkage in (0.0, 0.5, 1.0):
+        model = ManifoldCCA(
+            method="lle", n_components=3, shrinkage=shrinkage, n_operator_components=12
+        ).fit(views)
+        linear = MCCA(n_components=3, shrinkage=shrinkage, pca=False).fit(features)
+        for z, e in zip(linear.transform(features), model.embedding_):
+            assert np.all(principal_cosines(z, e) > 1 - 1e-6)
