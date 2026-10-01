@@ -225,8 +225,10 @@ class ManifoldCCA(BaseModel):
     \sum_i (1 - c_i) \operatorname{Cov}(Z_i, Z_i) + c_i Z_i^\top M_i Z_i = I.
     $$
 
+    The roughness is rescaled so its trace over the kept eigenvectors equals
+    their variance's, so that ``shrinkage`` means the same for either operator.
     This is :class:`~cca_zoo.linear.MCCA` with ``shrinkage=c`` on each view's
-    operator eigenvectors scaled by the inverse square root of their
+    operator eigenvectors scaled by the inverse square root of their rescaled
     eigenvalues: ``shrinkage=0`` is CCA between the views' smooth graph
     coordinates, and ``shrinkage=1`` PLS, which trades correlation for
     smoothness. With identical views and ``shrinkage > 0`` it reduces to the
@@ -256,7 +258,7 @@ class ManifoldCCA(BaseModel):
             ``method="lle"``. Per-view. Default is 1e-3.
         n_operator_components: Smoothest operator eigenvectors kept per view
             before the joint solve; fewer is stronger regularisation. ``None``
-            uses ``max(4 * n_components, 10)``, clipped to ``n_samples - 1``.
+            uses ``max(4 * n_components, 40)``, clipped to ``n_samples - 1``.
             For ``method="laplacian"``, eigenvectors with eigenvalue above
             0.95, which the Nystrom extension cannot carry to new points, are
             dropped. Per-view. Default is None.
@@ -327,7 +329,7 @@ class ManifoldCCA(BaseModel):
     ) -> int:
         if n_operator_components is not None:
             return min(n_operator_components, n - 1)
-        return min(max(4 * self.n_components, 10), n - 1)
+        return min(max(4 * self.n_components, 40), n - 1)
 
     def fit(self, views: list[ArrayLike], y: None = None) -> ManifoldCCA:
         """Fit the model.
@@ -384,11 +386,14 @@ class ManifoldCCA(BaseModel):
         stacked = np.hstack(full_bases)
         A = stacked.T @ C @ stacked
         A -= block_diag(*[b.T @ C @ b for b in full_bases])
-        # Each view's variance blended with its roughness, U' M U = diag(ev).
+        # Each view's variance blended with its roughness, U' M U = diag(ev),
+        # the roughness rescaled to the variance's trace so that shrinkage
+        # means the same for operators of any scale.
+        variances = [b.T @ C @ b for b in full_bases]
         B = block_diag(
             *[
-                (1 - c) * b.T @ C @ b + c * np.diag(ev)
-                for b, ev, c in zip(full_bases, eigenvalue_blocks, c_)
+                (1 - c) * v + c * np.trace(v) / ev.sum() * np.diag(ev)
+                for v, ev, c in zip(variances, eigenvalue_blocks, c_)
             ]
         )
         _, eigvecs = gevp(A / m, B / m, self.n_components)

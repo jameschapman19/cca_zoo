@@ -68,7 +68,10 @@ def test_relates_two_differently_wound_spirals() -> None:
 
 
 def test_is_mcca_on_scaled_operator_eigenvectors() -> None:
-    """Shrinkage blends CCA (0) and PLS (1) as MCCA's does, on U Lambda^{-1/2}."""
+    """Shrinkage blends CCA (0) and PLS (1) as MCCA's does, on U (k Lambda)^{-1/2}.
+
+    k rescales the eigenvalues to the trace of the eigenvectors' covariance.
+    """
     from cca_zoo.nonparametric._manifold_cca import (
         _lle_operator,
         _orthonormal_complement,
@@ -84,7 +87,9 @@ def test_is_mcca_on_scaled_operator_eigenvectors() -> None:
         P = _orthonormal_complement(np.ones(len(v)))
         operator = P.T @ _lle_operator(v, 10, 1e-3) @ P
         basis, eigenvalues = _smooth_basis(operator, 12, 1e-6)
-        features.append(P @ basis / np.sqrt(eigenvalues))
+        basis = P @ basis
+        variance = np.sum((basis - basis.mean(0)) ** 2) / (len(v) - 1)
+        features.append(basis / np.sqrt(variance / eigenvalues.sum() * eigenvalues))
     for shrinkage in (0.0, 0.5, 1.0):
         model = ManifoldCCA(
             method="lle", n_components=3, shrinkage=shrinkage, n_operator_components=12
