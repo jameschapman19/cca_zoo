@@ -106,7 +106,8 @@ class TrimmedCCA(CCAEY):
     the lowest CCAEY loss and refitting CCAEY on them. Neither step increases
     the loss. The best of ``n_init`` random starts is kept. Suited to heavy
     contamination when the clean fraction is roughly known. Supports one
-    latent dimension.
+    latent dimension. The concentration step is Rousseeuw and Van Driessen's
+    (1999), from their fast minimum covariance determinant algorithm.
 
     Args:
         n_components: Number of latent dimensions; must be 1. Default is 1.
@@ -128,6 +129,13 @@ class TrimmedCCA(CCAEY):
         n_iter_: Concentration steps of the best restart.
 
     References:
+        Chapman, J., Wang, H.-T., Wells, L., & Wiesner, J. (2021). CCA-Zoo: A
+        collection of Regularized, Deep Learning based, Kernel, and
+        Probabilistic CCA methods in a scikit-learn style framework. Journal
+        of Open Source Software, 6(68), 3823.
+        Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
+        Stochastic CCA: Unifying Multiview and Self-Supervised Learning.
+        arXiv:2310.01012.
         Rousseeuw, P. J., & Van Driessen, K. (1999). A fast algorithm for
         the minimum covariance determinant estimator. Technometrics,
         41(3), 212-223.

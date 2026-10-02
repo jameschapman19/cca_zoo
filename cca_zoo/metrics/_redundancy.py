@@ -11,7 +11,8 @@ from numpy.typing import ArrayLike
 def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
     """Variance of each view extracted by its own canonical variates.
 
-    The mean squared factor loading per dimension (Cramer & Nicewander, 1979).
+    The mean squared factor loading per dimension, the variance-extracted
+    term of Stewart and Love's (1968) redundancy index.
 
     Args:
         loadings: Loadings of shape (n_features_i, n_components), one per
@@ -19,6 +20,10 @@ def adequacy_coefficient(loadings: Sequence[ArrayLike]) -> list[np.ndarray]:
 
     Returns:
         One array of shape (n_components,) per view.
+
+    References:
+        Stewart, D., & Love, W. (1968). A general canonical correlation index.
+        Psychological Bulletin, 70(3), 160-163.
 
     Examples:
         >>> import numpy as np
@@ -52,6 +57,10 @@ def redundancy_index(
     Returns:
         Shape (n_views, n_views, n_components); the diagonal is each view's
         adequacy.
+
+    References:
+        Stewart, D., & Love, W. (1968). A general canonical correlation index.
+        Psychological Bulletin, 70(3), 160-163.
 
     Examples:
         >>> import numpy as np

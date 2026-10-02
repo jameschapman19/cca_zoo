@@ -46,6 +46,8 @@ class GCCA(BaseModel):
         Convention of the American Psychological Association, 3, 227-228.
         Kettenring, J. R. (1971). Canonical analysis of several sets of
         variables. Biometrika, 58(3), 433-451.
+        Tenenhaus, A., & Tenenhaus, M. (2011). Regularized generalized
+        canonical correlation analysis. Psychometrika, 76(2), 257-284.
 
     Examples:
         >>> import numpy as np
