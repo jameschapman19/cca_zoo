@@ -3,7 +3,7 @@
 The `cca_zoo.gp` module provides `GaussianProcessCCA`, a nonlinear multiview CCA method that uses a
 Gaussian process with a joint (non-additive) kernel as the per-view encoder. It has no optional
 dependency: the kernel machinery is built entirely from scikit-learn's own
-`GaussianProcessRegressor`, `RBF`, `ConstantKernel` and `KernelCenterer`, with `scipy.optimize`
+`GaussianProcessRegressor`, `RBF`, `ConstantKernel` and `KernelCenterer`, with `scipy.linalg`
 doing the fit, all already required by `cca_zoo`.
 
 ---
@@ -22,10 +22,11 @@ $$
 where, for embeddings $Z_i = f_i(X_i)$, $C$ is the mean pairwise cross-covariance (including
 $i = j$ terms) and $V$ the mean auto-covariance across all views. Where `GAMCCA` sums one
 univariate B-spline term per input feature — additive, and so structurally unable to represent an
-interaction between two features of the same view — `GaussianProcessCCA` fits a Gaussian process with an ARD
-(per-feature-lengthscale) RBF kernel directly over each view's *raw, joint* feature vector: a
-genuine, non-additive function of all of that view's features at once. As a Bayesian model it
-also comes with calibrated predictive uncertainty for free.
+interaction between two features of the same view — `GaussianProcessCCA` fits a Gaussian process with a joint
+RBF kernel (one length scale shared by all features, following the data's spread by default)
+directly over each view's *raw, joint* feature vector: a
+genuine, non-additive function of all of that view's features at once. As a Gaussian process it
+also comes with a posterior standard deviation for every score for free.
 
 Each encoder writes $f_i(x) = k_c(x, U_i)^\top B_i$ for a fixed kernel $k$, centred in feature
 space, and a fixed set of basis ("inducing") points $U_i$ — every training row by default, or
@@ -79,6 +80,12 @@ all (a standard GP fact: posterior variance only involves the kernel, the noise 
 design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
 level, and inducing points as the mean fit.
 
+Read it as epistemic uncertainty about where the encoder is determined by the training data, not
+as a measure of local noise or prediction difficulty: it tracks training density, so where
+measurement noise is largest relative to the signal in the dense region, the most confident
+predictions can be the least accurate. Its magnitude is on the kernel's prior scale, not the
+encoder output's scale, so use it to rank or compare points rather than as a calibrated interval.
+
 `GaussianProcessCCA` has no linear weight matrices and no per-feature decomposition analogous to
 `GAMCCA`'s `shape_function` (the kernel is not additive across features). `feature_importances_per_view_`
 is therefore permutation-based: the mean squared change in each view's latent scores when a
@@ -113,7 +120,7 @@ whether increasing it changes the held-out canonical correlation.
 
 | Parameter | Description |
 |---|---|
-| `kernel` | Fixed kernel used for every view. `None` (default) uses `ConstantKernel(1.0) * RBF(length_scale=np.ones(p))` for each view's own feature count `p`. |
+| `kernel` | Fixed kernel, cloned per view, or one per view. `None` (default) uses `ConstantKernel(1.0) * RBF(sqrt(p * X.var() / 2))` for each view's own feature count `p`, the length scale of scikit-learn's `gamma="scale"`. Pass an `RBF` with a per-feature `length_scale` array for an ARD kernel. |
 | `alpha` | Ridge (RKHS-norm) penalty strength, also used as the noise level for the posterior-variance calculation. |
 | `n_inducing` | Number of basis ("inducing") points (see above). `None` (default) uses every training row (exact inference). |
 | `random_state` | Seed for selecting inducing points when `n_inducing` is set. |
