@@ -1727,7 +1727,7 @@
 <p>The <code>cca_zoo.gp</code> module provides <code>GaussianProcessCCA</code>, a nonlinear multiview CCA method that uses a
 Gaussian process with a joint (non-additive) kernel as the per-view encoder. It has no optional
 dependency: the kernel machinery is built entirely from scikit-learn's own
-<code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code> and <code>KernelCenterer</code>, with <code>scipy.optimize</code>
+<code>GaussianProcessRegressor</code>, <code>RBF</code>, <code>ConstantKernel</code> and <code>KernelCenterer</code>, with <code>scipy.linalg</code>
 doing the fit, all already required by <code>cca_zoo</code>.</p>
 <hr />
 <h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
@@ -1741,10 +1741,11 @@ and by <code>GAMCCA</code> in <code>cca_zoo.gam</code> (all share the exact same
 <p>where, for embeddings <span class="arithmatex">\(Z_i = f_i(X_i)\)</span>, <span class="arithmatex">\(C\)</span> is the mean pairwise cross-covariance (including
 <span class="arithmatex">\(i = j\)</span> terms) and <span class="arithmatex">\(V\)</span> the mean auto-covariance across all views. Where <code>GAMCCA</code> sums one
 univariate B-spline term per input feature — additive, and so structurally unable to represent an
-interaction between two features of the same view — <code>GaussianProcessCCA</code> fits a Gaussian process with an ARD
-(per-feature-lengthscale) RBF kernel directly over each view's <em>raw, joint</em> feature vector: a
-genuine, non-additive function of all of that view's features at once. As a Bayesian model it
-also comes with calibrated predictive uncertainty for free.</p>
+interaction between two features of the same view — <code>GaussianProcessCCA</code> fits a Gaussian process with a joint
+RBF kernel (one length scale shared by all features, following the data's spread by default)
+directly over each view's <em>raw, joint</em> feature vector: a
+genuine, non-additive function of all of that view's features at once. As a Gaussian process it
+also comes with a posterior standard deviation for every score for free.</p>
 <p>Each encoder writes <span class="arithmatex">\(f_i(x) = k_c(x, U_i)^\top B_i\)</span> for a fixed kernel <span class="arithmatex">\(k\)</span>, centred in feature
 space, and a fixed set of basis ("inducing") points <span class="arithmatex">\(U_i\)</span> — every training row by default, or
 <code>n_inducing</code> of them selected via <code>sklearn.cluster.kmeans_plusplus</code> for larger datasets. The
@@ -1786,6 +1787,11 @@ near it, exactly as for any other GP posterior. This does not depend on the fitt
 all (a standard GP fact: posterior variance only involves the kernel, the noise level, and the
 design points), so it is computed under the (uncentred) GP prior implied by the same kernel, noise
 level, and inducing points as the mean fit.</p>
+<p>Read it as epistemic uncertainty about where the encoder is determined by the training data, not
+as a measure of local noise or prediction difficulty: it tracks training density, so where
+measurement noise is largest relative to the signal in the dense region, the most confident
+predictions can be the least accurate. Its magnitude is on the kernel's prior scale, not the
+encoder output's scale, so use it to rank or compare points rather than as a calibrated interval.</p>
 <p><code>GaussianProcessCCA</code> has no linear weight matrices and no per-feature decomposition analogous to
 <code>GAMCCA</code>'s <code>shape_function</code> (the kernel is not additive across features). <code>feature_importances_per_view_</code>
 is therefore permutation-based: the mean squared change in each view's latent scores when a
@@ -1819,7 +1825,7 @@ whether increasing it changes the held-out canonical correlation.</p>
 <tbody>
 <tr>
 <td><code>kernel</code></td>
-<td>Fixed kernel used for every view. <code>None</code> (default) uses <code>ConstantKernel(1.0) * RBF(length_scale=np.ones(p))</code> for each view's own feature count <code>p</code>.</td>
+<td>Fixed kernel, cloned per view, or one per view. <code>None</code> (default) uses <code>ConstantKernel(1.0) * RBF(sqrt(p * X.var() / 2))</code> for each view's own feature count <code>p</code>, the length scale of scikit-learn's <code>gamma="scale"</code>. Pass an <code>RBF</code> with a per-feature <code>length_scale</code> array for an ARD kernel.</td>
 </tr>
 <tr>
 <td><code>alpha</code></td>
