@@ -12,7 +12,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `RidgeCCACV`: `RidgeCCA` with the shrinkage chosen by cross-validated canonical correlation.
   It matches `GridSearchCV(RidgeCCA(...), {"shrinkage": grid})` (scores agree to 1e-12) but
   shares each view's eigendecomposition across the whole grid, so it is 3.4 to 6.7 times faster
-  on a 14-point grid.
+  on a 14-point grid. `n_components="auto"` also chooses the number of components: it keeps
+  the leading components whose cross-validated correlation exceeds `3 / sqrt(n_samples)`, which
+  on simulated data with known canonical correlations recovers the true number whenever the
+  samples can resolve it and under-counts, rather than over-counts, weak components otherwise.
 
 ### Changed
 

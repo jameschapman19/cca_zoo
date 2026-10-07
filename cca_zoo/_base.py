@@ -160,6 +160,10 @@ class BaseModel(BaseEstimator, ABC):
     # Shared sklearn-compatible helpers
     # ------------------------------------------------------------------
 
+    def _fit_components(self) -> int:
+        """The number of components this fit computes: ``n_components``."""
+        return self.n_components
+
     def _setup_fit(
         self, views: list[ArrayLike], sample_weight: ArrayLike | None = None
     ) -> list[np.ndarray]:
@@ -187,9 +191,12 @@ class BaseModel(BaseEstimator, ABC):
         self.n_views_: int = len(validated)
         self.n_features_per_view_: list[int] = [v.shape[1] for v in validated]
         max_components = min(self.n_features_per_view_)
-        if self._components_bounded_by_features and self.n_components > max_components:
+        if (
+            self._components_bounded_by_features
+            and self._fit_components() > max_components
+        ):
             raise ValueError(
-                f"n_components={self.n_components} must be at most "
+                f"n_components={self._fit_components()} must be at most "
                 f"{max_components}, the number of features in the narrowest view."
             )
         self.n_samples_: int = validated[0].shape[0]

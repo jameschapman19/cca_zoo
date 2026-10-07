@@ -99,7 +99,7 @@ class RidgeCCA(BaseModel):
         # of the whitened views' cross-covariance.
         X1_w, W1 = svd_whiten(X1, c_[0])
         X2_w, W2 = svd_whiten(X2, c_[1])
-        k = min(self.n_components, X1_w.shape[1], X2_w.shape[1])
+        k = min(self._fit_components(), X1_w.shape[1], X2_w.shape[1])
         U, _, Vt = truncated_svd(X1_w.T @ X2_w / (X1.shape[0] - 1), k)
         self.weights_: list[Any] = [W1 @ U, W2 @ Vt.T]
         self._fit_maps_and_importances(views_)

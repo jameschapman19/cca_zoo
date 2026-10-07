@@ -51,3 +51,36 @@ def test_requires_two_views(views: list[np.ndarray]) -> None:
     """A third view is rejected by name."""
     with pytest.raises(ValueError, match="exactly 2 views"):
         RidgeCCACV().fit([*views, views[0]])
+
+
+def _planted(rhos: list[float], n: int, p: int = 30, seed: int = 0) -> list[np.ndarray]:
+    """Views whose population canonical correlations are ``rhos``, rest noise."""
+    rng = np.random.default_rng(seed)
+    k = len(rhos)
+    joint = rng.standard_normal((n, p + p))
+    shared = rng.standard_normal((n, k))
+    out = []
+    for view in (joint[:, :p], joint[:, p:]):
+        loadings = np.linalg.qr(rng.standard_normal((p, k)))[0].T
+        out.append(
+            view
+            + (shared * np.sqrt(np.asarray(rhos) / (1 - np.asarray(rhos)))) @ loadings
+        )
+    return out
+
+
+@pytest.mark.parametrize("rank", [1, 3])
+def test_auto_recovers_the_number_of_planted_components(rank: int) -> None:
+    """With enough samples, ``n_components="auto"`` keeps exactly the real ones."""
+    views = _planted([0.8, 0.7, 0.6][:rank], n=2000)
+    model = RidgeCCACV("auto").fit(views)
+    assert model.n_components_ == rank
+    assert model.cv_component_scores_.shape == (len(model.cv_scores_), 10)
+
+
+def test_auto_warns_and_keeps_one_component_on_pure_noise() -> None:
+    """Nothing clears the chance threshold: one component, and a warning."""
+    views = _planted([], n=300, seed=3)
+    with pytest.warns(UserWarning, match="exceeds chance"):
+        model = RidgeCCACV("auto").fit(views)
+    assert model.n_components_ == 1

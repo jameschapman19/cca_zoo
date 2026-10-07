@@ -61,6 +61,10 @@ model = RidgeCCACV(n_components=2, cv=5).fit([X1, X2])
 model.shrinkage_, model.cv_scores_
 ```
 
+With `n_components="auto"` it also chooses how many components to keep, those whose held-out
+correlation exceeds `3 / sqrt(n_samples)` (see `cv_component_scores_`). It never counts a
+component the data cannot support, so a weak component at small $n/p$ may be missed.
+
 ### PLS — Partial Least Squares
 
 **When to use:** When you want to maximise *covariance* rather than *correlation*. PLS is
