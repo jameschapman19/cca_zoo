@@ -167,3 +167,16 @@ def booster_document(
 
 def load(doc: dict) -> xgb.Booster:
     return xgb.Booster(model_file=bytearray(json.dumps(doc).encode()))
+
+
+def to_sklearn(booster: xgb.Booster, estimator: type, classes=None):
+    """Wrap ``booster`` in ``XGBRegressor`` / ``XGBClassifier``. XGBClassifier
+    predicts class indices, so the source classes must already be 0..k-1."""
+    if classes is not None and not np.array_equal(classes, np.arange(len(classes))):
+        raise ValueError(
+            f"classes_={list(classes)} must be 0..{len(classes) - 1} to convert to XGBClassifier; "
+            "encode the labels first"
+        )
+    model = estimator()
+    model.load_model(booster.save_raw("ubj"))
+    return model

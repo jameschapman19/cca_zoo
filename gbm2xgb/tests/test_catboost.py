@@ -90,17 +90,18 @@ def test_unsupported_models():
 def test_regressor_wrapper():
     X, y = make_data()
     m = gc.CatBoostRegressor(iterations=20, verbose=0).fit(X, y)
-    np.testing.assert_allclose(
-        m.to_xgboost().predict(xgb.DMatrix(X)), m.predict(X), rtol=1e-4, atol=1e-5
-    )
+    xreg = m.to_xgboost()
+    assert isinstance(xreg, xgb.XGBRegressor)
+    np.testing.assert_allclose(xreg.predict(X), m.predict(X), rtol=1e-4, atol=1e-5)
 
 
 def test_classifier_wrapper():
     X, y = make_data()
     m = gc.CatBoostClassifier(iterations=20, verbose=0).fit(X, y > 0.5)
-    np.testing.assert_allclose(
-        m.to_xgboost().predict(xgb.DMatrix(X)), m.predict_proba(X)[:, 1], rtol=1e-4, atol=1e-5
-    )
+    xclf = m.to_xgboost()
+    assert isinstance(xclf, xgb.XGBClassifier)
+    np.testing.assert_allclose(xclf.predict_proba(X), m.predict_proba(X), rtol=1e-4, atol=1e-5)
+    np.testing.assert_array_equal(xclf.predict(X), m.predict(X))
 
 
 @pytest.mark.parametrize(

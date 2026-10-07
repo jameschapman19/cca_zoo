@@ -139,9 +139,9 @@ def test_early_stopping_uses_best_iteration():
 def test_regressor_wrapper():
     X, y = make_data()
     reg = gl.LGBMRegressor(n_estimators=20, verbose=-1).fit(X, y)
-    np.testing.assert_allclose(
-        reg.to_xgboost().predict(xgb.DMatrix(X)), reg.predict(X), rtol=1e-4, atol=1e-5
-    )
+    xreg = reg.to_xgboost()
+    assert isinstance(xreg, xgb.XGBRegressor)
+    np.testing.assert_allclose(xreg.predict(X), reg.predict(X), rtol=1e-4, atol=1e-5)
 
 
 @pytest.mark.parametrize("n_classes", [2, 4])
@@ -149,9 +149,17 @@ def test_classifier_wrapper(n_classes):
     X, y = make_data()
     labels = np.digitize(y, np.quantile(y, np.linspace(0, 1, n_classes + 1)[1:-1]))
     clf = gl.LGBMClassifier(n_estimators=20, verbose=-1).fit(X, labels)
-    got = clf.to_xgboost().predict(xgb.DMatrix(X))
-    expected = clf.predict_proba(X)
-    np.testing.assert_allclose(got, expected[:, 1] if n_classes == 2 else expected, rtol=1e-4, atol=1e-5)
+    xclf = clf.to_xgboost()
+    assert isinstance(xclf, xgb.XGBClassifier)
+    np.testing.assert_allclose(xclf.predict_proba(X), clf.predict_proba(X), rtol=1e-4, atol=1e-5)
+    np.testing.assert_array_equal(xclf.predict(X), clf.predict(X))
+
+
+def test_classifier_with_non_index_labels_is_blocked():
+    X, y = make_data()
+    clf = gl.LGBMClassifier(n_estimators=5, verbose=-1).fit(X, np.where(y > 0, 5, 7))
+    with pytest.raises(ValueError):
+        clf.to_xgboost()
 
 
 @pytest.mark.parametrize(

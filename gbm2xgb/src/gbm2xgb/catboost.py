@@ -175,14 +175,15 @@ class _Convertible:
             )
         return super().fit(X, y, *args, **kwargs)
 
-    def to_xgboost(self) -> xgb.Booster:
-        return convert(self)
+    def to_xgboost(self):
+        return _xgb.to_sklearn(convert(self), self._xgb_estimator, getattr(self, "classes_", None))
 
 
 class CatBoostRegressor(_Convertible, cb.CatBoostRegressor):
     """``catboost.CatBoostRegressor`` restricted to what ``to_xgboost`` supports."""
 
     _losses = REGRESSION_LOSSES
+    _xgb_estimator = xgb.XGBRegressor
 
     @functools.wraps(cb.CatBoostRegressor.__init__)
     def __init__(self, *args, **kwargs):
@@ -194,6 +195,7 @@ class CatBoostClassifier(_Convertible, cb.CatBoostClassifier):
     """``catboost.CatBoostClassifier`` restricted to what ``to_xgboost`` supports."""
 
     _losses = CLASSIFICATION_LOSSES
+    _xgb_estimator = xgb.XGBClassifier
 
     @functools.wraps(cb.CatBoostClassifier.__init__)
     def __init__(self, *args, **kwargs):

@@ -16,7 +16,8 @@ CLI: `gbm2xgb lightgbm model.txt model.ubj` or `gbm2xgb catboost model.cbm model
 
 `gbm2xgb.lightgbm.{LGBMRegressor, LGBMClassifier}` and `gbm2xgb.catboost.{CatBoostRegressor, CatBoostClassifier}`
 subclass the originals, raise `ValueError` at construction, `set_params` and `fit` for anything the conversion
-can't represent, and add `.to_xgboost()`.
+can't represent, and add `.to_xgboost()`, which returns an `xgboost.XGBRegressor` / `XGBClassifier`
+(`fit` still returns `self`). Classifier labels must be `0..k-1`, since `XGBClassifier` predicts indices.
 
 ```python
 from gbm2xgb.lightgbm import LGBMRegressor

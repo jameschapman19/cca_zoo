@@ -177,14 +177,15 @@ class _Convertible:
             raise ValueError("init_score cannot be converted to XGBoost")
         return super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
-    def to_xgboost(self) -> xgb.Booster:
-        return convert(self)
+    def to_xgboost(self):
+        return _xgb.to_sklearn(convert(self), self._xgb_estimator, getattr(self, "classes_", None))
 
 
 class LGBMRegressor(_Convertible, lgb.LGBMRegressor):
     """``lightgbm.LGBMRegressor`` restricted to what ``to_xgboost`` supports."""
 
     _objectives = REGRESSION_OBJECTIVES
+    _xgb_estimator = xgb.XGBRegressor
 
     @functools.wraps(lgb.LGBMRegressor.__init__)
     def __init__(self, *args, **kwargs):
@@ -196,6 +197,7 @@ class LGBMClassifier(_Convertible, lgb.LGBMClassifier):
     """``lightgbm.LGBMClassifier`` restricted to what ``to_xgboost`` supports."""
 
     _objectives = CLASSIFICATION_OBJECTIVES
+    _xgb_estimator = xgb.XGBClassifier
 
     @functools.wraps(lgb.LGBMClassifier.__init__)
     def __init__(self, *args, **kwargs):
