@@ -3,7 +3,8 @@ import numpy as np
 import pytest
 import xgboost as xgb
 
-import lgb2xgb
+import gbm2xgb
+from gbm2xgb import lightgbm as gl
 
 
 def make_data(n=2000, seed=0, categorical=False, nan_frac=0.1):
@@ -27,7 +28,7 @@ def fit(params, X, y, rounds=30, categorical=None):
 
 def assert_same(booster, X, **kw):
     expected = booster.predict(X)
-    got = lgb2xgb.convert(booster).predict(xgb.DMatrix(X))
+    got = gbm2xgb.convert(booster).predict(xgb.DMatrix(X))
     np.testing.assert_allclose(got, expected, rtol=1e-4, atol=1e-5, **kw)
 
 
@@ -75,7 +76,7 @@ def test_categorical():
     Xn[::5, 4] = np.nan
     Xn[::11, 4] = 9  # unseen category
     expected = b.predict(Xn)
-    bst = lgb2xgb.convert(b)
+    bst = gbm2xgb.convert(b)
     got = bst.predict(xgb.DMatrix(Xn, feature_types=["float"] * 4 + ["c"]))
     np.testing.assert_allclose(got, expected, rtol=1e-4, atol=1e-5)
 
@@ -96,11 +97,11 @@ def test_sklearn_wrapper_and_file_roundtrip(tmp_path):
     expected = reg.predict(X)
 
     np.testing.assert_allclose(
-        lgb2xgb.convert(reg).predict(xgb.DMatrix(X)), expected, rtol=1e-4, atol=1e-5
+        gbm2xgb.convert(reg).predict(xgb.DMatrix(X)), expected, rtol=1e-4, atol=1e-5
     )
 
     reg.booster_.save_model(tmp_path / "m.txt")
-    lgb2xgb.convert_file(tmp_path / "m.txt", tmp_path / "m.ubj")
+    gl.convert(tmp_path / "m.txt").save_model(tmp_path / "m.ubj")
     loaded = xgb.Booster(model_file=tmp_path / "m.ubj")
     np.testing.assert_allclose(loaded.predict(xgb.DMatrix(X)), expected, rtol=1e-4, atol=1e-5)
 
@@ -114,8 +115,81 @@ def test_single_leaf_trees():
 def test_unsupported():
     X, y = make_data()
     with pytest.raises(NotImplementedError):
-        lgb2xgb.convert(fit({"objective": "regression", "boosting": "rf", "bagging_fraction": 0.5, "bagging_freq": 1}, X, y))
+        gbm2xgb.convert(fit({"objective": "regression", "boosting": "rf", "bagging_fraction": 0.5, "bagging_freq": 1}, X, y))
     with pytest.raises(NotImplementedError):
-        lgb2xgb.convert(fit({"objective": "cross_entropy"}, X, (y > 0) * 1.0))
+        gbm2xgb.convert(fit({"objective": "cross_entropy"}, X, (y > 0) * 1.0))
     with pytest.raises(NotImplementedError):
-        lgb2xgb.convert(fit({"objective": "regression", "zero_as_missing": True}, X, y))
+        gbm2xgb.convert(fit({"objective": "regression", "zero_as_missing": True}, X, y))
+
+
+def test_early_stopping_uses_best_iteration():
+    X, y = make_data()
+    reg = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.3, verbose=-1)
+    reg.fit(X[:1000], y[:1000], eval_set=[(X[1000:], y[1000:])],
+            callbacks=[lgb.early_stopping(5, verbose=False)])
+    assert reg.best_iteration_ < 300
+    np.testing.assert_allclose(
+        gbm2xgb.convert(reg).predict(xgb.DMatrix(X)), reg.predict(X), rtol=1e-4, atol=1e-5
+    )
+
+
+# --- restricted estimators ----------------------------------------------------
+
+
+def test_regressor_wrapper():
+    X, y = make_data()
+    reg = gl.LGBMRegressor(n_estimators=20, verbose=-1).fit(X, y)
+    np.testing.assert_allclose(
+        reg.to_xgboost().predict(xgb.DMatrix(X)), reg.predict(X), rtol=1e-4, atol=1e-5
+    )
+
+
+@pytest.mark.parametrize("n_classes", [2, 4])
+def test_classifier_wrapper(n_classes):
+    X, y = make_data()
+    labels = np.digitize(y, np.quantile(y, np.linspace(0, 1, n_classes + 1)[1:-1]))
+    clf = gl.LGBMClassifier(n_estimators=20, verbose=-1).fit(X, labels)
+    got = clf.to_xgboost().predict(xgb.DMatrix(X))
+    expected = clf.predict_proba(X)
+    np.testing.assert_allclose(got, expected[:, 1] if n_classes == 2 else expected, rtol=1e-4, atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"objective": "cross_entropy"},
+        {"objective": "multiclass"},
+        {"objective": lambda y, p: (p - y, p * 0 + 1)},
+        {"boosting_type": "rf"},
+        {"zero_as_missing": True},
+        {"linear_tree": True},
+        {"reg_sqrt": True},
+    ],
+)
+def test_regressor_blocks_unsupported_params(bad):
+    with pytest.raises(ValueError):
+        gl.LGBMRegressor(**bad)
+    with pytest.raises(ValueError):
+        gl.LGBMRegressor().set_params(**bad)
+
+
+def test_classifier_blocks_unsupported_params():
+    with pytest.raises(ValueError):
+        gl.LGBMClassifier(objective="multiclassova")
+    with pytest.raises(ValueError):
+        gl.LGBMClassifier(objective="regression")
+
+
+def test_fit_blocks_init_score():
+    X, y = make_data()
+    with pytest.raises(ValueError):
+        gl.LGBMRegressor(verbose=-1).fit(X, y, init_score=np.zeros(len(y)))
+
+
+def test_sklearn_clone_and_params_roundtrip():
+    from sklearn.base import clone
+
+    reg = gl.LGBMRegressor(n_estimators=7, objective="huber", reg_lambda=0.5)
+    cloned = clone(reg)
+    assert isinstance(cloned, gl.LGBMRegressor)
+    assert cloned.get_params() == reg.get_params()

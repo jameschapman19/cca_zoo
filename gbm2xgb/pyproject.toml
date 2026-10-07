@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gbm2xgb"
+version = "0.1.0"
+description = "Convert LightGBM and CatBoost models to XGBoost models"
+requires-python = ">=3.10"
+dependencies = ["numpy", "xgboost>=2"]
+
+[project.optional-dependencies]
+lightgbm = ["lightgbm>=4"]
+catboost = ["catboost>=1.2"]
+test = ["pytest", "scikit-learn", "lightgbm>=4", "catboost>=1.2"]
+
+[project.scripts]
+gbm2xgb = "gbm2xgb.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gbm2xgb"]
