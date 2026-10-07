@@ -18,6 +18,7 @@ from ._pls import PLS
 from ._projection_pursuit_cca import ProjectionPursuitCCA
 from ._ransac_cca import RANSACCCA
 from ._ridge_cca import RidgeCCA
+from ._ridge_cca_cv import RidgeCCACV
 from ._tcca import TCCA
 from ._trimmed_cca import TrimmedCCA
 from .gradient import CCAEY, PLSEY, HuberCCA
@@ -26,6 +27,7 @@ __all__ = [
     # Exact eigendecomposition
     "CCA",
     "RidgeCCA",
+    "RidgeCCACV",
     "PLS",
     "MCCA",
     "GCCA",

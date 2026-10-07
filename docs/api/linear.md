@@ -33,6 +33,10 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
 
 ---
 
+::: cca_zoo.linear.RidgeCCACV
+
+---
+
 ::: cca_zoo.linear.PLS
 
 ---

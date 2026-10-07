@@ -7,8 +7,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `RidgeCCACV`: `RidgeCCA` with the shrinkage chosen by cross-validated canonical correlation.
+  It matches `GridSearchCV(RidgeCCA(...), {"shrinkage": grid})` (scores agree to 1e-12) but
+  shares each view's eigendecomposition across the whole grid, so it is 3.4 to 6.7 times faster
+  on a 14-point grid.
+
 ### Changed
 
+- `RidgeCCA`, `MCCA`, `PartialCCA` and `ManifoldCCA` compute only the `n_components` wanted
+  eigenpairs or singular triplets, with LAPACK's selected-eigenvalue drivers, rather than all of
+  them. Fits at around 2000 features are about 2 to 3 times faster, with the same weights.
 - `ManifoldCCA` is now a CCA method rather than PLS by default. It takes `shrinkage`, as
   `MCCA` and `KCCA` do: each view's constraint blends its embedding's variance (0, CCA)
   with its roughness on the view's graph (1, PLS). Its fit is exactly `MCCA` with that

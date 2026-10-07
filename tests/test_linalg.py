@@ -13,6 +13,7 @@ from cca_zoo._utils._linalg import (
     psd_inverse_sqrt,
     soft_threshold,
     svd_whiten,
+    truncated_svd,
 )
 
 
@@ -123,3 +124,26 @@ def test_cross_moment_tensor() -> None:
         axis=0,
     )
     np.testing.assert_allclose(cross_moment_tensor([x1, x2, x3]), expected)
+
+
+@pytest.mark.parametrize("shape", [(40, 300), (300, 40), (120, 120)])
+def test_truncated_svd_matches_the_full_svd(shape: tuple[int, int]) -> None:
+    """The partial-eigensolver path gives the leading triplets of the full SVD."""
+    m = np.random.default_rng(1).standard_normal(shape)
+    u, s, vt = truncated_svd(m, 4)
+    uf, sf, vtf = np.linalg.svd(m, full_matrices=False)
+    np.testing.assert_allclose(s, sf[:4], atol=1e-10)
+    np.testing.assert_allclose(np.abs(u.T @ uf[:, :4]), np.eye(4), atol=1e-8)
+    np.testing.assert_allclose(np.abs(vt @ vtf[:4].T), np.eye(4), atol=1e-8)
+    np.testing.assert_allclose((u * s) @ vt, (uf[:, :4] * sf[:4]) @ vtf[:4], atol=1e-8)
+
+
+def test_truncated_svd_of_a_near_rank_deficient_matrix_is_accurate() -> None:
+    """A tiny k-th singular value falls back to the full SVD, keeping its digits."""
+    rng = np.random.default_rng(2)
+    q1, _ = np.linalg.qr(rng.standard_normal((200, 10)))
+    q2, _ = np.linalg.qr(rng.standard_normal((150, 10)))
+    sv = np.array([1, 0.5, 0.2, 1e-9, 1e-9, 1e-10, 1e-10, 1e-11, 1e-11, 1e-12])
+    m = (q1 * sv) @ q2.T
+    _, s, _ = truncated_svd(m, 4)
+    np.testing.assert_allclose(s, sv[:4], rtol=1e-6)

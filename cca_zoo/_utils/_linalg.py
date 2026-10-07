@@ -12,7 +12,6 @@ from typing import Any
 
 import numpy as np
 import scipy.linalg
-from scipy.sparse.linalg import svds
 from sklearn.utils._array_api import device, get_namespace
 
 
@@ -36,8 +35,8 @@ def block_diag(blocks: list[Any]) -> Any:
     return matrix
 
 
-def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
-    """Whiten ``X`` with a ridge-regularised covariance.
+def covariance_eigenbasis(X: Any) -> tuple[Any, Any]:
+    """Eigenvalues and eigenvectors of the covariance of centred ``X``.
 
     Uses an eigendecomposition of the covariance when ``n >= p`` and an SVD
     of ``X`` otherwise. Directions below the numerical rank are dropped, with
@@ -47,22 +46,35 @@ def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
 
     Args:
         X: Centred array of shape (n_samples, n_features).
-        regularization: Ridge blend in ``[0, 1]``; 0 is PCA whitening and 1
-            no whitening.
 
     Returns:
-        ``(X @ W, W)``, with ``W`` of shape (n_features, rank).
+        ``(lam, V)`` of shapes (rank,) and (n_features, rank).
     """
     xp, _ = get_namespace(X)
     n, p = X.shape
     if n >= p:
         lam, V = xp.linalg.eigh(X.T @ X / (n - 1))
         rank = int(xp.count_nonzero(lam > xp.max(lam) * p * xp.finfo(lam.dtype).eps))
-        lam, V = lam[p - rank :], V[:, p - rank :]
-    else:
-        _, s, Vt = xp.linalg.svd(X, full_matrices=False)
-        rank = int(xp.count_nonzero(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
-        lam, V = s[:rank] ** 2 / (n - 1), Vt[:rank, :].T
+        return lam[p - rank :], V[:, p - rank :]
+    _, s, Vt = xp.linalg.svd(X, full_matrices=False)
+    rank = int(xp.count_nonzero(s > xp.max(s) * max(n, p) * xp.finfo(s.dtype).eps))
+    return s[:rank] ** 2 / (n - 1), Vt[:rank, :].T
+
+
+def svd_whiten(X: Any, regularization: float = 0.0) -> tuple[Any, Any]:
+    """Whiten ``X`` with a ridge-regularised covariance.
+
+    Args:
+        X: Centred array of shape (n_samples, n_features).
+        regularization: Ridge blend in ``[0, 1]``; 0 is PCA whitening and 1
+            no whitening.
+
+    Returns:
+        ``(X @ W, W)``, with ``W`` of shape (n_features, rank), the rank
+        as in :func:`covariance_eigenbasis`.
+    """
+    xp, _ = get_namespace(X)
+    lam, V = covariance_eigenbasis(X)
     W = V / xp.sqrt((1.0 - regularization) * lam + regularization)
     return X @ W, W
 
@@ -161,10 +173,14 @@ def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
 def truncated_svd(M: Any, k: int) -> tuple[Any, Any, Any]:
     """Top ``k`` singular triplets of ``M``, in descending order.
 
-    Uses ARPACK when ``k`` is small against ``M``'s smaller side, which is
-    several times faster than the full SVD and equally accurate (it iterates
-    to machine precision, unlike a randomized SVD, which loses accuracy when
-    the spectrum has no gap). Other namespaces take the full SVD.
+    When ``k`` is small against ``M``'s smaller side, takes the ``k`` top
+    eigenpairs of the smaller Gram matrix (``M M'`` or ``M' M``) with
+    LAPACK's selected-eigenvalue driver, several times faster than the full
+    SVD. Squaring ``M`` halves the digits kept for a singular value far
+    below the largest, so it falls back to the full SVD when the ``k``-th is
+    under 1e-3 times the largest, as it does in other namespaces. (An
+    iterative solver is no substitute: on the clustered spectra of whitened
+    cross-covariances ARPACK converges slowly or not at all.)
 
     Args:
         M: Array of shape (m, n).
@@ -173,10 +189,16 @@ def truncated_svd(M: Any, k: int) -> tuple[Any, Any, Any]:
     Returns:
         ``(U, s, Vt)`` of shapes (m, k), (k,) and (k, n).
     """
-    if isinstance(M, np.ndarray) and 5 * k <= min(M.shape) and min(M.shape) >= 100:
-        U, s, Vt = svds(M, k=k, tol=0)
-        order = np.argsort(-s)
-        return U[:, order], s[order], Vt[order]
+    if isinstance(M, np.ndarray) and 5 * k <= min(M.shape):
+        tall = M.shape[0] <= M.shape[1]
+        gram = M @ M.T if tall else M.T @ M
+        top = [gram.shape[0] - k, gram.shape[0] - 1]
+        w, vecs = scipy.linalg.eigh(gram, subset_by_index=top, driver="evx")
+        s = np.sqrt(np.maximum(w[::-1], 0.0))
+        if s[-1] >= 1e-3 * s[0]:
+            vecs = vecs[:, ::-1]
+            other = (M.T @ vecs if tall else M @ vecs) / s
+            return (vecs, s, other.T) if tall else (other, s, vecs.T)
     xp, _ = get_namespace(M)
     U, s, Vt = xp.linalg.svd(M, full_matrices=False)
     return U[:, :k], s[:k], Vt[:k, :]

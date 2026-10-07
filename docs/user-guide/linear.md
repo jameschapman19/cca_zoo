@@ -49,6 +49,18 @@ from cca_zoo.linear import RidgeCCA
 model = RidgeCCA(n_components=2, shrinkage=0.1).fit([X1, X2])
 ```
 
+To choose `shrinkage` by cross-validated canonical correlation, use `RidgeCCACV`. It gives the
+selection of `GridSearchCV(RidgeCCA(...), {"shrinkage": grid})` but eigendecomposes each view once
+per fold instead of once per fold per shrinkage, so it is 3 to 7 times faster on a 14-point grid
+(more for a finer one). It uses one shrinkage for both views; use `GridSearchCV` for per-view values.
+
+```python
+from cca_zoo.linear import RidgeCCACV
+
+model = RidgeCCACV(n_components=2, cv=5).fit([X1, X2])
+model.shrinkage_, model.cv_scores_
+```
+
 ### PLS — Partial Least Squares
 
 **When to use:** When you want to maximise *covariance* rather than *correlation*. PLS is

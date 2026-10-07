@@ -131,7 +131,14 @@ _MODEL_ALTERNATIVE: dict[tuple[str, str], Any] = {
 }
 
 # Not scalar settings: covered by the model's own tests.
-_STRUCTURAL = {"n_components", "center", "feature_groups", "kernel_params"}
+_STRUCTURAL = {
+    "n_components",
+    "center",
+    "feature_groups",
+    "kernel_params",
+    "cv",
+    "shrinkages",
+}
 
 
 def _cases() -> list[Any]:

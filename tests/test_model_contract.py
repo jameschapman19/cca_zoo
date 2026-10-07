@@ -30,7 +30,7 @@ from tests._helpers import (
     model_params,
 )
 
-_TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "PLS", "CCAR3", "ECCA"}
+_TWO_VIEW_ONLY = {"CCA", "RidgeCCA", "RidgeCCACV", "PLS", "CCAR3", "ECCA"}
 
 
 def _views(

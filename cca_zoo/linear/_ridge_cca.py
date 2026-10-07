@@ -64,6 +64,9 @@ class RidgeCCA(BaseModel):
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
 
+    def _shrinkage_per_view(self) -> list[float]:
+        return perview_parameter("shrinkage", self.shrinkage, 0.0, 2)
+
     def fit(
         self,
         views: list[ArrayLike],
@@ -90,7 +93,7 @@ class RidgeCCA(BaseModel):
                 f"{type(self).__name__} requires exactly 2 views, got "
                 f"{self.n_views_}. Use MCCA for more than 2 views."
             )
-        c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, 2)
+        c_ = self._shrinkage_per_view()
         X1, X2 = views_
         # Whiten each view with its regularised covariance, then take the SVD
         # of the whitened views' cross-covariance.

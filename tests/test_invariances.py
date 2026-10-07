@@ -35,6 +35,7 @@ _STOCHASTIC = {
     "ProbabilisticCCA": _MONTE_CARLO,
     "VariationalBayesCCA": _MONTE_CARLO,
 }
+_FOLDS = "the cross-validation folds are contiguous blocks of rows"
 _STACKING_EXEMPT = {
     **_STOCHASTIC,
     "ManifoldCCA": "a duplicated sample is its copy's nearest neighbour",
@@ -43,9 +44,11 @@ _STACKING_EXEMPT = {
     "RANSACCCA": _RANDOM_SUBSETS,
     "TrimmedCCA": _RANDOM_SUBSETS,
     "StochasticCCAEY": "an epoch's steps grow with the number of samples",
+    "RidgeCCACV": _FOLDS,
 }
 _ROW_ORDER_EXEMPT = {
     **_STOCHASTIC,
+    "RidgeCCACV": _FOLDS,
     "RANSACCCA": _RANDOM_SUBSETS,
     "TrimmedCCA": _RANDOM_SUBSETS,
 }
