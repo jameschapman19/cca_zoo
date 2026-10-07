@@ -6,10 +6,9 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.utils._array_api import get_namespace
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import svd_whiten
+from cca_zoo._utils._linalg import svd_whiten, truncated_svd
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -92,14 +91,13 @@ class RidgeCCA(BaseModel):
                 f"{self.n_views_}. Use MCCA for more than 2 views."
             )
         c_ = perview_parameter("shrinkage", self.shrinkage, 0.0, 2)
-        xp, _ = get_namespace(*views_)
         X1, X2 = views_
         # Whiten each view with its regularised covariance, then take the SVD
         # of the whitened views' cross-covariance.
         X1_w, W1 = svd_whiten(X1, c_[0])
         X2_w, W2 = svd_whiten(X2, c_[1])
         k = min(self.n_components, X1_w.shape[1], X2_w.shape[1])
-        U, _, Vt = xp.linalg.svd(X1_w.T @ X2_w / (X1.shape[0] - 1), full_matrices=False)
-        self.weights_: list[Any] = [W1 @ U[:, :k], W2 @ Vt[:k, :].T]
+        U, _, Vt = truncated_svd(X1_w.T @ X2_w / (X1.shape[0] - 1), k)
+        self.weights_: list[Any] = [W1 @ U, W2 @ Vt.T]
         self._fit_maps_and_importances(views_)
         return self

@@ -11,6 +11,8 @@ import string
 from typing import Any
 
 import numpy as np
+import scipy.linalg
+from scipy.sparse.linalg import svds
 from sklearn.utils._array_api import device, get_namespace
 
 
@@ -137,15 +139,47 @@ def gevp(A: Any, B: Any | None, k: int) -> tuple[Any, Any]:
         ``(eigvals, eigvecs)`` of shapes (k,) and (p, k), in descending order.
     """
     xp, _ = get_namespace(A)
-    if B is None:
+    k = min(k, A.shape[0])
+    if isinstance(A, np.ndarray):
+        # LAPACK's selected-eigenvalue drivers do the Cholesky reduction and
+        # only the k wanted eigenvectors, rather than all p of them.
+        top = [A.shape[0] - k, A.shape[0] - 1]
+        eigvals, eigvecs = scipy.linalg.eigh(
+            A, B, subset_by_index=top, driver="evx" if B is None else "gvx"
+        )
+    elif B is None:
         eigvals, eigvecs = xp.linalg.eigh(A)
+        eigvals, eigvecs = eigvals[-k:], eigvecs[:, -k:]
     else:
         L = xp.linalg.cholesky(B)
         reduced = xp.linalg.solve(L, xp.linalg.solve(L, A).T)
         eigvals, u = xp.linalg.eigh((reduced + reduced.T) / 2)
-        eigvecs = xp.linalg.solve(L.T, u)
-    k = min(k, A.shape[0])
-    return xp.flip(eigvals[-k:], axis=0), xp.flip(eigvecs[:, -k:], axis=1)
+        eigvals, eigvecs = eigvals[-k:], xp.linalg.solve(L.T, u[:, -k:])
+    return xp.flip(eigvals, axis=0), xp.flip(eigvecs, axis=1)
+
+
+def truncated_svd(M: Any, k: int) -> tuple[Any, Any, Any]:
+    """Top ``k`` singular triplets of ``M``, in descending order.
+
+    Uses ARPACK when ``k`` is small against ``M``'s smaller side, which is
+    several times faster than the full SVD and equally accurate (it iterates
+    to machine precision, unlike a randomized SVD, which loses accuracy when
+    the spectrum has no gap). Other namespaces take the full SVD.
+
+    Args:
+        M: Array of shape (m, n).
+        k: Number of singular triplets.
+
+    Returns:
+        ``(U, s, Vt)`` of shapes (m, k), (k,) and (k, n).
+    """
+    if isinstance(M, np.ndarray) and 5 * k <= min(M.shape) and min(M.shape) >= 100:
+        U, s, Vt = svds(M, k=k, tol=0)
+        order = np.argsort(-s)
+        return U[:, order], s[order], Vt[order]
+    xp, _ = get_namespace(M)
+    U, s, Vt = xp.linalg.svd(M, full_matrices=False)
+    return U[:, :k], s[:k], Vt[:k, :]
 
 
 def loading(view: np.ndarray, weight: np.ndarray) -> np.ndarray:
