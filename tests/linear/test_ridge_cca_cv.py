@@ -40,6 +40,7 @@ def test_cv_scores_equal_grid_search_scores(
 def test_final_fit_is_ridge_cca_at_the_chosen_shrinkage(
     views: list[np.ndarray],
 ) -> None:
+    """The refit uses all the data, as RidgeCCA at that shrinkage."""
     model = RidgeCCACV(2, shrinkages=GRID).fit(views)
     reference = RidgeCCA(2, shrinkage=model.shrinkage_).fit(views)
     for w, w_ref in zip(model.weights_, reference.weights_):
