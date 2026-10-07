@@ -13,7 +13,7 @@ def xgb_threshold(t: float) -> float:
     """Smallest float32 c such that for every float32 x: x <= t  <=>  x < c."""
     with np.errstate(over="ignore"):
         f = np.float32(t)
-        if f > t:
+        if float(f) > t:  # compare in double; numpy would cast t to float32
             f = np.nextafter(f, np.float32(-np.inf))
         c = float(np.nextafter(f, np.float32(np.inf)))
     return min(max(c, -_F32_MAX), _F32_MAX)
