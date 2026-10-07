@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lgb2xgb"
+version = "0.1.0"
+description = "Convert LightGBM models to XGBoost models"
+requires-python = ">=3.10"
+dependencies = ["numpy", "lightgbm>=4", "xgboost>=2"]
+
+[project.optional-dependencies]
+test = ["pytest", "scikit-learn"]
+
+[project.scripts]
+lgb2xgb = "lgb2xgb.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lgb2xgb"]
