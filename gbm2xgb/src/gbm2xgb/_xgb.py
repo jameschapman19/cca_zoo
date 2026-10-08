@@ -1,6 +1,7 @@
 """Shared pieces for building an XGBoost JSON model document."""
 
 import json
+import math
 
 import numpy as np
 import xgboost as xgb
@@ -80,13 +81,27 @@ class TreeBuilder:
             if l == -1:
                 self.split_cond[nid] = float(np.float32(self.split_cond[nid] + bias))
 
+    def _sorted_categories(self):
+        """XGBoost requires categorical records ordered by ascending node id."""
+        segments = [
+            (nid, self.cats[start : start + size])
+            for nid, start, size in zip(self.cat_nodes, self.cat_segments, self.cat_sizes)
+        ]
+        segments.sort(key=lambda s: s[0])
+        nodes = [nid for nid, _ in segments]
+        sizes = [len(c) for _, c in segments]
+        starts = np.concatenate([[0], np.cumsum(sizes)[:-1]]).astype(int).tolist()
+        flat = [c for _, cs in segments for c in cs]
+        return nodes, starts, sizes, flat
+
     def to_dict(self, tree_id: int, num_feature: int) -> dict:
+        cat_nodes, cat_segments, cat_sizes, cats = self._sorted_categories()
         return {
             "base_weights": [c if l == -1 else 0.0 for c, l in zip(self.split_cond, self.left)],
-            "categories": self.cats,
-            "categories_nodes": self.cat_nodes,
-            "categories_segments": self.cat_segments,
-            "categories_sizes": self.cat_sizes,
+            "categories": cats,
+            "categories_nodes": cat_nodes,
+            "categories_segments": cat_segments,
+            "categories_sizes": cat_sizes,
             "default_left": self.default_left,
             "id": tree_id,
             "left_children": self.left,
@@ -119,21 +134,42 @@ def _objective_block(name: str, num_class: int) -> dict:
     return obj
 
 
+# XGBoost releases before 3.1 cannot parse the array form of base_score that 3.1+
+# writes and silently fall back to 0.5, so the document always uses 0.5 and the
+# difference to a zero margin is folded into the first tree.
+_BASE_SCORE = 0.5
+_BASE_MARGIN = {  # margin that base_score=0.5 contributes, per objective
+    "reg:squarederror": 0.5,
+    "binary:logistic": 0.0,
+    "multi:softprob": 0.0,  # constant shift, cancelled by the softmax
+    "count:poisson": math.log(0.5),
+    "reg:gamma": math.log(0.5),
+    "reg:tweedie": math.log(0.5),
+}
+
+
+def _shift_leaves(tree: dict, delta: float) -> None:
+    for i, left in enumerate(tree["left_children"]):
+        if left == -1:
+            value = float(np.float32(tree["split_conditions"][i] + delta))
+            tree["split_conditions"][i] = tree["base_weights"][i] = value
+
+
 def booster_document(
     trees: list[dict],
     *,
     trees_per_iteration: int,
     objective: str,
-    base_score: float,
     num_class: int,
     num_feature: int,
     feature_names: list[str],
     feature_types: list[str],
 ) -> dict:
-    """The XGBoost JSON document; ``base_score`` is in output space (a probability
-    for logistic objectives), so 0.5 / 1.0 / 0.0 give a zero margin offset for
-    logistic / log-link / identity objectives."""
+    """The XGBoost JSON document, whose predictions are the plain sum of the leaves
+    (through the objective's link)."""
     k = trees_per_iteration
+    if trees:
+        _shift_leaves(trees[0], -_BASE_MARGIN[objective])
     return {
         "version": [3, 0, 0],
         "learner": {
@@ -154,7 +190,7 @@ def booster_document(
                 },
             },
             "learner_model_param": {
-                "base_score": f"[{base_score!r}]",
+                "base_score": f"{_BASE_SCORE!r}",
                 "boost_from_average": "1",
                 "num_class": str(num_class),
                 "num_feature": str(num_feature),

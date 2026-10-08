@@ -201,3 +201,13 @@ def test_sklearn_clone_and_params_roundtrip():
     cloned = clone(reg)
     assert isinstance(cloned, gl.LGBMRegressor)
     assert cloned.get_params() == reg.get_params()
+
+
+def test_categorical_model_survives_ubj_roundtrip(tmp_path):
+    # categorical node records must be ordered by node id or XGBoost aborts on save
+    X, y = make_data(categorical=True)
+    b = fit({"objective": "regression", "num_leaves": 31}, X, y, categorical=[4])
+    gbm2xgb.convert(b).save_model(tmp_path / "m.ubj")
+    loaded = xgb.Booster(model_file=tmp_path / "m.ubj")
+    got = loaded.predict(xgb.DMatrix(X, feature_types=["float"] * 4 + ["c"]))
+    np.testing.assert_allclose(got, b.predict(X), rtol=1e-4, atol=1e-5)

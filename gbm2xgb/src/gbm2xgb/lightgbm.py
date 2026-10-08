@@ -18,35 +18,31 @@ import xgboost as xgb
 
 from gbm2xgb import _xgb
 
-# LightGBM objective -> (XGBoost objective, XGBoost base_score in output space)
+# LightGBM objective -> XGBoost objective
 _IDENTITY = {
-    name: ("reg:squarederror", 0.0)
+    name: "reg:squarederror"
     for name in ("regression", "regression_l1", "huber", "fair", "quantile", "mape")
 }
-_LOG_LINK = {
-    "poisson": ("count:poisson", 1.0),
-    "gamma": ("reg:gamma", 1.0),
-    "tweedie": ("reg:tweedie", 1.0),
-}
+_LOG_LINK = {"poisson": "count:poisson", "gamma": "reg:gamma", "tweedie": "reg:tweedie"}
 REGRESSION_OBJECTIVES = (*_IDENTITY, *_LOG_LINK)
 CLASSIFICATION_OBJECTIVES = ("binary", "multiclass")
 BOOSTING_TYPES = ("gbdt", "dart", "goss")
 
 
-def _objective(spec: str) -> tuple[str, float, dict]:
-    """Return (xgboost objective, base_score, extras) for a LightGBM objective string."""
+def _objective(spec: str) -> tuple[str, dict]:
+    """Return (xgboost objective, extras) for a LightGBM objective string."""
     name, *params = spec.split()
     opts = dict(p.split(":", 1) for p in params if ":" in p)
     if "sqrt" in params:
         raise NotImplementedError("regression with reg_sqrt is not supported")
     if name in _IDENTITY:
-        return (*_IDENTITY[name], {})
+        return _IDENTITY[name], {}
     if name in _LOG_LINK:
-        return (*_LOG_LINK[name], {})
+        return _LOG_LINK[name], {}
     if name == "binary":
-        return "binary:logistic", 0.5, {"sigmoid": float(opts["sigmoid"])}
+        return "binary:logistic", {"sigmoid": float(opts["sigmoid"])}
     if name == "multiclass":
-        return "multi:softprob", 0.0, {"num_class": int(opts["num_class"])}
+        return "multi:softprob", {"num_class": int(opts["num_class"])}
     raise NotImplementedError(f"LightGBM objective {spec!r} is not supported")
 
 
@@ -99,7 +95,7 @@ def to_xgboost_dict(model: lgb.Booster) -> dict:
     if dump["average_output"]:
         raise NotImplementedError("random forest (averaged) models are not supported")
 
-    objective, base_score, extras = _objective(dump["objective"])
+    objective, extras = _objective(dump["objective"])
     num_feature = dump["max_feature_idx"] + 1
     leaf_scale = extras.get("sigmoid", 1.0)
 
@@ -122,7 +118,6 @@ def to_xgboost_dict(model: lgb.Booster) -> dict:
         trees,
         trees_per_iteration=dump["num_tree_per_iteration"],
         objective=objective,
-        base_score=base_score,
         num_class=extras.get("num_class", 0),
         num_feature=num_feature,
         feature_names=names,

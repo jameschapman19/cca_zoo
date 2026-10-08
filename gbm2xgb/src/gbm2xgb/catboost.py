@@ -25,13 +25,13 @@ CLASSIFICATION_LOSSES = ("Logloss", "CrossEntropy", "MultiClass")
 UNSUPPORTED_FIT_ARGS = ("cat_features", "text_features", "embedding_features", "baseline")
 
 
-def _objective(loss: str, dim: int) -> tuple[str, float]:
+def _objective(loss: str) -> str:
     if loss in _IDENTITY_LOSSES:
-        return "reg:squarederror", 0.0
+        return "reg:squarederror"
     if loss in ("Logloss", "CrossEntropy"):
-        return "binary:logistic", 0.5
+        return "binary:logistic"
     if loss == "MultiClass":
-        return "multi:softprob", 0.0
+        return "multi:softprob"
     raise NotImplementedError(f"CatBoost loss {loss!r} is not supported")
 
 
@@ -114,7 +114,7 @@ def to_xgboost_dict(model: cb.CatBoost) -> dict:
                 )
             )
 
-    objective, base_score = _objective(loss, dim)
+    objective = _objective(loss)
     names = [f["feature_id"] for f in floats]
     if not all(names):
         names = []
@@ -122,7 +122,6 @@ def to_xgboost_dict(model: cb.CatBoost) -> dict:
         trees,
         trees_per_iteration=dim,
         objective=objective,
-        base_score=base_score,
         num_class=dim if objective == "multi:softprob" else 0,
         num_feature=num_feature,
         feature_names=names,

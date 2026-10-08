@@ -53,3 +53,14 @@ Unsupported: categorical, text and embedding features, `grow_policy` other than 
   (check `bst.feature_types`).
 - LightGBM's placeholder `Column_i` feature names are dropped; real names are kept.
 - LightGBM's own model file is text, not binary; the binary format is XGBoost's `.ubj`.
+
+## Deployment contract (`.ubj`)
+
+`Booster.save_model("x.ubj")` is written by whichever XGBoost is installed where you convert, so the file carries
+that version. Files written by 3.4.1 were verified to load and predict identically (float32 tolerance) in
+XGBoost 2.0.3, 2.1.4, 3.0.5 and 3.4.1 for every supported LightGBM and CatBoost objective, including
+categorical splits. XGBoost 1.x is untested. To target an older runtime, convert with that version installed
+(`xgboost>=2` is the supported range).
+
+The base score is always written as 0.5 with the offset folded into the first tree, because releases before 3.1
+cannot parse the array-form `base_score` and silently fall back to 0.5.
