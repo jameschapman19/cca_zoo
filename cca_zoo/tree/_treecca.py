@@ -43,24 +43,29 @@ def _boosting_targets(representations: list[np.ndarray]) -> list[np.ndarray]:
 
 
 class _XGBoostEncoder:
-    """Per-view ensemble of ``k`` scalar XGBoost boosters, used during ``fit``."""
+    """Per-view ensemble of ``k`` scalar XGBoost boosters, used during ``fit``.
+
+    Each round grows the existing boosters in place (``Booster.update``, whose
+    training-data predictions XGBoost caches) and adds only the new tree's
+    output to a running margin, so a round costs the same however many rounds
+    came before it.
+    """
 
     def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
-        self._params = params
         self._dtrain = xgb.DMatrix(X)
         self.boosters: list[xgb.Booster] = [
-            xgb.train(params, self._dtrain, num_boost_round=0) for _ in range(k)
+            xgb.Booster(params, [self._dtrain]) for _ in range(k)
         ]
+        self._margin = np.zeros((len(X), k), dtype=np.float32)
+        self._n_trees = 0
 
     def predict(self) -> np.ndarray:
         """Raw prediction on the training data, shape (n_samples, k)."""
-        return np.column_stack(
-            [b.predict(self._dtrain, output_margin=True) for b in self.boosters]
-        )
+        return self._margin
 
     def boost(self, gradient: np.ndarray) -> None:
         """Add one tree to every component booster, fitted to ``gradient``."""
-        updated = []
+        new_trees = (self._n_trees, self._n_trees + 1)
         for col, booster in enumerate(self.boosters):
             g = gradient[:, col].copy()
 
@@ -69,20 +74,19 @@ class _XGBoostEncoder:
             ) -> tuple[np.ndarray, np.ndarray]:
                 return _g, np.ones_like(_g)
 
-            updated.append(
-                xgb.train(
-                    self._params,
-                    self._dtrain,
-                    num_boost_round=1,
-                    obj=_objective,
-                    xgb_model=booster,
-                )
+            booster.update(self._dtrain, self._n_trees, fobj=_objective)
+            self._margin[:, col] += booster.predict(
+                self._dtrain, output_margin=True, iteration_range=new_trees
             )
-        self.boosters = updated
+        self._n_trees += 1
 
 
 class _LightGBMEncoder:
-    """Per-view ensemble of ``k`` scalar LightGBM boosters, used during ``fit``."""
+    """Per-view ensemble of ``k`` scalar LightGBM boosters, used during ``fit``.
+
+    The raw prediction is a running sum of each new tree's output, so a round
+    costs the same however many rounds came before it.
+    """
 
     def __init__(self, X: np.ndarray, k: int, params: dict[str, object]) -> None:
         import lightgbm as lgb
@@ -95,12 +99,12 @@ class _LightGBMEncoder:
         self.boosters: list[lgb.Booster] = [
             lgb.Booster(params=params, train_set=self._dataset) for _ in range(k)
         ]
+        self._margin = np.zeros((len(X), k))
+        self._n_trees = 0
 
     def predict(self) -> np.ndarray:
         """Raw prediction on the training data, shape (n_samples, k)."""
-        return np.column_stack(
-            [b.predict(self._X, raw_score=True) for b in self.boosters]
-        )
+        return self._margin
 
     def boost(self, gradient: np.ndarray) -> None:
         """Add one tree to every component booster, fitted to ``gradient``."""
@@ -113,6 +117,10 @@ class _LightGBMEncoder:
                 return _g, np.ones_like(_g)
 
             booster.update(fobj=_fobj)
+            self._margin[:, col] += booster.predict(
+                self._X, raw_score=True, start_iteration=self._n_trees, num_iteration=1
+            )
+        self._n_trees += 1
 
 
 class _CatBoostGradientObjective:
