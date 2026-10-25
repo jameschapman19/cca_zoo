@@ -135,6 +135,8 @@ class BaseModel(BaseEstimator, ABC):
     # Whether fit and transform compute in the namespace of Array API inputs
     # (with sklearn's array_api_dispatch), rather than only with numpy.
     _supports_array_api: ClassVar[bool] = False
+    # Whether the model accepts NaN as missing values; infinities are rejected.
+    _allows_nan: ClassVar[bool] = False
 
     def __init__(self, n_components: int = 1, center: bool = True) -> None:
         self.n_components = n_components
@@ -182,7 +184,10 @@ class BaseModel(BaseEstimator, ABC):
                 "or use a model that supports the Array API (see the user guide)."
             )
         validated = validate_views(
-            views, ensure_min_samples=2, dtype=self._preserved_dtypes
+            views,
+            ensure_min_samples=2,
+            dtype=self._preserved_dtypes,
+            ensure_all_finite=self._finite_check,
         )
         self.n_views_: int = len(validated)
         self.n_features_per_view_: list[int] = [v.shape[1] for v in validated]
@@ -210,7 +215,8 @@ class BaseModel(BaseEstimator, ABC):
                 xp.zeros(v.shape[1], dtype=v.dtype, device=device(v)) for v in validated
             ]
         elif weights is None:
-            self.means_ = [xp.mean(v, axis=0) for v in validated]
+            mean = np.nanmean if self._allows_nan else xp.mean
+            self.means_ = [mean(v, axis=0) for v in validated]
         else:
             self.means_ = [
                 xp.astype(
@@ -233,11 +239,16 @@ class BaseModel(BaseEstimator, ABC):
         """
         own_scores = [self._transform_view(i, v) for i, v in enumerate(views)]
         self.n_components_: int = own_scores[0].shape[1]
+        # Missing entries, which the encoders see as such, are set to the
+        # feature mean (zero once centred) in the regression targets.
+        targets = (
+            [np.nan_to_num(v, nan=0.0) for v in views] if self._allows_nan else views
+        )
         self._inverse_maps_ = [
-            _least_squares_map(s, v) for s, v in zip(own_scores, views)
+            _least_squares_map(s, v) for s, v in zip(own_scores, targets)
         ]
         latent = self._shared_latent(dict(enumerate(views)))
-        self._predict_maps_ = [_least_squares_map(latent, v) for v in views]
+        self._predict_maps_ = [_least_squares_map(latent, v) for v in targets]
         self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
             xp, _ = get_namespace(raw)
@@ -247,10 +258,20 @@ class BaseModel(BaseEstimator, ABC):
                 positive / total if total > 0 else positive
             )
 
+    @property
+    def _finite_check(self) -> bool | str:
+        """The ``ensure_all_finite`` setting for this model's views."""
+        return "allow-nan" if self._allows_nan else True
+
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
         """View ``i`` as a validated array with the width and names seen in fit."""
         self._check_feature_names(i, view)
-        (checked,) = validate_views([view], min_views=1, dtype=self._preserved_dtypes)
+        (checked,) = validate_views(
+            [view],
+            min_views=1,
+            dtype=self._preserved_dtypes,
+            ensure_all_finite=self._finite_check,
+        )
         if checked.shape[1] != self.n_features_per_view_[i]:
             raise ValueError(
                 f"View {i} has {checked.shape[1]} features, but "
@@ -583,5 +604,6 @@ class BaseModel(BaseEstimator, ABC):
         tags.array_api_support = self._supports_array_api
         tags.no_validation = True
         tags.input_tags.two_d_array = False
+        tags.input_tags.allow_nan = self._allows_nan
         tags._skip_test = True
         return tags

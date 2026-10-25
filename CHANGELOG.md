@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `XGBoostCCA`, `LightGBMCCA` and `CatBoostCCA` accept `NaN` as a missing value in fit,
+  `transform`, `predict` and `score`, with no imputation: XGBoost and LightGBM learn at each
+  split which branch missing entries take, and CatBoost treats them as the smallest value.
+  Infinities are still rejected. `predict` and `inverse_transform` regress on the feature mean
+  in place of missing training entries. `validate_views` takes `ensure_all_finite="allow-nan"`.
+
 ### Changed
 
 - `ManifoldCCA` is now a CCA method rather than PLS by default. It takes `shrinkage`, as
