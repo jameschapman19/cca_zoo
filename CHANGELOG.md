@@ -29,7 +29,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `XGBoostCCA` and `LightGBMCCA` fit time is now linear in `n_estimators`, not quadratic.
   Each round used to hand the whole ensemble back to the booster and re-predict it on the
   training data; the boosters now grow in place and keep a running prediction. On 2000
-  samples with 5 components, 400 rounds take 7 s rather than 53 s. The fitted models are
+  samples with 5 components, 400 rounds take under 3 s rather than 53 s. The fitted models are
   unchanged in quality.
 
 ## [4.0.0] - 2026-09-30
