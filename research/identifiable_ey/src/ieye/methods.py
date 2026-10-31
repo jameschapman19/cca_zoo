@@ -10,6 +10,7 @@ from sklearn.decomposition import FastICA
 
 from ieye.loss import (
     SecondMoments,
+    cf_distance,
     Variate,
     gauss_hermite,
     legendre,
@@ -173,3 +174,69 @@ def rotation_only(
         if value < best_value:
             best_value, best = value, white.raw_weights(rotated())
     return best
+
+
+class Overselected:
+    """The shared average of the top ``m`` CCA components, whitened to identity.
+
+    ``u = mean_v (x_v - mean) W_v T`` has identity covariance on the data, so
+    any orthonormal ``(m, k)`` matrix ``Q`` gives ``k`` unit-variance,
+    uncorrelated components ``u Q`` whose standardisation is exact.
+    """
+
+    def __init__(self, views: list[np.ndarray], m: int, seed: int) -> None:
+        self.weights = cca(views, m, seed)
+        shared = np.mean([(x - x.mean(0)) @ w for x, w in zip(views, self.weights)], axis=0)
+        vals, vecs = np.linalg.eigh(np.cov(shared.T))
+        self.whiten = vecs / np.sqrt(vals)
+        self.u = shared @ self.whiten
+
+    def view_weights(self, q: np.ndarray) -> list[np.ndarray]:
+        """Raw-feature weights of the components ``u Q``."""
+        return [w @ self.whiten @ q for w in self.weights]
+
+
+def overselect_fastica(
+    views: list[np.ndarray], k: int, seed: int, *, m: int
+) -> list[np.ndarray]:
+    """Top-``m`` CCA, FastICA to ``m`` components, keep the ``k`` most non-Gaussian.
+
+    Non-Gaussianity is the squared gap of ``E log cosh`` to its Gaussian value.
+    """
+    over = Overselected(views, m, seed)
+    ica = FastICA(n_components=m, whiten=False, random_state=seed, max_iter=1000)
+    sources = ica.fit_transform(over.u)
+    sources /= sources.std(0)
+    gaussian = np.log(np.cosh(np.random.default_rng(0).standard_normal(1_000_000))).mean()
+    score = (np.log(np.cosh(sources)).mean(0) - gaussian) ** 2
+    return over.view_weights(ica.components_.T[:, np.argsort(score)[::-1][:k]])
+
+
+def overselect_pursuit(
+    views: list[np.ndarray], k: int, seed: int, *, m: int, restarts: int = 8,
+    n_nodes: int = 17, bandwidth: float = 1.0, max_iter: int = 300,
+) -> list[np.ndarray]:
+    """Top-``m`` CCA, then the orthonormal ``(m, k)`` frame maximising CF non-Gaussianity.
+
+    The frame is the Q factor of a free ``(m, k)`` matrix. The restart with the
+    highest objective is returned; one restart starts at the top-``k`` CCA frame.
+    """
+    over = Overselected(views, m, seed)
+    nodes, weights = gauss_hermite(n_nodes, bandwidth)
+    u = torch.tensor(over.u)
+    rng = np.random.default_rng(seed)
+    starts = [np.eye(m, k)] + [rng.standard_normal((m, k)) for _ in range(restarts - 1)]
+    best_value, best = np.inf, None
+    for start in starts:
+        free = torch.tensor(start).requires_grad_()
+
+        def frame(free=free) -> torch.Tensor:
+            return torch.linalg.qr(free)[0]
+
+        def objective(frame=frame) -> torch.Tensor:
+            return -cf_distance(u @ frame(), nodes, weights).sum()
+
+        value = _minimise(objective, [free], max_iter)
+        if value < best_value:
+            best_value, best = value, frame().detach().numpy()
+    return over.view_weights(best)
