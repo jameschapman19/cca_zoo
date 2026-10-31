@@ -119,10 +119,16 @@ class StochasticCCAEY(CCAEY):
     def _initial_weights(
         self, views: list[np.ndarray], rng: np.random.Generator
     ) -> list[np.ndarray]:
-        """As ``CCAEY``'s, but on one mini-batch."""
-        return cheap_orthonormal_projection_weights(
-            views, self.n_components, self.batch_size, rng
-        )
+        """As ``CCAEY``'s, but on one mini-batch.
+
+        A batch of fewer rows than components cannot be whitened (its QR factor
+        is not square), so then ``4 * n_components`` random rows are used, which
+        costs the same whatever the number of samples.
+        """
+        rows = self.batch_size
+        if rows is not None and rows < self.n_components:
+            rows = 4 * self.n_components
+        return cheap_orthonormal_projection_weights(views, self.n_components, rows, rng)
 
     def _fit_sgd(
         self, views: list[np.ndarray], rng: np.random.Generator
