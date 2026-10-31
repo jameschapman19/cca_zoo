@@ -10,10 +10,11 @@ from __future__ import annotations
 import contextlib
 import io
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import numpy as np
+from mofapy2.build_model.init_model import initModel
 from mofapy2.run.entry_point import entry_point
 from sklearn.model_selection import KFold
 
@@ -174,12 +175,35 @@ def gfa_zero_filled(
     ]
 
 
+@contextlib.contextmanager
+def _random_factor_init() -> Iterator[None]:
+    """Make mofapy2 start its factors at random, not at the PCA solution.
+
+    mofapy2 initialises the factors from PCA by default, which ignores the seed,
+    so repeated fits are identical. This restores the random starts the MOFA
+    documentation's advice to compare several runs is about.
+    """
+    original = initModel.initZ
+
+    def random(self: Any, *args: Any, **kwargs: Any) -> Any:
+        return original(self, *args, **{**kwargs, "qmean": "random"})
+
+    initModel.initZ = random
+    try:
+        yield
+    finally:
+        initModel.initZ = original
+
+
 def _mofa_once(
-    views: Views, n_factors: int, seed: int
+    views: Views, n_factors: int, seed: int, random_init: bool
 ) -> tuple[np.ndarray, Views, Views, float]:
     """One MOFA+ fit on the NaN-masked views: factors, weights, means, final ELBO."""
     means = [np.nanmean(v, axis=0) for v in views]
-    with contextlib.redirect_stdout(io.StringIO()):  # MOFA prints its whole log
+    with (
+        contextlib.redirect_stdout(io.StringIO()),
+        _random_factor_init() if random_init else contextlib.nullcontext(),
+    ):  # MOFA prints its whole log
         run = entry_point()
         run.set_data_options(scale_views=False)
         run.set_data_matrix(
@@ -219,13 +243,13 @@ def _mofa_once(
 def _mofa(
     views: Views, observed: np.ndarray, n_shared: int, seed: int, n_init: int
 ) -> Result:
-    """MOFA+ with as many factors as were simulated; the best of ``n_init`` fits.
+    """MOFA+ with as many factors as were simulated.
 
-    The fit with the highest ELBO is kept, as the MOFA documentation advises,
-    since variational inference ends in different local optima.
+    One fit starts from PCA, as the package does by default. Several start at
+    random, and the one with the highest ELBO is kept.
     """
     fits = [
-        _mofa_once(views, n_shared + 3 * 2, 1000 * seed + init)
+        _mofa_once(views, n_shared + 3 * 2, 1000 * seed + init, n_init > 1)
         for init in range(n_init)
     ]
     z, weights, means, _ = max(fits, key=lambda fit: fit[3])
@@ -233,21 +257,17 @@ def _mofa(
     return latent, [z @ w.T + m for w, m in zip(weights, means)]
 
 
-def mofa_single_init(
-    views: Views,
-    observed: np.ndarray,
-    n_shared: int,
-    seed: int,
+def mofa_default(
+    views: Views, observed: np.ndarray, n_shared: int, seed: int
 ) -> Result:
+    """MOFA+ as run by default: one fit from the PCA initialisation."""
     return _mofa(views, observed, n_shared, seed, n_init=1)
 
 
 def mofa_best_of_five(
-    views: Views,
-    observed: np.ndarray,
-    n_shared: int,
-    seed: int,
+    views: Views, observed: np.ndarray, n_shared: int, seed: int
 ) -> Result:
+    """MOFA+ from five random initialisations, the best ELBO kept."""
     return _mofa(views, observed, n_shared, seed, n_init=5)
 
 
@@ -257,8 +277,8 @@ METHODS: dict[str, Callable[..., Result]] = {
     "GCCA, complete cases": gcca_complete_cases,
     "GCCA, zero-filled": gcca_zero_filled,
     "GFA, zero-filled": gfa_zero_filled,
-    "MOFA+ (1 init)": mofa_single_init,
-    "MOFA+ (best of 5)": mofa_best_of_five,
+    "MOFA+ (default)": mofa_default,
+    "MOFA+ (best of 5 random)": mofa_best_of_five,
 }
 
 

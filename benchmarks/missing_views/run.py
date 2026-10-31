@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -25,7 +26,7 @@ N_SHARED = 2
 SIZE = {"n_samples": 150, "widths": (60, 80, 40), "private": 0.5}
 
 
-def run_setting(setting: tuple) -> list[dict]:
+def run_setting(setting: tuple, methods: tuple[str, ...]) -> list[dict]:
     """Every method on one simulated dataset."""
     mechanism, shared, rate, density, seed = setting
     ds = simulate(
@@ -38,7 +39,8 @@ def run_setting(setting: tuple) -> list[dict]:
         density=density,
     )
     rows = []
-    for name, method in METHODS.items():
+    for name in methods:
+        method = METHODS[name]
         if name == "GCCA, complete cases" and ds.observed.all(axis=1).sum() < 30:
             continue  # too few complete samples to fit anything
         (latent, reconstruction), seconds = timed(
@@ -70,6 +72,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seeds", type=int, default=8)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--methods", nargs="+", choices=list(METHODS), default=list(METHODS)
+    )
     args = parser.parse_args()
 
     settings = [
@@ -81,7 +86,12 @@ def main() -> None:
     ]
     with Pool(args.workers) as pool:
         rows = []
-        for done, result in enumerate(pool.imap_unordered(run_setting, settings), 1):
+        for done, result in enumerate(
+            pool.imap_unordered(
+                partial(run_setting, methods=tuple(args.methods)), settings
+            ),
+            1,
+        ):
             rows.extend(result)
             print(f"{done}/{len(settings)}", flush=True)
     args.out.write_text(json.dumps(rows))
