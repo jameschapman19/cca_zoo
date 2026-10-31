@@ -9,6 +9,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `IncompleteGCCA` fits generalised CCA when some samples lack some views, marked by all-`NaN`
+  rows. Each sample's latent score is fitted to the views it has, and the fit reduces exactly to
+  `GCCA` when nothing is missing. It adds `transform_shared`, one score per sample from its
+  observed views, and a `score` over the samples each pair of views shares. `fit` raises on
+  partly missing rows, samples with no view, and views not linked by more than `n_components`
+  shared samples. `BaseModel` now leaves the rows a view lacks out of the regressions behind
+  `predict` and `inverse_transform`.
+- `AJIVE` splits each view into variation shared with the other views, variation of its own, and
+  noise (Feng et al., 2018), with the joint rank fixed or chosen by the random direction bound
+  (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of
+  each view's variance in every joint and individual component.
+- `cca_zoo.metrics.variance_explained` gives each view's variance explained by each latent
+  dimension alone, for any model, skipping the samples that lack a view.
+
 - `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
   error, dropping the `i = j` terms of the empirical characteristic function's squared
   modulus. The default plug-in statistic, which the reference implementation uses, has

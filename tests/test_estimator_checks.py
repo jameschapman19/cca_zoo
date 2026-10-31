@@ -66,6 +66,9 @@ _ACCEPTS_NAN = {
     "check_estimators_nan_inf": "tree encoders take NaN as missing (inf is rejected)"
 }
 _EXPECTED_FAILURES = {
+    "IncompleteGCCA": {
+        "check_estimators_nan_inf": "an all-NaN row is a sample missing the view"
+    },
     "XGBoostCCA": _ACCEPTS_NAN,
     "LightGBMCCA": _ACCEPTS_NAN,
     "CatBoostCCA": _ACCEPTS_NAN,

@@ -89,6 +89,8 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
 | `GCCA` | Generalised CCA — shared latent projection | Carroll (1968) | ≥2 |
 | `TCCA` | Tensor CCA — higher-order cross-moment | Luo et al. (2015) | ≥2 |
+| `IncompleteGCCA` | Generalised CCA for samples missing some views (all-`NaN` rows), using every view each sample has | Carroll (1968); Kettenring (1971) | ≥2 |
+| `AJIVE` | Joint and individual variation explained: shared scores, per-view individual scores and variance explained | Feng et al. (2018) | ≥2 |
 | `PartialCCA` | CCA adjusted for confounding variables | Rao (1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2023) | ≥2 |
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions | Donnat & Tuzhilina (2024) | 2 |
