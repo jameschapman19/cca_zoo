@@ -16,6 +16,7 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
         - transform
         - inverse_transform
         - predict
+        - transform_shared
         - fit_transform
         - score
         - get_feature_names_out

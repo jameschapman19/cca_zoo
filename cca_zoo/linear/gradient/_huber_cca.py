@@ -83,6 +83,9 @@ class HuberCCA(CCAEY):
         "delta": [Interval(Real, 0, None, closed="neither")],
     }
 
+    # The leverage weights are computed on whole samples.
+    _supports_missing_views: ClassVar[bool] = False
+
     def __init__(
         self,
         n_components: int = 1,

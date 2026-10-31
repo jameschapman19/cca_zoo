@@ -6,13 +6,11 @@ from typing import Any, ClassVar
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.sparse.csgraph import connected_components
 
 from cca_zoo._base import BaseModel
 from cca_zoo._utils._linalg import psd_inverse_sqrt
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
-from cca_zoo.metrics import pairwise_correlations
 
 
 class IncompleteGCCA(BaseModel):
@@ -89,7 +87,7 @@ class IncompleteGCCA(BaseModel):
     }
 
     _EPS: ClassVar[float] = 1e-6
-    _allows_nan: ClassVar[bool] = True
+    _supports_missing_views: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -112,9 +110,7 @@ class IncompleteGCCA(BaseModel):
         Returns:
             self.
         """
-        views_ = self._setup_fit(views)
-        observed = np.stack([_observed_rows(v) for v in views_], axis=1)
-        self._check_observed(observed)
+        views_, observed = self._setup_missing(views)
         shrinkage = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
 
         # Eliminating the weights leaves max tr(G'QG) with G'DG = sI, where
@@ -144,98 +140,3 @@ class IncompleteGCCA(BaseModel):
         self.n_observed_per_view_: np.ndarray = observed.sum(axis=0)
         self._fit_maps_and_importances(views_)
         return self
-
-    def _check_observed(self, observed: np.ndarray) -> None:
-        """Every sample has a view and the views overlap enough to be linked."""
-        if not observed.any(axis=1).all():
-            raise ValueError(
-                f"{type(self).__name__} needs every sample to be observed in at "
-                f"least one view; samples {np.flatnonzero(~observed.any(axis=1))} "
-                "have none."
-            )
-        if (observed.sum(axis=0) < 2).any():
-            raise ValueError("Every view must be observed in at least 2 samples.")
-        shared = observed.T.astype(int) @ observed.astype(int)
-        linked = shared > self.n_components
-        if connected_components(linked, directed=False)[0] > 1:
-            raise ValueError(
-                "The views are not linked: they must be joined, directly or "
-                f"through other views, by more than n_components={self.n_components} "
-                f"shared samples. Samples shared by each pair of views:\n{shared}"
-            )
-
-    def _shared_latent(self, observed: dict[int, Any]) -> np.ndarray:
-        """Each sample's mean score over the views that observe it."""
-        scores = np.stack([self._transform_view(i, v) for i, v in observed.items()])
-        seen = np.isfinite(scores)
-        total = np.where(seen, scores, 0.0).sum(axis=0)
-        count = seen.sum(axis=0)
-        shared: np.ndarray = np.divide(
-            total, count, out=np.full_like(total, np.nan), where=count > 0
-        )
-        return shared
-
-    def _feature_importances(self, views: list[np.ndarray]) -> list[np.ndarray]:
-        return [
-            np.nanvar(v, axis=0) * np.sum(w**2, axis=1)
-            for v, w in zip(views, self.weights_)
-        ]
-
-    def transform_shared(self, views: list[ArrayLike]) -> np.ndarray:
-        """One score per sample: the mean over the views that observe it.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view,
-                with the rows of unobserved samples all ``NaN``.
-
-        Returns:
-            Array of shape (n_samples, n_components); ``NaN`` for a sample no
-            view observes.
-        """
-        checked = self._check_views(views)
-        return self._shared_latent(
-            {i: v - self.means_[i] for i, v in enumerate(checked)}
-        )
-
-    def score(self, views: list[ArrayLike], y: None = None) -> float:
-        """Mean canonical correlation between the views' latent scores.
-
-        Each pair of views is correlated over the samples that have both, and
-        the correlations are averaged over pairs and latent dimensions.
-
-        Args:
-            views: Arrays of shape (n_samples, n_features_i), one per view,
-                with the rows of unobserved samples all ``NaN``.
-            y: Ignored.
-
-        Returns:
-            The mean canonical correlation.
-
-        Raises:
-            ValueError: If no pair of views shares two samples.
-        """
-        scores = self._transform_arrays(views)
-        seen = [np.isfinite(z).all(axis=1) for z in scores]
-        per_pair = []
-        for i in range(len(scores)):
-            for j in range(i + 1, len(scores)):
-                both = seen[i] & seen[j]
-                if both.sum() >= 2:
-                    pair = pairwise_correlations([scores[i][both], scores[j][both]])
-                    per_pair.append(pair[0, 1])
-        if not per_pair:
-            raise ValueError("No two views share at least 2 samples to correlate.")
-        return float(np.mean(per_pair))
-
-
-def _observed_rows(view: np.ndarray) -> np.ndarray:
-    """The rows of ``view`` that are observed; a partly missing row raises."""
-    missing = np.isnan(view)
-    partly = missing.any(axis=1) & ~missing.all(axis=1)
-    if partly.any():
-        raise ValueError(
-            "A view's row must be wholly observed or wholly NaN, but rows "
-            f"{np.flatnonzero(partly)[:5]} are partly missing. Impute missing "
-            "entries within an observed view first."
-        )
-    return ~missing.any(axis=1)

@@ -96,7 +96,7 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions | Donnat & Tuzhilina (2024) | 2 |
 | `ECCA` | CCA via reduced-rank regression, entrywise-sparse (ccar3 package's `ecca`) | Donnat & Tuzhilina (2024) | 2 |
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
-| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views, samples may lack views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | Filzmoser, Dehon & Croux (2000) | ≥2 |
 | `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | Chapman et al. (2021) | ≥2 |

@@ -151,6 +151,11 @@ z1, z2, z3 = model.transform([X1, X2, X3])        # NaN rows for the unobserved 
 consensus = model.transform_shared([X1, X2, X3])  # one score per sample, from its views
 ```
 
+`CCAEY`, `PLSEY` and [`StochasticCCAEY`](stochastic.md) accept the same `NaN` rows, with every
+covariance in their loss taken over the samples that have the views concerned; use them when the
+views are too wide for `IncompleteGCCA`'s SVD. Missing values are assumed to be missing at random:
+if which samples lack a view depends on their biology, the fit is biased.
+
 Only whole views may be missing: a row that is partly `NaN` raises. Impute missing entries
 within an observed view first, for example with `IterativeImputer` inside a
 [`PerViewTransformer`](../api/preprocessing.md). `fit` also raises if the views are not linked by

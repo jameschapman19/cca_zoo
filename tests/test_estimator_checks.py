@@ -66,9 +66,6 @@ _ACCEPTS_NAN = {
     "check_estimators_nan_inf": "tree encoders take NaN as missing (inf is rejected)"
 }
 _EXPECTED_FAILURES = {
-    "IncompleteGCCA": {
-        "check_estimators_nan_inf": "an all-NaN row is a sample missing the view"
-    },
     "XGBoostCCA": _ACCEPTS_NAN,
     "LightGBMCCA": _ACCEPTS_NAN,
     "CatBoostCCA": _ACCEPTS_NAN,
@@ -85,7 +82,12 @@ _EXPECTED_FAILURES = {
 
 
 def _expected_failures(adapter: TwoViewAdapter) -> dict[str, str]:
-    return _EXPECTED_FAILURES.get(type(adapter.estimator).__name__, {})
+    expected = dict(_EXPECTED_FAILURES.get(type(adapter.estimator).__name__, {}))
+    if adapter.estimator._supports_missing_views:
+        expected["check_estimators_nan_inf"] = (
+            "an all-NaN row is a sample missing the view"
+        )
+    return expected
 
 
 def _adapters(slow: bool) -> list[TwoViewAdapter]:

@@ -30,16 +30,56 @@ import scipy.linalg
 from scipy.sparse.linalg import LinearOperator
 
 
+def ey_centred(
+    representations: list[np.ndarray],
+    sample_weight: np.ndarray | None = None,
+    observed: np.ndarray | None = None,
+) -> tuple[list[np.ndarray], np.ndarray]:
+    """Embeddings centred on the samples that have them, and the moments' divisors.
+
+    Args:
+        representations: One array of shape (n_samples, k) per view.
+        sample_weight: Weight of each sample; None weights samples equally.
+        observed: Boolean array of shape (n_samples, n_views) of the samples
+            each view is observed in; None means all. Rows of unobserved
+            samples are ignored.
+
+    Returns:
+        The embeddings, each centred on its view's observed samples
+        (weighted) and zero in the others, and the array of shape
+        (n_views, n_views) of divisors: the weight of the samples seen in both
+        views of the pair, less one.
+    """
+    n, m = len(representations[0]), len(representations)
+    weight = np.ones(n) if sample_weight is None else sample_weight
+    seen = np.ones((n, m)) if observed is None else observed.astype(float)
+    weights = weight[:, None] * seen
+    centred = [
+        seen[:, [i]] * (z - (weights[:, i] @ z) / weights[:, i].sum())
+        for i, z in enumerate(representations)
+    ]
+    return centred, weights.T @ seen - 1.0
+
+
 def ey_cross_covariance(
-    representations: list[np.ndarray], sample_weight: np.ndarray | None = None
+    representations: list[np.ndarray],
+    sample_weight: np.ndarray | None = None,
+    observed: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Mean pairwise cross-covariance ``C`` and mean auto-covariance ``V``.
+
+    With samples that lack views, each covariance is taken over the samples
+    that have both views (or the one view): the divisors of :func:`ey_centred`.
+    A pair of views with no more than one such sample has no covariance and
+    contributes nothing.
 
     Args:
         representations: One array of shape (n_samples, k) per view; centred
             internally.
         sample_weight: Weight of each sample in the moments, which divide by
             the total weight less one; None weights samples equally.
+        observed: Boolean array of shape (n_samples, n_views) of the samples
+            each view is observed in; None means all.
 
     Returns:
         ``(C, V)``, each of shape (k, k).
@@ -47,15 +87,16 @@ def ey_cross_covariance(
     n = representations[0].shape[0]
     weight = np.ones(n) if sample_weight is None else sample_weight
     m = len(representations)
-    centred = [z - np.average(z, axis=0, weights=weight) for z in representations]
+    centred, divisor = ey_centred(representations, weight, observed)
+    inverse = np.divide(1.0, divisor, out=np.zeros_like(divisor), where=divisor > 0)
     k = centred[0].shape[1]
     C = np.zeros((k, k))
     V = np.zeros((k, k))
-    for zi in centred:
-        weighted = weight[:, None] * zi / (weight.sum() - 1)
-        V += weighted.T @ zi
-        for zj in centred:
-            C += weighted.T @ zj
+    for i, zi in enumerate(centred):
+        weighted = weight[:, None] * zi
+        V += weighted.T @ zi * inverse[i, i]
+        for j, zj in enumerate(centred):
+            C += weighted.T @ zj * inverse[i, j]
     return C / m, V / m
 
 

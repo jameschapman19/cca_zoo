@@ -150,6 +150,9 @@ class TrimmedCCA(CCAEY):
         "n_init": POSITIVE_INT,
     }
 
+    # It trims whole samples, whichever views they have.
+    _supports_missing_views: ClassVar[bool] = False
+
     def __init__(
         self,
         n_components: int = 1,

@@ -11,11 +11,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 - `IncompleteGCCA` fits generalised CCA when some samples lack some views, marked by all-`NaN`
   rows. Each sample's latent score is fitted to the views it has, and the fit reduces exactly to
-  `GCCA` when nothing is missing. It adds `transform_shared`, one score per sample from its
-  observed views, and a `score` over the samples each pair of views shares. `fit` raises on
-  partly missing rows, samples with no view, and views not linked by more than `n_components`
-  shared samples. `BaseModel` now leaves the rows a view lacks out of the regressions behind
-  `predict` and `inverse_transform`.
+  `GCCA` when nothing is missing.
+- `CCAEY`, `PLSEY` and `StochasticCCAEY` fit samples that lack some views (all-`NaN` rows). Every
+  covariance in the Eckart-Young loss is taken over the samples that have the views concerned,
+  and the gradient is exact (checked against finite differences). `HuberCCA` and `TrimmedCCA`,
+  which weight or trim whole samples, still require every view.
+- Models that fit samples lacking views declare `_supports_missing_views`, which `BaseModel`
+  handles in one place: `NaN` input, row-wise validation (a partly missing row, a sample in no
+  view, or views not linked by more than `n_components` shared samples raise), centring on the
+  observed samples, a shared score that is the mean over the views a sample has, and a `score`
+  over the samples each pair of views shares. It is not sklearn's `allow_nan` tag, which means
+  missing entries; the tag is set too, so sklearn's checks treat these models like the trees.
+- `transform_shared` on every model: one latent score per sample from the views that are given
+  (`None` skips one), the same estimate `predict` maps back to the views. `BaseModel` also now
+  leaves the rows a view lacks out of the regressions behind `predict` and `inverse_transform`.
 - `AJIVE` splits each view into variation shared with the other views, variation of its own, and
   noise (Feng et al., 2018), with the joint rank fixed or chosen by the random direction bound
   (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of
