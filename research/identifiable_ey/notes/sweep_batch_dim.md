@@ -10,3 +10,12 @@
 
 ## Not tested (the obvious missing control)
 Two independent full batches of N (2N samples per step), as `DCCAEY(independent_views=...)` does, so unbiasedness is not paid for with halved batches. Also: non-Gaussian sources, real data, other lrs, SIGReg lambda.
+
+## Control: two independent full batches of N (2N samples) vs single batch of N
+From the same grid (split arm at batch 2N vs single at N). Capture at d=16: +0.04 (N=32: 0.817 vs 0.776), +0.04 (N=16), ~0 (N=8); at d≥64 equal or worse (d=64, N=8: 0.507 vs 0.709). Probe R² differences ≤ 0.02 except small N at d≥64 (worse). Unbiasedness does not buy accuracy even with twice the samples.
+
+## Heavy-tailed sources (`scripts/sweep_nongaussian.py`, figure `figures/sweep_nongaussian.png`)
+Same toy with excess kurtosis 0 vs 6, d in {16, 64}, batch in {32, 128}, 4 seeds. Hypothesis: SIGReg's Gaussian-marginal pull degrades subspace recovery when sources are non-Gaussian.
+- **Not supported.** EY and LeJEPA (λ=0.05) lose at most 0.02 capture going from kurtosis 0 to 6 (e.g. d=16, batch 32: LeJEPA 0.798 → 0.778, EY 0.776 → 0.758), within seed spread (sd 0.03–0.05), and equally for both. Probe R² is unchanged.
+- **λ=0.5 is destructive, with or without heavy tails.** Capture falls to 0.11–0.35 in both the Gaussian and kurtosis-6 cases, with no dependence on kurtosis. So this is SIGReg overpowering the alignment term, not a non-Gaussianity effect. It also shows the toy's sensitivity to λ, which the paper reports as stable; whether that is a toy artefact (the loss scales here are unnormalised) is untested.
+- Correction to an earlier argument: uniform-slice SIGReg is rotation-invariant, so it cannot push sources to mix with each other; it could only bias which directions enter the span, and the data show no sign of that.
