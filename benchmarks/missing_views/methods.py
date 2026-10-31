@@ -2,7 +2,9 @@
 
 Every method returns ``(latent, reconstruction)``: an array of shape
 (n_samples, n_shared) with the shared factors it estimates, and a list with
-each view reconstructed for every sample from the views the sample has.
+each view reconstructed for every sample from the views the sample has. The
+methods are also told ``n_factors``, the total number of factors simulated, which
+the latent-variable methods (GFA, MOFA+) take as their rank and the rest ignore.
 """
 
 from __future__ import annotations
@@ -81,6 +83,7 @@ def incomplete_gcca(
     observed: np.ndarray,
     n_shared: int,
     seed: int,
+    n_factors: int,
 ) -> Result:
     """IncompleteGCCA, shrinkage chosen by cross-validation."""
     model = _tuned(
@@ -94,6 +97,7 @@ def masked_ccaey(
     observed: np.ndarray,
     n_shared: int,
     seed: int,
+    n_factors: int,
 ) -> Result:
     """CCAEY with its loss masked to the views each sample has, shrinkage tuned."""
     model = _tuned(
@@ -109,6 +113,7 @@ def gcca_complete_cases(
     observed: np.ndarray,
     n_shared: int,
     seed: int,
+    n_factors: int,
 ) -> Result:
     """GCCA on the samples that have every view; the rest are projected."""
     complete = observed.all(axis=1)
@@ -127,6 +132,7 @@ def gcca_zero_filled(
     observed: np.ndarray,
     n_shared: int,
     seed: int,
+    n_factors: int,
 ) -> Result:
     """GCCA with each missing view replaced by its mean (zero once centred)."""
     means = [np.nanmean(v, axis=0) for v in views]
@@ -158,6 +164,7 @@ def gfa_zero_filled(
     observed: np.ndarray,
     n_shared: int,
     seed: int,
+    n_factors: int,
 ) -> Result:
     """GFA fitted to zero-filled views, which it has no way to mask here.
 
@@ -166,7 +173,7 @@ def gfa_zero_filled(
     means = [np.nanmean(v, axis=0) for v in views]
     centred = [v - m for v, m in zip(views, means)]
     model = GFA(
-        n_components=n_shared + 3 * 2,
+        n_components=n_factors,
         max_iter=2000,
         n_posterior_samples=10,
         random_state=seed,
@@ -243,7 +250,11 @@ def _mofa_once(
 
 
 def _mofa(
-    views: Views, observed: np.ndarray, n_shared: int, seed: int, n_init: int
+    views: Views,
+    n_shared: int,
+    seed: int,
+    n_factors: int,
+    n_init: int,
 ) -> Result:
     """MOFA+ with as many factors as were simulated.
 
@@ -251,7 +262,7 @@ def _mofa(
     random, and the one with the highest ELBO is kept.
     """
     fits = [
-        _mofa_once(views, n_shared + 3 * 2, 1000 * seed + init, n_init > 1)
+        _mofa_once(views, n_factors, 1000 * seed + init, n_init > 1)
         for init in range(n_init)
     ]
     z, weights, means, _ = max(fits, key=lambda fit: fit[3])
@@ -260,17 +271,17 @@ def _mofa(
 
 
 def mofa_default(
-    views: Views, observed: np.ndarray, n_shared: int, seed: int
+    views: Views, observed: np.ndarray, n_shared: int, seed: int, n_factors: int
 ) -> Result:
     """MOFA+ as run by default: one fit from the PCA initialisation."""
-    return _mofa(views, observed, n_shared, seed, n_init=1)
+    return _mofa(views, n_shared, seed, n_factors, n_init=1)
 
 
 def mofa_best_of_five(
-    views: Views, observed: np.ndarray, n_shared: int, seed: int
+    views: Views, observed: np.ndarray, n_shared: int, seed: int, n_factors: int
 ) -> Result:
     """MOFA+ from five random initialisations, the best ELBO kept."""
-    return _mofa(views, observed, n_shared, seed, n_init=5)
+    return _mofa(views, n_shared, seed, n_factors, n_init=5)
 
 
 METHODS: dict[str, Callable[..., Result]] = {
