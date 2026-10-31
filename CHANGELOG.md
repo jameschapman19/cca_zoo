@@ -26,6 +26,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `StochasticCCAEY` no longer fails with a `LinAlgError` when `batch_size` is smaller than
+  `n_components`. Its starting weights whiten one mini-batch with a QR factorisation, which is
+  not square for a batch of fewer rows than components; such a fit now whitens on the whole
+  data, as `CCAEY` does. Fits with larger batches are unchanged.
+
 - `XGBoostCCA` and `LightGBMCCA` fit time is now linear in `n_estimators`, not quadratic.
   Each round used to hand the whole ensemble back to the booster and re-predict it on the
   training data; the boosters now grow in place and keep a running prediction. On 2000
