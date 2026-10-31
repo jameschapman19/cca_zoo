@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
+  error, dropping the `i = j` terms of the empirical characteristic function's squared
+  modulus. The default plug-in statistic, which the reference implementation uses, has
+  expectation about 1 rather than 0 for an exactly standard-normal batch, whatever the batch
+  size, because SIGReg is multiplied by the batch size. The default is unchanged.
+  The docstring now notes that this factor makes the effective weight of `lam` depend on
+  the batch size.
+
 ### Changed
 
 - `ManifoldCCA` is now a CCA method rather than PLS by default. It takes `shrinkage`, as
