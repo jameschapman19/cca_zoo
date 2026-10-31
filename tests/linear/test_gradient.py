@@ -72,6 +72,30 @@ def test_stochastic_divergence_is_an_error() -> None:
         ).fit(_views(2))
 
 
+def test_stochastic_batch_smaller_than_n_components_fits() -> None:
+    """A batch of fewer rows than components initialises and finds the signal.
+
+    The start whitens one mini-batch with a QR, whose factor is not square when
+    the batch has fewer rows than components. The views share two strong
+    components, which the fit recovers. The step is small because batches this
+    small diverge at the default one for most seeds.
+    """
+    views = _views(2)
+    model = StochasticCCAEY(
+        n_components=8,
+        batch_size=6,
+        max_iter=200,
+        learning_rate=0.05,
+        random_state=0,
+    ).fit(views)
+    exact = CCA(n_components=2).fit(views)
+    np.testing.assert_allclose(
+        np.sort(canonical_correlations(model, views))[::-1][:2],
+        np.sort(canonical_correlations(exact, views))[::-1],
+        atol=0.1,
+    )
+
+
 @pytest.mark.parametrize("cls", [CCAEY, PLSEY, HuberCCA])
 def test_ignores_the_units_of_a_view(cls: type) -> None:
     """Rescaling each view leaves CCA's and PLS's correlations unchanged."""

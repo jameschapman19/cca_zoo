@@ -17,6 +17,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   The docstring now notes that this factor makes the effective weight of `lam` depend on
   the batch size.
 
+- `XGBoostCCA`, `LightGBMCCA` and `CatBoostCCA` accept `NaN` as a missing value in fit,
+  `transform`, `predict` and `score`, with no imputation: XGBoost and LightGBM learn at each
+  split which branch missing entries take, and CatBoost treats them as the smallest value.
+  Infinities are still rejected. `predict` and `inverse_transform` regress on the feature mean
+  in place of missing training entries. `validate_views` takes `ensure_all_finite="allow-nan"`.
+
 ### Changed
 
 - `ManifoldCCA` is now a CCA method rather than PLS by default. It takes `shrinkage`, as
@@ -35,6 +41,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   correlation 0.84 against 0.97 with 40), while 160 is no better than 40.
 
 ### Fixed
+
+- `StochasticCCAEY` no longer fails with a `LinAlgError` when `batch_size` is smaller than
+  `n_components`. Its starting weights whiten one mini-batch with a QR factorisation, which is
+  not square for a batch of fewer rows than components; such a fit now whitens on
+  `4 * n_components` random rows instead, which costs the same whatever the number of samples.
+  Fits with larger batches are unchanged.
 
 - `XGBoostCCA` and `LightGBMCCA` fit time is now linear in `n_estimators`, not quadratic.
   Each round used to hand the whole ensemble back to the booster and re-predict it on the
