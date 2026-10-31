@@ -9,7 +9,12 @@ from cca_zoo.deep._base import BaseDeep, Batch
 
 
 def _sigreg(
-    z: torch.Tensor, seed: int, n_slices: int, n_points: int, t_max: float
+    z: torch.Tensor,
+    seed: int,
+    n_slices: int,
+    n_points: int,
+    t_max: float,
+    unbiased: bool = False,
 ) -> torch.Tensor:
     """SIGReg: the Epps-Pulley statistic of random 1-D projections of ``z``.
 
@@ -18,6 +23,12 @@ def _sigreg(
     ``[-t_max, t_max]``, and scaled by the batch size. The ``n_slices`` unit
     directions come from a generator seeded with ``seed``, so every view
     shares them within a step and they are resampled across steps.
+
+    The plug-in statistic is biased: for an exactly standard normal ``z`` its
+    expectation, after the factor of the batch size, is close to 1 rather than
+    0, because the squared modulus of the empirical characteristic function
+    includes each sample's product with itself. With ``unbiased``, those
+    ``i = j`` terms are dropped, so the expectation is 0 for a standard normal.
     """
     generator = torch.Generator(device=z.device)
     generator.manual_seed(seed)
@@ -28,8 +39,16 @@ def _sigreg(
     t = torch.linspace(-t_max, t_max, n_points, device=z.device, dtype=z.dtype)
     gaussian_cf = torch.exp(-0.5 * t**2)
     xt = (z @ directions).unsqueeze(2) * t  # (n, slices, points)
-    # |ecf - phi|^2, with ecf = E[cos] + i E[sin] and phi real.
-    error = (xt.cos().mean(0) - gaussian_cf).square() + xt.sin().mean(0).square()
+    # |ecf - phi|^2 = |ecf|^2 - 2 Re(ecf) phi + phi^2, with ecf = E[cos] + i E[sin]
+    # and phi real.
+    cos_mean, sin_mean = xt.cos().mean(0), xt.sin().mean(0)
+    modulus_sq = cos_mean.square() + sin_mean.square()
+    if unbiased:
+        # |ecf|^2 sums over all pairs (i, j), including the n terms with i = j,
+        # each equal to 1; dropping them leaves an unbiased estimate of |phi_z|^2.
+        n = z.shape[0]
+        modulus_sq = (n * modulus_sq - 1) / (n - 1)
+    error = modulus_sq - 2 * cos_mean * gaussian_cf + gaussian_cf.square()
     return (torch.trapezoid(error * gaussian_cf, t, dim=1) * z.shape[0]).mean()
 
 
@@ -59,6 +78,10 @@ class LeJEPA(BaseDeep):
         n_points: Quadrature points of the Epps-Pulley integral. Default is 17.
         t_max: Half-width of the integration interval. Default is 5.0.
         learning_rate: Adam learning rate. Default is 1e-3.
+        unbiased: Whether SIGReg uses the unbiased estimate of the squared
+            characteristic-function error (see :func:`_sigreg`) in place of the
+            plug-in one, which is biased upward by about 1 for a standard-normal
+            batch. Default is False, the reference implementation's.
 
     Raises:
         ValueError: If ``lam`` is outside ``[0, 1]``.
@@ -82,6 +105,7 @@ class LeJEPA(BaseDeep):
         n_points: int = 17,
         t_max: float = 5.0,
         learning_rate: float = 1e-3,
+        unbiased: bool = False,
     ) -> None:
         if not 0.0 <= lam <= 1.0:
             raise ValueError(f"lam must be in [0, 1], got {lam}.")
@@ -94,6 +118,7 @@ class LeJEPA(BaseDeep):
         self.n_slices = n_slices
         self.n_points = n_points
         self.t_max = t_max
+        self.unbiased = unbiased
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The LeJEPA loss of a batch and its terms.
@@ -109,7 +134,14 @@ class LeJEPA(BaseDeep):
         sim = (z.mean(dim=0) - z).square().mean()
         sigreg = torch.stack(
             [
-                _sigreg(zk, self.global_step, self.n_slices, self.n_points, self.t_max)
+                _sigreg(
+                    zk,
+                    self.global_step,
+                    self.n_slices,
+                    self.n_points,
+                    self.t_max,
+                    self.unbiased,
+                )
                 for zk in representations
             ]
         ).mean()

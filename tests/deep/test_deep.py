@@ -507,6 +507,47 @@ def test_sigreg_is_small_for_a_standard_normal_and_large_for_a_collapse() -> Non
     assert float(collapsed) > 100 * float(gaussian)
 
 
+def test_unbiased_sigreg_has_zero_mean_for_a_standard_normal() -> None:
+    """A standard normal batch: plug-in SIGReg averages near 1, the U-statistic 0."""
+    torch.manual_seed(0)
+    for n in (16, 128):
+        batches = [torch.randn(n, 4) for _ in range(200)]
+        plug_in = torch.stack(
+            [_sigreg(z, i, 16, 17, 5.0) for i, z in enumerate(batches)]
+        )
+        unbiased = torch.stack(
+            [_sigreg(z, i, 16, 17, 5.0, unbiased=True) for i, z in enumerate(batches)]
+        )
+        assert float(plug_in.mean()) > 0.5
+        assert abs(float(unbiased.mean())) < 0.1 * float(plug_in.mean())
+
+
+def test_unbiased_sigreg_still_flags_a_collapse() -> None:
+    """Dropping the diagonal terms leaves SIGReg large for a collapsed batch."""
+    collapsed = _sigreg(torch.zeros(512, 8), 0, 64, 17, 5.0, unbiased=True)
+    gaussian = _sigreg(torch.randn(512, 8), 0, 64, 17, 5.0, unbiased=True)
+    assert float(collapsed) > 100 * abs(float(gaussian))
+
+
+def test_unbiased_sigreg_gradient_matches_finite_differences() -> None:
+    """Autograd through the unbiased statistic is exact."""
+    z = torch.randn(12, 3, dtype=torch.float64, requires_grad=True)
+    assert torch.autograd.gradcheck(
+        lambda x: _sigreg(x, 0, 8, 17, 5.0, unbiased=True), (z,)
+    )
+
+
+def test_lejepa_unbiased_option_changes_only_the_sigreg_term() -> None:
+    """Identical views: no predictive loss, SIGReg is the unbiased one when asked."""
+    z = torch.randn(16, K)
+    plug_in = LeJEPA(K, [nn.Identity(), nn.Identity()], n_slices=16)
+    unbiased = LeJEPA(K, [nn.Identity(), nn.Identity()], n_slices=16, unbiased=True)
+    a = plug_in.loss({"views": [z, z.clone()]})
+    b = unbiased.loss({"views": [z, z.clone()]})
+    assert float(b["sim_loss"]) == float(a["sim_loss"]) == 0.0
+    assert float(b["sigreg"]) < float(a["sigreg"])
+
+
 def test_sigreg_directions_follow_the_seed() -> None:
     """Directions repeat for a seed and are resampled across seeds."""
     z = torch.randn(64, 4) * torch.tensor([3.0, 1.0, 0.2, 1.0])

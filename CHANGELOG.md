@@ -9,6 +9,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
+  error, dropping the `i = j` terms of the empirical characteristic function's squared
+  modulus. The default plug-in statistic, which the reference implementation uses, has
+  expectation about 1 rather than 0 for an exactly standard-normal batch, whatever the batch
+  size, because SIGReg is multiplied by the batch size. The default is unchanged.
+  The docstring now notes that this factor makes the effective weight of `lam` depend on
+  the batch size.
+
 - `XGBoostCCA`, `LightGBMCCA` and `CatBoostCCA` accept `NaN` as a missing value in fit,
   `transform`, `predict` and `score`, with no imputation: XGBoost and LightGBM learn at each
   split which branch missing entries take, and CatBoost treats them as the smallest value.
