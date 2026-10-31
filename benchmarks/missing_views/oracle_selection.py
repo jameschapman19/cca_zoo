@@ -62,7 +62,8 @@ def main() -> None:
         ours, selected, oracle = np.mean(rows, axis=0)
         print(
             f"shared {shared}: IncompleteGCCA {ours:.2f} | MOFA+ with the usual "
-            f"selection {selected:.2f} | MOFA+ with all {n_factors} factors {oracle:.2f}"
+            f"selection {selected:.2f} | MOFA+ with all {n_factors} factors "
+            f"{oracle:.2f}"
         )
 
 
