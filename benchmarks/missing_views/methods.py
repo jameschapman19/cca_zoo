@@ -82,6 +82,7 @@ def incomplete_gcca(
     n_shared: int,
     seed: int,
 ) -> Result:
+    """IncompleteGCCA, shrinkage chosen by cross-validation."""
     model = _tuned(
         lambda s: IncompleteGCCA(n_components=n_shared, shrinkage=s), views, seed
     )
@@ -94,6 +95,7 @@ def masked_ccaey(
     n_shared: int,
     seed: int,
 ) -> Result:
+    """CCAEY with its loss masked to the views each sample has, shrinkage tuned."""
     model = _tuned(
         lambda s: CCAEY(n_components=n_shared, shrinkage=s, random_state=seed),
         views,

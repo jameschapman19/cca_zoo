@@ -1,6 +1,6 @@
 """Figures for the missing-view benchmark, sized for a slide's content box.
 
-python benchmarks/missing_views/plot.py output/results.json output/results_mofa.json output/
+python plot.py output/results.json output/results_mofa.json output/
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ STYLE = {
     "GFA, zero-filled": ("#eda100", "^"),
     "GCCA, zero-filled": ("#e87ba4", "v"),
     "GCCA, complete cases": ("#008300", "P"),
+    "MOFA+ (best of 5 random)": ("#6250d6", "X"),
 }
 RANDOM_INIT = "MOFA+ (best of 5 random)"
 SIZE = (11.0, 5.4)  # inches: a 16:9 slide's content area under a title
@@ -51,6 +52,7 @@ plt.rcParams.update(
     }
 )
 
+RATES = [0.0, 0.2, 0.4, 0.6]
 DENSITY = {1.0: "dense loadings", 0.2: "sparse loadings (20% of features)"}
 SHARED = {
     0.05: "faint shared signal (5% of variance)",
@@ -76,7 +78,7 @@ def _legend(fig: plt.Figure, names: list[str]) -> None:
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=len(names),
+        ncol=4,
         frameon=False,
         fontsize=10,
         handlelength=1.6,
@@ -105,7 +107,7 @@ def _lines(ax: plt.Axes, data: pd.DataFrame, metric: str) -> None:
             markeredgecolor=SURFACE,
             markeredgewidth=1.2,
         )
-    ax.set_xticks(sorted(data["missing_rate"].unique()))
+    ax.set_xticks(RATES)
     ax.xaxis.set_major_formatter(lambda v, _: f"{v:.0%}")
 
 
@@ -151,7 +153,7 @@ def facets(
                 ax.set_xlabel("samples missing each view")
     fig.suptitle(title, x=0.01, ha="left", fontsize=13, fontweight="bold")
     _legend(fig, [m for m in STYLE if m in set(df["method"])])
-    fig.tight_layout(rect=(0, 0.07, 1, 0.95))
+    fig.tight_layout(rect=(0, 0.12, 1, 0.96))
     fig.savefig(path, dpi=DPI)
     plt.close(fig)
 
@@ -197,7 +199,7 @@ def stability(df: pd.DataFrame, path: Path) -> None:
         ax.grid(axis="x", visible=False)
     axes[0].set_ylabel("shared-factor recovery")
     fig.suptitle(
-        "One MOFA+ initialisation can land in a poor optimum (40% of views missing; bar = median, dots = seeds)",
+        "MOFA+ collapses on some datasets, from any start (40% missing; bar = median)",
         x=0.01,
         ha="left",
         fontsize=12.5,
@@ -236,7 +238,7 @@ def main() -> None:
     *results, out = (Path(a) for a in sys.argv[1:])
     df = pd.DataFrame([row for r in results for row in json.loads(r.read_text())])
     mcar = df[df["mechanism"] == "mcar"]
-    main_methods = df[df["method"] != RANDOM_INIT]
+    main_methods = df
     main_mcar = main_methods[main_methods["mechanism"] == "mcar"]
     facets(
         main_mcar,
@@ -253,8 +255,8 @@ def main() -> None:
     facets(
         main_mcar[main_mcar["missing_rate"] > 0],
         "imputation_r2",
-        "R² of the withheld shared signal",
-        "Filling in a missing view from the others",
+        "imputation R²",
+        "Filling in a missing view from the others (axis cut at -2)",
         "shared",
         "density",
         SHARED,
@@ -267,7 +269,7 @@ def main() -> None:
         mnar,
         "recovery",
         "shared-factor recovery",
-        "Missingness that depends on the biology (MNAR) against random (MCAR), shared signal 10%",
+        "Missingness tied to the biology (MNAR) vs random (MCAR), shared signal 10%",
         "mechanism",
         "density",
         {"mcar": "MCAR", "mnar": "MNAR"},
