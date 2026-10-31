@@ -28,9 +28,10 @@ from ieye import ssl
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULT = ROOT / "results/digits_ssl.npz"
-SEEDS = list(range(500, 505))
+SEEDS = list(range(500, 503))
 BATCHES = [64, 256]
-D, EPOCHS, N_TRAIN, LR = 32, 150, 1000, 1e-3
+D, N_TRAIN, LR = 32, 1000, 1e-3
+CHECKPOINTS = [250, 1000, 3000, 8000]  # training steps at which the probes are scored
 ARMS = [*ssl.ARMS, "random encoder (no training)"]
 SHIFTS = [(i, j) for i in (-1, 0, 1) for j in (-1, 0, 1)]
 
@@ -46,7 +47,7 @@ def augment(x: torch.Tensor, gen: torch.Generator) -> torch.Tensor:
     return out * (torch.rand(out.shape, generator=gen) > 0.2)
 
 
-def run(job: tuple[str, int, int]) -> tuple[tuple, list[float]]:
+def run(job: tuple[str, int, int]) -> tuple[tuple, list[list[float]]]:
     arm, batch, seed = job
     torch.set_num_threads(1)
     digits = load_digits()
@@ -57,25 +58,31 @@ def run(job: tuple[str, int, int]) -> tuple[tuple, list[float]]:
     gen = torch.Generator().manual_seed(seed)
     torch.manual_seed(seed)
     encoder = nn.Sequential(nn.Linear(64, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU(), nn.Linear(256, D))
-    if arm in ssl.ARMS:
-        opt = torch.optim.Adam(encoder.parameters(), lr=LR)
-        steps = EPOCHS * (N_TRAIN // batch)
-        for step in range(steps):
-            idx = torch.tensor(train)[torch.randint(N_TRAIN, (batch,), generator=gen)]
-            z = [encoder(augment(x[idx], gen)) for _ in range(2)]
-            loss = ssl.ARMS[arm](z, step)
-            if not torch.isfinite(loss):
-                raise FloatingPointError(f"{arm}: non-finite loss at step {step}")
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-    with torch.no_grad():
-        emb = encoder(x).numpy()
-    mean, std = emb[train].mean(0), emb[train].std(0) + 1e-8
-    emb = (emb - mean) / std
-    linear = LogisticRegression(max_iter=3000).fit(emb[train], y[train]).score(emb[test], y[test])
-    knn = KNeighborsClassifier(10).fit(emb[train], y[train]).score(emb[test], y[test])
-    return job, [linear, knn]
+    def probes() -> list[float]:
+        with torch.no_grad():
+            emb = encoder(x).numpy()
+        mean, std = emb[train].mean(0), emb[train].std(0) + 1e-8
+        emb = (emb - mean) / std
+        linear = LogisticRegression(max_iter=3000).fit(emb[train], y[train]).score(emb[test], y[test])
+        knn = KNeighborsClassifier(10).fit(emb[train], y[train]).score(emb[test], y[test])
+        return [linear, knn]
+
+    if arm not in ssl.ARMS:
+        return job, [probes()] * len(CHECKPOINTS)
+    opt = torch.optim.Adam(encoder.parameters(), lr=LR)
+    scores = []
+    for step in range(1, max(CHECKPOINTS) + 1):
+        idx = torch.tensor(train)[torch.randint(N_TRAIN, (batch,), generator=gen)]
+        z = [encoder(augment(x[idx], gen)) for _ in range(2)]
+        loss = ssl.ARMS[arm](z, step)
+        if not torch.isfinite(loss):
+            raise FloatingPointError(f"{arm}: non-finite loss at step {step}")
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+        if step in CHECKPOINTS:
+            scores.append(probes())
+    return job, scores
 
 
 def sweep() -> None:
@@ -84,28 +91,28 @@ def sweep() -> None:
         warnings.simplefilter("ignore")
         with Pool(4) as pool:
             results = pool.map(run, jobs, chunksize=1)
-    table = np.full((2, len(ARMS), len(BATCHES), len(SEEDS)), np.nan)
+    table = np.full((len(CHECKPOINTS), 2, len(ARMS), len(BATCHES), len(SEEDS)), np.nan)
     for (a, b, s), values in results:
-        table[:, ARMS.index(a), BATCHES.index(b), SEEDS.index(s)] = values
+        table[:, :, ARMS.index(a), BATCHES.index(b), SEEDS.index(s)] = values
     np.savez(RESULT, accuracy=table)
 
 
 def plot() -> None:
-    acc = np.load(RESULT)["accuracy"]
+    acc = np.load(RESULT)["accuracy"]  # (checkpoint, probe, arm, batch, seed)
     colours = ["#D55E00", "#0072B2", "#999999", "#009E73", "#000000"]
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5.5), sharey=True)
-    for ax, k, title in zip(axes, range(2), ["Linear probe", "kNN probe (k=10)"]):
+    fig, axes = plt.subplots(2, 2, figsize=(10, 5.5), sharex=True, sharey=True)
+    for (b, k), ax in zip([(b, k) for b in range(len(BATCHES)) for k in range(2)], axes.ravel()):
         for a, arm in enumerate(ARMS):
-            for b in range(len(BATCHES)):
-                v = acc[k, a, b]
-                x = b + 0.14 * (a - 2)
-                ax.errorbar(x, v.mean(), yerr=[[v.mean() - v.min()], [v.max() - v.mean()]], fmt="o",
-                            ms=5, color=colours[a], label=arm if b == 0 else None)
-                ax.scatter(np.full(len(v), x), v, s=6, color=colours[a], alpha=0.4)
-        ax.set_xticks(range(len(BATCHES)), [f"batch {b}" for b in BATCHES])
-        ax.set_title(title, fontsize=9)
-    axes[0].set_ylabel("test accuracy, 797 held-out digits (mean, min–max, 5 seeds)")
-    axes[0].legend(fontsize=6)
+            v = acc[:, k, a, b]  # (checkpoint, seed)
+            ax.plot(CHECKPOINTS, v.mean(1), "-o", ms=3, color=colours[a], label=arm)
+            ax.fill_between(CHECKPOINTS, v.min(1), v.max(1), color=colours[a], alpha=0.15, lw=0)
+        ax.set(xscale="log", title=f"{['Linear', 'kNN (k=10)'][k]} probe, batch {BATCHES[b]}")
+        ax.title.set_fontsize(9)
+    for ax in axes[1]:
+        ax.set_xlabel("training steps")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("held-out accuracy")
+    axes[0, 0].legend(fontsize=6)
     fig.tight_layout()
     fig.savefig(ROOT / "figures/digits_ssl.png", dpi=150)
 
