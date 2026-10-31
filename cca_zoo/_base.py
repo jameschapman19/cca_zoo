@@ -254,10 +254,22 @@ class BaseModel(BaseEstimator, ABC):
         self._inverse_maps_ = [
             _least_squares_map(s[r], v[r]) for s, v, r in zip(own_scores, targets, seen)
         ]
-        latent = self._shared_latent(dict(enumerate(views)))
-        self._predict_maps_ = [
-            _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
-        ]
+        if self._supports_missing_views:
+            # A model for filling in missing views regresses each view on the
+            # latent of the other views, which is all it will have to predict
+            # from: the view's own scores are overfitted to it.
+            self._predict_maps_ = []
+            for i, v in enumerate(targets):
+                latent = self._shared_latent(
+                    {j: views[j] for j in range(self.n_views_) if j != i}
+                )
+                rows = seen[i] & np.isfinite(latent).all(axis=1)
+                self._predict_maps_.append(_least_squares_map(latent[rows], v[rows]))
+        else:
+            latent = self._shared_latent(dict(enumerate(views)))
+            self._predict_maps_ = [
+                _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
+            ]
         self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
             xp, _ = get_namespace(raw)
