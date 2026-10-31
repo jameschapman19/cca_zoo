@@ -84,3 +84,35 @@ def test_ng_is_scale_invariant():
     b = identifiable_ey_loss(batch, [3 * e for e in w], moments, **kwargs)["ng"]
     assert torch.allclose(a, b)
     assert shared_std(w, moments, "average").shape == (2,)
+
+
+def test_denoised_ng_is_unbiased_for_the_signal_and_gradchecks():
+    from ieye.loss import legendre
+
+    nodes, weights = legendre(24, 2.0)
+    g = torch.Generator().manual_seed(5)
+    # u = alpha * s + noise, s unit-variance Laplace: the denoised distance is the
+    # Laplace signal's distance (scaled by alpha), however much noise is added.
+    alpha2 = torch.tensor([0.4], dtype=torch.float64)
+    n, reps = 8, 20000
+    s = laplace((reps, n, 1), g)
+    u = alpha2.sqrt() * s + (1 - alpha2).sqrt() * torch.randn(reps, n, 1, generator=g, dtype=torch.float64)
+    values = torch.stack([cf_distance(ui, nodes, weights, 1 - alpha2) for ui in u])
+    phi = 1 / (1 + alpha2 * nodes**2 / 2)  # CF of alpha * s
+    gaussian = torch.exp(-(nodes**2) / 2)
+    exact = ((phi - gaussian * torch.exp((1 - alpha2) * nodes**2 / 2)) ** 2) @ weights
+    assert abs(values.mean() - exact) < 4 * values.std() / reps**0.5
+
+    n, p, k = 30, 4, 2
+    batch = [torch.randn(n, p, generator=g, dtype=torch.float64) for _ in range(2)]
+    shared = torch.randn(p, k, generator=g, dtype=torch.float64)
+    moments = SecondMoments(torch.eye(p, dtype=torch.float64) * 0.5)
+    w0 = [shared + 0.1 * torch.randn(p, k, generator=g, dtype=torch.float64) for _ in range(2)]
+
+    def f(w1, w2):
+        return identifiable_ey_loss(
+            batch, [w1, w2], moments, mu=1.0, variate="average",
+            nodes=nodes, weights=weights, denoise=True,
+        )["objective"]
+
+    assert torch.autograd.gradcheck(f, [e.clone().requires_grad_() for e in w0])

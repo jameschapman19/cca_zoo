@@ -12,6 +12,7 @@ from ieye.loss import (
     SecondMoments,
     Variate,
     gauss_hermite,
+    legendre,
     identifiable_ey_loss,
     non_gaussianity,
 )
@@ -53,6 +54,11 @@ def multiview_ica(views: list[np.ndarray], k: int, seed: int) -> list[np.ndarray
         n_components=k, dimension_reduction="pca", random_state=seed, max_iter=2000,
     )
     return [w @ (u @ p).T for w, u, p in zip(weights, unmixings, projections)]
+
+
+def _quadrature(denoise: bool, n_nodes: int, bandwidth: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Normal-weighted nodes, or a bounded range ``[0, bandwidth]`` when deconvolving."""
+    return legendre(n_nodes, bandwidth) if denoise else gauss_hermite(n_nodes, bandwidth)
 
 
 class Whitened:
@@ -108,6 +114,7 @@ def _minimise(
 def joint(
     views: list[np.ndarray], k: int, seed: int, *, mu: float, variate: Variate = "average",
     restarts: int = 8, n_nodes: int = 17, bandwidth: float = 1.0, max_iter: int = 500,
+    denoise: bool = False,
 ) -> list[np.ndarray]:
     """Full-batch joint minimisation of ``L_EY - mu * sum NG`` from rotated CCA starts.
 
@@ -115,7 +122,7 @@ def joint(
     final objective (unsupervised), is returned.
     """
     white = Whitened(views)
-    nodes, weights = gauss_hermite(n_nodes, bandwidth)
+    nodes, weights = _quadrature(denoise, n_nodes, bandwidth)
     batch = [torch.tensor(x) for x in white.x]
     rng = np.random.default_rng(seed)
     start = _cca_start(white, k)
@@ -126,7 +133,7 @@ def joint(
 
         def objective(w=w) -> torch.Tensor:
             return identifiable_ey_loss(
-                batch, w, white.moments, mu=mu, variate=variate, nodes=nodes, weights=weights
+                batch, w, white.moments, mu=mu, variate=variate, nodes=nodes, weights=weights, denoise=denoise
             )["objective"]
 
         value = _minimise(objective, w, max_iter)
@@ -138,6 +145,7 @@ def joint(
 def rotation_only(
     views: list[np.ndarray], k: int, seed: int, *, variate: Variate = "average",
     restarts: int = 8, n_nodes: int = 17, bandwidth: float = 1.0, max_iter: int = 500,
+    denoise: bool = False,
 ) -> list[np.ndarray]:
     """CCA, then the orthogonal rotation maximising the CF non-Gaussianity of the shared variate.
 
@@ -146,7 +154,7 @@ def rotation_only(
     scaled by their population standard deviations.
     """
     white = Whitened(views)
-    nodes, weights = gauss_hermite(n_nodes, bandwidth)
+    nodes, weights = _quadrature(denoise, n_nodes, bandwidth)
     batch = [torch.tensor(x) for x in white.x]
     rng = np.random.default_rng(seed)
     start = [torch.tensor(s) for s in _cca_start(white, k)]
@@ -159,7 +167,7 @@ def rotation_only(
             return [s @ q for s in start]
 
         def objective(rotated=rotated) -> torch.Tensor:
-            return -non_gaussianity(batch, rotated(), white.moments, variate, nodes, weights)
+            return -non_gaussianity(batch, rotated(), white.moments, variate, nodes, weights, denoise)
 
         value = _minimise(objective, [a], max_iter)
         if value < best_value:

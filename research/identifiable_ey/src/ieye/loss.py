@@ -42,13 +42,31 @@ def gauss_hermite(n_nodes: int, bandwidth: float = 1.0) -> tuple[torch.Tensor, t
     )
 
 
+def legendre(n_nodes: int, upper: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Gauss-Legendre nodes and weights on ``[0, upper]``; the integrand is even in ``t``."""
+    x, w = np.polynomial.legendre.leggauss(n_nodes)
+    return (
+        torch.tensor(upper * (x + 1) / 2, dtype=torch.float64),
+        torch.tensor(upper * w / 2, dtype=torch.float64),
+    )
+
+
 def cf_distance(
-    z: torch.Tensor, nodes: torch.Tensor, weights: torch.Tensor
+    z: torch.Tensor,
+    nodes: torch.Tensor,
+    weights: torch.Tensor,
+    noise_variance: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Unbiased estimate of ``NG`` for each column of unit-variance ``z``, shape (k,).
 
     The constant ``E_w exp(-t^2)`` is included so the value is the squared
     distance itself, which is non-negative in expectation.
+
+    With ``noise_variance`` (k,), the fraction of each column's unit variance
+    that is independent Gaussian noise, the integrand is multiplied by
+    ``exp(noise_variance * t^2)``: the squared distance after dividing the CF
+    by the noise's, ``exp(-noise_variance * t^2 / 2)``. That is the distance
+    of the noise-free signal, rescaled, and it needs a bounded ``nodes`` range.
     """
     n = z.shape[0]
     angle = z[:, :, None] * nodes  # (n, k, T)
@@ -57,6 +75,8 @@ def cf_distance(
     real_phi = cos_sum / n
     gaussian = torch.exp(-(nodes**2) / 2)
     integrand = abs_phi_sq - 2 * gaussian * real_phi + gaussian**2
+    if noise_variance is not None:
+        integrand = integrand * torch.exp(noise_variance[:, None] * nodes**2)
     return integrand @ weights
 
 
@@ -114,6 +134,19 @@ def shared_std(w: list[torch.Tensor], moments: SecondMoments, variate: Variate) 
     return var.sqrt()
 
 
+def noise_fraction(w: list[torch.Tensor], moments: SecondMoments) -> torch.Tensor:
+    """Fraction of each standardised average variate's variance that is view noise, (k,).
+
+    Assuming both views carry the same signal and independent noise, the
+    signal variance is ``cov(z_1, z_2) = w_1' S_12 w_2``.
+    """
+    signal = (w[0] * (moments.cross @ w[1])).sum(0)
+    fraction = 1 - signal / shared_std(w, moments, "average") ** 2
+    if not ((fraction >= 0) & (fraction < 1)).all():
+        raise ValueError(f"noise fraction outside [0, 1): {fraction.detach()}")
+    return fraction
+
+
 def non_gaussianity(
     batch: list[torch.Tensor],
     w: list[torch.Tensor],
@@ -121,13 +154,20 @@ def non_gaussianity(
     variate: Variate,
     nodes: torch.Tensor,
     weights: torch.Tensor,
+    denoise: bool = False,
 ) -> torch.Tensor:
-    """``sum_i NG`` of the standardised variates of one batch of whitened views."""
+    """``sum_i NG`` of the standardised variates of one batch of whitened views.
+
+    ``denoise`` (average variate only) divides out each component's view noise.
+    """
     std = shared_std(w, moments, variate)
     z = [x @ e for x, e in zip(batch, w)]
     if variate == "views":
+        if denoise:
+            raise ValueError("denoise needs the average variate")
         return sum(cf_distance(z[v] / std[v], nodes, weights).sum() for v in range(2)) / 2
-    return cf_distance((z[0] + z[1]) / 2 / std, nodes, weights).sum()
+    noise = noise_fraction(w, moments) if denoise else None
+    return cf_distance((z[0] + z[1]) / 2 / std, nodes, weights, noise).sum()
 
 
 def identifiable_ey_loss(
@@ -140,11 +180,12 @@ def identifiable_ey_loss(
     nodes: torch.Tensor,
     weights: torch.Tensor,
     independent: list[torch.Tensor] | None = None,
+    denoise: bool = False,
 ) -> dict[str, torch.Tensor]:
     """``L_EY - mu * sum_i NG`` of whitened, centred views, with its terms."""
     reward, penalty = ey_penalty_and_reward(
         [x @ e for x, e in zip(batch, w)],
         None if independent is None else [x @ e for x, e in zip(independent, w)],
     )
-    ng = non_gaussianity(batch, w, moments, variate, nodes, weights)
+    ng = non_gaussianity(batch, w, moments, variate, nodes, weights, denoise)
     return {"objective": -reward + penalty - mu * ng, "ey": -reward + penalty, "ng": ng}
