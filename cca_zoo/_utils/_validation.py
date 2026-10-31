@@ -15,7 +15,7 @@ _T = TypeVar("_T")
 def validate_views(
     views: list[ArrayLike],
     min_views: int = 2,
-    ensure_all_finite: bool = True,
+    ensure_all_finite: bool | str = True,
     ensure_min_samples: int = 1,
     dtype: type | list[type] = np.float64,
 ) -> list[np.ndarray]:
@@ -25,8 +25,9 @@ def validate_views(
         views: List of array-like objects, each of shape (n_samples, n_features_i).
         min_views: Minimum number of views required. Default is 2.
         ensure_all_finite: Whether to reject NaN/inf entries. Default is
-            ``True``. Callers that handle missing data themselves (e.g. an
-            imputer) pass ``False``.
+            ``True``. ``"allow-nan"`` rejects only inf, for callers that handle
+            missing values themselves (e.g. a tree encoder); callers that
+            handle every non-finite value (e.g. an imputer) pass ``False``.
         ensure_min_samples: Minimum number of samples. Default is 1.
         dtype: The dtype to convert to, or a list of dtypes to keep, as in
             :func:`~sklearn.utils.check_array`. Views of mixed precision are

@@ -62,7 +62,13 @@ _MANIFOLD_SMALL_DATA = (
     "the check's 10 samples with n_neighbors=10 make a complete graph, which "
     "has no smooth eigenvectors to embed"
 )
+_ACCEPTS_NAN = {
+    "check_estimators_nan_inf": "tree encoders take NaN as missing (inf is rejected)"
+}
 _EXPECTED_FAILURES = {
+    "XGBoostCCA": _ACCEPTS_NAN,
+    "LightGBMCCA": _ACCEPTS_NAN,
+    "CatBoostCCA": _ACCEPTS_NAN,
     "ManifoldCCA": {
         "check_estimators_nan_inf": _MANIFOLD_SMALL_DATA,
         "check_fit2d_1feature": _MANIFOLD_SMALL_DATA,

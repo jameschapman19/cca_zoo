@@ -205,6 +205,13 @@ class TreeCCA(BaseModel, ABC):
     subclass: :class:`XGBoostCCA`, :class:`LightGBMCCA` or
     :class:`CatBoostCCA`.
 
+    Missing values (``NaN``) are accepted in every view, in fit and in
+    ``transform``: each backend routes them down the branch of every split that
+    lowers the loss (XGBoost, LightGBM) or treats them as the smallest value
+    (CatBoost), with no imputation. Infinities are rejected. ``predict`` and
+    ``inverse_transform`` regress on the feature mean in place of missing
+    training entries.
+
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
@@ -230,6 +237,8 @@ class TreeCCA(BaseModel, ABC):
         Chapman, J. (2026). TreeCCA: Canonical Correlation Analysis via
         Gradient-Boosted Trees. arXiv:2607.27027.
     """
+
+    _allows_nan: ClassVar[bool] = True
 
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
@@ -331,7 +340,10 @@ class TreeCCA(BaseModel, ABC):
 
         rng = np.random.default_rng(self.random_state)
         starts = [
-            random_orthogonal_embedding(X, k, rng, std=_START_STD) for X in views_
+            random_orthogonal_embedding(
+                np.nan_to_num(X, nan=0.0), k, rng, std=_START_STD
+            )
+            for X in views_
         ]
         # The backends take an integer seed; drawing it from the fit's own
         # generator makes random_state=None give a fresh one each fit.
