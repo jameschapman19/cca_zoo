@@ -104,3 +104,41 @@ outside the loss (CCAEY puts its ridge inside), and the ranks are chosen outside
 Caveats: four datasets per cell in the comparison above; `IncompleteGCCA` is at a
 fixed shrinkage of 0.5 (the benchmark tunes it); and timings were taken while other jobs used the
 machine. Not yet tried: real data, a rank-selection rule, or a version that avoids the SVD for very large n.
+
+## `jiveey.py`, `jiveey_check.py`, `compare_jiveey.py`: JIVEEY, the loss with nothing bolted on
+
+`CCAEY`'s loss is the Eckart-Young loss of a generalized eigenproblem, `L(W) = -2 tr(W' S W) +
+tr((W' B W)^2)`, which with `Q = B^(1/2) W` is `|| B^(-1/2) S B^(-1/2) - Q Q' ||_F^2`: the whitening
+is inside the loss, through B in the quadratic term alone. JIVEEY is that same loss with W
+restricted to the JIVE support, joint columns dense across views and individual columns
+nonzero in one view only. B is block diagonal, so it keeps the support. The joint columns are
+rewarded for cross-view covariance, the individual columns for their own view's variance, and the
+quadratic term penalises the overlap of a view's joint and individual weights (JIVE's
+orthogonality). Scores are projections, `X_i W_i`; views missing for some samples use the same
+pairwise divisors as the masked CCAEY. Nothing is preprocessed: the SVD whitening and the loadings
+regression of the two-stage prototype are both gone.
+
+Checks (`jiveey_check.py`): the gradient matches finite differences to 1e-7 with views missing, and
+with no individual columns it is CCAEY (principal cosines with `CCAEY` 1, 1 at shrinkage 0.2 and 1,
+0.9999 at 0.5).
+
+Joint and individual recovery on the simulator (6 datasets per cell, true ranks, features of unit
+variance, so the shrinkage is in the units of `RidgeCCA`'s; AJIVE gets mean-filled views where
+samples lack a view):
+
+| regime | views missing | JIVEEY c=0.5 | two-stage prototype | AJIVE | IncompleteGCCA |
+|---|---|---|---|---|---|
+| moderate | 0% | 0.95, 0.96 | 0.95, 0.95 | 0.95, 0.95 | 0.95, - |
+| moderate | 30% | 0.90, 0.95 | 0.90, 0.94 | 0.82, 0.95 | 0.89, - |
+| faint | 0% | 0.97, 0.99 | 0.97, 0.98 | 0.97, 0.98 | 0.96, - |
+| faint | 30% | 0.84, 0.97 | 0.85, 0.95 | 0.82, 0.98 | 0.77, - |
+| fainter | 0% | 0.92, 0.99 | 0.93, 0.97 | 0.94, 0.98 | 0.82, - |
+| fainter | 30% | 0.59, 0.95 | 0.57, 0.89 | 0.76, 0.97 | 0.21, - |
+
+The one-loss form matches the two-stage prototype on the joint part and is ahead of it on the
+individual part where views are missing (0.95 against 0.89 in the hardest cell), and equal to
+AJIVE on complete data. It is behind mean-filled AJIVE in the hardest cell (0.59 against 0.76).
+The shrinkage matters: 0.2 and 0.8 are much worse than 0.5 with views missing (joint recovery 0.63
+and 0.71 against 0.84 at 2% shared and 30% missing), so it has to be chosen, which a held-out
+loss can do. Block weighting by sample count, which helped the two-stage version, is not in
+this form: it would weight the quadratic term's blocks, which departs from the plain loss.
