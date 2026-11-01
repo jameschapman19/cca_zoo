@@ -147,7 +147,7 @@ from cca_zoo.linear import IncompleteGCCA
 
 X2[40:] = np.nan  # the last samples have no second assay
 model = IncompleteGCCA(n_components=2).fit([X1, X2, X3])
-z1, z2, z3 = model.transform([X1, X2, X3])        # NaN rows for the unobserved samples
+z1, z2, z3 = model.transform([X1, X2, X3])  # NaN rows for the unobserved samples
 consensus = model.transform_shared([X1, X2, X3])  # one score per sample, from its views
 ```
 
@@ -183,12 +183,12 @@ singular-value threshold.
 from cca_zoo.linear import AJIVE
 
 model = AJIVE(n_components="auto", random_state=0).fit([X1, X2])
-model.joint_scores_                  # (n_samples, n_components_), one set for all views
-model.individual_scores_             # one array per view
-model.joint_variance_explained_      # (n_views, n_components_)
-model.individual_variance_explained_ # per view, per individual component
-model.noise_variance_explained_      # (n_views,); with the above, adds up to 1 per view
-z1, z2 = model.transform([X1, X2])   # joint scores of new samples, from each view
+model.joint_scores_  # (n_samples, n_components_), one set for all views
+model.individual_scores_  # one array per view
+model.joint_variance_explained_  # (n_views, n_components_)
+model.individual_variance_explained_  # per view, per individual component
+model.noise_variance_explained_  # (n_views,); with the above, adds up to 1 per view
+z1, z2 = model.transform([X1, X2])  # joint scores of new samples, from each view
 s1, s2 = model.transform_individual([X1, X2])
 ```
 

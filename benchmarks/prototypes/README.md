@@ -21,6 +21,15 @@ views and multiset CCA (`GCCA`) for more, to numerical precision:
 So AJIVE is a hard rank cut (the signal rank) used as the regulariser in place of a ridge
 penalty, plus the individual structure and variance accounting.
 
+## `ajive_reference.py`: AJIVE against the mvlearn implementation
+
+mvlearn's AJIVE follows the authors' reference code. Fixed ranks give the same
+decomposition: over six designs and four datasets each, the joint spaces have minimum
+principal cosine 1.000000 and the individual parts differ by about 1e-15. With the ranks
+selected automatically, both select the same joint rank in all 24 datasets (including 0 where
+there is no joint structure), although ours uses the random direction bound only. mvlearn
+needs an older numpy, so its half runs in a separate environment (see the docstring).
+
 ## `ey_shared_private.py`, `compare_shared_private.py`: an Eckart-Young shared/private fit
 
 Fits the block covariance of the views, in squared Frobenius error, by a rank-k shared
