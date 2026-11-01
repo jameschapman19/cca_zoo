@@ -156,6 +156,10 @@ covariance in their loss taken over the samples that have the views concerned; u
 views are too wide for `IncompleteGCCA`'s SVD. Missing values are assumed to be missing at random:
 if which samples lack a view depends on their biology, the fit is biased.
 
+To fill in the views that samples lack, use `model.impute(views)`, which returns the views with the
+missing rows predicted from the views each sample has. It is for the samples the model was fitted
+to; `predict` is for new samples, and `impute(views, fitted=False)` treats them alike.
+
 Only whole views may be missing: a row that is partly `NaN` raises. Impute missing entries
 within an observed view first, for example with `IterativeImputer` inside a
 [`PerViewTransformer`](../api/preprocessing.md). `fit` also raises if the views are not linked by

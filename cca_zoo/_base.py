@@ -11,7 +11,9 @@ from typing import Any, ClassVar, TypeVar
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn import get_config
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, clone
+from sklearn.linear_model import RidgeCV
+from sklearn.model_selection import KFold
 from sklearn.utils import Tags, TransformerTags, check_random_state, metadata_routing
 from sklearn.utils._array_api import (
     _convert_to_numpy,
@@ -38,6 +40,11 @@ _Model = TypeVar("_Model", bound="BaseModel")
 # rows, as sklearn's ``permutation_importance(max_samples=...)``, so that they
 # add a small fraction to the fit of the models that need them.
 _PERMUTATION_SAMPLES = 500
+
+# A model that supports missing views fits its predict maps on latents from this
+# many cross-fitted models, with a ridge penalty chosen by leave-one-out.
+_PREDICT_FOLDS = 5
+_PREDICT_RIDGE_ALPHAS = np.logspace(-2, 6, 30)
 
 
 def _weighted_pseudo_rows(views: list[Any], sample_weight: Any) -> list[Any]:
@@ -254,17 +261,15 @@ class BaseModel(BaseEstimator, ABC):
         self._inverse_maps_ = [
             _least_squares_map(s[r], v[r]) for s, v, r in zip(own_scores, targets, seen)
         ]
-        if self._supports_missing_views:
-            # A model for filling in missing views regresses each view on the
-            # latent of the other views, which is all it will have to predict
-            # from: the view's own scores are overfitted to it.
-            self._predict_maps_ = []
-            for i, v in enumerate(targets):
-                latent = self._shared_latent(
-                    {j: views[j] for j in range(self.n_views_) if j != i}
-                )
-                rows = seen[i] & np.isfinite(latent).all(axis=1)
-                self._predict_maps_.append(_least_squares_map(latent[rows], v[rows]))
+        if self._supports_missing_views and self._calibrates_predict:
+            self._predict_maps_, self._fitted_scale_ = self._calibrated_predict_maps(
+                views, targets, seen
+            )
+        elif self._supports_missing_views:
+            latent = self._shared_latent(dict(enumerate(views)))
+            self._predict_maps_ = [
+                _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
+            ]
         else:
             latent = self._shared_latent(dict(enumerate(views)))
             self._predict_maps_ = [
@@ -278,6 +283,89 @@ class BaseModel(BaseEstimator, ABC):
             self.feature_importances_per_view_.append(
                 positive / total if total > 0 else positive
             )
+
+    # Instance attribute set False on the cross-fitted models, which do not
+    # themselves calibrate.
+    _calibrates_predict: bool = True
+
+    def _calibrated_predict_maps(
+        self, views: list[np.ndarray], targets: list[np.ndarray], seen: list[np.ndarray]
+    ) -> tuple[list[np.ndarray], list[np.ndarray]]:
+        """Maps from the latent of the other views to each view, for filling in.
+
+        A model that fills in missing views predicts a view from the others
+        alone, so each map is fitted to that: the latent of the views but the
+        target, which for the training samples is *out of fold*. The scores of
+        a model fitted to the view overfit it, and a map fitted to them is
+        confident beyond what the other views can tell. Each fold's latent is
+        aligned to this model's by least squares on the samples both were
+        fitted to, and the map is a ridge regression with its penalty chosen by
+        leave-one-out, so that a faint shared signal gives a map near zero and
+        the prediction falls back to the view's mean.
+
+        If the folds cannot be fitted for want of samples shared by the views,
+        the latent is the model's own and a warning says so.
+
+        Also returns, for each view, the ratio of the out-of-fold latent's
+        standard deviation to the model's own, per dimension. The own scores
+        of the samples the model was fitted to are inflated, by as much as
+        fourfold when the views have many more features than there are samples,
+        and :meth:`impute` rescales them by this ratio.
+
+        Returns:
+            The maps, and the rescaling of fitted samples' latents.
+        """
+        n_views = self.n_views_
+        folds = list(
+            KFold(_PREDICT_FOLDS, shuffle=True, random_state=0).split(views[0])
+        )
+        fitted_folds: list[BaseModel] = []
+        try:
+            for train, _ in folds:
+                fold: BaseModel = clone(self)
+                fold._calibrates_predict = False
+                fitted_folds.append(fold.fit([v[train] for v in views]))
+        except ValueError as error:
+            warnings.warn(
+                f"{type(self).__name__} could not cross-fit its predict maps ({error}) "
+                "and uses its own scores, which are overconfident when filling in "
+                "a view.",
+                UserWarning,
+                stacklevel=3,
+            )
+            fitted_folds = []
+        maps, ratios = [], []
+        for i in range(n_views):
+            others = [j for j in range(n_views) if j != i]
+            latent = own = self._shared_latent({j: views[j] for j in others})
+            if fitted_folds:
+                latent = np.full_like(own, np.nan)
+                for (train, test), fold in zip(folds, fitted_folds):
+                    given = [None if j == i else views[j] for j in range(n_views)]
+                    fitted = fold.transform_shared(
+                        [g if g is None else g[train] for g in given]
+                    )
+                    usable = np.isfinite(fitted).all(axis=1) & np.isfinite(
+                        own[train]
+                    ).all(axis=1)
+                    rotation = np.linalg.lstsq(
+                        fitted[usable], own[train][usable], rcond=None
+                    )[0]
+                    held_out = fold.transform_shared(
+                        [g if g is None else g[test] for g in given]
+                    )
+                    latent[test] = held_out @ rotation
+            rows = seen[i] & np.isfinite(latent).all(axis=1)
+            scale = latent[rows].std(axis=0)
+            ridge = RidgeCV(alphas=_PREDICT_RIDGE_ALPHAS, fit_intercept=False)
+            ridge.fit(latent[rows] / scale, targets[i][rows])
+            maps.append(ridge.coef_.T / scale[:, None])
+            ratios.append(
+                scale / np.nanstd(own[rows], axis=0)
+                if fitted_folds
+                else np.ones_like(scale)
+            )
+        return maps, ratios
 
     @property
     def _finite_check(self) -> bool | str:
@@ -659,6 +747,57 @@ class BaseModel(BaseEstimator, ABC):
                     f"{[(j, a.shape) for j, a in observed.items()]}."
                 )
         return {i: v - self.means_[i] for i, v in observed.items()}
+
+    def impute(
+        self, views: list[ArrayLike], *, fitted: bool = True
+    ) -> list[np.ndarray]:
+        """Fill in the views that samples lack, from the views they have.
+
+        Rows that are wholly NaN in a view are replaced by that view's predicted
+        values; observed rows are returned as they are. A sample with no
+        observed view stays NaN.
+
+        The latent scores of samples the model was fitted to are inflated when
+        the views have many more features than there are samples, because the
+        weights were fitted to them. The prediction map expects the scale of
+        out-of-fold scores, so ``fitted=True`` rescales to it, as :meth:`predict`
+        does not. Without it, filling in the training samples of a model fitted to
+        views of thousands of features can be several times worse than predicting
+        the view's mean.
+
+        Args:
+            views: One array of shape (n_samples, n_features_i) per view, with the
+                rows of samples that lack the view all NaN.
+            fitted: Whether the samples were part of the data the model was
+                fitted to. Pass False for new samples, as for :meth:`predict`.
+
+        Returns:
+            List of arrays, each of shape (n_samples, n_features_i), without the
+            NaN rows that could be filled.
+
+        Raises:
+            ValueError: If the model does not fit samples that lack views.
+        """
+        if not self._supports_missing_views:
+            raise ValueError(
+                f"{type(self).__name__} does not fit samples that lack views, so "
+                "there is nothing to impute; use predict to reconstruct a view "
+                "from the others."
+            )
+        checked = self._check_views(views)
+        filled = [v.copy() for v in checked]
+        observed = np.stack([~np.isnan(v).all(axis=1) for v in checked], axis=1)
+        for pattern in np.unique(observed, axis=0):
+            if pattern.all() or not pattern.any():
+                continue
+            rows = np.flatnonzero((observed == pattern).all(axis=1))
+            latent = self._shared_latent(
+                {j: checked[j][rows] - self.means_[j] for j in np.flatnonzero(pattern)}
+            )
+            for i in np.flatnonzero(~pattern):
+                scaled = latent * self._fitted_scale_[i] if fitted else latent
+                filled[i][rows] = scaled @ self._predict_maps_[i] + self.means_[i]
+        return filled
 
     def transform_shared(self, views: list[ArrayLike | None]) -> Any:
         """One latent score per sample, estimated from the views that are observed.
