@@ -248,13 +248,14 @@ class BaseModel(BaseEstimator, ABC):
         targets = (
             [np.nan_to_num(v, nan=0.0) for v in views] if self._reads_nan else views
         )
-        # A row a view lacks has no scores of its own, and is left out of that
-        # view's regressions.
-        seen = [np.isfinite(s).all(axis=1) for s in own_scores]
-        self._inverse_maps_ = [
-            _least_squares_map(s[r], v[r]) for s, v, r in zip(own_scores, targets, seen)
-        ]
         if self._supports_missing_views:
+            # A row a view lacks has no scores of its own, and is left out of that
+            # view's regressions.
+            seen = [np.isfinite(s).all(axis=1) for s in own_scores]
+            self._inverse_maps_ = [
+                _least_squares_map(s[r], v[r])
+                for s, v, r in zip(own_scores, targets, seen)
+            ]
             # A model for filling in missing views regresses each view on the
             # latent of the other views, which is all it will have to predict
             # from: the view's own scores are overfitted to it.
@@ -266,10 +267,11 @@ class BaseModel(BaseEstimator, ABC):
                 rows = seen[i] & np.isfinite(latent).all(axis=1)
                 self._predict_maps_.append(_least_squares_map(latent[rows], v[rows]))
         else:
-            latent = self._shared_latent(dict(enumerate(views)))
-            self._predict_maps_ = [
-                _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
+            self._inverse_maps_ = [
+                _least_squares_map(s, v) for s, v in zip(own_scores, targets)
             ]
+            latent = self._shared_latent(dict(enumerate(views)))
+            self._predict_maps_ = [_least_squares_map(latent, v) for v in targets]
         self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
             xp, _ = get_namespace(raw)
