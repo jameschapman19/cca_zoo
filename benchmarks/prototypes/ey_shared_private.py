@@ -139,3 +139,54 @@ class SharedPrivateEY:
         seen = np.isfinite(stacked)
         total = np.where(seen, stacked, 0.0).sum(axis=0)
         return total / np.maximum(seen.sum(axis=0), 1), private_scores
+
+
+class WhitenedSharedPrivateEY:
+    """The same fit on ridge-whitened views, as CCAEY's ``shrinkage`` whitens its constraint.
+
+    Each view is mapped to ``(x - mean) V diag(d)^(-1/2)``, with ``x = U S V'`` its SVD and
+    ``d = (1 - c) S^2 / (n - 1) + c`` the spectrum of ``(1 - c) Sigma + c I``. The Frobenius fit
+    of the block covariance of these coordinates is then the Eckart-Young loss on the whitened
+    covariance: ``c = 1`` is the raw-covariance fit (PLS, which chases large private variance),
+    and as ``c`` falls the large directions are compressed, as CCA does. The coordinates have at
+    most ``n - 1`` dimensions however wide the view, so wide views cost the SVD alone.
+    """
+
+    def __init__(
+        self,
+        n_shared: int,
+        n_private: int | list[int],
+        shrinkage: float = 0.5,
+        max_iter: int = 500,
+    ):
+        self.n_shared, self.n_private = n_shared, n_private
+        self.shrinkage, self.max_iter = shrinkage, max_iter
+
+    def _reduce(self, views: list[np.ndarray]) -> list[np.ndarray]:
+        reduced = []
+        for v, mean, basis in zip(views, self.means_, self.bases_):
+            y = (v - mean) @ basis
+            reduced.append(y)
+        return reduced
+
+    def fit(self, views: list[np.ndarray], seed: int = 0) -> WhitenedSharedPrivateEY:
+        """Whiten each view on its observed samples, then fit the shared/private loss."""
+        c = self.shrinkage
+        self.means_, self.bases_ = [], []
+        for v in views:
+            rows = ~np.isnan(v).any(axis=1)
+            mean = v[rows].mean(axis=0)
+            x = v[rows] - mean
+            _, s, vt = np.linalg.svd(x, full_matrices=False)
+            keep = s > s[0] * max(x.shape) * np.finfo(s.dtype).eps
+            d = (1.0 - c) * s[keep] ** 2 / (rows.sum() - 1) + c
+            self.means_.append(mean)
+            self.bases_.append(vt[keep].T / np.sqrt(d))
+        self.inner_ = SharedPrivateEY(self.n_shared, self.n_private, self.max_iter).fit(
+            self._reduce(views), seed=seed
+        )
+        return self
+
+    def scores(self, views: list[np.ndarray]) -> tuple[np.ndarray, list[np.ndarray]]:
+        """Shared scores (n, k) and private scores, from the whitened coordinates."""
+        return self.inner_.scores(self._reduce(views))

@@ -37,22 +37,35 @@ part plus a low-rank private part per view that touches only that view's diagona
 The gradient is analytic and matches finite differences to 4e-8, with views missing; every
 term is an n by k product, so wide views cost O(n p k).
 
-On the simulator (4 datasets per cell; shared recovery, private recovery):
+**On raw views it fails when the shared signal is faint** (shared recovery 0.39 at 2% shared
+variance and 0.17 at 1%, against 0.93-0.97 for AJIVE), even started from a good solution. The
+Frobenius error of the raw covariance is the PLS criterion, not the CCA one: it chases the
+high-variance private directions and the chance cross-covariance between them.
 
-| regime | views missing | AJIVE (true ranks) | EY shared/private |
-|---|---|---|---|
-| moderate (10% shared, 60-80 features) | 0% | 0.95, 0.95 | 0.95, 0.94 |
-| moderate | 30% | 0.82, 0.95 (views mean-filled) | 0.89, 0.91 (native) |
-| faint (2% shared, 300-400 features) | 0% | 0.97, 0.98 | 0.39, 0.89 |
-| fainter (1% shared) | 0% | 0.93, 0.98 | 0.17, 0.91 |
+**On ridge-whitened views it works.** `WhitenedSharedPrivateEY` maps each view to
+`(x - mean) V diag(d)^(-1/2)`, with `x = U S V'` and `d = (1 - c) S^2 / (n - 1) + c`, the spectrum
+of `(1 - c) Sigma + c I` that CCAEY's `shrinkage` uses for its constraint. The Frobenius fit of
+the block covariance of those coordinates is the Eckart-Young loss on the whitened covariance:
+`c = 1` is the raw fit above, small `c` is CCA-like, and in between the private part still sees
+variance. The coordinates have at most `n - 1` dimensions, so wide views cost the SVD alone.
 
-It works where the shared signal is strong and handles missing views natively, but
-fails when the shared signal is faint next to large private variance, even started from
-the good `IncompleteGCCA` solution. The Frobenius error of the raw covariance is the
-PLS criterion, not the CCA one: it chases the high-variance private directions and the
-chance cross-covariance between them. It needs whitening to compete, and a whitened
-version on the signal subspaces is AJIVE.
+Shared and private recovery on the simulator (4 datasets per cell; the shared and private ranks
+are the true ones for every method; AJIVE gets mean-filled views where samples lack a view):
 
-Caveats: four datasets per cell, `IncompleteGCCA` at a fixed shrinkage of 0.5 (the
-benchmark tunes it), AJIVE given the true individual ranks in this comparison, and timings
-taken while other jobs used the machine.
+| regime | views missing | raw fit | whitened, c=0.5 | AJIVE | IncompleteGCCA |
+|---|---|---|---|---|---|
+| moderate (10% shared, 60-80 features) | 0% | 0.95, 0.94 | 0.95, 0.95 | 0.95, 0.95 | 0.95, - |
+| moderate | 30% | 0.89, 0.91 | 0.90, 0.95 | 0.82, 0.95 | 0.90, - |
+| faint (2% shared, 300-400 features) | 0% | 0.39, 0.89 | 0.97, 0.98 | 0.97, 0.98 | 0.96, - |
+| faint | 30% | 0.29, 0.90 | 0.85, 0.95 | 0.82, 0.98 | 0.74, - |
+| fainter (1% shared) | 0% | 0.17, 0.91 | 0.92, 0.97 | 0.93, 0.98 | 0.82, - |
+| fainter | 30% | 0.12, 0.91 | 0.64, 0.91 | 0.76, 0.98 | 0.25, - |
+
+So on complete data it matches AJIVE, and with views missing it handles them natively and is
+ahead of mean-filled AJIVE in the moderate and faint regimes and behind it in the hardest cell.
+It is a single objective rather than a pipeline of SVD steps, so it can take penalties (sparse
+loadings, say) that AJIVE cannot.
+
+Caveats: four datasets per cell; the ranks are given, not selected; `IncompleteGCCA` is at a
+fixed shrinkage of 0.5 (the benchmark tunes it); and timings were taken while other jobs used the
+machine. Not yet tried: wrong ranks, real data, or a version that avoids the SVD for very large n.

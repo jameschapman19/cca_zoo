@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 
 import numpy as np
-from ey_shared_private import SharedPrivateEY
+from ey_shared_private import SharedPrivateEY, WhitenedSharedPrivateEY
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "missing_views"))
 from metrics import subspace_recovery  # noqa: E402
@@ -90,6 +90,17 @@ def run(regime: str, rate: float, seed: int) -> list[dict]:
         private,
         time.perf_counter() - t,
     )
+
+    for c in (0.2, 0.5, 0.8):
+        t = time.perf_counter()
+        whitened = WhitenedSharedPrivateEY(K, r, shrinkage=c).fit(masked, seed=seed)
+        shared, private = whitened.scores(masked)
+        record(
+            f"EY shared/private, whitened (c={c})",
+            shared,
+            private,
+            time.perf_counter() - t,
+        )
 
     t = time.perf_counter()
     filled = [
