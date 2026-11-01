@@ -56,28 +56,37 @@ def _incomplete(views: Views, seed: int) -> tuple[IncompleteGCCA, np.ndarray]:
     return model, model.transform_shared(views)
 
 
+def _predict_with(model: IncompleteGCCA) -> Any:
+    """Predict a view for some patients from their other views, as for new patients."""
+
+    def predict(views: Views, rows: np.ndarray, hidden: int) -> np.ndarray:
+        given = [None if j == hidden else v[rows] for j, v in enumerate(views)]
+        prediction: np.ndarray = model.predict(given)[hidden]
+        return prediction
+
+    return predict
+
+
 def fit_all(views: Views, seed: int) -> dict[str, Any]:
     """Every method fitted to the views: its latent for every sample, and a predictor.
 
-    The predictor maps (given views for some samples, with None for the view to fill
-    in) to that view's prediction.
+    The predictor maps (the views, the patients, the view to fill in) to that view's
+    prediction for those patients.
     """
     observed = np.stack([~np.isnan(v).all(axis=1) for v in views], axis=1)
     fitted: dict[str, Any] = {}
 
     model, latent = _incomplete(views, seed)
-    fitted["IncompleteGCCA"] = (latent, lambda g, h, m=model: m.predict(g)[h])
+    # The patients to fill in are part of the fit, which is what impute is for.
+    fitted["IncompleteGCCA"] = (latent, lambda v, r, h, m=model: m.impute(v)[h][r])
 
     complete = observed.all(axis=1)
     model, _ = _incomplete([v[complete] for v in views], seed)
-    fitted["Complete cases"] = (
-        model.transform_shared(views),
-        lambda g, h, m=model: m.predict(g)[h],
-    )
+    fitted["Complete cases"] = (model.transform_shared(views), _predict_with(model))
 
     filled = [np.nan_to_num(v) for v in views]
     model, latent = _incomplete(filled, seed)
-    fitted["Mean-imputed"] = (latent, lambda g, h, m=model: m.predict(g)[h])
+    fitted["Mean-imputed"] = (latent, _predict_with(model))
 
     for name, n_init in (("MOFA+ (default)", 1), ("MOFA+ (best of 5 random)", 5)):
         fits = [
@@ -96,8 +105,8 @@ def predict_hidden(
     if isinstance(predictor, tuple):  # MOFA+: z W' + mean
         z, weights, means = predictor
         return z[rows] @ weights[hidden].T + means[hidden]
-    given = [None if j == hidden else v[rows] for j, v in enumerate(views)]
-    return predictor(given, hidden)
+    prediction: np.ndarray = predictor(views, rows, hidden)
+    return prediction
 
 
 def biology(cll: data.CLL, seed: int = 0) -> list[dict]:

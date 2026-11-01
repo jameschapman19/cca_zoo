@@ -89,7 +89,7 @@ def incomplete_gcca(
     model = _tuned(
         lambda s: IncompleteGCCA(n_components=n_shared, shrinkage=s), views, seed
     )
-    return model.transform_shared(views), _reconstruct(model, views, observed)
+    return model.transform_shared(views), model.impute(views)
 
 
 def masked_ccaey(
@@ -105,7 +105,7 @@ def masked_ccaey(
         views,
         seed,
     )
-    return model.transform_shared(views), _reconstruct(model, views, observed)
+    return model.transform_shared(views), model.impute(views)
 
 
 def gcca_complete_cases(

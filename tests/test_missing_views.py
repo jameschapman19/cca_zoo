@@ -215,3 +215,59 @@ def test_predict_maps_fall_back_with_a_warning_when_the_folds_cannot_be_fitted()
         view[rows] = np.nan
     with pytest.warns(UserWarning, match="could not cross-fit its predict maps"):
         IncompleteGCCA(n_components=2).fit(views)
+
+
+@pytest.mark.parametrize("cls", model_params(_FILLERS))
+def test_impute_fills_the_missing_views_and_keeps_the_observed(
+    cls: type[BaseModel],
+) -> None:
+    """Missing rows are predicted, observed rows are returned unchanged."""
+    _, incomplete, _ = _incomplete_views()
+    model = fit(make_model(cls).set_params(n_components=2), incomplete)
+    filled = model.impute(incomplete)
+    for original, completed in zip(incomplete, filled):
+        missing = np.isnan(original).all(axis=1)
+        assert np.isfinite(completed).all()
+        np.testing.assert_array_equal(completed[~missing], original[~missing])
+        assert not np.allclose(completed[missing], 0)
+
+
+def test_impute_needs_a_model_that_fits_missing_views() -> None:
+    """A model that requires every view has nothing to impute."""
+    from cca_zoo.linear import CCA
+
+    views, _, _ = _incomplete_views()
+    model = CCA().fit([v[100:200] for v in views[:2]])
+    with pytest.raises(ValueError, match="does not fit samples that lack views"):
+        model.impute(views[:2])
+
+
+def test_impute_rescales_the_scores_of_the_samples_it_was_fitted_to() -> None:
+    """With views of thousands of features, fitted samples' scores are inflated.
+
+    The weights were fitted to those samples, so their scores spread far wider
+    than the out-of-fold scores the prediction map was fitted to. Rescaling them
+    does better than predicting from them as they are.
+    """
+    from cca_zoo.linear import IncompleteGCCA
+
+    for seed in range(3):
+        rng = np.random.default_rng(seed)
+        z = rng.standard_normal((80, 2))
+        signal = [
+            z @ rng.standard_normal((2, p)) * np.sqrt(0.025) for p in (2000, 1500, 1000)
+        ]
+        views = [s + rng.standard_normal(s.shape) * np.sqrt(0.95) for s in signal]
+        views[0][:20] = np.nan
+        model = IncompleteGCCA(n_components=2, shrinkage=0.5).fit(views)
+        mean = np.nanmean(views[0], axis=0)
+
+        def error(filled: list[np.ndarray]) -> float:
+            return float(
+                np.sum((filled[0][:20] - signal[0][:20]) ** 2)
+                / np.sum((mean - signal[0][:20]) ** 2)
+            )
+
+        rescaled = error(model.impute(views))
+        assert rescaled < error(model.impute(views, fitted=False))
+        assert rescaled < 0.8  # and it still beats predicting the view's mean

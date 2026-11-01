@@ -33,6 +33,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
   near zero and the prediction falls back to the mean, and a strong one still beats it. The cost
   is five extra fits at `fit`; if the folds cannot be fitted for want of samples shared by the
   views, `fit` warns and uses the model's own scores.
+- `impute` fills in the views that samples lack, for the models that support missing views. The
+  scores of the samples a model was fitted to are inflated when the views have far more features
+  than samples (fourfold on the CLL cohort), so the map fitted to out-of-fold scores overshoots
+  when `predict` is used on them: filling in a hidden drug view scored −0.4 to −1.1 against
+  predicting the mean, against −0.01 to −0.07 with `impute`, which rescales them to the out-of-fold
+  scale. `predict` is for new samples; pass `fitted=False` to `impute` for them too.
+- `IncompleteGCCA` fits wide views through their SVDs rather than a feature-by-feature
+  eigendecomposition: 117 s to 2.7 s on 200 patients with 9,600 features, with the same scores.
 - `AJIVE` splits each view into variation shared with the other views, variation of its own, and
   noise (Feng et al., 2018), with the joint rank fixed or chosen by the random direction bound
   (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of
