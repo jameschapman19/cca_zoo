@@ -92,6 +92,15 @@ per cell and with c=0.5 (shared recovery, equal -> count): faint 30% missing 0.8
 50% 0.78 -> 0.80. It is better or equal in all twelve cells tried, most under heavy missingness,
 though the gains are within one standard deviation across datasets (0.1-0.2) in several cells.
 
+**It is the plain Eckart-Young loss on one masked factor** (`ey_masked_factor_check.py`). Stack the
+shared loadings and every view's private loadings into one factor `L`, the private columns of
+view j nonzero only in view j's rows. The model covariance is `L L'` and the loss is `-2 tr(L' S L)
++ tr((L' L)^2)`, with gradient `4 (L L'L - S L)`, restricted to the support of `L`. The
+shared/private cross terms and the other views' private terms fall out of the Gram matrices with no
+case analysis: about 12 lines in place of 35, equal to the longer version to 10 digits (gradients
+to 1e-15), with and without the block weights. What it is not yet: the ridge whitening sits
+outside the loss (CCAEY puts its ridge inside), and the ranks are chosen outside it.
+
 Caveats: four datasets per cell in the comparison above; `IncompleteGCCA` is at a
 fixed shrinkage of 0.5 (the benchmark tunes it); and timings were taken while other jobs used the
 machine. Not yet tried: real data, a rank-selection rule, or a version that avoids the SVD for very large n.
