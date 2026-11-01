@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `cca_zoo.metrics.variance_explained` gives each view's variance explained by each latent
+  dimension alone, for any model, as in the per-factor variance explained of MOFA. A sample that
+  lacks a view, or has `NaN` scores, is left out of that view.
+
 - `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
   error, dropping the `i = j` terms of the empirical characteristic function's squared
   modulus. The default plug-in statistic, which the reference implementation uses, has
