@@ -24,6 +24,7 @@ class Dataset:
     observed: np.ndarray  # (n_samples, n_views) bool
     shared_factors: np.ndarray  # (n_samples, n_shared)
     shared_signal: list[np.ndarray]  # each view's noise-free shared part
+    private_factors: list[np.ndarray]  # each view's private factors
 
     @property
     def masked(self) -> list[np.ndarray]:
@@ -64,9 +65,10 @@ def simulate(
     """
     rng = np.random.default_rng(seed)
     z = rng.standard_normal((n_samples, n_shared))
-    views, signals = [], []
+    views, signals, privates = [], [], []
     for p in widths:
         own = rng.standard_normal((n_samples, n_private))
+        privates.append(own)
         signal = z @ _loadings(rng, n_shared, p, density) * np.sqrt(shared / n_shared)
         signals.append(signal)
         views.append(
@@ -75,7 +77,7 @@ def simulate(
             + rng.standard_normal((n_samples, p)) * np.sqrt(1 - shared - private)
         )
     observed = _observed(rng, z[:, 0], len(widths), missing_rate, mechanism)
-    return Dataset(views, observed, z, signals)
+    return Dataset(views, observed, z, signals, privates)
 
 
 def _loadings(rng: np.random.Generator, k: int, p: int, density: float) -> np.ndarray:

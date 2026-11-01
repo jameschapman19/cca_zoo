@@ -1,0 +1,141 @@
+"""Prototype: an Eckart-Young shared/private decomposition.
+
+The block covariance of the views is fitted, in squared Frobenius error, by
+
+    L_S L_S'  +  blockdiag(L_P1 L_P1', ..., L_PM L_PM'),
+
+a rank-k shared part whose loadings are stacked across views, and a low-rank
+private part per view that touches only that view's diagonal block. Unconstrained
+and differentiable, as the Eckart-Young loss of CCAEY is. Every term is formed from
+the n by k products X_i L, never a feature-by-feature matrix, and a sample that lacks
+a view drops out of the blocks it is not in, with the divisor of the samples that
+have both views, as CCAEY's missing-view loss does.
+
+Not a library model: this is to see whether the idea works.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+from scipy.optimize import minimize
+
+
+class SharedPrivateEY:
+    """Fit the loss above by L-BFGS from an initial shared latent."""
+
+    def __init__(self, n_shared: int, n_private: int | list[int], max_iter: int = 500):
+        self.n_shared, self.n_private, self.max_iter = n_shared, n_private, max_iter
+
+    # ----- data ------------------------------------------------------------
+    def _prepare(self, views: list[np.ndarray]) -> None:
+        """Centre on observed rows, zero-fill, scale each view to unit total variance."""
+        self.observed_ = np.stack([~np.isnan(v).any(axis=1) for v in views], axis=1)
+        self.means_ = [np.nanmean(v, axis=0) for v in views]
+        x = [np.nan_to_num(v - m) for v, m in zip(views, self.means_)]
+        self.scales_ = [
+            np.sqrt(np.sum(v**2) / (o.sum() - 1)) for v, o in zip(x, self.observed_.T)
+        ]
+        self.x_ = [v / s for v, s in zip(x, self.scales_)]
+        seen = self.observed_.astype(float)
+        self.divisor_ = seen.T @ seen - 1.0
+
+    # ----- loss and gradient -------------------------------------------------
+    def _unpack(self, theta: np.ndarray) -> tuple[list[np.ndarray], list[np.ndarray]]:
+        shared, private, at = [], [], 0
+        for p, r in zip(self.p_, self.r_):
+            shared.append(theta[at : at + p * self.n_shared].reshape(p, self.n_shared))
+            at += p * self.n_shared
+            private.append(theta[at : at + p * r].reshape(p, r))
+            at += p * r
+        return shared, private
+
+    def loss_and_gradient(self, theta: np.ndarray) -> tuple[float, np.ndarray]:
+        """The Frobenius loss up to a constant, and its gradient."""
+        shared, private = self._unpack(theta)
+        m, inv = len(shared), 1.0 / self.divisor_
+        u = [x @ s for x, s in zip(self.x_, shared)]
+        v = [x @ q for x, q in zip(self.x_, private)]
+        gram = [s.T @ s for s in shared]
+        total_gram = sum(gram)
+        loss = np.sum(total_gram * total_gram.T)  # tr((sum_i G_i)^2)
+        grad_s, grad_p = [], []
+        for i in range(m):
+            cross = shared[i].T @ private[i]
+            h = private[i].T @ private[i]
+            loss += (
+                np.sum(h * h) + 2 * np.sum(cross**2) - 2 * np.sum(v[i] ** 2) * inv[i, i]
+            )
+            for j in range(m):
+                loss -= 2 * np.sum(u[i] * u[j]) * inv[i, j]
+            others = sum(u[j] * inv[i, j] for j in range(m))
+            grad_s.append(
+                -4 * self.x_[i].T @ others
+                + 4 * shared[i] @ total_gram
+                + 4 * private[i] @ cross.T
+            )
+            grad_p.append(
+                -4 * self.x_[i].T @ v[i] * inv[i, i]
+                + 4 * private[i] @ h
+                + 4 * shared[i] @ cross
+            )
+        flat = np.concatenate(
+            [np.concatenate([a.ravel(), b.ravel()]) for a, b in zip(grad_s, grad_p)]
+        )
+        return float(loss), flat
+
+    # ----- fitting -----------------------------------------------------------
+    def fit(
+        self, views: list[np.ndarray], latent: np.ndarray | None = None, seed: int = 0
+    ) -> SharedPrivateEY:
+        """Fit; ``latent`` (n, k) starts the shared part, else a random start."""
+        self._prepare(views)
+        self.p_ = [v.shape[1] for v in views]
+        r = self.n_private
+        self.r_ = r if isinstance(r, list) else [r] * len(views)
+        rng = np.random.default_rng(seed)
+        theta = []
+        for i, x in enumerate(self.x_):
+            rows = self.observed_[:, i]
+            if latent is None:
+                shared = rng.standard_normal((x.shape[1], self.n_shared)) * 0.05
+            else:
+                z = np.where(np.isfinite(latent), latent, 0.0)
+                shared = x[rows].T @ z[rows] / (rows.sum() - 1)
+            resid = (
+                x - np.where(rows[:, None], z @ shared.T, 0.0)
+                if latent is not None
+                else x
+            )
+            _, s, vt = np.linalg.svd(resid[rows], full_matrices=False)
+            private = vt[: self.r_[i]].T * s[: self.r_[i]] / np.sqrt(rows.sum() - 1)
+            theta.append(np.concatenate([shared.ravel(), private.ravel()]))
+        result = minimize(
+            self.loss_and_gradient,
+            np.concatenate(theta),
+            jac=True,
+            method="L-BFGS-B",
+            options={"maxiter": self.max_iter},
+        )
+        self.shared_, self.private_ = self._unpack(result.x)
+        self.loss_, self.n_iter_ = result.fun, result.nit
+        return self
+
+    # ----- scores ------------------------------------------------------------
+    def scores(self, views: list[np.ndarray]) -> tuple[np.ndarray, list[np.ndarray]]:
+        """Shared scores (n, k) averaged over each sample's views, and private scores.
+
+        Each view's centred rows are regressed on its shared and private loadings
+        together, so that private variation does not leak into the shared scores.
+        """
+        shared_scores, private_scores = [], []
+        for v, m, s, shared, private in zip(
+            views, self.means_, self.scales_, self.shared_, self.private_
+        ):
+            loadings = np.concatenate([shared, private], axis=1)
+            z = ((v - m) / s) @ np.linalg.pinv(loadings).T
+            shared_scores.append(z[:, : self.n_shared])
+            private_scores.append(z[:, self.n_shared :])
+        stacked = np.stack(shared_scores)
+        seen = np.isfinite(stacked)
+        total = np.where(seen, stacked, 0.0).sum(axis=0)
+        return total / np.maximum(seen.sum(axis=0), 1), private_scores
