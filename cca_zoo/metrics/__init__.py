@@ -12,7 +12,6 @@ from cca_zoo.metrics._redundancy import (
     redundancy_index,
     total_redundancy,
 )
-from cca_zoo.metrics._variance import variance_explained
 
 __all__ = [
     "adequacy_coefficient",
@@ -21,5 +20,4 @@ __all__ = [
     "pairwise_correlations",
     "redundancy_index",
     "total_redundancy",
-    "variance_explained",
 ]

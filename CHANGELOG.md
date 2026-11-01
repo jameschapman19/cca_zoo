@@ -14,8 +14,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of
   each view's variance in every joint and individual component. With each view cut to its signal
   subspace its joint scores are CCA's for two views and multiset CCA's (`GCCA`) for more.
-- `cca_zoo.metrics.variance_explained` gives each view's variance explained by each latent
-  dimension alone, for any model.
 
 - `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
   error, dropping the `i = j` terms of the empirical characteristic function's squared

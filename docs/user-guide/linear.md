@@ -166,9 +166,7 @@ s1, s2 = model.transform_individual([X1, X2])
 
 `"auto"` raises if no singular value beats the random direction bound: no joint structure was
 found. The bound on the estimation error of the signal subspaces (the Wedin bound of Feng et
-al.) is not implemented, so with noisy data check the selected rank. For the same
-variance-explained numbers from any other model, use
-[`cca_zoo.metrics.variance_explained`](../api/metrics.md).
+al.) is not implemented, so with noisy data check the selected rank.
 
 ---
 
