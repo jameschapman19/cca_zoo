@@ -17,3 +17,5 @@ rather than a fitted model, the same convention `sklearn.metrics` uses.
 ::: cca_zoo.metrics.redundancy_index
 
 ::: cca_zoo.metrics.total_redundancy
+
+::: cca_zoo.metrics.variance_explained

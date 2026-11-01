@@ -131,6 +131,45 @@ from cca_zoo.linear import TCCA
 model = TCCA(n_components=2, shrinkage=0.01, random_state=0).fit([X1, X2, X3])
 ```
 
+### AJIVE — joint and individual variation
+
+**When to use:** When you want to know what the views share *and* what is specific to each,
+rather than only the shared part. CCA-style methods return the shared directions;
+`AJIVE` also returns each view's individual structure and how much of every view's variance
+each part explains, as in a MOFA variance-explained plot.
+
+Each centred view is split into variation shared across views, variation of its own, and noise:
+
+$$
+X_i = Z_J B_i + Z_{I,i} L_i^\top + E_i
+$$
+
+The joint scores $Z_J$ come from the alignment of the views' signal subspaces (Feng et al., 2018);
+with each view cut to its signal subspace they are CCA's for two views and multiset CCA's
+(`GCCA`) for more, so AJIVE is CCA regularised by a rank cut rather than a ridge penalty.
+`n_components` is the number of joint components, or `"auto"` to select it by the random
+direction bound; per-view signal and individual ranks default to Gavish and Donoho's optimal
+singular-value threshold.
+
+```python
+from cca_zoo.linear import AJIVE
+
+model = AJIVE(n_components="auto", random_state=0).fit([X1, X2])
+model.joint_scores_  # (n_samples, n_components_), one set for all views
+model.individual_scores_  # one array per view
+model.joint_variance_explained_  # (n_views, n_components_)
+model.individual_variance_explained_  # per view, per individual component
+model.noise_variance_explained_  # (n_views,); with the above, adds up to 1 per view
+z1, z2 = model.transform([X1, X2])  # joint scores of new samples, from each view
+s1, s2 = model.transform_individual([X1, X2])
+```
+
+`"auto"` raises if no singular value beats the random direction bound: no joint structure was
+found. The bound on the estimation error of the signal subspaces (the Wedin bound of Feng et
+al.) is not implemented, so with noisy data check the selected rank. For the same
+variance-explained numbers from any other model, use
+[`cca_zoo.metrics.variance_explained`](../api/metrics.md).
+
 ---
 
 ## EY-loss methods
@@ -337,6 +376,7 @@ dispatch.
 | $n < p$ or ill-conditioned | `RidgeCCA` (tune `shrinkage`) |
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
+| Shared and view-specific structure, with variance explained | `AJIVE` |
 | Higher-order cross-view structure | `TCCA` |
 | Sparse weights needed | [`cca_zoo.sparse.PMDCCA`](sparse.md) or [`IPLSCCA`](sparse.md) |
 | Very large $p$ | `CCAEY`, `PLSEY` |

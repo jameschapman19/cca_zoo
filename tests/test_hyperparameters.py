@@ -41,6 +41,9 @@ _MODEL_SOLVER = {
     ("ADMMCCA", "rho"): "ADMM's step size, not its problem",
     ("StochasticCCAEY", "learning_rate"): "the step size, not the problem",
     ("VariationalBayesCCA", "learning_rate"): "the step size, not the problem",
+    ("AJIVE", "individual_ranks"): "shapes the individual part, not the joint scores",
+    ("AJIVE", "alpha"): "acts through the selected joint rank, tested in test_ajive",
+    ("AJIVE", "n_null_draws"): "the accuracy of that selection, not its target",
 }
 
 # The model under test is fitted with these, so each parameter has a setting
@@ -108,6 +111,7 @@ _ALTERNATIVE: dict[str, Any] = {
     "span": 2,
     "batch_size": 16,
     "positive": "flip",
+    "signal_ranks": 4,
 }
 _MODEL_ALTERNATIVE: dict[tuple[str, str], Any] = {
     ("GRCCA", "shrinkage"): 0.9,
