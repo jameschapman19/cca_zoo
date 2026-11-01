@@ -66,6 +66,24 @@ ahead of mean-filled AJIVE in the moderate and faint regimes and behind it in th
 It is a single objective rather than a pipeline of SVD steps, so it can take penalties (sparse
 loadings, say) that AJIVE cannot.
 
-Caveats: four datasets per cell; the ranks are given, not selected; `IncompleteGCCA` is at a
+**Wrong ranks** (`robustness.py`, 8 datasets per cell, 2% shared variance, 2 shared and 3 private
+factors per view; shared rank k in 1-3, private rank r in 1, 3 and 5; shared and private recovery):
+
+| views missing | method | right ranks (k=2, r=3) | worst over the nine (k, r) |
+|---|---|---|---|
+| 0% | whitened EY | 0.97, 0.98 | 0.94, 0.87 |
+| 0% | AJIVE | 0.97, 0.98 | 0.51, 0.84 |
+| 30% | whitened EY | 0.83, 0.94 | 0.62, 0.84 |
+
+On complete data the whitened fit recovers the shared factors at 0.94 or better for every
+combination of wrong ranks, including a private rank of 1 against three true private factors,
+where AJIVE's shared recovery falls to 0.51: too few individual components leave private
+variation to leak into its joint scores. The private recovery drops to about 0.85 for both when
+the shared rank is too large (k=3), because the extra shared dimension takes a private factor.
+With 30% of views missing it is more sensitive: 0.83 at the right ranks, 0.71 when the private
+rank is too large (r=5), and 0.62 when the shared rank is right but the private rank is 1.
+Selecting the ranks is therefore still needed, most of all with missing views.
+
+Caveats: four datasets per cell in the comparison above; `IncompleteGCCA` is at a
 fixed shrinkage of 0.5 (the benchmark tunes it); and timings were taken while other jobs used the
-machine. Not yet tried: wrong ranks, real data, or a version that avoids the SVD for very large n.
+machine. Not yet tried: real data, a rank-selection rule, or a version that avoids the SVD for very large n.
