@@ -41,7 +41,7 @@ def load() -> CLL:
     CACHE.mkdir(exist_ok=True)
     path = CACHE / "CLL_data.RData"
     if not path.exists():
-        urllib.request.urlretrieve(_URL, path)  # noqa: S310
+        urllib.request.urlretrieve(_URL, path)
     raw = rdata.read_rda(path)["CLL_data"]
     samples = [str(s) for s in raw["Drugs"].coords["dim_1"].values]
 
