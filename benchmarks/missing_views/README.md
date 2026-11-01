@@ -67,12 +67,13 @@ What it shows, over eight datasets per setting:
   complete-case GCCA are far behind it (0.36-0.46 against 0.69 at 1%).
 - **50% missing, or missingness tied to the biology.** MOFA+ is ahead or level.
 - **Imputation.** `predict` of the CCA-family models is calibrated: it uses the
-  latent of the other views out of fold with a cross-validated ridge. Before, it
+  latent of the other views out of fold with a cross-validated ridge, and `impute`
+  rescales the scores of the samples the model was fitted to. Before, it
   made about seven times the error of predicting the mean at 1% shared variance
   (R squared of -10 to -70); now `IncompleteGCCA` and masked `CCAEY` never fall far
   below the mean (skill about 0 where there is little signal) and reach 0.3-0.7
   where there is, in the base regime. MOFA+ imputes better wherever the signal is
-  real (skill 0.3-0.5 in the hard regime at 1-2% shared, against 0 to 0.17), but
+  real (skill 0.3-0.5 in the hard regime at 1-2% shared, against 0 to 0.21), but
   it can also fall far below the mean at heavy missingness (skill -0.5 to -2.5 at
   60% missing in the base regime), where the CCA family does not.
 - **Time.** `IncompleteGCCA` takes 0.6 s; MOFA+ takes 2 s, or 10 s from five starts.
