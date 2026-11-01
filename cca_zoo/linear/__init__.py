@@ -12,6 +12,7 @@ from ._ecca import ECCA
 from ._gcca import GCCA
 from ._graphical_lasso_cca import GraphicalLassoCCA
 from ._grcca import GRCCA
+from ._incomplete_gcca import IncompleteGCCA
 from ._mcca import MCCA
 from ._partialcca import PartialCCA
 from ._pls import PLS
@@ -30,6 +31,8 @@ __all__ = [
     "MCCA",
     "GCCA",
     "TCCA",
+    # Samples missing some views
+    "IncompleteGCCA",
     # Confound-adjusted / structured
     "PartialCCA",
     "GRCCA",

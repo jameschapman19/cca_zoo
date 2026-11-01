@@ -14,6 +14,7 @@ from cca_zoo._base import BaseModel
 from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
+    ey_centred,
     ey_cross_covariance,
     weight_gram_mean,
 )
@@ -38,6 +39,13 @@ class CCAEY(BaseModel):
     :class:`~cca_zoo.linear.gradient.StochasticCCAEY` for mini-batches. With
     few samples per feature, ``shrinkage=0`` is ill-conditioned; use 0.1 to
     0.3.
+
+    A sample lacks a view when its whole row is ``NaN``. Every covariance in the
+    loss is then taken over the samples that have the views concerned, so a
+    sample contributes through each view it has. Only whole views may be
+    missing, and the views must be linked by more than ``n_components`` shared
+    samples (see :class:`~cca_zoo.linear.IncompleteGCCA`). The weights are
+    fitted for the missing-at-random case.
 
     Args:
         n_components: Number of latent dimensions. Default is 1.
@@ -75,6 +83,8 @@ class CCAEY(BaseModel):
         "random_state": RANDOM_STATE,
     }
 
+    _supports_missing_views: ClassVar[bool] = True
+
     def __init__(
         self,
         n_components: int = 1,
@@ -101,16 +111,23 @@ class CCAEY(BaseModel):
         Returns:
             self.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
+        views_, observed = self._setup_missing(views)
+        filled = [np.nan_to_num(v) for v in views_]
         rng = np.random.default_rng(self.random_state)
-        start = self._initial_weights(views_, rng)
-        self.weights_, self.n_iter_ = self._minimise(views_, start, self.max_iter)
+        start = self._initial_weights(filled, rng)
+        self.weights_, self.n_iter_ = self._minimise(
+            filled, start, self.max_iter, observed
+        )
         warn_if_not_converged(self, self.n_iter_ < self.max_iter)
         self._fit_maps_and_importances(views_)
         return self
 
     def _minimise(
-        self, views: list[np.ndarray], start: list[np.ndarray], max_iter: int
+        self,
+        views: list[np.ndarray],
+        start: list[np.ndarray],
+        max_iter: int,
+        observed: np.ndarray | None = None,
     ) -> tuple[list[np.ndarray], int]:
         """The weights minimising the loss on ``views`` by L-BFGS-B from ``start``.
 
@@ -123,8 +140,14 @@ class CCAEY(BaseModel):
             The weights, and the iterations run.
         """
         c = self.shrinkage
+        seen = (
+            np.ones((views[0].shape[0], len(views)), bool)
+            if observed is None
+            else observed
+        )
         scales = [
-            np.sqrt((1 - c) * np.mean(v.var(axis=0, ddof=1)) + c) or 1.0 for v in views
+            np.sqrt((1 - c) * np.mean(v[rows].var(axis=0, ddof=1)) + c) or 1.0
+            for v, rows in zip(views, seen.T)
         ]
         shapes = [w.shape for w in start]
         splits = np.cumsum([w.size for w in start])[:-1]
@@ -136,8 +159,8 @@ class CCAEY(BaseModel):
         def loss_and_gradient(u: np.ndarray) -> tuple[float, np.ndarray]:
             weights = weights_of(u)
             scores = [v @ w for v, w in zip(views, weights)]
-            gradients = self._derivative(views, scores, weights)
-            return self._objective(views, scores, weights), np.concatenate(
+            gradients = self._derivative(views, scores, weights, observed)
+            return self._objective(views, scores, weights, observed), np.concatenate(
                 [(g / s).ravel() for g, s in zip(gradients, scales)]
             )
 
@@ -165,39 +188,48 @@ class CCAEY(BaseModel):
         views: list[np.ndarray],
         representations: list[np.ndarray],
         weights: list[np.ndarray],
+        observed: np.ndarray | None = None,
     ) -> list[np.ndarray]:
         r"""Gradient of $\mathcal{L}_{EY}(c)$ in each view's weights.
 
         The chain rule through the embeddings plus the direct term from $B$,
-        with the sample weights held fixed.
+        with the sample weights held fixed. Each embedding is centred on its
+        view's observed samples, so its gradient is centred on them too.
         """
         m = len(views)
         c = self.shrinkage
         sample_weight = self._sample_weight(representations)
-        centred = [
-            z - np.average(z, axis=0, weights=sample_weight) for z in representations
-        ]
-        total = sum(centred)
-        _, v_data = ey_cross_covariance(representations, sample_weight)
+        centred, divisor = ey_centred(representations, sample_weight, observed)
+        inverse = np.divide(1.0, divisor, out=np.zeros_like(divisor), where=divisor > 0)
+        _, v_data = ey_cross_covariance(representations, sample_weight, observed)
         v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
-        scale = 4.0 * sample_weight[:, None] / (m * (sample_weight.sum() - 1))
-        return [
-            view.T @ (scale * (c * z + (1 - c) * (z @ v_blend) - total))
-            + (4.0 * c / m) * (w @ v_blend)
-            for view, z, w in zip(views, centred, weights)
-        ]
+        seen = np.ones((len(views[0]), m)) if observed is None else observed
+        gradients = []
+        for i, (view, z, w) in enumerate(zip(views, centred, weights)):
+            embedding = (c * z + (1 - c) * (z @ v_blend)) * inverse[i, i]
+            others = sum(zj * inverse[i, j] for j, zj in enumerate(centred))
+            grad_z = (
+                (4.0 / m)
+                * (seen[:, [i]] * sample_weight[:, None])
+                * (embedding - others)
+            )
+            weight_i = seen[:, i] * sample_weight
+            grad_z = grad_z - weight_i[:, None] * (grad_z.sum(axis=0) / weight_i.sum())
+            gradients.append(view.T @ grad_z + (4.0 * c / m) * (w @ v_blend))
+        return gradients
 
     def _objective(
         self,
         views: list[np.ndarray],
         representations: list[np.ndarray],
         weights: list[np.ndarray],
+        observed: np.ndarray | None = None,
     ) -> float:
         r"""$\mathcal{L}_{EY}(c)$."""
         del views
         c = self.shrinkage
         C, v_data = ey_cross_covariance(
-            representations, self._sample_weight(representations)
+            representations, self._sample_weight(representations), observed
         )
         v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
         return float(-2.0 * np.trace(C - c * v_data) + np.trace(v_blend @ v_blend))

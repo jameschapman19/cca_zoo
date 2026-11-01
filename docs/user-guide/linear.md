@@ -131,6 +131,36 @@ from cca_zoo.linear import TCCA
 model = TCCA(n_components=2, shrinkage=0.01, random_state=0).fit([X1, X2, X3])
 ```
 
+### IncompleteGCCA — samples that lack some views
+
+**When to use:** When some samples were not measured in every view, as when a proteomics
+assay was run on only part of a cohort. Dropping those samples throws away most of the data
+once several views are involved; `IncompleteGCCA` fits every sample to the views it has.
+
+A view is missing for a sample when that sample's whole row is `NaN`. Each sample gets a latent
+score fitted to its observed views, so a sample seen in a single view still contributes, and the
+views are tied together by the samples they share. With no `NaN` the fit is exactly `GCCA`.
+
+```python
+import numpy as np
+from cca_zoo.linear import IncompleteGCCA
+
+X2[40:] = np.nan  # the last samples have no second assay
+model = IncompleteGCCA(n_components=2).fit([X1, X2, X3])
+z1, z2, z3 = model.transform([X1, X2, X3])  # NaN rows for the unobserved samples
+consensus = model.transform_shared([X1, X2, X3])  # one score per sample, from its views
+```
+
+`CCAEY`, `PLSEY` and [`StochasticCCAEY`](stochastic.md) accept the same `NaN` rows, with every
+covariance in their loss taken over the samples that have the views concerned; use them when the
+views are too wide for `IncompleteGCCA`'s SVD. Missing values are assumed to be missing at random:
+if which samples lack a view depends on their biology, the fit is biased.
+
+Only whole views may be missing: a row that is partly `NaN` raises. Impute missing entries
+within an observed view first, for example with `IterativeImputer` inside a
+[`PerViewTransformer`](../api/preprocessing.md). `fit` also raises if the views are not linked by
+more than `n_components` shared samples, since their scores would then not be tied together.
+
 ---
 
 ## EY-loss methods
@@ -337,6 +367,7 @@ dispatch.
 | $n < p$ or ill-conditioned | `RidgeCCA` (tune `shrinkage`) |
 | Maximise covariance, not correlation | `PLS` |
 | Three or more views | `MCCA` or `GCCA` |
+| Some samples lack some views | `IncompleteGCCA` |
 | Higher-order cross-view structure | `TCCA` |
 | Sparse weights needed | [`cca_zoo.sparse.PMDCCA`](sparse.md) or [`IPLSCCA`](sparse.md) |
 | Very large $p$ | `CCAEY`, `PLSEY` |

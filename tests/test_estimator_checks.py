@@ -82,7 +82,12 @@ _EXPECTED_FAILURES = {
 
 
 def _expected_failures(adapter: TwoViewAdapter) -> dict[str, str]:
-    return _EXPECTED_FAILURES.get(type(adapter.estimator).__name__, {})
+    expected = dict(_EXPECTED_FAILURES.get(type(adapter.estimator).__name__, {}))
+    if adapter.estimator._supports_missing_views:
+        expected["check_estimators_nan_inf"] = (
+            "an all-NaN row is a sample missing the view"
+        )
+    return expected
 
 
 def _adapters(slow: bool) -> list[TwoViewAdapter]:

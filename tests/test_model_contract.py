@@ -59,6 +59,27 @@ def test_transform_predict_inverse_transform(cls: type[BaseModel]) -> None:
 
 
 @pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
+def test_transform_shared_is_the_latent_that_predict_maps(cls: type[BaseModel]) -> None:
+    """One score per sample from the given views, as predict uses; None skips one."""
+    views = _views(0, shift=5.0)
+    model = fit(make_model(cls), views)
+    shared = model.transform_shared(views)
+    assert shared.shape == (60, 1) and np.all(np.isfinite(shared))
+    np.testing.assert_allclose(
+        model.transform_shared([views[0], None]),
+        model.transform_shared([views[0], None]),
+    )
+    reconstructed = model.predict(views)[1]
+    np.testing.assert_allclose(
+        reconstructed, shared @ model._predict_maps_[1] + model.means_[1], atol=1e-8
+    )
+    with pytest.raises(ValueError, match="At least one view must be observed"):
+        model.transform_shared([None, None])
+    with pytest.raises(ValueError, match="Expected 2 views"):
+        model.transform_shared(views[:1])
+
+
+@pytest.mark.parametrize("cls", model_params(MODEL_CLASSES))
 def test_number_of_views(cls: type[BaseModel]) -> None:
     """Two-view methods reject a third view by name; the rest take it."""
     views = _views(0, n_views=3)
