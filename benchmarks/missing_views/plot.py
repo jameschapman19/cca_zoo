@@ -52,12 +52,7 @@ plt.rcParams.update(
     }
 )
 
-RATES = [0.0, 0.2, 0.4, 0.6]
-DENSITY = {1.0: "dense loadings", 0.2: "sparse loadings (20% of features)"}
-SHARED = {
-    0.05: "faint shared signal (5% of variance)",
-    0.1: "shared signal 10% of variance",
-}
+DENSITY = {1.0: "dense loadings", 0.2: "sparse loadings"}
 
 
 def _legend(fig: plt.Figure, names: list[str]) -> None:
@@ -86,7 +81,7 @@ def _legend(fig: plt.Figure, names: list[str]) -> None:
     )
 
 
-def _lines(ax: plt.Axes, data: pd.DataFrame, metric: str) -> None:
+def _lines(ax: plt.Axes, data: pd.DataFrame, metric: str, ticks: list[float]) -> None:
     """Mean over seeds with its standard error, one line per method."""
     methods = [m for m in STYLE if m in set(data["method"])]
     for k, method in enumerate(methods):
@@ -107,7 +102,7 @@ def _lines(ax: plt.Axes, data: pd.DataFrame, metric: str) -> None:
             markeredgecolor=SURFACE,
             markeredgewidth=1.2,
         )
-    ax.set_xticks(RATES)
+    ax.set_xticks(ticks)
     ax.xaxis.set_major_formatter(lambda v, _: f"{v:.0%}")
 
 
@@ -136,16 +131,14 @@ def facets(
         sharey=True,
         squeeze=False,
     )
+    ticks = sorted(df["missing_rate"].unique())
     for i, r in enumerate(row_values):
         for j, c in enumerate(column_values):
             ax = axes[i, j]
-            _lines(ax, df[(df[rows] == r) & (df[columns] == c)], metric)
+            _lines(ax, df[(df[rows] == r) & (df[columns] == c)], metric, ticks)
             ax.set_ylim(*ylim)
             ax.set_title(
-                f"{column_labels[c]}\n{row_labels[r]}"
-                if False
-                else f"{column_labels.get(c, c)} · {row_labels.get(r, r)}",
-                fontsize=10.5,
+                f"{column_labels.get(c, c)}\n{row_labels.get(r, r)}", fontsize=10.5
             )
             if j == 0:
                 ax.set_ylabel(ylabel)
@@ -234,52 +227,57 @@ def runtime(df: pd.DataFrame, path: Path) -> None:
 
 
 def main() -> None:
-    """Draw every figure from a results file into an output directory."""
+    """Draw the figures of each regime in the results files into a directory."""
     *results, out = (Path(a) for a in sys.argv[1:])
-    df = pd.DataFrame([row for r in results for row in json.loads(r.read_text())])
-    mcar = df[df["mechanism"] == "mcar"]
-    main_methods = df
-    main_mcar = main_methods[main_methods["mechanism"] == "mcar"]
-    facets(
-        main_mcar,
-        "recovery",
-        "shared-factor recovery",
-        "Recovering the shared factors when whole views are missing at random",
-        "shared",
-        "density",
-        SHARED,
-        DENSITY,
-        out / "recovery_mcar.png",
-        (0.0, 1.02),
+    everything = pd.DataFrame(
+        [row for r in results for row in json.loads(r.read_text())]
     )
-    facets(
-        main_mcar[main_mcar["missing_rate"] > 0],
-        "imputation_r2",
-        "imputation R²",
-        "Filling in a missing view from the others (axis cut at -2)",
-        "shared",
-        "density",
-        SHARED,
-        DENSITY,
-        out / "imputation_mcar.png",
-        (-1.0, 1.0),
-    )
-    mnar = main_methods[(main_methods["shared"] == 0.1)]
-    facets(
-        mnar,
-        "recovery",
-        "shared-factor recovery",
-        "Missingness tied to the biology (MNAR) vs random (MCAR), shared signal 10%",
-        "mechanism",
-        "density",
-        {"mcar": "MCAR", "mnar": "MNAR"},
-        DENSITY,
-        out / "recovery_mnar.png",
-        (0.0, 1.02),
-    )
-    stability(df, out / "stability.png")
-    runtime(mcar, out / "runtime.png")
-    del mcar
+    for regime, df in everything.groupby("regime"):
+        shared = {
+            s: f"shared signal {s:.1%} of variance"
+            for s in sorted(df["shared"].unique())
+        }
+        mcar = df[df["mechanism"] == "mcar"]
+        facets(
+            mcar,
+            "recovery",
+            "shared-factor recovery",
+            f"Recovering the shared factors, views missing at random ({regime} regime)",
+            "shared",
+            "density",
+            shared,
+            DENSITY,
+            out / f"recovery_mcar_{regime}.png",
+            (0.0, 1.02),
+        )
+        facets(
+            mcar[mcar["missing_rate"] > 0],
+            "imputation_skill",
+            "imputation skill",
+            f"Filling in a missing view; 0 = no better than its mean, axis cut at -1 ({regime})",
+            "shared",
+            "density",
+            shared,
+            DENSITY,
+            out / f"imputation_mcar_{regime}.png",
+            (-1.0, 1.0),
+        )
+        facets(
+            df[df["shared"] == max(shared)],
+            "recovery",
+            "shared-factor recovery",
+            f"Missingness tied to the biology (MNAR) vs random (MCAR), "
+            f"{max(shared):.1%} shared ({regime} regime)",
+            "mechanism",
+            "density",
+            {"mcar": "MCAR", "mnar": "MNAR"},
+            DENSITY,
+            out / f"recovery_mnar_{regime}.png",
+            (0.0, 1.02),
+        )
+        if regime == "base":
+            stability(df, out / "stability.png")
+            runtime(mcar, out / "runtime.png")
 
 
 if __name__ == "__main__":

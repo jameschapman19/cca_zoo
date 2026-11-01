@@ -5,11 +5,9 @@ comparing the missing-view CCA models with what practitioners use.
 
 ```bash
 uv pip install mofapy2 matplotlib
-python run.py --out output/results.json --methods "IncompleteGCCA" "CCAEY (masked)" \
-    "GCCA, complete cases" "GCCA, zero-filled" "GFA, zero-filled"
-python run.py --out output/results_mofa.json --methods "MOFA+ (default)" \
-    "MOFA+ (best of 5 random)"
-python plot.py output/results.json output/results_mofa.json output/
+python run.py --regime base --out output/results_base.json
+python run.py --regime hard --out output/results_hard.json
+python plot.py output/results_base.json output/results_hard.json output/
 ```
 
 ## Design
@@ -30,17 +28,19 @@ held-out correlation. MOFA+ and GFA get as many factors as were simulated
 most variance in every view, as a practitioner would pick them.
 
 Metrics: **recovery**, the mean squared cosine of the principal angles between the
-estimated and true shared factors; **imputation R²**, of the withheld samples'
-noise-free shared signal, which is all that the other views can tell about a view.
+estimated and true shared factors; **imputation skill**, ``1 - SSE / SSE_mean`` on
+the withheld samples' noise-free shared signal, where ``SSE_mean`` is the error of
+predicting each view's observed mean. The mean is the baseline because, when the
+shared signal is a small share of the variance, the feature means estimated from
+the observed samples are about as noisy as the signal itself, so R² against the
+signal is pushed below zero for every method (it is also in the results files).
 
 ## Caveats
 
 - mofapy2 starts from PCA and ignores its seed, so "best of 5" needs random starts,
   which this benchmark forces. Its default fit is deterministic.
-- `predict` for the CCA-family models maps the mean of the other views' scores to
-  a view by least squares. That is not a posterior mean and is not calibrated to how
-  many views a sample has, so their imputation can be worse than predicting zero.
-  GFA and MOFA+ are calibrated.
+- GFA is fitted to zero-filled views here, as it cannot mask them. Its imputation is
+  still its posterior given each sample's own views.
 - Simulated Gaussian data with a known factor structure. Nothing here says how
   the methods compare on real cohorts.
 
@@ -66,7 +66,13 @@ What it shows, over eight datasets per setting:
   datasets; the two tie at 0.5%. Masked `CCAEY` and the zero-filled and
   complete-case GCCA are far behind it (0.36-0.46 against 0.69 at 1%).
 - **50% missing, or missingness tied to the biology.** MOFA+ is ahead or level.
-- **Imputation.** The CCA-family fill-in of a missing view is far worse than
-  predicting zero when the signal is faint (R squared of -10 to -70 for
-  `IncompleteGCCA`). `predict` needs shrinking before it is usable here.
+- **Imputation.** `predict` of the CCA-family models is calibrated: it uses the
+  latent of the other views out of fold with a cross-validated ridge. Before, it
+  made about seven times the error of predicting the mean at 1% shared variance
+  (R squared of -10 to -70); now `IncompleteGCCA` and masked `CCAEY` never fall far
+  below the mean (skill about 0 where there is little signal) and reach 0.3-0.7
+  where there is, in the base regime. MOFA+ imputes better wherever the signal is
+  real (skill 0.3-0.5 in the hard regime at 1-2% shared, against 0 to 0.17), but
+  it can also fall far below the mean at heavy missingness (skill -0.5 to -2.5 at
+  60% missing in the base regime), where the CCA family does not.
 - **Time.** `IncompleteGCCA` takes 0.6 s; MOFA+ takes 2 s, or 10 s from five starts.
