@@ -156,3 +156,40 @@ class JIVEEY:
             ind = z[:, self.offset_[i] : self.offset_[i] + self.r_[i]]
             out.append((ind - ind[o].mean(axis=0)) / ind[o].std(axis=0))
         return out
+
+    # ----- variance explained -----------------------------------------------------
+    def variance_explained(self, views: list[np.ndarray]) -> dict[str, np.ndarray]:
+        """Each view's variance in its joint part, its individual part and the rest.
+
+        On the samples that have the view, the centred data are regressed on the joint
+        scores, then on the individual scores with the joint span removed, so the shares are
+        additive: joint + individual + noise = 1. Components are taken in column order, each
+        after the ones before it.
+
+        Returns:
+            ``joint`` of shape (n_views, n_joint) and ``individual`` of shape (n_views, r)
+            with ``r`` the largest individual rank (NaN beyond a view's own), the per-view
+            totals ``joint_total`` and ``individual_total``, and ``noise``.
+        """
+        n_views, r_max = len(views), max(self.r_)
+        joint = np.full((n_views, self.n_joint), np.nan)
+        individual = np.full((n_views, r_max), np.nan)
+        for i, (z, v, m, o) in enumerate(
+            zip(self._projections(views), views, self.means_, self.observed_.T)
+        ):
+            x, z = (v - m)[o], z[o]
+            total = np.sum(x**2)
+            q_joint = np.linalg.qr(z[:, : self.n_joint])[0]
+            ind = z[:, self.offset_[i] : self.offset_[i] + self.r_[i]]
+            q_ind = np.linalg.qr(ind - q_joint @ (q_joint.T @ ind))[0]
+            joint[i] = np.sum((q_joint.T @ x) ** 2, axis=1) / total
+            individual[i, : self.r_[i]] = np.sum((q_ind.T @ x) ** 2, axis=1) / total
+        joint_total = np.nansum(joint, axis=1)
+        individual_total = np.nansum(individual, axis=1)
+        return {
+            "joint": joint,
+            "individual": individual,
+            "joint_total": joint_total,
+            "individual_total": individual_total,
+            "noise": 1.0 - joint_total - individual_total,
+        }

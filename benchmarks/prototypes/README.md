@@ -142,3 +142,20 @@ The shrinkage matters: 0.2 and 0.8 are much worse than 0.5 with views missing (j
 and 0.71 against 0.84 at 2% shared and 30% missing), so it has to be chosen, which a held-out
 loss can do. Block weighting by sample count, which helped the two-stage version, is not in
 this form: it would weight the quadratic term's blocks, which departs from the plain loss.
+
+**Variance explained** (`JIVEEY.variance_explained`, `jiveey_variance.py`): on the samples that have
+a view, regress its centred data on the joint scores, then on the individual scores with the joint
+span removed. The shares are additive (joint + individual + noise = 1) and need no parameters beyond
+the scores. Against the simulator's known split (mean over views, 6 datasets, true ranks):
+
+| regime | views missing | truth (joint, individual, noise) | JIVEEY | AJIVE |
+|---|---|---|---|---|
+| moderate | 0% | 0.10, 0.50, 0.40 | 0.14, 0.49, 0.37 | 0.13, 0.50, 0.38 |
+| moderate | 30% | | 0.15, 0.48, 0.37 | |
+| faint | 0% | 0.02, 0.80, 0.18 | 0.05, 0.78, 0.17 | 0.03, 0.79, 0.17 |
+| faint | 30% | | 0.09, 0.74, 0.17 | |
+
+The individual share is recovered to within 2-6 points. The joint share is overestimated: it is
+measured in sample, and with views much wider than they are long the joint scores capture some
+chance variance (0.09 against 0.02 with 30% of views missing). A held-out or cross-fitted share
+would remove that optimism; it is not done here.
