@@ -254,7 +254,7 @@ def main() -> None:
             mcar[mcar["missing_rate"] > 0],
             "imputation_skill",
             "imputation skill",
-            f"Filling in a missing view; 0 = no better than its mean, axis cut at -1 ({regime})",
+            f"Filling in a missing view; 0 = no better than its mean ({regime} regime)",
             "shared",
             "density",
             shared,
