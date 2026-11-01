@@ -51,6 +51,12 @@ mini-batch methods live in [`cca_zoo.stochastic`](stochastic.md).
 
 ---
 
+## Joint and individual structure
+
+::: cca_zoo.linear.AJIVE
+
+---
+
 ## Confound-adjusted / structured methods
 
 ::: cca_zoo.linear.PartialCCA

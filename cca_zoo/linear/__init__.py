@@ -6,6 +6,7 @@ models are in :mod:`cca_zoo.sparse`, mini-batch ones in
 :mod:`cca_zoo.stochastic`.
 """
 
+from ._ajive import AJIVE
 from ._cca import CCA
 from ._ccar3 import CCAR3
 from ._ecca import ECCA
@@ -30,6 +31,8 @@ __all__ = [
     "MCCA",
     "GCCA",
     "TCCA",
+    # Joint and individual structure
+    "AJIVE",
     # Confound-adjusted / structured
     "PartialCCA",
     "GRCCA",

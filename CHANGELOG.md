@@ -9,6 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `AJIVE` splits each view into variation shared with the other views, variation of its own, and
+  noise (Feng et al., 2018), with the joint rank fixed or chosen by the random direction bound
+  (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of
+  each view's variance in every joint and individual component. With each view cut to its signal
+  subspace its joint scores are CCA's for two views and multiset CCA's (`GCCA`) for more.
+
 - `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
   error, dropping the `i = j` terms of the empirical characteristic function's squared
   modulus. The default plug-in statistic, which the reference implementation uses, has
