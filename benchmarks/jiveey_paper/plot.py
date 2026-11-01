@@ -68,6 +68,25 @@ def e2() -> None:
     plt.close(fig)
 
 
+def e3() -> None:
+    """Cross-fitted joint, individual and noise shares of each CLL view."""
+    d = json.loads((HERE / "output" / "e3.json").read_text())
+    shares = np.array(d["jiveey_shares_cross_fitted"])  # views x (joint, individual, noise)
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    y = np.arange(len(d["names"]))[::-1]
+    left = np.zeros(len(y))
+    for k, (label, color) in enumerate((("joint", "#1f4e9c"), ("individual", "#d97b1c"), ("noise", "#d0d0d0"))):
+        ax.barh(y, np.clip(shares[:, k], 0, None), left=left, color=color, label=label)
+        left += np.clip(shares[:, k], 0, None)
+    ax.set_yticks(y, d["names"])
+    ax.set_xlabel("held-out share of the view's variance")
+    ax.legend(frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout()
+    fig.savefig(OUT / "e3_cll_shares.png", dpi=200)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     e1()
+    e3()
     e2() if (HERE / "output" / "e2.json").exists() else None
