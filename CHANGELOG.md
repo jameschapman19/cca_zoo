@@ -9,6 +9,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- For the models that support missing views, `predict` fills in a view with a map fitted to the
+  latent of the *other* views, out of fold, with a ridge penalty chosen by leave-one-out. The
+  scores of a model fitted to wide views overfit the view they are regressed on, so a map fitted to
+  them is confident beyond what the other views know: with a shared signal of 1% of the variance
+  it made about seven times the error of predicting the view's mean. Now a faint signal gives a map
+  near zero and the prediction falls back to the mean, and a strong one still beats it. The cost
+  is five extra fits at `fit`; if the folds cannot be fitted for want of samples shared by the
+  views, `fit` warns and uses the model's own scores.
+- `impute` fills in the views that samples lack, for the models that support missing views. The
+  scores of the samples a model was fitted to are inflated when the views have far more features
+  than samples (fourfold on the CLL cohort), so the map fitted to out-of-fold scores overshoots
+  when `predict` is used on them: filling in a hidden drug view scored −0.4 to −1.1 against
+  predicting the mean, against −0.01 to −0.07 with `impute`, which rescales them to the out-of-fold
+  scale. `predict` is for new samples; pass `fitted=False` to `impute` for them too.
+
 - `IncompleteGCCA` fits generalised CCA when some samples lack some views, marked by all-`NaN`
   rows. Each sample's latent score is fitted to the views it has, and the fit reduces exactly to
   `GCCA` when nothing is missing. It fits wide views through their SVDs rather than a
