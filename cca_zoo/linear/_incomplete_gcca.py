@@ -8,7 +8,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from cca_zoo._base import BaseModel
-from cca_zoo._utils._linalg import psd_inverse_sqrt
 from cca_zoo._utils._param_constraints import RIDGE_PARAMETER
 from cca_zoo._utils._validation import perview_parameter
 
@@ -114,28 +113,39 @@ class IncompleteGCCA(BaseModel):
         shrinkage = perview_parameter("shrinkage", self.shrinkage, 0.0, self.n_views_)
 
         # Eliminating the weights leaves max tr(G'QG) with G'DG = sI, where
-        # Q = sum_i X_i C_i^{-1} X_i' / (n_i - 1) over the observed rows. It is
-        # solved by the top singular vectors of the D^{-1/2}-scaled stack of
-        # the whitened views, zero where a view is missing.
+        # Q = sum_i X_i C_i^{-1} X_i' / (n_i - 1) over the observed rows. With
+        # the SVD X_i = U S V', C_i^{-1} acts on the span of V as 1 / d for
+        # d = (1 - c) S^2 / (n_i - 1) + c, so Q is the sum of the views'
+        # U diag(S^2 / d / (n_i - 1)) U'. Its top eigenvectors, scaled by
+        # D^{-1/2}, are the top singular vectors of the stacked U S d^{-1/2},
+        # zero where a view is missing. No feature-by-feature matrix is formed,
+        # so wide views cost O(n^2 p).
         counts = observed.sum(axis=1)
-        whiteners, blocks = [], []
+        decompositions, blocks = [], []
         for v, rows, c in zip(views_, observed.T, shrinkage):
             x = v[rows]
             n_i = len(x)
-            cov = (1.0 - c) * (x.T @ x) / (n_i - 1) + c * np.eye(x.shape[1])
-            whitener = psd_inverse_sqrt(cov, self._EPS)
-            whiteners.append(whitener)
-            block = np.zeros_like(v)
-            block[rows] = x @ whitener / np.sqrt(n_i - 1)
+            u, sv, vt = np.linalg.svd(x, full_matrices=False)
+            keep = sv > sv[0] * max(x.shape) * np.finfo(sv.dtype).eps
+            u, sv, vt = u[:, keep], sv[keep], vt[keep]
+            d = (1.0 - c) * sv**2 / (n_i - 1) + c
+            # Raise the spectrum so its smallest value is a fraction of its largest.
+            d = d + max(0.0, self._EPS * d.max() - d.min())
+            decompositions.append((u, sv, vt, d))
+            block = np.zeros((len(v), len(sv)))
+            block[rows] = u * (sv / np.sqrt(d)) / np.sqrt(n_i - 1)
             blocks.append(block)
         stack = np.concatenate(blocks, axis=1) / np.sqrt(counts)[:, None]
         U = np.linalg.svd(stack, full_matrices=False)[0][:, : self.n_components]
         # Unit-variance latent scores where every view is seen, as GCCA's.
         G = U * np.sqrt((self.n_samples_ - 1) * counts.mean() / counts)[:, None]
 
+        # Each view's weights are its regularised regression onto G over the
+        # samples that have it:
+        # C^{-1} X' G / (n_i - 1) = V diag(S / d) U' G / (n_i - 1).
         self.weights_: list[np.ndarray] = [
-            w @ (w @ (v[rows].T @ G[rows])) / (rows.sum() - 1)
-            for v, rows, w in zip(views_, observed.T, whiteners)
+            vt.T @ ((sv / d)[:, None] * (u.T @ G[rows])) / (rows.sum() - 1)
+            for (u, sv, vt, d), rows in zip(decompositions, observed.T)
         ]
         self.n_observed_per_view_: np.ndarray = observed.sum(axis=0)
         self._fit_maps_and_importances(views_)

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from cca_zoo.linear import GCCA, IncompleteGCCA
-from tests._helpers import principal_cosines
+from tests._helpers import assert_same_scores_as, principal_cosines
 
 
 def _factor_views(
@@ -31,13 +31,25 @@ def _drop(views: list[np.ndarray], rows: list[slice]) -> list[np.ndarray]:
 
 
 def test_complete_data_is_gcca() -> None:
-    """With no view missing, the fit is GCCA's."""
+    """With no view missing, the fit is GCCA's, up to the sign of each component."""
     views, _ = _factor_views(120, (8, 6, 5))
     for shrinkage in (0.0, 0.3):
         ours = IncompleteGCCA(n_components=2, shrinkage=shrinkage).fit(views)
         gcca = GCCA(n_components=2, shrinkage=shrinkage).fit(views)
-        for a, b in zip(ours.weights_, gcca.weights_):
-            np.testing.assert_allclose(a, b, atol=1e-8)
+        assert_same_scores_as(ours.transform(views), gcca.transform(views))
+
+
+def test_wide_views_need_no_feature_by_feature_matrix() -> None:
+    """Views much wider than they are long fit as GCCA's dual form does."""
+    rng = np.random.default_rng(0)
+    z = rng.standard_normal((60, 2))
+    views = [
+        z @ rng.standard_normal((2, p)) + rng.standard_normal((60, p))
+        for p in (400, 300)
+    ]
+    ours = IncompleteGCCA(n_components=2, shrinkage=0.5).fit(views)
+    gcca = GCCA(n_components=2, shrinkage=0.5).fit(views)
+    assert_same_scores_as(ours.transform(views), gcca.transform(views))
 
 
 def test_samples_missing_views_still_inform_the_fit() -> None:
