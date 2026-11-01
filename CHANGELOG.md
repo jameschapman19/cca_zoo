@@ -25,6 +25,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - `transform_shared` on every model: one latent score per sample from the views that are given
   (`None` skips one), the same estimate `predict` maps back to the views. `BaseModel` also now
   leaves the rows a view lacks out of the regressions behind `predict` and `inverse_transform`.
+- For the models that support missing views, `predict` fills in a view with a map fitted to the
+  latent of the *other* views, out of fold, with a ridge penalty chosen by leave-one-out. The
+  scores of a model fitted to wide views overfit the view they are regressed on, so a map fitted to
+  them is confident beyond what the other views know: with a shared signal of 1% of the variance
+  it made about seven times the error of predicting the view's mean. Now a faint signal gives a map
+  near zero and the prediction falls back to the mean, and a strong one still beats it. The cost
+  is five extra fits at `fit`; if the folds cannot be fitted for want of samples shared by the
+  views, `fit` warns and uses the model's own scores.
 - `AJIVE` splits each view into variation shared with the other views, variation of its own, and
   noise (Feng et al., 2018), with the joint rank fixed or chosen by the random direction bound
   (`n_components="auto"`). It exposes joint and individual scores, loadings and the fraction of

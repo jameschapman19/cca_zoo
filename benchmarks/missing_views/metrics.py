@@ -34,3 +34,25 @@ def imputation_r2(
         sse += np.sum((rec[missing] - true[missing]) ** 2)
         sst += np.sum(true[missing] ** 2)
     return float(1.0 - sse / sst)
+
+
+def imputation_skill(
+    reconstruction: list[np.ndarray],
+    signal: list[np.ndarray],
+    masked: list[np.ndarray],
+    observed: np.ndarray,
+) -> float:
+    """Skill over predicting each view's observed mean, for the withheld shared signal.
+
+    ``1 - SSE / SSE_mean``: 0 is no better than filling in the mean of the samples
+    that have the view, 1 is perfect, below 0 is worse. The mean is the fair
+    baseline, because when the shared signal is a small share of the variance the
+    feature means, estimated from the observed samples, are about as noisy as the
+    signal, and no method can do better than predicting them.
+    """
+    sse = sse_mean = 0.0
+    for rec, true, view, seen in zip(reconstruction, signal, masked, observed.T):
+        missing = ~seen
+        sse += np.sum((rec[missing] - true[missing]) ** 2)
+        sse_mean += np.sum((np.nanmean(view, axis=0) - true[missing]) ** 2)
+    return float(1.0 - sse / sse_mean)

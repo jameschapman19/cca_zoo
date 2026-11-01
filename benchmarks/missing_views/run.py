@@ -15,7 +15,7 @@ from multiprocessing import Pool
 from pathlib import Path
 
 from methods import METHODS, timed
-from metrics import imputation_r2, subspace_recovery
+from metrics import imputation_r2, imputation_skill, subspace_recovery
 from simulate import simulate
 
 N_SHARED = 2
@@ -80,6 +80,13 @@ def run_setting(setting: tuple, methods: tuple[str, ...]) -> list[dict]:
                 "recovery": subspace_recovery(latent, ds.shared_factors),
                 "imputation_r2": (
                     imputation_r2(reconstruction, ds.shared_signal, ds.observed)
+                    if rate > 0
+                    else None
+                ),
+                "imputation_skill": (
+                    imputation_skill(
+                        reconstruction, ds.shared_signal, ds.masked, ds.observed
+                    )
                     if rate > 0
                     else None
                 ),

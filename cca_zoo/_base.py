@@ -11,7 +11,9 @@ from typing import Any, ClassVar, TypeVar
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn import get_config
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, clone
+from sklearn.linear_model import RidgeCV
+from sklearn.model_selection import KFold
 from sklearn.utils import Tags, TransformerTags, check_random_state, metadata_routing
 from sklearn.utils._array_api import (
     _convert_to_numpy,
@@ -38,6 +40,11 @@ _Model = TypeVar("_Model", bound="BaseModel")
 # rows, as sklearn's ``permutation_importance(max_samples=...)``, so that they
 # add a small fraction to the fit of the models that need them.
 _PERMUTATION_SAMPLES = 500
+
+# A model that supports missing views fits its predict maps on latents from this
+# many cross-fitted models, with a ridge penalty chosen by leave-one-out.
+_PREDICT_FOLDS = 5
+_PREDICT_RIDGE_ALPHAS = np.logspace(-2, 6, 30)
 
 
 def _weighted_pseudo_rows(views: list[Any], sample_weight: Any) -> list[Any]:
@@ -254,17 +261,13 @@ class BaseModel(BaseEstimator, ABC):
         self._inverse_maps_ = [
             _least_squares_map(s[r], v[r]) for s, v, r in zip(own_scores, targets, seen)
         ]
-        if self._supports_missing_views:
-            # A model for filling in missing views regresses each view on the
-            # latent of the other views, which is all it will have to predict
-            # from: the view's own scores are overfitted to it.
-            self._predict_maps_ = []
-            for i, v in enumerate(targets):
-                latent = self._shared_latent(
-                    {j: views[j] for j in range(self.n_views_) if j != i}
-                )
-                rows = seen[i] & np.isfinite(latent).all(axis=1)
-                self._predict_maps_.append(_least_squares_map(latent[rows], v[rows]))
+        if self._supports_missing_views and self._calibrates_predict:
+            self._predict_maps_ = self._calibrated_predict_maps(views, targets, seen)
+        elif self._supports_missing_views:
+            latent = self._shared_latent(dict(enumerate(views)))
+            self._predict_maps_ = [
+                _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
+            ]
         else:
             latent = self._shared_latent(dict(enumerate(views)))
             self._predict_maps_ = [
@@ -278,6 +281,76 @@ class BaseModel(BaseEstimator, ABC):
             self.feature_importances_per_view_.append(
                 positive / total if total > 0 else positive
             )
+
+    # Instance attribute set False on the cross-fitted models, which do not
+    # themselves calibrate.
+    _calibrates_predict: bool = True
+
+    def _calibrated_predict_maps(
+        self, views: list[np.ndarray], targets: list[np.ndarray], seen: list[np.ndarray]
+    ) -> list[np.ndarray]:
+        """Maps from the latent of the other views to each view, for filling in.
+
+        A model that fills in missing views predicts a view from the others
+        alone, so each map is fitted to that: the latent of the views but the
+        target, which for the training samples is *out of fold*. The scores of
+        a model fitted to the view overfit it, and a map fitted to them is
+        confident beyond what the other views can tell. Each fold's latent is
+        aligned to this model's by least squares on the samples both were
+        fitted to, and the map is a ridge regression with its penalty chosen by
+        leave-one-out, so that a faint shared signal gives a map near zero and
+        the prediction falls back to the view's mean.
+
+        If the folds cannot be fitted for want of samples shared by the views,
+        the latent is the model's own and a warning says so.
+        """
+        n_views = self.n_views_
+        folds = list(
+            KFold(_PREDICT_FOLDS, shuffle=True, random_state=0).split(views[0])
+        )
+        fitted_folds: list[BaseModel] = []
+        try:
+            for train, _ in folds:
+                fold: BaseModel = clone(self)
+                fold._calibrates_predict = False
+                fitted_folds.append(fold.fit([v[train] for v in views]))
+        except ValueError as error:
+            warnings.warn(
+                f"{type(self).__name__} could not cross-fit its predict maps ({error}) "
+                "and uses its own scores, which are overconfident when filling in "
+                "a view.",
+                UserWarning,
+                stacklevel=3,
+            )
+            fitted_folds = []
+        maps = []
+        for i in range(n_views):
+            others = [j for j in range(n_views) if j != i]
+            latent = self._shared_latent({j: views[j] for j in others})
+            if fitted_folds:
+                own = latent
+                latent = np.full_like(own, np.nan)
+                for (train, test), fold in zip(folds, fitted_folds):
+                    given = [None if j == i else views[j] for j in range(n_views)]
+                    fitted = fold.transform_shared(
+                        [g if g is None else g[train] for g in given]
+                    )
+                    usable = np.isfinite(fitted).all(axis=1) & np.isfinite(
+                        own[train]
+                    ).all(axis=1)
+                    rotation = np.linalg.lstsq(
+                        fitted[usable], own[train][usable], rcond=None
+                    )[0]
+                    held_out = fold.transform_shared(
+                        [g if g is None else g[test] for g in given]
+                    )
+                    latent[test] = held_out @ rotation
+            rows = seen[i] & np.isfinite(latent).all(axis=1)
+            scale = latent[rows].std(axis=0)
+            ridge = RidgeCV(alphas=_PREDICT_RIDGE_ALPHAS, fit_intercept=False)
+            ridge.fit(latent[rows] / scale, targets[i][rows])
+            maps.append(ridge.coef_.T / scale[:, None])
+        return maps
 
     @property
     def _finite_check(self) -> bool | str:

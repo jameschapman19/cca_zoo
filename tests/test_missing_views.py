@@ -132,3 +132,86 @@ def test_unlinked_views_raise(cls: type[BaseModel]) -> None:
     incomplete = views
     with pytest.raises(ValueError, match="not linked"):
         fit(make_model(cls).set_params(n_components=2), incomplete)
+
+
+def _wide_views(
+    shared: float, seed: int
+) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
+    """Wide views of two shared and three private factors, with views missing.
+
+    Returns the NaN-masked views, each view's noise-free shared signal, and the
+    boolean array of which samples have which views.
+    """
+    rng = np.random.default_rng(seed)
+    n, widths = 150, (150, 200, 100)
+    z = rng.standard_normal((n, 2))
+    signals = [z @ rng.standard_normal((2, p)) * np.sqrt(shared / 2) for p in widths]
+    views = [
+        s
+        + rng.standard_normal((n, 3)) @ rng.standard_normal((3, p)) * np.sqrt(0.8 / 3)
+        + rng.standard_normal((n, p)) * np.sqrt(0.2 - shared)
+        for s, p in zip(signals, widths)
+    ]
+    observed = rng.random((n, 3)) >= 0.3
+    for i in np.flatnonzero(~observed.any(axis=1)):
+        observed[i, rng.integers(3)] = True
+    masked = [np.where(o[:, None], v, np.nan) for v, o in zip(views, observed.T)]
+    return masked, signals, observed
+
+
+def _fill_in_error(model: BaseModel, shared: float) -> float:
+    """Error of filling in the withheld views, over that of predicting their mean."""
+    ratios = []
+    for seed in range(3):
+        masked, signals, observed = _wide_views(shared, seed)
+        fit(model, masked)
+        error = baseline = 0.0
+        for pattern in np.unique(observed, axis=0):
+            rows = np.flatnonzero((observed == pattern).all(axis=1))
+            predicted = model.predict(
+                [m[rows] if p else None for m, p in zip(masked, pattern)]
+            )
+            for j in np.flatnonzero(~pattern):
+                error += np.sum((predicted[j] - signals[j][rows]) ** 2)
+                baseline += np.sum(
+                    (np.nanmean(masked[j], axis=0) - signals[j][rows]) ** 2
+                )
+        ratios.append(error / baseline)
+    return float(np.mean(ratios))
+
+
+# StochasticCCAEY's quick test settings are too short to converge.
+_FILLERS = [c for c in SUPPORTING if c.__name__ != "StochasticCCAEY"]
+
+
+@pytest.mark.parametrize("cls", model_params(_FILLERS))
+def test_filling_in_a_view_is_calibrated_to_how_much_the_others_tell(
+    cls: type[BaseModel],
+) -> None:
+    """A faint shared signal gives no worse than the mean; a strong one beats it.
+
+    The scores of a model fitted to wide views overfit the target view, so a map
+    fitted to them predicts far beyond what the other views know: about seven times
+    the error of predicting the mean when the shared signal is 1% of the variance.
+    """
+    model = make_model(cls).set_params(n_components=2)
+    if "shrinkage" in model.get_params():
+        model.set_params(shrinkage=0.2)
+    assert _fill_in_error(model, shared=0.01) < 2.0
+    # PLS maximises covariance, so private factors with much of the variance pull
+    # its directions off the shared ones; it still does better than the mean.
+    strong = 1.0 if cls.__name__ == "PLSEY" else 0.6
+    assert _fill_in_error(model, shared=0.1) < strong
+
+
+def test_predict_maps_fall_back_with_a_warning_when_the_folds_cannot_be_fitted() -> (
+    None
+):
+    """With too few samples shared by the views to cross-fit, the model says so."""
+    from cca_zoo.linear import IncompleteGCCA
+
+    views, _, _ = _incomplete_views(n=60)
+    for view, rows in zip(views, [slice(30, 60), slice(30, 60), slice(0, 27)]):
+        view[rows] = np.nan
+    with pytest.warns(UserWarning, match="could not cross-fit its predict maps"):
+        IncompleteGCCA(n_components=2).fit(views)
