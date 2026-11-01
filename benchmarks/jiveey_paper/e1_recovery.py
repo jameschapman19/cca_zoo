@@ -86,14 +86,21 @@ def run(job: tuple[str, float, int]) -> list[dict]:
         t,
     )
     t = time.perf_counter()
-    a = ajive_fit(views, ds.observed)
-    record(
-        "AJIVE (auto ranks)",
-        np.mean(a.transform(mean_filled(views, ds.observed)), axis=0),
-        a.individual_scores_,
-        t,
-        k=int(a.joint_scores_.shape[1]),
-    )
+    try:
+        a = ajive_fit(views, ds.observed)
+    except ValueError:  # AJIVE found no joint structure: report that as a total miss
+        rows.append(
+            dict(regime=regime, rate=rate, seed=seed, method="AJIVE (auto ranks)",
+                 shared=0.0, private=0.0, seconds=time.perf_counter() - t, k=0)
+        )
+    else:
+        record(
+            "AJIVE (auto ranks)",
+            np.mean(a.transform(mean_filled(views, ds.observed)), axis=0),
+            a.individual_scores_,
+            t,
+            k=int(a.joint_scores_.shape[1]),
+        )
 
     t = time.perf_counter()
     s, p = mofa_joint_individual(views, ds.observed, N_SHARED, r, seed)
@@ -113,9 +120,12 @@ def main() -> None:
         for rate in (0.0, 0.3, 0.5)
         for s in range(args.seeds)
     ]
+    rows: list[dict] = []
     with Pool(args.workers) as pool:
-        rows = [row for out in pool.imap_unordered(run, jobs) for row in out]
-    (HERE / "output" / "e1.json").write_text(json.dumps(rows))
+        for done, out in enumerate(pool.imap_unordered(run, jobs), 1):
+            rows.extend(out)
+            (HERE / "output" / "e1.json").write_text(json.dumps(rows))
+            print(f"{done}/{len(jobs)}", flush=True)
 
 
 if __name__ == "__main__":
