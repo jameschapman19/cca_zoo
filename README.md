@@ -89,12 +89,13 @@ z1, z2 = model.transform(test_views)  # each shape (200, 2)
 | `MCCA` | Multiset CCA — pairwise sum objective | Kettenring (1971) | ≥2 |
 | `GCCA` | Generalised CCA — shared latent projection | Carroll (1968) | ≥2 |
 | `TCCA` | Tensor CCA — higher-order cross-moment | Luo et al. (2015) | ≥2 |
+| `IncompleteGCCA` | Generalised CCA for samples missing some views (all-`NaN` rows), using every view each sample has | Carroll (1968); Kettenring (1971) | ≥2 |
 | `PartialCCA` | CCA adjusted for confounding variables | Rao (1969) | ≥2 |
 | `GRCCA` | Group-regularised CCA | Tuzhilina, Tozzi & Hastie (2023) | ≥2 |
 | `CCAR3` | CCA via reduced-rank regression, row-sparse in high dimensions | Donnat & Tuzhilina (2024) | 2 |
 | `ECCA` | CCA via reduced-rank regression, entrywise-sparse (ccar3 package's `ecca`) | Donnat & Tuzhilina (2024) | 2 |
 | `GraphicalLassoCCA` | MCCA with an L1-penalised sparse-precision within-view covariance | Friedman, Hastie & Tibshirani (2008) | ≥2 |
-| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
+| `CCAEY` | Eckart-Young CCA, full-batch L-BFGS-B (2 or more views, samples may lack views) | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `PLSEY` | Eckart-Young PLS, full-batch L-BFGS-B | Chapman, Wells & Lawry Aguila (2024) | ≥2 |
 | `HuberCCA` | Bounded-influence (Huber-style) EY-CCA, robust to high-leverage outliers | Filzmoser, Dehon & Croux (2000) | ≥2 |
 | `RANSACCCA` | Robust CCA via random sample consensus, robust to mismatched/corrupted rows | Chapman et al. (2021) | ≥2 |

@@ -110,9 +110,10 @@ class StochasticCCAEY(CCAEY):
         Raises:
             ValueError: If the updates diverge.
         """
-        views_: list[np.ndarray] = self._setup_fit(views)
+        views_, observed = self._setup_missing(views)
         rng = np.random.default_rng(self.random_state)
-        self.weights_ = self._fit_sgd(views_, rng)
+        filled = [np.nan_to_num(v) for v in views_]
+        self.weights_ = self._fit_sgd(filled, rng, observed)
         self._fit_maps_and_importances(views_)
         return self
 
@@ -131,7 +132,7 @@ class StochasticCCAEY(CCAEY):
         return cheap_orthonormal_projection_weights(views, self.n_components, rows, rng)
 
     def _fit_sgd(
-        self, views: list[np.ndarray], rng: np.random.Generator
+        self, views: list[np.ndarray], rng: np.random.Generator, observed: np.ndarray
     ) -> list[np.ndarray]:
         """Weights from mini-batch SGD with sklearn's adaptive step."""
         n = views[0].shape[0]
@@ -140,10 +141,13 @@ class StochasticCCAEY(CCAEY):
         # exceeds the full data's when the batch is small next to the view.
         rows = rng.choice(n, bs, replace=False)
         c = self.shrinkage
-        variances = [
-            randomized_svd(v[rows], 1, random_state=0)[1][0] ** 2 / (bs - 1)
-            for v in views
-        ]
+        variances = []
+        for v, seen in zip(views, observed.T):
+            batch = v[rows][seen[rows]]
+            variances.append(
+                randomized_svd(batch, 1, random_state=0)[1][0] ** 2
+                / max(len(batch) - 1, 1)
+            )
         constraints = [(1 - c) * s + c for s in variances]
         # The loss's curvature is the constraint's times the largest canonical
         # value, which is at most 1 for CCA but a covariance for PLS; the
@@ -156,6 +160,7 @@ class StochasticCCAEY(CCAEY):
         for n_iter in range(1, self.max_iter + 1):
             perm = rng.permutation(n)
             shuffled = [v[perm] for v in views]
+            shuffled_observed = observed[perm]
             # The epoch's loss is the mean of its mini-batches' losses, as in
             # sklearn's SGD, so the fit never needs a pass over all the data.
             # The remainder joins the last full batch: a batch of one row has
@@ -163,11 +168,16 @@ class StochasticCCAEY(CCAEY):
             obj = 0.0
             for sl in gen_batches(n, bs, min_batch_size=bs):
                 batch = [v[sl] for v in shuffled]
+                batch_observed = shuffled_observed[sl]
                 representations = [b @ w for b, w in zip(batch, weights)]
                 obj += (
-                    self._objective(batch, representations, weights) * len(batch[0]) / n
+                    self._objective(batch, representations, weights, batch_observed)
+                    * len(batch[0])
+                    / n
                 )
-                grads = self._derivative(batch, representations, weights)
+                grads = self._derivative(
+                    batch, representations, weights, batch_observed
+                )
                 weights = [w - eta * s * g for w, s, g in zip(weights, scales, grads)]
             if not np.isfinite(obj):
                 raise ValueError(

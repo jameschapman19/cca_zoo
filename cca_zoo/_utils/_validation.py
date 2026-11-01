@@ -6,6 +6,7 @@ from typing import TypeVar
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.sparse.csgraph import connected_components
 from sklearn.utils._array_api import get_namespace
 from sklearn.utils.validation import check_array
 
@@ -100,3 +101,49 @@ def perview_parameter(
         return value
     # scalar broadcast (covers int, float, str, etc.)
     return [value] * n_views
+
+
+def observed_rows(views: list[np.ndarray], n_components: int, model: str) -> np.ndarray:
+    """Which samples each view is observed in, for views with missing samples.
+
+    A sample lacks a view when its whole row is ``NaN``.
+
+    Args:
+        views: Arrays of shape (n_samples, n_features_i).
+        n_components: Latent dimensions to be fitted.
+        model: Name of the model, for the error messages.
+
+    Returns:
+        Boolean array of shape (n_samples, n_views).
+
+    Raises:
+        ValueError: If a row is partly missing, a sample is in no view, a view
+            is observed in fewer than 2 samples, or the views are not linked
+            by more than ``n_components`` shared samples, directly or through
+            other views: without that their scores are not tied together.
+    """
+    missing = [np.isnan(v) for v in views]
+    for m in missing:
+        partly = m.any(axis=1) & ~m.all(axis=1)
+        if partly.any():
+            raise ValueError(
+                "A view's row must be wholly observed or wholly NaN, but rows "
+                f"{np.flatnonzero(partly)[:5]} are partly missing. Impute missing "
+                "entries within an observed view first."
+            )
+    observed = np.stack([~m.any(axis=1) for m in missing], axis=1)
+    if not observed.any(axis=1).all():
+        raise ValueError(
+            f"{model} needs every sample to be observed in at least one view; "
+            f"samples {np.flatnonzero(~observed.any(axis=1))} have none."
+        )
+    if (observed.sum(axis=0) < 2).any():
+        raise ValueError("Every view must be observed in at least 2 samples.")
+    shared = observed.T.astype(int) @ observed.astype(int)
+    if connected_components(shared > n_components, directed=False)[0] > 1:
+        raise ValueError(
+            "The views are not linked: they must be joined, directly or "
+            f"through other views, by more than n_components={n_components} "
+            f"shared samples. Samples shared by each pair of views:\n{shared}"
+        )
+    return observed

@@ -26,7 +26,7 @@ from sklearn.utils.validation import (
     check_is_fitted,
 )
 
-from cca_zoo._utils._validation import validate_views
+from cca_zoo._utils._validation import observed_rows, validate_views
 from cca_zoo.metrics._correlation import (
     average_pairwise_correlations as _average_pairwise_correlations,
 )
@@ -137,6 +137,10 @@ class BaseModel(BaseEstimator, ABC):
     _supports_array_api: ClassVar[bool] = False
     # Whether the model accepts NaN as missing values; infinities are rejected.
     _allows_nan: ClassVar[bool] = False
+    # Whether the model fits samples that lack some views, marked by all-NaN
+    # rows. Such a model fits through ``_setup_missing`` and reads NaN, so
+    # ``_reads_nan`` holds for it too.
+    _supports_missing_views: ClassVar[bool] = False
 
     def __init__(self, n_components: int = 1, center: bool = True) -> None:
         self.n_components = n_components
@@ -215,7 +219,7 @@ class BaseModel(BaseEstimator, ABC):
                 xp.zeros(v.shape[1], dtype=v.dtype, device=device(v)) for v in validated
             ]
         elif weights is None:
-            mean = np.nanmean if self._allows_nan else xp.mean
+            mean = np.nanmean if self._reads_nan else xp.mean
             self.means_ = [mean(v, axis=0) for v in validated]
         else:
             self.means_ = [
@@ -242,13 +246,30 @@ class BaseModel(BaseEstimator, ABC):
         # Missing entries, which the encoders see as such, are set to the
         # feature mean (zero once centred) in the regression targets.
         targets = (
-            [np.nan_to_num(v, nan=0.0) for v in views] if self._allows_nan else views
+            [np.nan_to_num(v, nan=0.0) for v in views] if self._reads_nan else views
         )
+        # A row a view lacks has no scores of its own, and is left out of that
+        # view's regressions.
+        seen = [np.isfinite(s).all(axis=1) for s in own_scores]
         self._inverse_maps_ = [
-            _least_squares_map(s, v) for s, v in zip(own_scores, targets)
+            _least_squares_map(s[r], v[r]) for s, v, r in zip(own_scores, targets, seen)
         ]
-        latent = self._shared_latent(dict(enumerate(views)))
-        self._predict_maps_ = [_least_squares_map(latent, v) for v in targets]
+        if self._supports_missing_views:
+            # A model for filling in missing views regresses each view on the
+            # latent of the other views, which is all it will have to predict
+            # from: the view's own scores are overfitted to it.
+            self._predict_maps_ = []
+            for i, v in enumerate(targets):
+                latent = self._shared_latent(
+                    {j: views[j] for j in range(self.n_views_) if j != i}
+                )
+                rows = seen[i] & np.isfinite(latent).all(axis=1)
+                self._predict_maps_.append(_least_squares_map(latent[rows], v[rows]))
+        else:
+            latent = self._shared_latent(dict(enumerate(views)))
+            self._predict_maps_ = [
+                _least_squares_map(latent[r], v[r]) for v, r in zip(targets, seen)
+            ]
         self.feature_importances_per_view_: list[Any] = []
         for raw in self._feature_importances(views):
             xp, _ = get_namespace(raw)
@@ -261,7 +282,26 @@ class BaseModel(BaseEstimator, ABC):
     @property
     def _finite_check(self) -> bool | str:
         """The ``ensure_all_finite`` setting for this model's views."""
-        return "allow-nan" if self._allows_nan else True
+        return "allow-nan" if self._reads_nan else True
+
+    @property
+    def _reads_nan(self) -> bool:
+        """Whether NaN is data to the model: missing entries or missing views."""
+        return self._allows_nan or self._supports_missing_views
+
+    def _setup_missing(
+        self, views: list[ArrayLike]
+    ) -> tuple[list[np.ndarray], np.ndarray]:
+        """:meth:`_setup_fit` for samples that lack views.
+
+        Returns:
+            The centred views, ``NaN`` in the rows of samples that lack them,
+            and the boolean array of shape (n_samples, n_views) of the samples
+            each view is observed in.
+        """
+        centred = self._setup_fit(views)
+        observed = observed_rows(centred, self.n_components, type(self).__name__)
+        return centred, observed
 
     def _check_view(self, i: int, view: ArrayLike) -> np.ndarray:
         """View ``i`` as a validated array with the width and names seen in fit."""
@@ -435,8 +475,9 @@ class BaseModel(BaseEstimator, ABC):
         """
         xp, _ = get_namespace(*views)
         if type(self)._transform_view is BaseModel._transform_view:
+            variance = np.nanvar if self._supports_missing_views else xp.var
             return [
-                xp.var(v, axis=0) * xp.sum(w**2, axis=1)
+                variance(v, axis=0) * xp.sum(w**2, axis=1)
                 for v, w in zip(views, self.weights_)
             ]
         return self._permutation_importances(views)
@@ -471,6 +512,16 @@ class BaseModel(BaseEstimator, ABC):
         """
         xp, _ = get_namespace(*observed.values())
         scores = [self._transform_view(i, v) for i, v in observed.items()]
+        if self._supports_missing_views:
+            # Each sample's mean over the views that have it.
+            stacked = np.stack(scores)
+            seen = np.isfinite(stacked)
+            total = np.where(seen, stacked, 0.0).sum(axis=0)
+            count = seen.sum(axis=0)
+            mean: np.ndarray = np.divide(
+                total, count, out=np.full_like(total, np.nan), where=count > 0
+            )
+            return mean
         return xp.mean(xp.stack(scores), axis=0)
 
     def inverse_transform(self, scores: list[ArrayLike]) -> list[np.ndarray]:
@@ -525,7 +576,8 @@ class BaseModel(BaseEstimator, ABC):
         The average over latent dimensions of the mean pairwise correlation.
         Per-dimension values:
         ``average_pairwise_correlations(pairwise_correlations(model.transform(views)))``
-        from :mod:`cca_zoo.metrics`.
+        from :mod:`cca_zoo.metrics`. For a model that supports missing views,
+        each pair of views is correlated over the samples that have both.
 
         Args:
             views: List of arrays, each of shape (n_samples, n_features_i).
@@ -535,8 +587,23 @@ class BaseModel(BaseEstimator, ABC):
             The mean canonical correlation.
         """
         scores = [_to_numpy(z) for z in self._transform_arrays(views)]
-        per_dimension = _average_pairwise_correlations(_pairwise_correlations(scores))
-        return float(np.mean(per_dimension))
+        seen = [np.isfinite(z).all(axis=1) for z in scores]
+        if all(s.all() for s in seen):
+            per_dimension = _average_pairwise_correlations(
+                _pairwise_correlations(scores)
+            )
+            return float(np.mean(per_dimension))
+        # Samples that lack a view: correlate each pair on the samples with both.
+        per_pair = []
+        for i in range(len(scores)):
+            for j in range(i + 1, len(scores)):
+                both = seen[i] & seen[j]
+                if both.sum() >= 2:
+                    pair = _pairwise_correlations([scores[i][both], scores[j][both]])
+                    per_pair.append(pair[0, 1])
+        if not per_pair:
+            raise ValueError("No two views share at least 2 samples to correlate.")
+        return float(np.mean(per_pair))
 
     def predict(self, views: list[ArrayLike | None]) -> list[np.ndarray]:
         """Reconstruct every view from the views that are observed.
@@ -566,6 +633,11 @@ class BaseModel(BaseEstimator, ABC):
             >>> model.predict([X1, None])[1].shape
             (50, 8)
         """
+        latent = self._shared_latent(self._centred_observed(views))
+        return [latent @ m + mean for m, mean in zip(self._predict_maps_, self.means_)]
+
+    def _centred_observed(self, views: list[ArrayLike | None]) -> dict[int, Any]:
+        """The centred views that are given, by index; ``None`` is unobserved."""
         check_is_fitted(self)
         if len(views) != self.n_views_:
             raise ValueError(
@@ -576,7 +648,7 @@ class BaseModel(BaseEstimator, ABC):
             i: self._check_view(i, v) for i, v in enumerate(views) if v is not None
         }
         if not observed:
-            raise ValueError("At least one view must be observed to predict.")
+            raise ValueError("At least one view must be observed.")
         first_i = next(iter(observed))
         n_samples = observed[first_i].shape[0]
         for v in observed.values():
@@ -586,10 +658,29 @@ class BaseModel(BaseEstimator, ABC):
                     f"samples. Got shapes: "
                     f"{[(j, a.shape) for j, a in observed.items()]}."
                 )
-        latent = self._shared_latent(
-            {i: v - self.means_[i] for i, v in observed.items()}
-        )
-        return [latent @ m + mean for m, mean in zip(self._predict_maps_, self.means_)]
+        return {i: v - self.means_[i] for i, v in observed.items()}
+
+    def transform_shared(self, views: list[ArrayLike | None]) -> Any:
+        """One latent score per sample, estimated from the views that are observed.
+
+        The same shared latent estimate that :meth:`predict` maps to the views:
+        the mean of the observed views' own scores, or the posterior mean for
+        probabilistic models. For a model that supports missing views, a
+        sample's mean is over the views it has.
+
+        Args:
+            views: One entry per view: an array of shape (n_samples,
+                n_features_i) or ``None`` for a view that is not observed.
+
+        Returns:
+            Array of shape (n_samples, n_components); ``NaN`` for a sample no
+            given view observes.
+
+        Raises:
+            ValueError: If ``views`` has the wrong length, no view is given,
+                or the given views have inconsistent shapes.
+        """
+        return self._shared_latent(self._centred_observed(views))
 
     # ------------------------------------------------------------------
     # Sklearn compatibility
@@ -604,6 +695,6 @@ class BaseModel(BaseEstimator, ABC):
         tags.array_api_support = self._supports_array_api
         tags.no_validation = True
         tags.input_tags.two_d_array = False
-        tags.input_tags.allow_nan = self._allows_nan
+        tags.input_tags.allow_nan = self._reads_nan
         tags._skip_test = True
         return tags
