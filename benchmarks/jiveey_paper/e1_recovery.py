@@ -120,7 +120,10 @@ def main() -> None:
         for rate in (0.0, 0.3, 0.5)
         for s in range(args.seeds)
     ]
-    rows: list[dict] = []
+    path = HERE / "output" / "e1.json"
+    rows: list[dict] = json.loads(path.read_text()) if path.exists() else []
+    done = {(r["regime"], r["rate"], r["seed"]) for r in rows}
+    jobs = [j for j in jobs if j not in done]
     with Pool(args.workers) as pool:
         for done, out in enumerate(pool.imap_unordered(run, jobs), 1):
             rows.extend(out)
