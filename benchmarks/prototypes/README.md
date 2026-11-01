@@ -84,6 +84,14 @@ With 30% of views missing it is more sensitive: 0.83 at the right ranks, 0.71 wh
 rank is too large (r=5), and 0.62 when the shared rank is right but the private rank is 1.
 Selecting the ranks is therefore still needed, most of all with missing views.
 
+**Weighting the blocks by their sample count** (`weighting="count"`): a block of the covariance
+is estimated from the samples that have both its views, so a block from few samples is noisier,
+yet the default weights every block equally. Weighting each by that number gives, over 8 datasets
+per cell and with c=0.5 (shared recovery, equal -> count): faint 30% missing 0.83 -> 0.86, faint
+50% 0.46 -> 0.60, fainter 30% 0.58 -> 0.61, fainter 50% 0.25 -> 0.30, moderate 30% 0.89 -> 0.89 and
+50% 0.78 -> 0.80. It is better or equal in all twelve cells tried, most under heavy missingness,
+though the gains are within one standard deviation across datasets (0.1-0.2) in several cells.
+
 Caveats: four datasets per cell in the comparison above; `IncompleteGCCA` is at a
 fixed shrinkage of 0.5 (the benchmark tunes it); and timings were taken while other jobs used the
 machine. Not yet tried: real data, a rank-selection rule, or a version that avoids the SVD for very large n.

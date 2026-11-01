@@ -23,8 +23,15 @@ from scipy.optimize import minimize
 class SharedPrivateEY:
     """Fit the loss above by L-BFGS from an initial shared latent."""
 
-    def __init__(self, n_shared: int, n_private: int | list[int], max_iter: int = 500):
+    def __init__(
+        self,
+        n_shared: int,
+        n_private: int | list[int],
+        max_iter: int = 500,
+        weighting: str = "equal",
+    ):
         self.n_shared, self.n_private, self.max_iter = n_shared, n_private, max_iter
+        self.weighting = weighting
 
     # ----- data ------------------------------------------------------------
     def _prepare(self, views: list[np.ndarray]) -> None:
@@ -38,6 +45,13 @@ class SharedPrivateEY:
         self.x_ = [v / s for v, s in zip(x, self.scales_)]
         seen = self.observed_.astype(float)
         self.divisor_ = seen.T @ seen - 1.0
+        # Each block of the covariance is estimated from the samples that have both its
+        # views, so a block from few samples is noisier: "count" weights blocks by that number.
+        self.weight_ = (
+            self.divisor_ / self.divisor_.max()
+            if self.weighting == "count"
+            else np.ones_like(self.divisor_)
+        )
 
     # ----- loss and gradient -------------------------------------------------
     def _unpack(self, theta: np.ndarray) -> tuple[list[np.ndarray], list[np.ndarray]]:
@@ -50,33 +64,31 @@ class SharedPrivateEY:
         return shared, private
 
     def loss_and_gradient(self, theta: np.ndarray) -> tuple[float, np.ndarray]:
-        """The Frobenius loss up to a constant, and its gradient."""
+        """The weighted Frobenius loss up to a constant, and its gradient."""
         shared, private = self._unpack(theta)
-        m, inv = len(shared), 1.0 / self.divisor_
+        m, inv, w = len(shared), 1.0 / self.divisor_, self.weight_
         u = [x @ s for x, s in zip(self.x_, shared)]
         v = [x @ q for x, q in zip(self.x_, private)]
         gram = [s.T @ s for s in shared]
-        total_gram = sum(gram)
-        loss = np.sum(total_gram * total_gram.T)  # tr((sum_i G_i)^2)
+        weighted_gram = [sum(w[i, j] * gram[j] for j in range(m)) for i in range(m)]
+        loss = sum(np.sum(gram[i] * weighted_gram[i]) for i in range(m))
         grad_s, grad_p = [], []
         for i in range(m):
             cross = shared[i].T @ private[i]
             h = private[i].T @ private[i]
-            loss += (
-                np.sum(h * h) + 2 * np.sum(cross**2) - 2 * np.sum(v[i] ** 2) * inv[i, i]
-            )
+            loss += w[i, i] * (np.sum(h * h) + 2 * np.sum(cross**2))
+            loss -= 2 * w[i, i] * np.sum(v[i] ** 2) * inv[i, i]
             for j in range(m):
-                loss -= 2 * np.sum(u[i] * u[j]) * inv[i, j]
-            others = sum(u[j] * inv[i, j] for j in range(m))
+                loss -= 2 * w[i, j] * np.sum(u[i] * u[j]) * inv[i, j]
+            others = sum(w[i, j] * inv[i, j] * u[j] for j in range(m))
             grad_s.append(
                 -4 * self.x_[i].T @ others
-                + 4 * shared[i] @ total_gram
-                + 4 * private[i] @ cross.T
+                + 4 * shared[i] @ weighted_gram[i]
+                + 4 * w[i, i] * private[i] @ cross.T
             )
             grad_p.append(
-                -4 * self.x_[i].T @ v[i] * inv[i, i]
-                + 4 * private[i] @ h
-                + 4 * shared[i] @ cross
+                -4 * w[i, i] * inv[i, i] * self.x_[i].T @ v[i]
+                + 4 * w[i, i] * (private[i] @ h + shared[i] @ cross)
             )
         flat = np.concatenate(
             [np.concatenate([a.ravel(), b.ravel()]) for a, b in zip(grad_s, grad_p)]
@@ -158,9 +170,10 @@ class WhitenedSharedPrivateEY:
         n_private: int | list[int],
         shrinkage: float = 0.5,
         max_iter: int = 500,
+        weighting: str = "equal",
     ):
         self.n_shared, self.n_private = n_shared, n_private
-        self.shrinkage, self.max_iter = shrinkage, max_iter
+        self.shrinkage, self.max_iter, self.weighting = shrinkage, max_iter, weighting
 
     def _reduce(self, views: list[np.ndarray]) -> list[np.ndarray]:
         reduced = []
@@ -182,9 +195,9 @@ class WhitenedSharedPrivateEY:
             d = (1.0 - c) * s[keep] ** 2 / (rows.sum() - 1) + c
             self.means_.append(mean)
             self.bases_.append(vt[keep].T / np.sqrt(d))
-        self.inner_ = SharedPrivateEY(self.n_shared, self.n_private, self.max_iter).fit(
-            self._reduce(views), seed=seed
-        )
+        self.inner_ = SharedPrivateEY(
+            self.n_shared, self.n_private, self.max_iter, self.weighting
+        ).fit(self._reduce(views), seed=seed)
         return self
 
     def scores(self, views: list[np.ndarray]) -> tuple[np.ndarray, list[np.ndarray]]:
