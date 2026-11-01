@@ -33,7 +33,7 @@ the withheld samples' noise-free shared signal, where ``SSE_mean`` is the error 
 predicting each view's observed mean. The mean is the baseline because, when the
 shared signal is a small share of the variance, the feature means estimated from
 the observed samples are about as noisy as the signal itself, so R² against the
-signal is pushed below zero for every method (it is also in the results files).
+signal is pushed below zero for every method (the results files also hold it).
 
 ## Caveats
 
@@ -49,7 +49,7 @@ signal is pushed below zero for every method (it is also in the results files).
 `python run.py --regime hard` uses 300-400 features per view, 80% of the variance in
 three private factors per view and 0.5-2% in the two shared factors, to test
 whether a correlation-based method does better when the shared signal is faint
-next to private variance. Results are in `output/results_hard.json`.
+next to private variance. Its results are written with `--out output/results_hard.json`, and `plot.py` draws both regimes.
 
 What it shows, over eight datasets per setting:
 
