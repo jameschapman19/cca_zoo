@@ -17,8 +17,9 @@ weights, which is JIVE's orthogonality. Scores are the projections ``X_i W_i``.
     L = -2 sum_ij <U_i, U_j> / D_ij + || sum_i [(1 - c) U_i'U_i / D_ii + c W_i'W_i] ||_F^2,
     U_i = X_i W_i,
 
-with D_ij the samples views i and j share, less one, so views missing for some samples need
-nothing more. With no individual columns it is CCAEY.
+with D_ii the samples that have view i, less one, and D_ij (i != j) either n - 1, the default
+(``cross_divisor='total'``: zero-filled rows, so a cross block from few shared samples is shrunk), or
+the samples views i and j share, less one (``'pairwise'``). With no individual columns it is CCAEY.
 """
 
 from __future__ import annotations
@@ -36,9 +37,11 @@ class JIVEEY:
         n_individual: int | list[int],
         shrinkage: float = 0.5,
         max_iter: int = 1000,
+        cross_divisor: str = "total",
     ):
         self.n_joint, self.n_individual = n_joint, n_individual
         self.shrinkage, self.max_iter = shrinkage, max_iter
+        self.cross_divisor = cross_divisor
 
     # ----- data and parameters ------------------------------------------------
     def _prepare(self, views: list[np.ndarray]) -> None:
@@ -48,6 +51,14 @@ class JIVEEY:
         self.x_ = [np.nan_to_num(v - m) for v, m in zip(views, self.means_)]
         seen = self.observed_.astype(float)
         self.divisor_ = seen.T @ seen - 1.0
+        if self.cross_divisor == "total":
+            # Cross-covariances over all n samples, as with zero-filled rows: each block is
+            # shrunk by n_ij / n, so blocks from few shared samples count for less.
+            diagonal = np.diag(self.divisor_).copy()
+            self.divisor_ = np.full_like(self.divisor_, len(views[0]) - 1.0)
+            np.fill_diagonal(self.divisor_, diagonal)
+        elif self.cross_divisor != "pairwise":
+            raise ValueError("cross_divisor must be 'total' or 'pairwise'.")
         self.p_ = [v.shape[1] for v in views]
         r = self.n_individual
         self.r_ = r if isinstance(r, list) else [r] * len(views)
