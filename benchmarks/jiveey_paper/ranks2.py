@@ -73,3 +73,43 @@ def select_ranks2(views, shrinkage=0.5, seed=0):
     """(K, r) by the held-out cross-view correlation rule, then the one-SE rule."""
     k = max(select_joint_rank(views, shrinkage=shrinkage, seed=seed), 1)
     return k, select_individual_rank(views, k, shrinkage, seed=seed)
+
+
+def select_joint_rank_predictive(views, k_max=5, shrinkage=0.5, seed=0, n_splits=3):
+    """The joint rank that best predicts one view from the others on held-out samples.
+
+    A joint component is one that carries information across views, so its worth is how well it
+    fills in a view that was hidden. Private variance cannot do that, which is what makes the
+    criterion immune to the joint-versus-individual trade the held-out loss cannot resolve.
+    """
+    from cca_zoo.linear import IncompleteGCCA
+
+    skills = np.zeros((k_max, n_splits))
+    for f, (train, test) in enumerate(_folds(views, seed, n_splits)):
+        held = [v[test] for v in views]
+        seen = np.stack([~np.isnan(v).any(1) for v in held], axis=1)
+        for k in range(1, k_max + 1):
+            model = IncompleteGCCA(n_components=k, shrinkage=shrinkage).fit([v[train] for v in views])
+            sse = base = 0.0
+            for pattern in np.unique(seen, axis=0):
+                if pattern.sum() < 2:
+                    continue
+                rows = np.flatnonzero((seen == pattern).all(1))
+                hidden = int(np.flatnonzero(pattern)[0])
+                given = [v[rows] if (p and j != hidden) else None for j, (v, p) in enumerate(zip(held, pattern))]
+                pred = model.predict(given)[hidden]
+                truth = held[hidden][rows]
+                mean = np.nanmean(np.vstack([v[train] for v in [views[hidden]]]), axis=0)
+                sse += np.sum((pred - truth) ** 2)
+                base += np.sum((mean - truth) ** 2)
+            skills[k - 1, f] = 1 - sse / base if base else 0.0
+    mean = skills.mean(1)
+    best = int(np.argmax(mean))
+    se = skills[best].std(ddof=1) / np.sqrt(n_splits)
+    return min(k for k in range(1, k_max + 1) if mean[k - 1] >= mean[best] - se)
+
+
+def select_ranks3(views, shrinkage=0.5, seed=0):
+    """(K, r): joint rank by held-out view prediction, individual rank by the one-SE loss rule at that K."""
+    k = select_joint_rank_predictive(views, shrinkage=shrinkage, seed=seed)
+    return k, select_individual_rank(views, k, shrinkage, seed=seed)
