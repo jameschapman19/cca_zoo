@@ -15,7 +15,6 @@ sys.path.insert(0, str(HERE.parent / "prototypes"))
 sys.path.insert(0, str(HERE.parent / "missing_views"))
 from jiveey import JIVEEY  # noqa: E402
 from methods import _mofa_once, _shared_factors  # noqa: E402
-from metrics import subspace_recovery  # noqa: E402
 
 from cca_zoo.linear import AJIVE, IncompleteGCCA  # noqa: E402
 from cca_zoo.metrics import variance_explained  # noqa: E402
@@ -34,6 +33,19 @@ REGIMES = {
     ),
 }
 N_SHARED = 2
+
+
+def subspace_recovery(estimated: np.ndarray, truth: np.ndarray) -> float:
+    """Share of the true factor space captured: summed squared cosines of the principal angles
+    over the true dimension.
+
+    Unlike the mean over the smaller of the two dimensions, an estimate with too few columns
+    scores less than 1 for it, and one with too many is not rewarded for the extra. It is 1 when
+    the estimated factors contain the true ones.
+    """
+    qa = np.linalg.qr(estimated - estimated.mean(axis=0))[0]
+    qb = np.linalg.qr(truth - truth.mean(axis=0))[0]
+    return float(np.sum(np.linalg.svd(qa.T @ qb, compute_uv=False) ** 2) / qb.shape[1])
 
 
 def heldout_loss(model: JIVEEY, views: Views) -> float:
@@ -70,12 +82,13 @@ def select_ranks(
     joint: tuple[int, ...] = (1, 2, 3, 4),
     individual: tuple[int, ...] = (0, 1, 2, 3, 4, 5),
     seed: int = 0,
+    n_splits: int = 3,
 ) -> tuple[int, int]:
     """The joint rank and the (common) individual rank with the lowest held-out loss."""
     best, arg = np.inf, (joint[0], individual[0])
     for k, r in product(joint, individual):
         losses = []
-        for train, test in _folds(views, seed):
+        for train, test in _folds(views, seed, n_splits):
             model = JIVEEY(k, r, shrinkage).fit(
                 [v[train] for v in views], seed=seed, n_init=1
             )
