@@ -83,19 +83,31 @@ def select_ranks(
     individual: tuple[int, ...] = (0, 1, 2, 3, 4, 5),
     seed: int = 0,
     n_splits: int = 3,
+    one_se: bool = True,
 ) -> tuple[int, int]:
-    """The joint rank and the (common) individual rank with the lowest held-out loss."""
-    best, arg = np.inf, (joint[0], individual[0])
-    for k, r in product(joint, individual):
-        losses = []
-        for train, test in _folds(views, seed, n_splits):
+    """The joint rank and the (common) individual rank by held-out loss.
+
+    With ``one_se`` the smallest model (fewest columns, K plus one individual block per view)
+    whose mean held-out loss is within one standard error of the best, over folds, is taken;
+    otherwise the minimum. The loss is flat across trades of joint for individual columns, so
+    the minimum alone drifts to large individual ranks.
+    """
+    grid = list(product(joint, individual))
+    losses = np.zeros((len(grid), n_splits))
+    for g, (k, r) in enumerate(grid):
+        for f, (train, test) in enumerate(_folds(views, seed, n_splits)):
             model = JIVEEY(k, r, shrinkage).fit(
                 [v[train] for v in views], seed=seed, n_init=1
             )
-            losses.append(heldout_loss(model, [v[test] for v in views]))
-        if np.mean(losses) < best:
-            best, arg = float(np.mean(losses)), (k, r)
-    return arg
+            losses[g, f] = heldout_loss(model, [v[test] for v in views])
+    mean = losses.mean(1)
+    best = int(np.argmin(mean))
+    if not one_se:
+        return grid[best]
+    se = losses[best].std(ddof=1) / np.sqrt(n_splits)
+    ok = [g for g in range(len(grid)) if mean[g] <= mean[best] + se]
+    size = lambda g: grid[g][0] + len(views) * grid[g][1]
+    return grid[min(ok, key=size)]
 
 
 def select_shrinkage(
