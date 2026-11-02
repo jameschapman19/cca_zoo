@@ -22,6 +22,7 @@ COLORS = {
     "MOFA+": "#4c9a4c",
     "IncompleteGCCA": "#8a8a8a",
     "CCA-EY (no individual)": "#b05fb0",
+    "JIVEEY, pairwise divisor (true ranks)": "#1aa6a6",
 }
 plt.rcParams.update({"font.size": 12, "axes.spines.top": False, "axes.spines.right": False})
 
@@ -29,6 +30,9 @@ plt.rcParams.update({"font.size": 12, "axes.spines.top": False, "axes.spines.rig
 def e1() -> None:
     """Shared and individual recovery against the fraction of views missing."""
     d = pd.read_json(HERE / "output" / "e1.json")
+    old = pd.read_json(HERE / "output" / "e1_pairwise.json")
+    old = old[old.method == "JIVEEY (true ranks)"].assign(method="JIVEEY, pairwise divisor (true ranks)")
+    d = pd.concat([d, old])
     for column, name in (("shared", "joint"), ("private", "individual")):
         fig, axes = plt.subplots(1, 3, figsize=(10, 4.5), sharey=True)
         for ax, regime in zip(axes, ("moderate", "faint", "fainter")):
@@ -37,7 +41,7 @@ def e1() -> None:
                 if s.empty:
                     continue
                 g = s.groupby("rate")[column].agg(["mean", "sem"])
-                ax.errorbar(g.index * 100, g["mean"], g["sem"], label=method, color=color, marker="o", ms=4, lw=1.8, capsize=2)
+                ax.errorbar(g.index * 100, g["mean"], g["sem"], label=method, color=color, marker="o", ms=4, lw=1.8, capsize=2, ls="--" if "pairwise" in method else "-")
             ax.set_title({"moderate": "10% shared", "faint": "2% shared", "fainter": "1% shared"}[regime])
             ax.set_xlabel("views missing (%)")
             ax.set_xticks([0, 30, 50])
