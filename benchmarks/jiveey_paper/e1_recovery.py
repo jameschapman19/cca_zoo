@@ -17,6 +17,7 @@ from common import (
     REGIMES,
     IncompleteGCCA,
     JIVEEY,
+    em_complete,
     ajive_fit,
     mean_filled,
     mofa_joint_individual,

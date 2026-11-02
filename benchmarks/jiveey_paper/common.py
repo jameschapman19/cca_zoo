@@ -36,16 +36,33 @@ N_SHARED = 2
 
 
 def subspace_recovery(estimated: np.ndarray, truth: np.ndarray) -> float:
-    """Share of the true factor space captured: summed squared cosines of the principal angles
-    over the true dimension.
+    """Overlap of two factor spaces: twice the summed squared cosines of the principal angles,
+    over the sum of the two dimensions.
 
-    Unlike the mean over the smaller of the two dimensions, an estimate with too few columns
-    scores less than 1 for it, and one with too many is not rewarded for the extra. It is 1 when
-    the estimated factors contain the true ones.
+    1 when the spaces are equal, and lower both when the estimate has too few columns and when it
+    has extra ones, so neither under- nor over-ranking is rewarded.
     """
     qa = np.linalg.qr(estimated - estimated.mean(axis=0))[0]
     qb = np.linalg.qr(truth - truth.mean(axis=0))[0]
-    return float(np.sum(np.linalg.svd(qa.T @ qb, compute_uv=False) ** 2) / qb.shape[1])
+    cos2 = np.linalg.svd(qa.T @ qb, compute_uv=False) ** 2
+    return float(2 * np.sum(cos2) / (qa.shape[1] + qb.shape[1]))
+
+
+def em_complete(views: Views, observed: np.ndarray, rank: int, n_iter: int = 100) -> Views:
+    """Fill whole missing views by iterated rank-``rank`` SVD of the concatenated, centred views."""
+    means = [np.nanmean(v, axis=0) for v in views]
+    x = np.hstack([np.where(o[:, None], v - m, 0.0) for v, m, o in zip(views, means, observed.T)])
+    mask = np.hstack([np.repeat(o[:, None], v.shape[1], axis=1) for v, o in zip(views, observed.T)])
+    filled = x.copy()
+    for _ in range(n_iter):
+        u, sv, vt = np.linalg.svd(filled, full_matrices=False)
+        low = (u[:, :rank] * sv[:rank]) @ vt[:rank]
+        filled = np.where(mask, x, low)
+    out, at = [], 0
+    for v, m in zip(views, means):
+        out.append(filled[:, at : at + v.shape[1]] + m)
+        at += v.shape[1]
+    return out
 
 
 def heldout_loss(model: JIVEEY, views: Views) -> float:
