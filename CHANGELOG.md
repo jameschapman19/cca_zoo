@@ -13,6 +13,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   rows. Each sample's latent score is fitted to the views it has, and the fit reduces exactly to
   `GCCA` when nothing is missing. It fits wide views through their SVDs rather than a
   feature-by-feature eigendecomposition: 2.7 s on 200 patients with 9,600 features.
+- `IncompleteGCCA(view_ranks=...)` reduces each view to its top singular directions before fitting,
+  as CCA on principal components does: an integer, one per view, or `"auto"` for Gavish and
+  Donoho's optimal hard threshold on the view's observed rows. The rank cut regularises, so
+  `shrinkage` can stay at 0. `IncompleteGCCA.select_n_components` counts the joint components
+  that beat chance, by the random direction bound of angle-based JIVE on the actual pattern of
+  missing views. With a faint shared signal in wide views and 30% to 50% of views missing, this
+  recovers the shared factors far better than AJIVE on mean-filled views.
 - `CCAEY`, `PLSEY` and `StochasticCCAEY` fit samples that lack some views (all-`NaN` rows). Every
   covariance in the Eckart-Young loss is taken over the samples that have the views concerned,
   and the gradient is exact (checked against finite differences). `HuberCCA` and `TrimmedCCA`,

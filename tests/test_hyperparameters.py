@@ -108,6 +108,7 @@ _ALTERNATIVE: dict[str, Any] = {
     "span": 2,
     "batch_size": 16,
     "positive": "flip",
+    "view_ranks": 2,
 }
 _MODEL_ALTERNATIVE: dict[tuple[str, str], Any] = {
     ("GRCCA", "shrinkage"): 0.9,

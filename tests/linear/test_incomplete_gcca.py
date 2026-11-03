@@ -142,3 +142,106 @@ def test_unlinked_views_raise() -> None:
     # More shared samples than components link them.
     linked = _drop(views, [slice(30, 60), slice(30, 60), slice(0, 27)])
     IncompleteGCCA(n_components=2).fit(linked)
+
+
+def _wide_factor_views(
+    n: int,
+    widths: tuple[int, ...],
+    n_shared: int = 2,
+    n_private: int = 3,
+    seed: int = 0,
+) -> tuple[list[np.ndarray], np.ndarray]:
+    """Wide views with a weak shared signal, private factors and noise; the factors."""
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal((n, n_shared))
+    views = []
+    for p in widths:
+        own = rng.standard_normal((n, n_private))
+        views.append(
+            z @ rng.standard_normal((n_shared, p)) * 0.15
+            + own @ rng.standard_normal((n_private, p)) * 0.9
+            + rng.standard_normal((n, p)) * 0.4
+        )
+    return views, z
+
+
+def test_view_ranks_is_gcca_on_principal_components() -> None:
+    """Reducing each view to r directions is GCCA on its r principal scores."""
+    views, _ = _factor_views(100, (30, 25, 20), noise=0.5)
+    ranks = [6, 5, 4]
+    reduced = []
+    for v, r in zip(views, ranks):
+        centred = v - v.mean(axis=0)
+        reduced.append(centred @ np.linalg.svd(centred, full_matrices=False)[2][:r].T)
+    ours = IncompleteGCCA(n_components=2, view_ranks=ranks).fit(views)
+    reference = IncompleteGCCA(n_components=2).fit(reduced)
+    assert ours.view_ranks_ == ranks
+    assert_same_scores_as(ours.transform(views), reference.transform(reduced))
+
+
+def test_view_ranks_none_keeps_every_direction() -> None:
+    """The default is unchanged by the option existing."""
+    views, _ = _factor_views(80, (10, 8))
+    assert IncompleteGCCA(n_components=2).fit(views).view_ranks_ is None
+
+
+def test_auto_view_ranks_find_the_signal_rank() -> None:
+    """Views of five strong factors in noise keep about five directions."""
+    rng = np.random.default_rng(1)
+    views = [
+        rng.standard_normal((200, 5)) * 3 @ rng.standard_normal((5, p))
+        + rng.standard_normal((200, p))
+        for p in (120, 150)
+    ]
+    model = IncompleteGCCA(n_components=2, view_ranks="auto").fit(views)
+    assert model.view_ranks_ == [5, 5]
+
+
+def test_auto_view_ranks_use_each_views_observed_rows() -> None:
+    """A view's rank is read from the samples that have it, not from filled-in rows."""
+    views, _ = _wide_factor_views(150, (200, 250, 150))
+    views = _drop(views, [slice(100, None), slice(0, 0), slice(0, 0)])
+    model = IncompleteGCCA(n_components=2, view_ranks="auto").fit(views)
+    assert all(r >= 2 for r in model.view_ranks_)
+
+
+def test_view_ranks_below_n_components_raise() -> None:
+    """A view cannot carry more components than directions it keeps."""
+    views, _ = _factor_views(60, (10, 8))
+    with pytest.raises(ValueError, match="view_ranks must be at least"):
+        IncompleteGCCA(n_components=3, view_ranks=2).fit(views)
+
+
+def test_reduced_gcca_recovers_a_faint_shared_signal_with_views_missing() -> None:
+    """The rank cut regularises: a faint signal is found with 30% of views missing."""
+    views, z = _wide_factor_views(150, (300, 400, 200))
+    rng = np.random.default_rng(3)
+    missing = rng.random((150, 3)) < 0.3
+    missing[missing.all(axis=1), 0] = False
+    for v, m in zip(views, missing.T):
+        v[m] = np.nan
+    k = IncompleteGCCA.select_n_components(views, random_state=0)
+    assert k == 2
+    model = IncompleteGCCA(n_components=k, view_ranks="auto").fit(views)
+    assert principal_cosines(model.transform_shared(views), z).min() > 0.9
+    plain = IncompleteGCCA(n_components=k, shrinkage=0.5).fit(views)
+    assert (
+        principal_cosines(model.transform_shared(views), z).mean()
+        > principal_cosines(plain.transform_shared(views), z).mean()
+    )
+
+
+def test_select_n_components_counts_joint_components() -> None:
+    """Two shared factors are two components; no shared factor is none."""
+    views, _ = _wide_factor_views(150, (300, 400, 200))
+    assert IncompleteGCCA.select_n_components(views, random_state=0) == 2
+    rng = np.random.default_rng(0)
+    independent = [rng.standard_normal((150, p)) for p in (60, 80, 50)]
+    assert IncompleteGCCA.select_n_components(independent, random_state=0) == 0
+
+
+def test_select_n_components_is_reproducible() -> None:
+    """The same seed gives the same answer."""
+    views, _ = _wide_factor_views(100, (80, 90))
+    first = IncompleteGCCA.select_n_components(views, random_state=4)
+    assert first == IncompleteGCCA.select_n_components(views, random_state=4)

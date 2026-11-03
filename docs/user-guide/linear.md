@@ -151,6 +151,26 @@ z1, z2, z3 = model.transform([X1, X2, X3])  # NaN rows for the unobserved sample
 consensus = model.transform_shared([X1, X2, X3])  # one score per sample, from its views
 ```
 
+**Weak shared signal in wide views.** Omics views have far more features than samples, so CCA on
+them overfits unless it is regularised. Reducing each view to its principal directions first, as
+CCA on principal components does, is a hard rank cut instead of a ridge penalty, and
+`view_ranks="auto"` chooses the cut for you: each view keeps the singular directions of its
+observed rows above Gavish and Donoho's optimal hard threshold. `select_n_components` counts the
+joint components that beat chance, using the random direction bound of angle-based JIVE on your
+actual pattern of missing views.
+
+```python
+k = IncompleteGCCA.select_n_components([X1, X2, X3], random_state=0)
+model = IncompleteGCCA(n_components=k, view_ranks="auto").fit([X1, X2, X3])
+model.view_ranks_  # directions kept per view
+```
+
+On simulated views with a faint shared signal (2% of each feature's variance, 150 samples), this
+recovers the shared factors at 0.95 with 30% of the views missing and 0.93 with 50% missing, where
+AJIVE on mean-filled views reaches 0.78 and 0.15 and MOFA+, given the true number of factors,
+0.74 and 0.61. With strong shared signal or sparse loadings the gap closes or reverses: MOFA+ is
+better when the loadings are sparse and 50% of views are missing. See `benchmarks/jiveey_paper`.
+
 `CCAEY`, `PLSEY` and [`StochasticCCAEY`](stochastic.md) accept the same `NaN` rows, with every
 covariance in their loss taken over the samples that have the views concerned; use them when the
 views are too wide for `IncompleteGCCA`'s SVD. Missing values are assumed to be missing at random:
