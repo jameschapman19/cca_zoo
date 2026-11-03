@@ -81,6 +81,9 @@ def fit_pca_gcca(views: Views, observed: np.ndarray, seed: int = 0, rank_rule: s
     k = joint_rank_by_ajive(views, observed, signal) if rank_rule == "ajive" else select_joint_rank(reduced, seed=seed)
     if k == 0:
         return None
+    # Every view must be able to carry all k joint directions.
+    signal = [max(s, k) for s in signal]
+    reduced = reduce_views(views, observed, signal)
     model = IncompleteGCCA(n_components=k, shrinkage=0.0).fit(reduced)
     joint = model.transform_shared(reduced)
     individual = []
