@@ -74,11 +74,18 @@ def joint_rank_by_ajive(views: Views, observed: np.ndarray, signal: list[int]) -
         return 0
 
 
-def fit_pca_gcca(views: Views, observed: np.ndarray, seed: int = 0, rank_rule: str = "ajive"):
+def fit_pca_gcca(views: Views, observed: np.ndarray, seed: int = 0, rank_rule: str = "native"):
     """The whole pipeline. Returns joint scores, individual scores and the ranks, or None if no joint rank."""
     signal = observed_signal_ranks(views, observed)
     reduced = reduce_views(views, observed, signal)
-    k = joint_rank_by_ajive(views, observed, signal) if rank_rule == "ajive" else select_joint_rank(reduced, seed=seed)
+    if rank_rule == "native":
+        from native_rank import joint_rank_random_direction
+
+        k = joint_rank_random_direction(views, observed, signal, seed=seed)
+    elif rank_rule == "ajive":
+        k = joint_rank_by_ajive(views, observed, signal)
+    else:
+        k = select_joint_rank(reduced, seed=seed)
     if k == 0:
         return None
     # Every view must be able to carry all k joint directions.
