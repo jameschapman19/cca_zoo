@@ -66,7 +66,7 @@ class ProjectionPursuitCCA(BaseModel):
 
     Searches directly for unit directions maximising a robust correlation,
     the projection index PI, averaged over pairs of views. PI is Spearman's
-    rank correlation, Alfons et al.'s ``PP-SPM``:
+    rank correlation, Branco et al.'s ``PP-SPM``:
 
     $$
     \max_{\|a_1\| = \dots = \|a_M\| = 1}
@@ -98,6 +98,10 @@ class ProjectionPursuitCCA(BaseModel):
         Alfons, A., Croux, C., & Filzmoser, P. (2017). Robust maximum
         association estimators. Journal of the American Statistical
         Association, 112(517), 436-445.
+
+        Alfons, A., Croux, C., & Filzmoser, P. (2016). Robust maximum
+        association between data sets: The R package ccaPP. Austrian Journal
+        of Statistics, 45(1), 71-79.
 
     Examples:
         >>> import numpy as np
