@@ -176,6 +176,40 @@ the training encodings with the partials.
 `DCCAEY` also accepts `"independent_views"` in a batch, an independent batch whose
 encodings give an unbiased estimate of the loss's penalty term.
 
+### Ordered components, and crowding
+
+The EY loss is unchanged by rotating the embedding, so the components of `DCCAEY` come out as an
+arbitrary rotation of one another. `DCCAEY(ordered=True)` averages the loss over the prefixes of
+the components, as [`CCAEY`](linear.md#ordered-components) does, and `LeJEPA(ordered=True)` weights
+coordinate `j`'s alignment term by a weight falling geometrically with `j` (`order_ratio`, default
+4, from first to last), so that the components are the canonical variates of the encoders'
+outputs in descending order of correlation. This names the axes of an embedding, and it is
+all that ordering does.
+
+With flexible encoders the EY loss ranks *functions* of the data by how well one view predicts
+them, which need not be the factors. A function of a very stable factor, such as its square, is
+uncorrelated with the factor and can be more stable than a weaker factor, and then takes a
+coordinate that the weaker factor needed. We call this crowding. Ordering does not stop it: it
+only sorts the functions the loss prefers. In a test world of three Gaussian factors that persist
+at 0.95, 0.85 and 0.70 between the views, seen through a random invertible map by two MLP
+encoders (20,000 rows, 2,500 steps), `DCCAEY(ordered=True)` recovered the first two factors
+(held-out linear R² 0.99) and none of the third (0.00) in every one of 3 seeds.
+`LeJEPA(ordered=True)` recovered all three (R² 0.985 or more). The test in `tests/deep` runs a
+smaller version of this world, where `DCCAEY` still loses a factor on every seed but not always
+the third.
+
+Its SIGReg term pushes the embedding towards an isotropic Gaussian, whose coordinates are
+independent, and a function of one coordinate is not independent of it; we expect that is why
+`LeJEPA` does not crowd, and have not isolated it by ablation. Choose it over `DCCAEY` when you
+need the components to be distinct factors, not only predictable functions. Its target is a
+Gaussian embedding, so it suits factors that are close to Gaussian, and we did not test it here
+on factors far from Gaussian.
+
+To check any embedding for crowding, regress each coordinate on the earlier ones with
+[`nonlinear_redundancy`](model-selection.md#checking-an-embedding-for-redundant-coordinates). In
+the world above, the third coordinate of the `DCCAEY` embedding scored 0.95 to 0.99 and every
+`LeJEPA` coordinate scored 0.
+
 ---
 
 ## Custom models

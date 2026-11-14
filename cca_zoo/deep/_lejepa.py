@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -69,6 +70,17 @@ class LeJEPA(BaseDeep):
     stop-gradient, predictor or teacher network is needed. Every view is a
     global view, so the centre is the mean over all views.
 
+    SIGReg leaves the embedding's rotation free, so the axes are not named. With
+    ``ordered=True`` the squared distance of coordinate $j$ to the centre is
+    weighted by $w_j$, falling geometrically from $\sqrt{r}$ to $1/\sqrt{r}$
+    (``order_ratio`` $r$) and scaled to average 1. The loss is then lowest when
+    the coordinates are the canonical variates of the views, ordered by
+    cross-view correlation. SIGReg also controls the embedding's distribution.
+    In a test world of Gaussian factors of unequal stability, that kept functions
+    of the most stable factor from taking the coordinates that a less stable
+    factor needed, as they do under :class:`~cca_zoo.deep.DCCAEY`; see
+    :func:`~cca_zoo.model_selection.nonlinear_redundancy` to check an embedding.
+
     Args:
         n_components: Number of latent dimensions.
         encoders: One module per view; two or more.
@@ -78,6 +90,18 @@ class LeJEPA(BaseDeep):
         n_points: Quadrature points of the Epps-Pulley integral. Default is 17.
         t_max: Half-width of the integration interval. Default is 5.0.
         learning_rate: Adam learning rate. Default is 1e-3.
+        ordered: Whether to weight the alignment of coordinate j by a weight
+            falling with j, so that the coordinates are ordered canonical
+            variates of the views instead of an arbitrary rotation of them.
+            Default is False.
+        order_ratio: Ratio of the first coordinate's weight to the last's when
+            ``ordered``, at least 1; 1 weights all coordinates equally. The
+            last coordinate's pull towards alignment is ``1 / order_ratio`` of
+            the first's, so a large ratio, like a large ``lam``, leaves the
+            trailing coordinates to SIGReg. With linear encoders and two
+            coordinates the canonical variates were recovered for ratios 2 to
+            8 at ``lam`` up to 0.05, and not at ratio 16 with ``lam`` 0.05 or
+            at ``lam`` 0.2. Default is 4.
         unbiased: Whether SIGReg uses the unbiased estimate of the squared
             characteristic-function error (see :func:`_sigreg`) in place of the
             plug-in one, which is biased upward by about 1 for a standard-normal
@@ -105,10 +129,14 @@ class LeJEPA(BaseDeep):
         n_points: int = 17,
         t_max: float = 5.0,
         learning_rate: float = 1e-3,
+        ordered: bool = False,
+        order_ratio: float = 4.0,
         unbiased: bool = False,
     ) -> None:
         if not 0.0 <= lam <= 1.0:
             raise ValueError(f"lam must be in [0, 1], got {lam}.")
+        if order_ratio < 1.0:
+            raise ValueError(f"order_ratio must be at least 1, got {order_ratio}.")
         super().__init__(
             n_components=n_components,
             encoders=encoders,
@@ -118,6 +146,8 @@ class LeJEPA(BaseDeep):
         self.n_slices = n_slices
         self.n_points = n_points
         self.t_max = t_max
+        self.ordered = ordered
+        self.order_ratio = order_ratio
         self.unbiased = unbiased
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
@@ -131,7 +161,12 @@ class LeJEPA(BaseDeep):
         """
         representations = self(batch["views"])
         z = torch.stack(representations)  # (views, n, d)
-        sim = (z.mean(dim=0) - z).square().mean()
+        k = self.n_components
+        w = np.geomspace(self.order_ratio**0.5, self.order_ratio**-0.5, k)
+        weights = torch.as_tensor(
+            w / w.mean() if self.ordered else np.ones(k), dtype=z.dtype, device=z.device
+        )
+        sim = ((z.mean(dim=0) - z).square().mean(dim=(0, 1)) * weights).mean()
         sigreg = torch.stack(
             [
                 _sigreg(

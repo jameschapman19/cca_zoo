@@ -78,8 +78,9 @@ class HuberCCA(CCAEY):
         >>> model = HuberCCA(n_components=4, random_state=0).fit([X1, X2])
     """
 
+    # The prefix-averaged loss is not offered: ordered is not a parameter.
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **CCAEY._parameter_constraints,
+        **{k: v for k, v in CCAEY._parameter_constraints.items() if k != "ordered"},
         "delta": [Interval(Real, 0, None, closed="neither")],
     }
 

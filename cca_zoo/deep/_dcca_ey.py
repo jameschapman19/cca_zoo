@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import numpy as np
 import torch
+import torch.nn as nn
 
+from cca_zoo._utils._ey import prefix_weights
 from cca_zoo.deep._base import BaseDeep, Batch
 
 
@@ -39,10 +42,23 @@ class DCCAEY(BaseDeep):
     mini-batches. With independent representations the penalty is
     $\operatorname{tr}(V V_{\text{ind}})$, an unbiased estimate.
 
+    The loss is invariant to rotating the components, and with flexible
+    encoders it ranks the cross-view-predictable functions of the data, which
+    need not be the factors: functions of a very stable factor, such as its
+    square, can outrank a less stable factor and fill components that factor
+    needed. ``ordered=True`` breaks the rotation invariance, as for
+    :class:`~cca_zoo.linear.gradient.CCAEY`, but not this crowding; see
+    :func:`~cca_zoo.model_selection.nonlinear_redundancy` to check for it, and
+    :class:`~cca_zoo.deep.LeJEPA` with ``ordered=True`` for a loss that also
+    controls the embedding's distribution.
+
     Args:
         n_components: Number of latent dimensions.
         encoders: One module per view.
         learning_rate: Adam learning rate. Default is 1e-3.
+        ordered: Whether to average the loss over every prefix of the
+            components, so that component j is the j-th canonical direction of
+            the encoders' outputs. Default is False.
 
     References:
         Chapman, J., Wells, L., & Lawry Aguila, A. (2024). Unconstrained
@@ -54,6 +70,33 @@ class DCCAEY(BaseDeep):
         >>> from cca_zoo.deep import DCCAEY
         >>> model = DCCAEY(n_components=4, encoders=[nn.Linear(10, 4), nn.Linear(8, 4)])
     """
+
+    def __init__(
+        self,
+        n_components: int,
+        encoders: list[nn.Module],
+        learning_rate: float = 1e-3,
+        ordered: bool = False,
+    ) -> None:
+        super().__init__(
+            n_components=n_components,
+            encoders=encoders,
+            learning_rate=learning_rate,
+        )
+        self.ordered = ordered
+
+    def _prefix_weights(self, like: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """The loss's weights on the diagonal of ``C`` and on ``V``'s entries.
+
+        All ones for the plain loss, and :func:`prefix_weights` when ``ordered``,
+        on the dtype and device of ``like``.
+        """
+        k = self.n_components
+        d, entry = prefix_weights(k) if self.ordered else (np.ones(k), np.ones((k, k)))
+        return (
+            torch.as_tensor(d, dtype=like.dtype, device=like.device),
+            torch.as_tensor(entry, dtype=like.dtype, device=like.device),
+        )
 
     def loss(self, batch: Batch) -> dict[str, torch.Tensor]:
         """The EY loss of a batch and its terms.
@@ -69,8 +112,9 @@ class DCCAEY(BaseDeep):
         c, v = _cca_cv(self(batch["views"]))
         independent = batch.get("independent_views")
         v_ind = v if independent is None else _cca_cv(self(independent))[1]
-        rewards = torch.trace(2.0 * c)
-        penalties = torch.trace(v @ v_ind)
+        d, entry = self._prefix_weights(c)
+        rewards = 2.0 * (d * c.diagonal()).sum()
+        penalties = (entry * v * v_ind.T).sum()
         return {
             "objective": -rewards + penalties,
             "rewards": rewards,

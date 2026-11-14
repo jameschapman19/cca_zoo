@@ -31,6 +31,9 @@ class StochasticCCAEY(CCAEY):
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
+        ordered: Whether to average the loss over every prefix of the
+            components, as in :class:`~cca_zoo.linear.gradient.CCAEY`, so that
+            component j is the j-th canonical direction. Default is False.
         learning_rate: Step size as a fraction of ``1 / L_i`` for view i,
             where ``L_i`` is the largest eigenvalue of its constraint matrix
             ``(1 - shrinkage) cov_i + shrinkage I``, so that the default suits
@@ -40,7 +43,11 @@ class StochasticCCAEY(CCAEY):
         n_iter_no_change: Epochs without an improvement of ``tol`` on the
             best epoch loss, the mean of its mini-batches' losses, before the
             step is divided by 5; the fit stops once the step is below 1e-6.
-            Default is 5, as in sklearn's SGD.
+            Default is 5, as in sklearn's SGD. With ``ordered=True`` and
+            mini-batches, raise it to about 100: the weakest direction
+            separates from its neighbour slowly, and a noisy epoch loss rarely
+            improves by ``tol`` there, so the default can freeze the step
+            first.
         tol: Improvement in the epoch loss that counts, as for
             ``n_iter_no_change``. Default is 1e-6.
         random_state: Seed for the shuffling and initial weights. Default is
@@ -78,6 +85,7 @@ class StochasticCCAEY(CCAEY):
         *,
         center: bool = True,
         shrinkage: float = 0.0,
+        ordered: bool = False,
         learning_rate: float = 0.2,
         batch_size: int | None = None,
         max_iter: int = 1000,
@@ -89,6 +97,7 @@ class StochasticCCAEY(CCAEY):
             n_components=n_components,
             center=center,
             shrinkage=shrinkage,
+            ordered=ordered,
             max_iter=max_iter,
             tol=tol,
             random_state=random_state,

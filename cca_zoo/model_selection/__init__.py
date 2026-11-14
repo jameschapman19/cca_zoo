@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from cca_zoo.model_selection import _search
+from cca_zoo.model_selection._redundancy import nonlinear_redundancy
 from cca_zoo.model_selection._search import (
     GridSearchCV,
     HalvingGridSearchCV,
@@ -31,6 +32,7 @@ __all__ = [
     "cross_val_score",
     "cross_validate",
     "learning_curve",
+    "nonlinear_redundancy",
     "permutation_test_significance",
     "validation_curve",
 ]

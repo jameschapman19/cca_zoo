@@ -165,6 +165,25 @@ model = CCAEY(n_components=2, max_iter=200)
 model.fit([X1, X2])
 ```
 
+### Ordered components
+
+The EY loss depends on the embedding only through its span, so with `n_components` above 1 the
+components come back as an arbitrary rotation of the canonical variates: the first need not be
+the most correlated. `ordered=True` averages the loss over every prefix of the components, the
+loss of the first component alone, of the first two, and so on up to `n_components`. Eckart-Young
+holds at every rank, so only the canonical variates in descending order of correlation minimise
+all of the prefixes at once, and component `j` becomes the `j`-th canonical direction. Dropping
+trailing components then leaves a smaller embedding of the same kind. The cost is a weaker pull on
+the later components, which converge more slowly.
+
+```python
+model = CCAEY(n_components=3, ordered=True)
+model.fit([X1, X2])  # model.transform gives the canonical variates in order
+```
+
+Variates with equal canonical correlations stay unordered among themselves. `PLSEY`, `HuberCCA` and
+`TrimmedCCA` do not take `ordered`.
+
 ### HuberCCA — bounded-influence EY-CCA
 
 `CCAEY`'s cross- and auto-covariance statistics weight every sample equally, so a handful of

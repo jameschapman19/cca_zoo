@@ -15,6 +15,7 @@ from cca_zoo._utils._convergence import warn_if_not_converged
 from cca_zoo._utils._ey import (
     cheap_orthonormal_projection_weights,
     ey_cross_covariance,
+    prefix_weights,
     weight_gram_mean,
 )
 from cca_zoo._utils._param_constraints import RANDOM_STATE
@@ -39,11 +40,22 @@ class CCAEY(BaseModel):
     few samples per feature, ``shrinkage=0`` is ill-conditioned; use 0.1 to
     0.3.
 
+    The loss is invariant to rotating the components, so the fit spans the top
+    canonical subspace in an arbitrary basis. With ``ordered=True`` the loss is
+    the mean of the loss on the first $p$ components over $p = 1, \dots, k$
+    (:func:`~cca_zoo._utils._ey.prefix_weights`): the Eckart-Young theorem
+    holds at every rank, so only the sorted basis minimises every prefix at
+    once, and component $j$ is the $j$-th canonical direction.
+
     Args:
         n_components: Number of latent dimensions. Default is 1.
         center: Whether to centre each view. Default is True.
         shrinkage: Shrinkage of each view's covariance towards the identity,
             in ``[0, 1]``: 0 is CCA and 1 is PLS. Default is 0.
+        ordered: Whether to average the loss over every prefix of the
+            components, which orders them by canonical correlation instead of
+            leaving them in an arbitrary basis of the same subspace. Default is
+            False.
         max_iter: Maximum L-BFGS-B iterations. Default is 1000.
         tol: L-BFGS-B ``ftol``. Default is 1e-8.
         random_state: Seed for the initial weights. Default is None.
@@ -70,6 +82,7 @@ class CCAEY(BaseModel):
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
         **BaseModel._parameter_constraints,
         "shrinkage": [Interval(Real, 0, 1, closed="both")],
+        "ordered": ["boolean"],
         "max_iter": [Interval(Integral, 1, None, closed="left")],
         "tol": [Interval(Real, 0, None, closed="neither")],
         "random_state": RANDOM_STATE,
@@ -81,12 +94,14 @@ class CCAEY(BaseModel):
         *,
         center: bool = True,
         shrinkage: float = 0.0,
+        ordered: bool = False,
         max_iter: int = 1000,
         tol: float = 1e-8,
         random_state: int | None = None,
     ) -> None:
         super().__init__(n_components=n_components, center=center)
         self.shrinkage = shrinkage
+        self.ordered = ordered
         self.max_iter = max_iter
         self.tol = tol
         self.random_state = random_state
@@ -160,6 +175,15 @@ class CCAEY(BaseModel):
         """Each sample's weight in the loss's moments: equal, for CCA."""
         return np.ones(len(representations[0]))
 
+    def _prefix_weights(self, k: int) -> tuple[np.ndarray, np.ndarray]:
+        """The loss's weights on the diagonal of ``C - cV`` and on ``V``'s entries.
+
+        All ones for the plain loss, and :func:`prefix_weights` when ``ordered``.
+        """
+        if self.ordered:
+            return prefix_weights(k)
+        return np.ones(k), np.ones((k, k))
+
     def _derivative(
         self,
         views: list[np.ndarray],
@@ -169,7 +193,9 @@ class CCAEY(BaseModel):
         r"""Gradient of $\mathcal{L}_{EY}(c)$ in each view's weights.
 
         The chain rule through the embeddings plus the direct term from $B$,
-        with the sample weights held fixed.
+        with the sample weights held fixed. The diagonal weights ``d`` scale
+        the components' columns in the reward terms, and the entry weights ``m``
+        scale the penalty's matrix.
         """
         m = len(views)
         c = self.shrinkage
@@ -179,10 +205,11 @@ class CCAEY(BaseModel):
         ]
         total = sum(centred)
         _, v_data = ey_cross_covariance(representations, sample_weight)
-        v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
+        d, entry = self._prefix_weights(representations[0].shape[1])
+        v_blend = entry * ((1 - c) * v_data + c * weight_gram_mean(weights))
         scale = 4.0 * sample_weight[:, None] / (m * (sample_weight.sum() - 1))
         return [
-            view.T @ (scale * (c * z + (1 - c) * (z @ v_blend) - total))
+            view.T @ (scale * (c * z * d + (1 - c) * (z @ v_blend) - total * d))
             + (4.0 * c / m) * (w @ v_blend)
             for view, z, w in zip(views, centred, weights)
         ]
@@ -199,5 +226,8 @@ class CCAEY(BaseModel):
         C, v_data = ey_cross_covariance(
             representations, self._sample_weight(representations)
         )
+        d, entry = self._prefix_weights(C.shape[0])
         v_blend = (1 - c) * v_data + c * weight_gram_mean(weights)
-        return float(-2.0 * np.trace(C - c * v_data) + np.trace(v_blend @ v_blend))
+        return float(
+            -2.0 * np.sum(d * np.diag(C - c * v_data)) + np.sum(entry * v_blend**2)
+        )

@@ -47,6 +47,9 @@ _MODEL_SOLVER = {
 # in which it acts.
 _BASE: dict[str, dict[str, Any]] = {
     "GRCCA": {"shrinkage": 0.5, "feature_groups": [np.arange(6) % 2, np.arange(5) % 2]},
+    # With one component the prefix average is the plain loss.
+    "CCAEY": {"n_components": 2},
+    "StochasticCCAEY": {"n_components": 2},
     "IPLSCCA": {"alpha": 0.05},
     "ProjectionPursuitCCA": {"n_init": 1, "max_iter": 20},
     "KCCA": {"kernel": "poly"},
@@ -108,6 +111,7 @@ _ALTERNATIVE: dict[str, Any] = {
     "span": 2,
     "batch_size": 16,
     "positive": "flip",
+    "ordered": "flip",
 }
 _MODEL_ALTERNATIVE: dict[tuple[str, str], Any] = {
     ("GRCCA", "shrinkage"): 0.9,

@@ -44,9 +44,12 @@ class PLSEY(CCAEY):
         >>> model = PLSEY(n_components=4, random_state=0).fit([X1, X2])
     """
 
-    # shrinkage is fixed, not a parameter.
+    # shrinkage is fixed, and the prefix-averaged loss is not offered: neither
+    # is a parameter.
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        k: v for k, v in CCAEY._parameter_constraints.items() if k != "shrinkage"
+        k: v
+        for k, v in CCAEY._parameter_constraints.items()
+        if k not in ("shrinkage", "ordered")
     }
 
     def __init__(

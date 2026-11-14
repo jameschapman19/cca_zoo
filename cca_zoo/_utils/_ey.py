@@ -162,6 +162,32 @@ def random_orthogonal_embedding(
     return embedding
 
 
+def prefix_weights(k: int) -> tuple[np.ndarray, np.ndarray]:
+    r"""Weights turning the EY loss into its mean over the rank prefixes.
+
+    The loss on the first $p$ components uses the leading $p \times p$ blocks of
+    $C$ and $V$. Its mean over $p = 1, \dots, k$ is
+
+    $$
+    -2 \sum_j d_j C_{jj} + \sum_{a, b} m_{ab} V_{ab} V'_{ba},
+    \qquad d_j = \frac{k - j}{k}, \quad m_{ab} = \frac{k - \max(a, b)}{k}
+    $$
+
+    for components indexed from 0, since component $j$ lies in $k - j$ prefixes
+    and the pair $(a, b)$ in $k - \max(a, b)$. The Eckart-Young theorem holds at
+    every rank, so the only basis that minimises every prefix at once is the
+    sorted one: the loss is no longer invariant to rotating the components.
+
+    Args:
+        k: Number of components.
+
+    Returns:
+        ``(d, m)``, of shapes (k,) and (k, k).
+    """
+    index = np.arange(k)
+    return (k - index) / k, (k - np.maximum.outer(index, index)) / k
+
+
 def ey_grad_z(representations: list[np.ndarray]) -> list[np.ndarray]:
     r"""Gradient of the EY loss with respect to each embedding.
 

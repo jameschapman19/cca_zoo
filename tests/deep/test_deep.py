@@ -41,6 +41,7 @@ from cca_zoo.deep._nrdcca import _mean_canonical_correlation
 from cca_zoo.deep.objectives import CCALoss, GCCALoss, MCCALoss, TCCALoss
 from cca_zoo.linear import CCA, GCCA, MCCA, TCCA, PartialCCA
 from cca_zoo.metrics import pairwise_correlations
+from cca_zoo.model_selection import nonlinear_redundancy
 from tests._helpers import assert_same_subspace, linear_views, ordered_views
 
 pytestmark = pytest.mark.slow
@@ -362,6 +363,41 @@ def test_linear_encoders_minimising_a_loss_are_its_linear_model(
     )
 
 
+def _alignment(ours: list[np.ndarray], theirs: list[np.ndarray]) -> np.ndarray:
+    """Per component, the least correlation over views with the same CCA variate."""
+    return np.min(
+        [
+            np.abs((a * b).sum(axis=0))
+            / np.sqrt((a**2).sum(axis=0) * (b**2).sum(axis=0))
+            for a, b in (
+                (a - a.mean(axis=0), b - b.mean(axis=0)) for a, b in zip(ours, theirs)
+            )
+        ],
+        axis=0,
+    )
+
+
+def test_ordered_dcca_ey_over_linear_encoders_is_cca_in_order() -> None:
+    """The prefix-averaged loss pins the rotation: component j is CCA's j-th variate."""
+    views = _ordered(2)
+    model = DCCAEY(K, [nn.Identity(), nn.Identity()], ordered=True)
+    ours = _minimised_over_linear_encoders(
+        lambda zs: model.loss({"views": zs})["objective"], views, K
+    )
+    assert _alignment(ours, CCA(K).fit(views).transform(views)).min() > 0.99
+
+
+def test_ordered_dcca_ey_is_the_mean_of_the_prefix_losses() -> None:
+    """Averaging EY over the prefixes of the components is the ordered objective."""
+    torch.manual_seed(0)
+    zs = [torch.randn(40, 4, dtype=torch.float64) for _ in range(3)]
+    model = DCCAEY(4, [nn.Identity()] * 3, ordered=True)
+    by_definition = torch.stack(
+        [_ey_loss([z[:, :p] for z in zs]) for p in range(1, 5)]
+    ).mean()
+    torch.testing.assert_close(model.loss({"views": zs})["objective"], by_definition)
+
+
 def test_tcca_attains_the_minimum_of_its_loss() -> None:
     """No linear encoding scores below TCCA's on TCCALoss.
 
@@ -587,19 +623,108 @@ def test_nrdcca_without_regularisation_is_dmcca() -> None:
     torch.testing.assert_close(nr["objective"], dmcca["objective"])
 
 
-def test_linear_lejepa_is_cca() -> None:
-    """With little SIGReg, linear encoders minimising LeJEPA's loss span CCA's.
+def test_lejepa_order_weights_the_alignment_of_the_leading_coordinates_more() -> None:
+    """A disagreement in coordinate 0 costs more than the same one in coordinate 1."""
+    z = torch.randn(16, K)
+    shift = torch.zeros(K)
+    first, second = shift.clone(), shift.clone()
+    first[0], second[1] = 1.0, 1.0
+    encoders = [nn.Identity(), nn.Identity()]
 
-    SIGReg then acts as a whitening constraint, under which the distance to
-    the views' centre is CCA's objective.
+    def sim(ordered: bool, delta: torch.Tensor) -> float:
+        model = LeJEPA(K, encoders, ordered=ordered)
+        return float(model.loss({"views": [z, z + delta]})["sim_loss"])
+
+    assert sim(False, first) == pytest.approx(sim(False, second))
+    assert sim(True, first) > sim(True, second)
+    assert sim(True, first) + sim(True, second) == pytest.approx(
+        sim(False, first) + sim(False, second)
+    )
+
+
+def test_lejepa_order_ratio_of_one_is_unordered() -> None:
+    """With equal weights the ordered loss is the plain one."""
+    views = [torch.randn(16, K) for _ in range(2)]
+    encoders = [nn.Identity(), nn.Identity()]
+    plain = LeJEPA(K, encoders, n_slices=8)
+    flat = LeJEPA(K, encoders, n_slices=8, ordered=True, order_ratio=1.0)
+    torch.testing.assert_close(
+        flat.loss({"views": views})["sim_loss"],
+        plain.loss({"views": views})["sim_loss"],
+    )
+
+
+def test_lejepa_order_ratio_below_one_is_an_error() -> None:
+    """A ratio under 1 would put the weights in increasing order."""
+    with pytest.raises(ValueError, match="order_ratio"):
+        LeJEPA(K, [nn.Identity(), nn.Identity()], ordered=True, order_ratio=0.5)
+
+
+def _crowding_world(seed: int, n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Three Gaussian factors that persist at 0.95, 0.85 and 0.70, seen through a map.
+
+    The second view is the map of the factors one step later. The square of
+    the first factor persists at 0.95**2 = 0.90, above the second factor's 0.85,
+    so a loss that ranks functions by cross-view predictability prefers it.
+    The map is a random rotation followed by two triangular shears, which is
+    invertible.
     """
+    rng = np.random.default_rng(seed)
+    rho = np.array([0.95, 0.85, 0.70])
+    z = rng.standard_normal((n, 3))
+    later = rho * z + np.sqrt(1 - rho**2) * rng.standard_normal((n, 3))
+    rotation = np.linalg.qr(rng.standard_normal((3, 3)))[0]
+
+    def see(factors: np.ndarray) -> np.ndarray:
+        h = factors @ rotation
+        h[:, 1] += 1.5 * np.tanh(h[:, 0])
+        h[:, 2] += 1.5 * np.tanh(h[:, 1])
+        return ((h - h.mean(axis=0)) / h.std(axis=0)).astype(np.float32)
+
+    return z, see(z), see(later)
+
+
+def _factor_r2_and_redundancy(
+    build: Callable[[list[nn.Module]], BaseDeep], seed: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Train on the crowding world: held-out R^2 of each factor, and redundancy."""
+    z, x1, x2 = _crowding_world(seed, 12000)
+    train, test = slice(0, 10000), slice(10000, None)
+    torch.manual_seed(seed)
+    encoders = [
+        nn.Sequential(
+            nn.Linear(3, 64), nn.GELU(), nn.Linear(64, 64), nn.GELU(), nn.Linear(64, 3)
+        )
+        for _ in range(2)
+    ]
+    model = build(encoders)
+    torch.manual_seed(seed)
+    loader = DataLoader(
+        MultiviewDataset([x1[train], x2[train]]), batch_size=512, shuffle=True
+    )
+    _trainer(max_epochs=100).fit(model, loader)
+    model.eval()
+    with torch.no_grad():
+        h = model([torch.tensor(x1[test]), torch.tensor(x2[test])])[0].numpy()
+    design = np.column_stack([h, np.ones(len(h))])
+    target = z[test]
+    residual = target - design @ np.linalg.lstsq(design, target, rcond=None)[0]
+    spread = ((target - target.mean(axis=0)) ** 2).sum(axis=0)
+    return 1 - (residual**2).sum(axis=0) / spread, nonlinear_redundancy(
+        h, random_state=0
+    )
+
+
+def _linear_lejepa_encodings(
+    model: LeJEPA,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Linear encoders trained on LeJEPA's loss, and CCA's variates of the views."""
     rng = np.random.default_rng(0)
     z = rng.standard_normal((300, 2)) * [1.0, 0.6]
     views = [
         z @ rng.standard_normal((2, p)) + 0.5 * rng.standard_normal((300, p)) for p in P
     ]
     xs = [torch.tensor(v - v.mean(axis=0)) for v in views]
-    model = LeJEPA(K, [nn.Identity(), nn.Identity()], lam=0.05, n_slices=16)
     torch.manual_seed(0)
     weights = [
         torch.randn(x.shape[1], K, dtype=x.dtype, requires_grad=True) for x in xs
@@ -611,8 +736,55 @@ def test_linear_lejepa_is_cca() -> None:
             "objective"
         ].backward()
         optimiser.step()
-    assert_same_subspace(
+    return (
         [(x @ w).detach().numpy() for x, w in zip(xs, weights)],
         CCA(K).fit(views).transform(views),
-        atol=5e-3,
     )
+
+
+def test_linear_lejepa_is_cca() -> None:
+    """With little SIGReg, linear encoders minimising LeJEPA's loss span CCA's.
+
+    SIGReg then acts as a whitening constraint, under which the distance to
+    the views' centre is CCA's objective.
+    """
+    model = LeJEPA(K, [nn.Identity(), nn.Identity()], lam=0.05, n_slices=16)
+    ours, theirs = _linear_lejepa_encodings(model)
+    assert_same_subspace(ours, theirs, atol=5e-3)
+
+
+def test_ordered_linear_lejepa_is_cca_in_order() -> None:
+    """The weighted alignment names the axes: component j is CCA's j-th variate."""
+    model = LeJEPA(
+        K, [nn.Identity(), nn.Identity()], lam=0.05, n_slices=16, ordered=True
+    )
+    ours, theirs = _linear_lejepa_encodings(model)
+    # SIGReg only softly whitens 300 points, which leaves a few degrees of error
+    # (0.988 here); with an arbitrary rotation the alignment is 0.26.
+    assert _alignment(ours, theirs).min() > 0.97
+
+
+def test_ordered_lejepa_does_not_crowd_where_ordered_dcca_ey_does() -> None:
+    """EY with flexible encoders ranks functions; SIGReg's marginal control does not.
+
+    The factors persist at 0.95, 0.85 and 0.70. The square of the first persists
+    at 0.90, above the second, so the EY loss spends a coordinate on it and a
+    factor goes unrepresented; the redundancy diagnostic sees a coordinate that
+    is a function of the earlier ones. SIGReg asks the coordinates to be
+    independent, which the square of a factor is not, and all three factors are
+    recovered. Both losses are ordered. One seed is trained to keep the test
+    short: over three seeds ``DCCAEY`` lost a factor every time (the lowest R^2
+    was 0.00 to 0.12) and ``LeJEPA`` never had a redundant coordinate, though
+    its third factor reached only 0.69 on one seed.
+    """
+    r2_ey, redundancy_ey = _factor_r2_and_redundancy(
+        lambda encoders: DCCAEY(3, encoders, ordered=True), seed=0
+    )
+    r2_lejepa, redundancy_lejepa = _factor_r2_and_redundancy(
+        lambda encoders: LeJEPA(3, encoders, lam=0.05, n_slices=64, ordered=True),
+        seed=0,
+    )
+    assert r2_ey.min() < 0.2
+    assert redundancy_ey.max() > 0.5
+    assert r2_lejepa.min() > 0.9
+    assert redundancy_lejepa.max() < 0.1

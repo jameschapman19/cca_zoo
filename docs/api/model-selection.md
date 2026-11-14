@@ -28,3 +28,4 @@ Cross-validation, hyperparameter search and significance testing for multiview m
 
 ::: cca_zoo.model_selection.PermutationTestResult
 
+::: cca_zoo.model_selection.nonlinear_redundancy

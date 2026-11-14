@@ -143,8 +143,9 @@ class TrimmedCCA(CCAEY):
         140
     """
 
+    # One component has no order: ordered is not a parameter.
     _parameter_constraints: ClassVar[dict[str, list[Any]]] = {
-        **CCAEY._parameter_constraints,
+        **{k: v for k, v in CCAEY._parameter_constraints.items() if k != "ordered"},
         "n_components": [Options(Integral, {1})],
         "support_fraction": [Interval(Real, 0, 1, closed="right")],
         "n_init": POSITIVE_INT,

@@ -9,6 +9,25 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `ordered=True` on `CCAEY`, `StochasticCCAEY`, `DCCAEY` and `LeJEPA`. The EY loss is invariant
+  to rotating the embedding, so its components come out in no particular order. `CCAEY`,
+  `StochasticCCAEY` and `DCCAEY` average the loss over every prefix of the components (the
+  weights are `cca_zoo._utils._ey.prefix_weights`), which Eckart-Young makes minimal only for the
+  canonical variates in descending order of correlation, so that component `j` is the `j`-th
+  canonical direction. `LeJEPA` weights coordinate `j`'s alignment term by a geometric weight
+  falling by `order_ratio` (default 4) from first to last. Ties between equal correlations stay
+  unordered. With `StochasticCCAEY` mini-batches, raise `n_iter_no_change` to about 100: the
+  default can shrink the step before the weakest direction has separated.
+
+- `cca_zoo.model_selection.nonlinear_redundancy` gives each coordinate of an embedding's held-out
+  $R^2$ from gradient-boosted trees on the earlier coordinates. With flexible encoders the EY loss
+  ranks functions by cross-view predictability, so a function of a very stable factor can take
+  the coordinate a weaker factor needed ("crowding"). Ordering does not stop this. In a three-factor
+  test world `DCCAEY(ordered=True)` recovered two factors and none of the third on 3 of 3 seeds,
+  and its third coordinate scored 0.95 to 0.99; `LeJEPA(ordered=True)` recovered all three and
+  scored 0. That test world has Gaussian factors, which suits SIGReg's target; factors far from
+  Gaussian were not tested.
+
 - `LeJEPA(unbiased=True)` uses an unbiased estimate of SIGReg's squared characteristic-function
   error, dropping the `i = j` terms of the empirical characteristic function's squared
   modulus. The default plug-in statistic, which the reference implementation uses, has

@@ -12,6 +12,7 @@ from cca_zoo._utils._ey import (
     ey_loss,
     full_rank_reparametrisation,
     penalised_basis_ey_closed_form,
+    prefix_weights,
 )
 
 
@@ -113,4 +114,22 @@ def test_reparametrisation_is_full_rank_and_keeps_the_penalty() -> None:
     others = w[:, None] + null @ rng.standard_normal((null.shape[1], 20))
     assert np.all(
         np.sum((factor @ others) ** 2, axis=0) >= np.sum((factor @ w) ** 2) - 1e-9
+    )
+
+
+@pytest.mark.parametrize("k", [1, 2, 5])
+def test_prefix_weights_give_the_mean_loss_over_prefixes(k: int) -> None:
+    """Weights on C's diagonal and V's entries give the mean EY loss over prefixes."""
+    rng = np.random.default_rng(0)
+    a, b, c = (rng.standard_normal((k, k)) for _ in range(3))
+    C, V, V_ind = a + a.T, b @ b.T, c @ c.T
+    d, m = prefix_weights(k)
+    by_definition = np.mean(
+        [
+            -2 * np.trace(C[:p, :p]) + np.trace(V[:p, :p] @ V_ind[:p, :p])
+            for p in range(1, k + 1)
+        ]
+    )
+    np.testing.assert_allclose(
+        -2 * np.sum(d * np.diag(C)) + np.sum(m * V * V_ind.T), by_definition
     )

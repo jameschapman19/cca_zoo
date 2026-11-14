@@ -336,3 +336,27 @@ step-down, residualising each earlier one first.
 
 `n_permutations` trades off precision against runtime (each permutation refits the model
 from scratch); pass `n_jobs` to parallelise across permutations.
+
+---
+
+## Checking an embedding for redundant coordinates
+
+A model that ranks functions by cross-view predictability, such as the EY loss with flexible
+encoders (see [Ordered components, and crowding](deep.md#ordered-components-and-crowding)), can
+fill a coordinate with a function of an earlier one, so that a factor goes missing. Such a
+coordinate is uncorrelated with the earlier ones, which a correlation check cannot see, but a
+nonlinear regression predicts it. `nonlinear_redundancy` regresses each coordinate on the ones
+before it with gradient-boosted trees and returns the held-out $R^2$:
+
+```python
+from cca_zoo.model_selection import nonlinear_redundancy
+
+redundancy = nonlinear_redundancy(model.transform([X1, X2])[0], random_state=0)
+print(redundancy)  # near 1 for a coordinate that is a function of the earlier ones
+```
+
+The coordinates must be in the order they were learned, so use an ordered model: a coordinate
+that is redundant given only some of the others is reported by its position, not by name. The
+first entry has nothing before it and is 0. A value near 0 is not proof that the coordinate is
+a factor, only that the earlier coordinates do not predict it. The cost is one boosted
+regression per fold and coordinate, so it suits embeddings of tens of coordinates.
